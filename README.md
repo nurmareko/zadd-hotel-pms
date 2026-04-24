@@ -1,6 +1,8 @@
 # ZADD Hotel PMS
 
-**New to the project? Start with [docs/onboarding.md](docs/onboarding.md).**
+**New to the project?** Start with [docs/onboarding.md](docs/onboarding.md).
+
+**Stuck on something?** Check [docs/dev_guide.md](docs/dev_guide.md).
 
 ## Quick reference
 
