@@ -50,3 +50,5 @@ praktikum. Students rotate through 5 operational roles
 - Mutations via server actions. Pages are server components unless
   they need hooks (usePathname, useForm, charts).
 - Status badge palette: VC green, VD yellow, OC blue, OD red, OOO gray.
+- Prisma is pinned to v6.x. Do NOT upgrade to Prisma 7 — it has breaking
+  changes (config file, driver adapters) that don't fit this project.
