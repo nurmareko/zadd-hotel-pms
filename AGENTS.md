@@ -12,7 +12,7 @@ praktikum. Students rotate through 5 operational roles
 (FO / HK / FB / ACC / ADMIN). MVP scope — see docs/feature_list_mvp.md.
 
 ## Stack
-- Next.js 15 App Router, TypeScript, server components by default
+- Next.js 16 App Router, TypeScript, server components by default
 - PostgreSQL (Neon, provisioned via Vercel Storage)
 - Prisma ORM
 - NextAuth (credentials provider)
