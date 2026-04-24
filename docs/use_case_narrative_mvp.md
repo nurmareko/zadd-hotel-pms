@@ -1,22 +1,37 @@
-# 3.2.2 Use Case Diagram (MVP)
+# Use Case Narrative (MVP)
 
-Use case diagram pada Gambar 3.1 menggambarkan interaksi antara aktor dengan fitur-fitur sistem manajemen properti hotel yang telah diidentifikasi pada subbab 3.1.3. Sistem melibatkan lima aktor, yaitu Petugas Front Office, Petugas Housekeeping, Petugas F&B, dan Petugas Akuntansi (Night Auditor) yang masing-masing merupakan peran yang dimainkan oleh mahasiswa praktikum, serta Administrator yang diperankan oleh dosen pembimbing praktikum untuk mengelola data master dan pengguna sistem.
+Describes the interactions between actors and the system features listed in the [Feature List](./feature_list_mvp.md). The use case diagram lives in `use_case_diagram_mvp.svg` alongside this file.
 
-Sistem mencakup tiga belas *use case* utama dan dua *use case* pendukung yang dikelompokkan ke dalam lima modul sesuai pembagian fungsional. Modul Front Office menangani siklus hidup tamu yang mencakup pengelolaan reservasi, proses *check-in*, pengelolaan *guest folio*, serta proses *check-out*. Modul Housekeeping menangani pemantauan dan pembaruan status kamar secara *mobile-first*. Modul Food & Beverage menangani pembuatan *captain order*, pemrosesan *bill*, serta pembayaran melalui metode tunai maupun *charge to room*. Modul Akuntansi menangani eksekusi *night audit* dan penghasilan *night report* terkonsolidasi. Modul Admin menangani pengelolaan data master dan pengelolaan pengguna beserta *role*-nya.
+## Actors
 
-Diagram memuat dua relasi antar *use case*. Relasi «include» menghubungkan *Proses Check-out* ke *Verifikasi Zero-Balance*, menandakan bahwa verifikasi saldo folio selalu dieksekusi sebagai bagian wajib dari proses *check-out*. Relasi «extend» menghubungkan *Charge to Room* ke *Proses Pembayaran F&B*, menandakan bahwa pembebanan tagihan F&B ke folio tamu merupakan perilaku tambahan yang bersifat opsional dan hanya dijalankan apabila metode pembayaran yang dipilih adalah *charge to room*.
+Five actors interact with the system:
 
-## Pemetaan Aktor–Use Case
+- **Front Office staff**, **Housekeeping staff**, **F&B staff**, and **Accounting staff (Night Auditor)** — each a role played by a praktikum student.
+- **Administrator** — the supervising lecturer, responsible for master data and user accounts.
 
-| Aktor | Use Case |
+## Use cases by module
+
+The system has 13 primary use cases and 2 supporting use cases, grouped into five modules:
+
+- **Front Office** — guest lifecycle: reservation management, check-in, guest folio management, and check-out.
+- **Housekeeping** — mobile-first room status monitoring and updates.
+- **Food & Beverage** — captain orders, bill processing, and payment via cash or charge-to-room.
+- **Accounting** — night audit execution and consolidated night report generation.
+- **Admin** — master data and user/role management.
+
+## Actor → Use Case mapping
+
+| Actor | Use Cases |
 |---|---|
-| Petugas Front Office | Kelola Reservasi; Proses Check-in; Kelola Guest Folio; Proses Check-out |
-| Petugas Housekeeping | Lihat Status Kamar; Update Status Kamar |
-| Petugas F&B | Buat Captain Order; Proses Bill F&B; Proses Pembayaran F&B |
-| Petugas Akuntansi | Jalankan Night Audit; Generate Night Report |
-| Administrator | Kelola Data Master; Kelola Pengguna & Role |
+| Front Office staff | Manage Reservations; Process Check-in; Manage Guest Folio; Process Check-out |
+| Housekeeping staff | View Room Status; Update Room Status |
+| F&B staff | Create Captain Order; Process F&B Bill; Process F&B Payment |
+| Accounting staff | Run Night Audit; Generate Night Report |
+| Administrator | Manage Master Data; Manage Users & Roles |
 
-Relasi antar *use case*:
+## Use case relationships
 
-- *Proses Check-out* «include» *Verifikasi Zero-Balance*
-- *Charge to Room* «extend» *Proses Pembayaran F&B*
+Two relationships appear in the diagram:
+
+- **Process Check-out «include» Verify Zero-Balance** — folio balance verification always runs as a mandatory part of check-out.
+- **Charge to Room «extend» Process F&B Payment** — posting an F&B bill to a guest folio is optional behavior, invoked only when the payment method is charge-to-room.
