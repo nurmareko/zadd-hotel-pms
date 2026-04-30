@@ -2,23 +2,13 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 
+import authConfig, { isAppRole } from "./auth.config";
 import { prisma } from "@/lib/prisma";
 
-export type AppRole = "FO" | "HK" | "FB" | "ACC" | "ADMIN";
-
-const appRoles = ["FO", "HK", "FB", "ACC", "ADMIN"] as const;
-
-function isAppRole(role: string | undefined): role is AppRole {
-  return appRoles.some((appRole) => appRole === role);
-}
+export type { AppRole } from "./auth.config";
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -69,24 +59,4 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id ?? "";
-        token.username = user.username;
-        token.fullName = user.fullName;
-        token.role = user.role;
-      }
-
-      return token;
-    },
-    session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.username = token.username as string;
-      session.user.fullName = token.fullName as string;
-      session.user.role = token.role as AppRole;
-
-      return session;
-    },
-  },
 });

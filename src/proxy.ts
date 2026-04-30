@@ -1,7 +1,9 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import type { AppRole } from "@/auth";
+import authConfig, { type AppRole } from "@/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const roleRoutes: Array<{ prefix: string; role: AppRole }> = [
   { prefix: "/app/fo", role: "FO" },
