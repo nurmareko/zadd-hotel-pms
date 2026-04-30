@@ -21,8 +21,9 @@ praktikum. Students rotate through 5 operational roles
 
 ## Routing
 - src/app/(public)/ — unauthenticated (login only)
-- src/app/(app)/   — authenticated, role-gated by middleware
-- Route segments match role codes: /fo /hk /fb /acc /admin
+- src/app/app/ — authenticated, role-gated by middleware (LITERAL `/app` prefix in URL,
+  NOT a route group. Folder is `app/`, not `(app)/`.)
+- Route segments match role codes: /app/fo /app/hk /app/fb /app/acc /app/admin
 
 ## Reference docs (read before implementing a feature)
 - docs/feature_list_mvp.md       — functional scope per module
@@ -52,3 +53,6 @@ praktikum. Students rotate through 5 operational roles
 - Status badge palette: VC green, VD yellow, OC blue, OD red, OOO gray.
 - Prisma is pinned to v6.x. Do NOT upgrade to Prisma 7 — it has breaking
   changes (config file, driver adapters) that don't fit this project.
+  - NextAuth uses the split-config pattern: src/auth.config.ts (Edge-safe, no DB/bcrypt)
+  is consumed by src/proxy.ts. src/auth.ts (full config with Credentials + bcrypt + Prisma)
+  is for server components and route handlers only. Do not import auth.ts from proxy.ts.
