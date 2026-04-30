@@ -22,7 +22,8 @@ function isMobileViewport() {
 
 function isIos() {
   return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window)
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(window as unknown as { MSStream?: unknown }).MSStream
   );
 }
 
@@ -31,14 +32,16 @@ export function InstallPwaButton() {
     useState<BeforeInstallPromptEvent | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIosDevice, setIsIosDevice] = useState(false);
+  const [isIosDevice] = useState(() =>
+    typeof window !== "undefined" ? isIos() : false,
+  );
   const [hasResponded, setHasResponded] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
 
     const updateViewport = () => {
-      setIsMobile(mediaQuery.matches);
+      setIsMobile(isMobileViewport());
       setIsInstalled(isStandalone());
     };
 
@@ -49,7 +52,6 @@ export function InstallPwaButton() {
     };
 
     updateViewport();
-    setIsIosDevice(isIos());
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     mediaQuery.addEventListener("change", updateViewport);
@@ -83,7 +85,7 @@ export function InstallPwaButton() {
   if (isIosDevice) {
     return (
       <div className="mx-4 mt-4 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm md:hidden">
-        To install: tap the Share icon, then 'Add to Home Screen'.
+        To install: tap the Share icon, then &apos;Add to Home Screen&apos;.
       </div>
     );
   }
