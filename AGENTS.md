@@ -30,7 +30,8 @@ praktikum. Students rotate through 5 operational roles
 - docs/screen_inventory_mvp.md   — screen-by-screen specs
 - docs/db_specification_mvp.md   — table-level data model
 - docs/use_case_narrative_mvp.md — use case diagram narrative
-- docs/design.md                 — visual conventions (created later)
+- docs/design.md      — visual conventions (Console theme)
+- docs/mockups/       — reference design files
 - prisma/schema.prisma           — source of truth for data model
 
 ## Commands
@@ -53,6 +54,8 @@ praktikum. Students rotate through 5 operational roles
 - Status badge palette: VC green, VD yellow, OC blue, OD red, OOO gray.
 - Prisma is pinned to v6.x. Do NOT upgrade to Prisma 7 — it has breaking
   changes (config file, driver adapters) that don't fit this project.
-  - NextAuth uses the split-config pattern: src/auth.config.ts (Edge-safe, no DB/bcrypt)
+- NextAuth uses the split-config pattern: src/auth.config.ts (Edge-safe, no DB/bcrypt)
   is consumed by src/proxy.ts. src/auth.ts (full config with Credentials + bcrypt + Prisma)
   is for server components and route handlers only. Do not import auth.ts from proxy.ts.
+- The app uses the Console theme: monospace everywhere, square corners, neon green
+  (#00d4aa) accent on dark surfaces only, density-first layouts. See docs/design.md.
