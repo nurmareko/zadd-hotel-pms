@@ -1,4 +1,10 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import type { CSSProperties, KeyboardEvent } from "react";
 import type { RoomStatus } from "@prisma/client";
+
+import styles from "./tape-chart-grid.module.css";
 
 type TapeCellStatus = RoomStatus;
 
@@ -7,6 +13,7 @@ export type TapeChartCell = {
   status: TapeCellStatus;
   guestLabel?: string;
   reservationId?: number;
+  folioId?: number;
   isFirstDayOfStay: boolean;
   isLastDayOfStay: boolean;
 };
@@ -31,32 +38,42 @@ type TapeChartGridProps = {
 
 const statusClasses: Record<
   TapeCellStatus,
-  { bg: string; border: string; text: string }
+  { bg: string; border: string; text: string; accent: string; hoverBg: string }
 > = {
   VC: {
     bg: "bg-status-vc-bg",
     border: "border-status-vc-pip",
     text: "text-slate-700",
+    accent: "var(--emerald-500)",
+    hoverBg: "#d1fae5",
   },
   OC: {
     bg: "bg-status-oc-bg",
     border: "border-status-oc-pip",
     text: "text-status-oc-fg",
+    accent: "var(--blue-500)",
+    hoverBg: "#dbeafe",
   },
   VD: {
     bg: "bg-status-vd-bg",
     border: "border-status-vd-pip",
     text: "text-status-vd-fg",
+    accent: "var(--amber-500)",
+    hoverBg: "#fef3c7",
   },
   OD: {
     bg: "bg-status-od-bg",
     border: "border-status-od-pip",
     text: "text-status-od-fg",
+    accent: "var(--red-500)",
+    hoverBg: "#fee2e2",
   },
   OOO: {
     bg: "bg-status-ooo-bg",
     border: "border-status-ooo-pip",
     text: "text-status-ooo-fg",
+    accent: "var(--slate-500)",
+    hoverBg: "var(--slate-200)",
   },
 };
 
@@ -64,8 +81,44 @@ function getCellLabel(cell: TapeChartCell) {
   return cell.guestLabel ?? cell.status;
 }
 
+function isOccupiedCell(cell: TapeChartCell) {
+  return Boolean(
+    cell.reservationId && (cell.status === "OC" || cell.status === "OD"),
+  );
+}
+
 export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
+  const router = useRouter();
   const tableMinWidth = 128 + days.length * 64;
+
+  function handleCellNavigation(row: TapeChartRow, cell: TapeChartCell) {
+    if (cell.folioId) {
+      router.push(`/app/fo/folios/${cell.folioId}`);
+      return;
+    }
+
+    if (cell.reservationId) {
+      router.push(`/app/fo/reservations/${cell.reservationId}`);
+      return;
+    }
+
+    router.push(
+      `/app/fo/reservations/new?roomId=${row.roomId}&arrival=${cell.dayIso}`,
+    );
+  }
+
+  function handleCellKeyDown(
+    event: KeyboardEvent<HTMLTableCellElement>,
+    row: TapeChartRow,
+    cell: TapeChartCell,
+  ) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    handleCellNavigation(row, cell);
+  }
 
   return (
     <div
@@ -148,25 +201,45 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                 </th>
                 {row.cells.map((cell) => {
                   const classes = statusClasses[cell.status];
+                  const isOccupied = isOccupiedCell(cell);
+                  const isConfirmedReservation = isOccupied && !cell.folioId;
 
                   return (
                     <td
                       key={`${row.roomId}-${cell.dayIso}`}
-                      className="border-b border-r border-console-border-soft p-0"
+                      className={[
+                        styles.cell,
+                        "border-b border-r border-console-border-soft p-0",
+                      ].join(" ")}
+                      onClick={() => handleCellNavigation(row, cell)}
+                      onKeyDown={(event) =>
+                        handleCellKeyDown(event, row, cell)
+                      }
+                      role="button"
                       style={{ height: 32, minWidth: 64, width: 64 }}
+                      tabIndex={0}
                     >
                       <div
                         className={[
-                          "overflow-hidden text-ellipsis whitespace-nowrap border-l-[3px] px-1.5 text-[11px] font-medium leading-[22px]",
+                          "overflow-hidden text-ellipsis whitespace-nowrap px-1.5 text-[11px] font-medium leading-[22px]",
+                          isConfirmedReservation
+                            ? "border border-dashed"
+                            : "border-l-[3px]",
+                          isOccupied ? styles.occupiedCell : styles.emptyCell,
                           classes.bg,
                           classes.border,
                           classes.text,
                         ].join(" ")}
+                        data-folio-id={cell.folioId}
                         data-reservation-id={cell.reservationId}
-                        style={{
-                          height: "calc(100% - 4px)",
-                          margin: 2,
-                        }}
+                        style={
+                          {
+                            "--tape-cell-accent": classes.accent,
+                            "--tape-cell-hover-bg": classes.hoverBg,
+                            height: "calc(100% - 4px)",
+                            margin: 2,
+                          } as CSSProperties
+                        }
                       >
                         {getCellLabel(cell)}
                       </div>

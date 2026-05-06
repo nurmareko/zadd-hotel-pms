@@ -1,6 +1,14 @@
-import { addDays, format, startOfDay } from "date-fns";
+import {
+  addDays,
+  format,
+  formatISO,
+  isValid,
+  parseISO,
+  startOfDay,
+} from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
 import { ReservationStatus, type RoomStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -27,6 +35,13 @@ type ReservationForGrid = {
   guest: {
     fullName: string;
   };
+  folio: {
+    id: number;
+  } | null;
+};
+
+type FoTapeChartPageProps = {
+  searchParams: Promise<{ startDate?: string | string[] }>;
 };
 
 function getGuestLabel(fullName: string) {
@@ -75,6 +90,24 @@ function buildDays(today: Date) {
   });
 }
 
+function parseStartDate(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+    return startOfDay(new Date());
+  }
+
+  const parsed = parseISO(candidate);
+
+  return isValid(parsed) ? startOfDay(parsed) : startOfDay(new Date());
+}
+
+function getDateHref(startDate: Date) {
+  return `/app/fo/tape-chart?startDate=${formatISO(startDate, {
+    representation: "date",
+  })}`;
+}
+
 function buildRows({
   rooms,
   reservations,
@@ -121,6 +154,7 @@ function buildRows({
             status: getIdleRoomStatus(room.status),
             guestLabel: undefined,
             reservationId: undefined,
+            folioId: undefined,
             isFirstDayOfStay: false,
             isLastDayOfStay: false,
           };
@@ -137,6 +171,7 @@ function buildRows({
           status: "OC" as const,
           guestLabel: getGuestLabel(reservation.guest.fullName),
           reservationId: reservation.id,
+          folioId: reservation.folio?.id,
           isFirstDayOfStay: dayTime === arrivalTime,
           isLastDayOfStay: dayTime === lastNightTime,
         };
@@ -145,10 +180,13 @@ function buildRows({
   });
 }
 
-export default async function FoTapeChartPage() {
-  const today = startOfDay(new Date());
-  const days = buildDays(today);
-  const gridEndDate = addDays(today, DAY_COUNT);
+export default async function FoTapeChartPage({
+  searchParams,
+}: FoTapeChartPageProps) {
+  const { startDate } = await searchParams;
+  const visibleStartDate = parseStartDate(startDate);
+  const days = buildDays(visibleStartDate);
+  const gridEndDate = addDays(visibleStartDate, DAY_COUNT);
 
   const [rooms, reservations] = await Promise.all([
     prisma.room.findMany({
@@ -159,7 +197,7 @@ export default async function FoTapeChartPage() {
       where: {
         AND: [
           { arrivalDate: { lt: gridEndDate } },
-          { departureDate: { gt: today } },
+          { departureDate: { gt: visibleStartDate } },
           {
             status: {
               in: [
@@ -170,17 +208,32 @@ export default async function FoTapeChartPage() {
           },
         ],
       },
-      include: { guest: true },
+      include: {
+        guest: {
+          select: { fullName: true },
+        },
+        folio: {
+          select: { id: true },
+        },
+      },
       orderBy: [{ arrivalDate: "asc" }, { departureDate: "asc" }],
     }),
   ]);
 
   const rows = buildRows({ rooms, reservations, days });
   const displayDays = days.map((day) => day.display);
-  const rangeStart = format(today, "d MMM", { locale: indonesianLocale });
-  const rangeEnd = format(addDays(today, DAY_COUNT - 1), "d MMM yyyy", {
+  const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
+  const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
+  const rangeStart = format(visibleStartDate, "dd MMM", {
     locale: indonesianLocale,
   });
+  const rangeEnd = format(
+    addDays(visibleStartDate, DAY_COUNT - 1),
+    "dd MMM yyyy",
+    {
+      locale: indonesianLocale,
+    },
+  );
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -198,32 +251,32 @@ export default async function FoTapeChartPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <Link
+              href={getDateHref(previousStartDate)}
               aria-label="Tanggal sebelumnya"
               className="flex h-8 w-8 items-center justify-center border border-console-border bg-console-surface text-console-ink"
             >
               <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-            <div className="flex h-8 items-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em]">
+            </Link>
+            <div className="flex h-8 items-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold tracking-[0.04em]">
               <span className="num">
-                {rangeStart} - {rangeEnd}
+                {rangeStart} – {rangeEnd}
               </span>
             </div>
-            <button
-              type="button"
+            <Link
+              href={getDateHref(nextStartDate)}
               aria-label="Tanggal berikutnya"
               className="flex h-8 w-8 items-center justify-center border border-console-border bg-console-surface text-console-ink"
             >
               <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
+            </Link>
           </div>
-          <button
-            type="button"
-            className="h-8 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink"
+          <Link
+            href="/app/fo/tape-chart"
+            className="inline-flex h-8 items-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink"
           >
             Hari Ini
-          </button>
+          </Link>
           <button
             type="button"
             className="flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent"
