@@ -1,4 +1,5 @@
 import { addDays, formatISO } from "date-fns";
+import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 
@@ -109,12 +110,28 @@ export default async function NewReservationPage({
             Reservasi Baru
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Isi data tamu, periode menginap, dan kamar.
+            Isi data tamu dan periode menginap untuk membuat reservasi.
           </p>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <Link
+            href="/app/fo/reservations"
+            className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+          >
+            Batal
+          </Link>
+          <button
+            type="submit"
+            form="reservation-form"
+            className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          >
+            Simpan Reservasi
+          </button>
         </div>
       </div>
 
-      <div className="max-w-5xl">
+      <div className="max-w-6xl">
         <ReservationForm
           defaultValues={defaultValues}
           roomTypes={roomTypes.map((roomType) => ({
