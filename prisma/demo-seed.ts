@@ -535,7 +535,7 @@ async function main() {
       }
 
       if ((index + 1) % 5 === 0) {
-        console.log(`  seeded ${index + 1} reservations...`);
+        console.log(`✓ seeded ${index + 1} reservations...`);
       }
     }
 
