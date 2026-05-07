@@ -1,0 +1,295 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { formatIDR } from "@/lib/format";
+import { postCharge } from "./actions";
+import { PostChargeSchema } from "./schema";
+
+export type ChargeArticleOption = {
+  id: number;
+  code: string;
+  name: string;
+  defaultPrice: number | null;
+};
+
+type AddChargeFormInput = {
+  folioId: number;
+  articleId: string;
+  description: string;
+  quantity: string;
+  unitPrice: string;
+};
+
+type AddChargeDialogProps = {
+  folioId: number;
+  articles: ChargeArticleOption[];
+  disabled: boolean;
+};
+
+const fieldClassName =
+  "h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+const selectClassName =
+  "h-8 w-full rounded-none border border-console-border bg-console-surface px-2 text-[12px] outline-none focus:border-console-ink focus:ring-3 focus:ring-slate-500/20";
+
+function resultErrorMessage(error: unknown) {
+  return typeof error === "string" ? error : "Unable to post charge";
+}
+
+export function AddChargeDialog({
+  folioId,
+  articles,
+  disabled,
+}: AddChargeDialogProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const form = useForm<AddChargeFormInput>({
+    resolver: zodResolver(PostChargeSchema) as unknown as Resolver<AddChargeFormInput>,
+    mode: "onChange",
+    defaultValues: {
+      folioId,
+      articleId: "",
+      description: "",
+      quantity: "1",
+      unitPrice: "",
+    },
+  });
+
+  const quantity = Number(form.watch("quantity") || 0);
+  const unitPrice = Number(form.watch("unitPrice") || 0);
+  const amount = useMemo(
+    () =>
+      Number.isFinite(quantity) && Number.isFinite(unitPrice)
+        ? quantity * unitPrice
+        : 0,
+    [quantity, unitPrice],
+  );
+
+  function resetAndClose(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      setActionError(null);
+      form.reset({
+        folioId,
+        articleId: "",
+        description: "",
+        quantity: "1",
+        unitPrice: "",
+      });
+    }
+  }
+
+  async function onSubmit(values: AddChargeFormInput) {
+    setActionError(null);
+
+    const formData = new FormData();
+    formData.set("folioId", String(folioId));
+    formData.set("articleId", values.articleId);
+    formData.set("description", values.description ?? "");
+    formData.set("quantity", values.quantity);
+    formData.set("unitPrice", values.unitPrice);
+
+    const result = await postCharge(formData);
+
+    if (!result.ok) {
+      const message = resultErrorMessage(result.error);
+      setActionError(message);
+      toast.error(message);
+      return;
+    }
+
+    toast.success("Charge posted");
+    resetAndClose(false);
+    router.refresh();
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        disabled={disabled || articles.length === 0}
+        onClick={() => setOpen(true)}
+        className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+      >
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+        Tambah Charge
+      </Button>
+
+      <Dialog open={open} onOpenChange={resetAndClose}>
+        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
+          <DialogHeader className="bg-console-ink px-3.5 py-3">
+            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+              // Tambah Charge
+            </DialogTitle>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5 p-3.5">
+              <input
+                type="hidden"
+                value={folioId}
+                {...form.register("folioId")}
+              />
+
+              <FormField
+                control={form.control}
+                name="articleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Article</FormLabel>
+                    <FormControl>
+                      <select
+                        className={selectClassName}
+                        {...field}
+                        onChange={(event) => {
+                          field.onChange(event.target.value);
+                          const article = articles.find(
+                            (candidate) =>
+                              String(candidate.id) === event.target.value,
+                          );
+                          form.setValue(
+                            "unitPrice",
+                            article?.defaultPrice === null ||
+                              typeof article?.defaultPrice === "undefined"
+                              ? ""
+                              : String(article.defaultPrice),
+                            { shouldDirty: true, shouldValidate: true },
+                          );
+                        }}
+                      >
+                        <option value="">Pilih article</option>
+                        {articles.map((article) => (
+                          <option key={article.id} value={String(article.id)}>
+                            {article.code} - {article.name}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Opsional"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Qty</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          className={fieldClassName}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="unitPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          placeholder="0"
+                          className={fieldClassName}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  Amount
+                </div>
+                <div className="mt-1 flex h-8 items-center border border-console-border bg-console-bg px-2.5 text-right text-[12px] font-bold tabular-nums text-console-ink">
+                  {formatIDR(amount)}
+                </div>
+              </div>
+
+              {actionError ? (
+                <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+                  {actionError}
+                </p>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-3.5 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => resetAndClose(false)}
+                  className="h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!form.formState.isValid || form.formState.isSubmitting}
+                  className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                >
+                  {form.formState.isSubmitting ? "Posting..." : "Post Charge"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

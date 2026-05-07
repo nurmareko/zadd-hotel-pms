@@ -71,13 +71,13 @@ const articles = [
     code: "BREAKFAST",
     name: "Breakfast",
     type: ArticleType.FB,
-    defaultPrice: 95000,
+    defaultPrice: 75000,
   },
   {
     code: "LAUNDRY",
     name: "Laundry",
-    type: ArticleType.SERVICE,
-    defaultPrice: 75000,
+    type: ArticleType.MISC,
+    defaultPrice: 50000,
   },
   {
     code: "MINIBAR",
