@@ -1,4 +1,4 @@
-import { FolioStatus } from "@prisma/client";
+import { FolioStatus, ReservationStatus } from "@prisma/client";
 import Link from "next/link";
 
 import { formatIDR } from "@/lib/format";
@@ -8,6 +8,7 @@ import { RecordPaymentDialog } from "./record-payment-dialog";
 type FolioSummaryProps = {
   folioId: number;
   status: FolioStatus;
+  reservationStatus: ReservationStatus;
   totals: FolioTotals;
   serviceChargePercent: number;
   taxPercent: number;
@@ -61,16 +62,18 @@ function BalanceLabel({ balance }: { balance: number }) {
 export function FolioSummary({
   folioId,
   status,
+  reservationStatus,
   totals,
   serviceChargePercent,
   taxPercent,
 }: FolioSummaryProps) {
   const isOpen = status === FolioStatus.OPEN;
+  const canCheckOut = isOpen && reservationStatus === ReservationStatus.CHECKED_IN;
 
   return (
     <section className="min-w-0 border border-console-border bg-console-surface lg:sticky lg:top-4">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        // SUMMARY
+        {"// SUMMARY"}
       </div>
       <div className="space-y-4 p-3.5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -121,22 +124,14 @@ export function FolioSummary({
             balance={totals.balance}
             disabled={!isOpen}
           />
-          {isOpen ? (
+          {canCheckOut ? (
             <Link
               href={`/app/fo/check-out/${folioId}`}
               className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
             >
               Check Out
             </Link>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="h-8 border border-console-border bg-console-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-400"
-            >
-              Check Out
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
     </section>
