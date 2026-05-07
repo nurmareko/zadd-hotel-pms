@@ -1,0 +1,12 @@
+.cell {
+  cursor: pointer;
+}
+
+.cell:hover .emptyCell {
+  background: var(--tape-cell-hover-bg);
+}
+
+.cell:hover .occupiedCell {
+  outline: 1px solid var(--tape-cell-accent);
+  outline-offset: -1px;
+}
