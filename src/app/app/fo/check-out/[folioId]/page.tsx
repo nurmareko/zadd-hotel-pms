@@ -5,7 +5,7 @@ import {
 } from "@prisma/client";
 import { differenceInCalendarDays, format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
-import { CheckCircle2, Download, Undo2 } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Download, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,11 +18,6 @@ export const dynamic = "force-dynamic";
 
 type CheckOutPageProps = {
   params: Promise<{ folioId: string }>;
-};
-
-type DetailItemProps = {
-  label: string;
-  value: React.ReactNode;
 };
 
 type ChargeLineItem = {
@@ -44,9 +39,24 @@ type ChargeLineItem = {
   } | null;
 };
 
-const qtyFormatter = new Intl.NumberFormat("id-ID", {
-  maximumFractionDigits: 2,
-});
+type PreviewFolio = {
+  folioNo: string;
+  reservation: {
+    guest: { fullName: string };
+    room: { number: string } | null;
+    roomType: { name: string };
+    arrivalDate: Date;
+    departureDate: Date;
+  };
+  lineItems: ChargeLineItem[];
+};
+
+type PreviewSettings = {
+  hotelName: string;
+  address: string | null;
+  serviceChargePercent: { toString(): string } | number;
+  taxPercent: { toString(): string } | number;
+};
 
 const folioStatusClassNames = {
   [FolioStatus.OPEN]: "bg-status-oc-bg text-status-oc-fg border-status-oc-pip",
@@ -63,39 +73,26 @@ function dateTimeLabel(date: Date) {
   return format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale });
 }
 
-function postedAtLabel(date: Date) {
-  return format(date, "dd MMM HH:mm", { locale: indonesianLocale });
-}
-
 function descriptionLabel(lineItem: ChargeLineItem) {
   const base = lineItem.description || lineItem.article.name;
 
   return lineItem.fbOrder ? `${base} - Order ${lineItem.fbOrder.orderNo}` : base;
 }
 
-function DetailItem({ label, value }: DetailItemProps) {
-  return (
-    <div>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 text-[12px] font-medium text-console-ink">{value}</dd>
-    </div>
-  );
-}
-
 function StepCard({
   title,
+  meta,
   children,
 }: {
   title: string;
+  meta?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// "}
-        {title}
+      <div className="flex items-center justify-between gap-3 bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <h2>{title}</h2>
+        {meta ? <span className="num text-[10px] text-slate-400">{meta}</span> : null}
       </div>
       {children}
     </section>
@@ -123,10 +120,12 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-2 last:border-b-0">
-      <span className="text-[11px] text-slate-600">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-1">
+      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+        {label}
+      </span>
       <span
-        className={`num text-right text-[12px] ${strong ? "font-bold text-console-ink" : "font-medium text-console-ink"}`}
+        className={`num text-right ${strong ? "font-semibold text-console-ink" : "font-medium text-console-ink"}`}
       >
         {value}
       </span>
@@ -134,95 +133,119 @@ function SummaryRow({
   );
 }
 
-function BalanceDisplay({ balance }: { balance: number }) {
+function MetricBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-console-border p-3.5 first:border-r">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+        {label}
+      </div>
+      <div className="num mt-1 text-[20px] font-semibold text-console-ink">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ZeroBalanceNotice({ balance }: { balance: number }) {
   const roundedBalance = Math.round(balance);
 
   if (roundedBalance > 0) {
     return (
-      <p className="num text-[32px] font-bold leading-none text-status-od-fg">
-        Belum Lunas - {formatIDR(balance)}
-      </p>
-    );
-  }
-
-  if (roundedBalance < 0) {
-    return (
-      <p className="num text-[32px] font-bold leading-none text-status-vd-fg">
-        Lebih Bayar - {formatIDR(Math.abs(balance))}
-      </p>
-    );
-  }
-
-  return (
-    <p className="num text-[32px] font-bold leading-none text-status-vc-fg">
-      Lunas
-    </p>
-  );
-}
-
-function ChargesTable({ lineItems }: { lineItems: ChargeLineItem[] }) {
-  if (lineItems.length === 0) {
-    return (
-      <div className="border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
-        Belum ada tagihan.
+      <div className="mt-3 flex items-start gap-2 border border-red-300 bg-status-od-bg p-3.5 text-status-od-fg">
+        <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
+        <div>
+          <div className="font-semibold">
+            Saldo belum nol - outstanding {formatIDR(balance)}
+          </div>
+          <div className="mt-1 text-[12px]">
+            Lakukan pembayaran akhir di langkah 2 sebelum check-out dapat
+            diselesaikan.
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto border border-console-border">
-      <table className="min-w-[720px] w-full border-collapse text-[12px]">
-        <thead className="bg-console-ink text-console-accent">
-          <tr>
-            <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Date
-            </th>
-            <th className="min-w-64 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Description
-            </th>
-            <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Posted by
-            </th>
-            <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Qty
-            </th>
-            <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Unit Price
-            </th>
-            <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-              Amount
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {lineItems.map((lineItem) => (
-            <tr
-              key={lineItem.id}
-              className="border-b border-console-border-soft odd:bg-console-surface even:bg-console-bg"
-            >
-              <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                {postedAtLabel(lineItem.postedAt)}
-              </td>
-              <td className="px-3 py-2.5 font-medium text-console-ink">
-                {descriptionLabel(lineItem)}
-              </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                {lineItem.postedBy.fullName}
-              </td>
-              <td className="num whitespace-nowrap px-3 py-2.5 text-right">
-                {qtyFormatter.format(Number(lineItem.quantity))}
-              </td>
-              <td className="num whitespace-nowrap px-3 py-2.5 text-right">
-                {formatIDR(lineItem.unitPrice.toString())}
-              </td>
-              <td className="num whitespace-nowrap px-3 py-2.5 text-right font-bold">
-                {formatIDR(lineItem.amount.toString())}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="mt-3 flex items-start gap-2 border border-status-vc-pip bg-status-vc-bg p-3.5 text-status-vc-fg">
+      <CheckCircle2 className="mt-0.5 h-4 w-4" aria-hidden="true" />
+      <div>
+        <div className="font-semibold">Saldo sudah nol</div>
+        <div className="mt-1 text-[12px]">
+          Check-out dapat dikonfirmasi di langkah 3.
+        </div>
+      </div>
     </div>
+  );
+}
+
+function PreviewBill({
+  folio,
+  settings,
+  totals,
+}: {
+  folio: PreviewFolio;
+  settings: PreviewSettings;
+  totals: ReturnType<typeof computeFolioTotals>;
+}) {
+  return (
+    <section className="border border-console-border bg-console-surface">
+      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        {"// Preview Bill"}
+      </div>
+      <div className="p-3.5 text-[12px]">
+        <div className="border-b border-dashed border-slate-300 pb-2 text-center">
+          <div className="text-[13px] font-bold uppercase">
+            {settings.hotelName}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            {settings.address}
+          </div>
+        </div>
+
+        <div className="space-y-1 py-2">
+          <SummaryRow label="Folio" value={folio.folioNo} />
+          <SummaryRow label="Tamu" value={folio.reservation.guest.fullName} />
+          <SummaryRow
+            label="Kamar"
+            value={`${folio.reservation.room?.number ?? "-"} / ${folio.reservation.roomType.name}`}
+          />
+          <SummaryRow
+            label="Periode"
+            value={`${dateLabel(folio.reservation.arrivalDate)} - ${dateLabel(
+              folio.reservation.departureDate,
+            )}`}
+          />
+        </div>
+
+        <div className="border-t border-dashed border-slate-300 pt-2">
+          {folio.lineItems.map((lineItem) => (
+            <SummaryRow
+              key={lineItem.id}
+              label={descriptionLabel(lineItem)}
+              value={formatIDR(lineItem.amount.toString())}
+            />
+          ))}
+          <SummaryRow
+            label={`Service charge ${Number(settings.serviceChargePercent)}%`}
+            value={formatIDR(totals.serviceCharge)}
+          />
+          <SummaryRow
+            label={`VAT ${Number(settings.taxPercent)}%`}
+            value={formatIDR(totals.tax)}
+          />
+        </div>
+
+        <div className="mt-2 border-t border-slate-300 pt-2">
+          <SummaryRow label="TOTAL" value={formatIDR(totals.totalCharges)} strong />
+          <SummaryRow label="Dibayar" value={`-${formatIDR(totals.totalPaid)}`} />
+          <div className="flex items-center justify-between gap-3 py-1 font-semibold text-status-od-fg">
+            <span>Outstanding</span>
+            <span className="num">{formatIDR(totals.balance)}</span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -318,152 +341,112 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Selesaikan Check-Out
+            Check-out · {folio.reservation.guest.fullName}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Review tagihan akhir, selesaikan pembayaran, lalu tutup folio.
+            {folio.folioNo} · Kamar {folio.reservation.room?.number ?? "-"} (
+            {folio.reservation.roomType.name}) · Departure{" "}
+            {dateLabel(folio.reservation.departureDate)}
           </p>
         </div>
-        <p className="num text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-          {folio.folioNo}
-        </p>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <Link
+            href={`/app/fo/folios/${folio.id}`}
+            className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+          >
+            Batal
+          </Link>
+          <button
+            type="submit"
+            form="complete-checkout-form"
+            disabled={isClosed || !isCheckoutAllowed || hasBalanceDue}
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:border-console-border disabled:bg-console-bg disabled:text-slate-400"
+          >
+            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+            Konfirmasi Check-out
+          </button>
+        </div>
       </div>
 
-      <div className="max-w-4xl space-y-3">
-        <StepCard title="GUEST">
-          <div className="space-y-3.5 p-3.5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-[22px] font-bold leading-tight text-console-ink">
-                  {folio.reservation.guest.fullName}
-                </h2>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  {folio.reservation.reservationNo}
-                </p>
-              </div>
-              <StatusBadge status={folio.status} />
-            </div>
-
-            <dl className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-              <DetailItem label="Folio No" value={folio.folioNo} />
-              <DetailItem
-                label="Room"
-                value={`${folio.reservation.room?.number ?? "-"} / ${folio.reservation.roomType.code} - ${folio.reservation.roomType.name}`}
-              />
-              <DetailItem label="Nights" value={`${nights} night(s)`} />
-              <DetailItem
-                label="Arrival"
-                value={dateLabel(folio.reservation.arrivalDate)}
-              />
-              <DetailItem
-                label="Departure"
-                value={dateLabel(folio.reservation.departureDate)}
-              />
-            </dl>
-          </div>
-        </StepCard>
-
-        <StepCard title="FINAL BILL">
-          <div className="space-y-3.5 p-3.5">
-            <ChargesTable lineItems={folio.lineItems} />
-
-            <div className="grid gap-4 border-t border-console-border pt-3.5 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
-              <div className="flex min-h-24 items-center border border-console-border bg-console-bg p-3">
-                <BalanceDisplay balance={totals.balance} />
-              </div>
-
-              <div>
-                <div className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-                  [ Tagihan Akhir ]
-                </div>
-                <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
-                <SummaryRow
-                  label={`SC (${Number(settings.serviceChargePercent)}%)`}
-                  value={formatIDR(totals.serviceCharge)}
-                />
-                <SummaryRow
-                  label={`Pajak (${Number(settings.taxPercent)}%)`}
-                  value={formatIDR(totals.tax)}
-                />
-                {Math.round(totals.taxableExtras) !== 0 ? (
-                  <SummaryRow
-                    label="Manual Tax/Service"
-                    value={formatIDR(totals.taxableExtras)}
-                  />
-                ) : null}
-                <SummaryRow
-                  label="Total Tagihan"
+      <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <StepCard title="1. Verifikasi Zero-Balance">
+            <div className="p-3.5 text-[13px]">
+              <div className="grid overflow-hidden border border-console-border sm:grid-cols-2">
+                <MetricBox
+                  label="Total Charges"
                   value={formatIDR(totals.totalCharges)}
-                  strong
                 />
-                <SummaryRow
-                  label="Total Dibayar"
+                <MetricBox
+                  label="Total Payments"
                   value={formatIDR(totals.totalPaid)}
                 />
-                <SummaryRow
-                  label="Balance Due"
-                  value={formatIDR(totals.balance)}
-                  strong
-                />
               </div>
-            </div>
-          </div>
-        </StepCard>
-
-        {!isClosed && isCheckoutAllowed && hasBalanceDue ? (
-          <StepCard title="FINAL PAYMENT">
-            <FinalPaymentForm folioId={folio.id} balance={totals.balance} />
-          </StepCard>
-        ) : null}
-
-        {!isClosed && isCheckoutAllowed && !hasBalanceDue ? (
-          <StepCard title="COMPLETE">
-            <CompleteCheckoutForm folioId={folio.id} />
-          </StepCard>
-        ) : null}
-
-        {!isClosed && !isCheckoutAllowed ? (
-          <StepCard title="COMPLETE">
-            <div className="p-3.5 text-[12px] text-status-od-fg">
-              Folio ini tidak berada pada status check-out aktif.
+              <ZeroBalanceNotice balance={totals.balance} />
             </div>
           </StepCard>
-        ) : null}
 
-        {isClosed ? (
-          <StepCard title="COMPLETE">
-            <div className="space-y-3.5 p-3.5">
-              <div className="flex items-start gap-3 border border-status-vc-pip bg-status-vc-bg p-3 text-status-vc-fg">
-                <CheckCircle2 className="mt-0.5 h-4 w-4" aria-hidden="true" />
-                <div>
-                  <p className="text-[13px] font-bold">Check-out selesai</p>
-                  <p className="mt-1 text-[12px]">
-                    Status: Checked out at{" "}
-                    {folio.closedAt ? dateTimeLabel(folio.closedAt) : "-"}
-                  </p>
+          {!isClosed && isCheckoutAllowed && hasBalanceDue ? (
+            <StepCard
+              title="2. Pembayaran Akhir"
+              meta={`Outstanding: ${formatIDR(totals.balance)}`}
+            >
+              <FinalPaymentForm folioId={folio.id} balance={totals.balance} />
+            </StepCard>
+          ) : (
+            <StepCard title="2. Pembayaran Akhir">
+              <div className="p-3.5 text-[12px] text-slate-500">
+                Tidak ada pembayaran akhir yang perlu dicatat.
+              </div>
+            </StepCard>
+          )}
+
+          <StepCard title="3. Aksi Setelah Check-out">
+            {isClosed ? (
+              <div className="space-y-3.5 p-3.5">
+                <div className="flex items-start gap-3 border border-status-vc-pip bg-status-vc-bg p-3 text-status-vc-fg">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4" aria-hidden="true" />
+                  <div>
+                    <p className="text-[13px] font-bold">Check-out selesai</p>
+                    <p className="mt-1 text-[12px]">
+                      Status: Checked out at{" "}
+                      {folio.closedAt ? dateTimeLabel(folio.closedAt) : "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <a
+                    href={`/api/folios/${folio.id}/bill`}
+                    download
+                    className="inline-flex h-8 items-center justify-center gap-2 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                    Unduh Tagihan
+                  </a>
+                  <Link
+                    href="/app/fo/tape-chart"
+                    className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Back to Tape Chart
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <a
-                  href={`/api/folios/${folio.id}/bill`}
-                  download
-                  className="inline-flex h-8 items-center justify-center gap-2 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-                >
-                  <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                  Unduh Tagihan
-                </a>
-                <Link
-                  href="/app/fo/tape-chart"
-                  className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-                >
-                  <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  Back to Tape Chart
-                </Link>
+            ) : isCheckoutAllowed && !hasBalanceDue ? (
+              <CompleteCheckoutForm folioId={folio.id} />
+            ) : (
+              <div className="p-3.5 text-[12px] text-status-od-fg">
+                Folio ini belum siap untuk check-out.
               </div>
-            </div>
+            )}
           </StepCard>
-        ) : null}
+        </div>
+
+        <aside className="min-w-0">
+          <PreviewBill folio={folio} settings={settings} totals={totals} />
+        </aside>
       </div>
     </main>
   );
