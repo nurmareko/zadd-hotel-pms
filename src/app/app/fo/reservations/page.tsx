@@ -33,7 +33,11 @@ function toUtcDateOnly(date: Date) {
   );
 }
 
-function parseDateParam(value: string | undefined) {
+function parseDateParam(value: string | undefined, today: Date) {
+  if (value === "today") {
+    return today;
+  }
+
   const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
   if (!match) {
@@ -107,9 +111,9 @@ export default async function ReservationListPage({
   const status = parseStatus(params.status);
   const roomType = params.type?.trim() ?? "";
   const fromDate =
-    params.from === undefined ? today : parseDateParam(params.from);
+    params.from === undefined ? today : parseDateParam(params.from, today);
   const toDate =
-    params.to === undefined ? defaultToDate : parseDateParam(params.to);
+    params.to === undefined ? defaultToDate : parseDateParam(params.to, today);
   const sort = parseSort(params.sort);
   const dir = parseDirection(params.dir);
 
