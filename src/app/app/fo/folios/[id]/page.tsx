@@ -71,7 +71,12 @@ export default async function GuestFolioPage({
       include: {
         reservation: {
           include: {
-            guest: { select: { fullName: true } },
+            guest: {
+              select: {
+                fullName: true,
+                phone: true,
+              },
+            },
             room: { select: { number: true } },
             roomType: { select: { code: true, name: true } },
           },
@@ -84,7 +89,11 @@ export default async function GuestFolioPage({
           },
           orderBy: { postedAt: "desc" },
         },
-        payments: true,
+        payments: {
+          include: {
+            receivedBy: { select: { fullName: true } },
+          },
+        },
       },
     }),
     prisma.article.findMany({

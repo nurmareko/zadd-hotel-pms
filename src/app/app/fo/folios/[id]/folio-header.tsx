@@ -15,6 +15,7 @@ type FolioHeaderProps = {
       status: ReservationStatus;
       guest: {
         fullName: string;
+        phone: string | null;
       };
       room: {
         number: string;
@@ -107,6 +108,7 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
 
         <div className="my-3 border-t border-console-border-soft" />
         <InfoRow label="Reservasi" value={reservation.reservationNo} />
+        <InfoRow label="Telepon" value={reservation.guest.phone ?? "-"} />
         <InfoRow
           label="Status"
           value={<ReservationStatusBadge status={reservation.status} />}

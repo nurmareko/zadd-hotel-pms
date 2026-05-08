@@ -55,6 +55,7 @@ async function runCheckInTransaction(input: CheckInValues, userId: number) {
         select: {
           id: true,
           roomTypeId: true,
+          guestId: true,
           arrivalDate: true,
           departureDate: true,
           status: true,
@@ -119,6 +120,17 @@ async function runCheckInTransaction(input: CheckInValues, userId: number) {
         where: { folioNo: { startsWith: folioPrefix } },
       });
       const folioNo = `${folioPrefix}${String(folioCount + 1).padStart(4, "0")}`;
+
+      await tx.guest.update({
+        where: { id: reservation.guestId },
+        data: {
+          fullName: input.guestFullName,
+          idNumber: input.guestIdNumber || null,
+          phone: input.guestPhone || null,
+          email: input.guestEmail || null,
+          nationality: input.guestNationality || null,
+        },
+      });
 
       await tx.reservation.update({
         where: { id: reservation.id },

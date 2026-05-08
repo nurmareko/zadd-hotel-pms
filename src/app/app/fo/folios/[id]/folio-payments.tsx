@@ -10,6 +10,9 @@ type FolioPayment = {
   method: PaymentMethod;
   reference: string | null;
   receivedAt: Date;
+  receivedBy?: {
+    fullName: string;
+  } | null;
 };
 
 type FolioPaymentsProps = {
@@ -92,7 +95,7 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
                     {payment.reference ?? "-"}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                    -
+                    {payment.receivedBy?.fullName ?? "-"}
                   </td>
                   <td className="num whitespace-nowrap px-3 py-2.5 text-right font-bold">
                     {formatIDR(payment.amount.toString())}

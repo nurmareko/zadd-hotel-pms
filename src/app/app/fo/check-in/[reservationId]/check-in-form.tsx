@@ -35,6 +35,11 @@ type RoomOption = {
 type CheckInFormValues = {
   reservationId: number;
   roomId: string;
+  guestFullName: string;
+  guestIdNumber: string;
+  guestPhone: string;
+  guestEmail: string;
+  guestNationality: string;
   purposeOfVisit: PurposeOfVisitValue;
   purposeOfVisitOther: string;
   arrivalConfirmation: boolean;
@@ -46,7 +51,13 @@ type CheckInFormValues = {
 type CheckInFormProps = {
   reservationId: number;
   reservationNo: string;
-  guestName: string;
+  guest: {
+    fullName: string;
+    idNumber: string | null;
+    phone: string | null;
+    email: string | null;
+    nationality: string | null;
+  };
   roomTypeName: string;
   arrivalLabel: string;
   departureLabel: string;
@@ -100,7 +111,7 @@ function resultErrorMessage(error: unknown) {
 export function CheckInForm({
   reservationId,
   reservationNo,
-  guestName,
+  guest,
   roomTypeName,
   arrivalLabel,
   departureLabel,
@@ -122,6 +133,11 @@ export function CheckInForm({
     defaultValues: {
       reservationId,
       roomId: assignedRoomId ? String(assignedRoomId) : "",
+      guestFullName: guest.fullName,
+      guestIdNumber: guest.idNumber ?? "",
+      guestPhone: guest.phone ?? "",
+      guestEmail: guest.email ?? "",
+      guestNationality: guest.nationality ?? "",
       purposeOfVisit: "Bisnis",
       purposeOfVisitOther: "",
       arrivalConfirmation: false,
@@ -135,6 +151,7 @@ export function CheckInForm({
   const depositMethod = form.watch("depositMethod");
   const depositAmount = Number(form.watch("depositAmount") || 0);
   const selectedRoomId = form.watch("roomId");
+  const guestName = form.watch("guestFullName") || guest.fullName;
   const selectedRoom = roomOptions.find(
     (room) => String(room.id) === selectedRoomId,
   );
@@ -166,6 +183,11 @@ export function CheckInForm({
 
     formData.set("reservationId", String(values.reservationId));
     formData.set("roomId", String(formData.get("roomId") || values.roomId));
+    formData.set("guestFullName", values.guestFullName);
+    formData.set("guestIdNumber", values.guestIdNumber ?? "");
+    formData.set("guestPhone", values.guestPhone ?? "");
+    formData.set("guestEmail", values.guestEmail ?? "");
+    formData.set("guestNationality", values.guestNationality ?? "");
     formData.set("purposeOfVisit", values.purposeOfVisit);
     formData.set("purposeOfVisitOther", values.purposeOfVisitOther ?? "");
     formData.set("arrivalConfirmation", String(values.arrivalConfirmation));
@@ -262,6 +284,105 @@ export function CheckInForm({
                         completing check-in.
                       </p>
                     ) : null}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </section>
+
+          <section className="border border-console-border bg-console-surface">
+            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+              {"// GUEST INFORMATION"}
+            </div>
+            <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="guestFullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nama Tamu</FormLabel>
+                    <FormControl>
+                      <Input
+                        required
+                        placeholder="Nama lengkap tamu"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="guestIdNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nomor Identitas</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="KTP / Paspor"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="guestPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telepon</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nomor telepon"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="guestEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="nama@email.com"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="guestNationality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kebangsaan</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Indonesia"
+                        className={fieldClassName}
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

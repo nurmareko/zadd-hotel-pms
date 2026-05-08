@@ -22,6 +22,26 @@ const TextOrEmptySchema = z
   .optional()
   .transform((value) => value ?? "");
 
+const OptionalGuestFieldSchema = (maxLength: number) =>
+  z
+    .string()
+    .trim()
+    .max(maxLength, `Text must be ${maxLength} characters or fewer`)
+    .optional()
+    .transform((value) => value ?? "");
+
+const OptionalGuestEmailSchema = z
+  .union([
+    z
+      .string()
+      .trim()
+      .email("Email is invalid")
+      .max(100, "Email must be 100 characters or fewer"),
+    z.literal(""),
+  ])
+  .optional()
+  .transform((value) => value ?? "");
+
 const BooleanConfirmationSchema = z.preprocess(
   (value) => value === true || value === "true" || value === "on",
   z.boolean().refine((value) => value, {
@@ -44,6 +64,15 @@ export const CheckInSchema = z
       .number("Room is required")
       .int("Room is invalid")
       .positive("Room is required"),
+    guestFullName: z
+      .string()
+      .trim()
+      .min(1, "Required")
+      .max(100, "Name must be 100 characters or fewer"),
+    guestIdNumber: OptionalGuestFieldSchema(50),
+    guestPhone: OptionalGuestFieldSchema(20),
+    guestEmail: OptionalGuestEmailSchema,
+    guestNationality: OptionalGuestFieldSchema(50),
     purposeOfVisit: z.enum(purposeOfVisitOptions),
     purposeOfVisitOther: TextOrEmptySchema,
     arrivalConfirmation: BooleanConfirmationSchema,

@@ -76,7 +76,15 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
   const reservation = await prisma.reservation.findUnique({
     where: { id: parsedReservationId },
     include: {
-      guest: { select: { fullName: true } },
+      guest: {
+        select: {
+          fullName: true,
+          idNumber: true,
+          phone: true,
+          email: true,
+          nationality: true,
+        },
+      },
       room: { select: { id: true, number: true } },
       roomType: { select: { id: true, code: true, name: true } },
     },
@@ -199,7 +207,13 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         <CheckInForm
           reservationId={reservation.id}
           reservationNo={reservation.reservationNo}
-          guestName={reservation.guest.fullName}
+          guest={{
+            fullName: reservation.guest.fullName,
+            idNumber: reservation.guest.idNumber,
+            phone: reservation.guest.phone,
+            email: reservation.guest.email,
+            nationality: reservation.guest.nationality,
+          }}
           roomTypeName={reservation.roomType.name}
           arrivalLabel={arrivalLabel}
           departureLabel={departureLabel}
