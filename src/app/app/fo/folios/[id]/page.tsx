@@ -1,11 +1,18 @@
-import { ArticleType } from "@prisma/client";
+import { ArticleType, FolioStatus } from "@prisma/client";
+import { format } from "date-fns";
+import { id as indonesianLocale } from "date-fns/locale";
+import { Download } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
+import { AddChargeDialog } from "./add-charge-dialog";
 import { FolioCharges } from "./folio-charges";
 import { FolioHeader } from "./folio-header";
+import { FolioPayments } from "./folio-payments";
 import { FolioSummary } from "./folio-summary";
+import { RecordPaymentDialog } from "./record-payment-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +47,14 @@ function ErrorState({
   );
 }
 
+function stayRangeLabel(arrivalDate: Date, departureDate: Date) {
+  return `${format(arrivalDate, "d", {
+    locale: indonesianLocale,
+  })} → ${format(departureDate, "d MMM yyyy", {
+    locale: indonesianLocale,
+  })}`;
+}
+
 export default async function GuestFolioPage({
   params,
 }: GuestFolioPageProps) {
@@ -56,7 +71,12 @@ export default async function GuestFolioPage({
       include: {
         reservation: {
           include: {
-            guest: { select: { fullName: true } },
+            guest: {
+              select: {
+                fullName: true,
+                phone: true,
+              },
+            },
             room: { select: { number: true } },
             roomType: { select: { code: true, name: true } },
           },
@@ -69,7 +89,11 @@ export default async function GuestFolioPage({
           },
           orderBy: { postedAt: "desc" },
         },
-        payments: true,
+        payments: {
+          include: {
+            receivedBy: { select: { fullName: true } },
+          },
+        },
       },
     }),
     prisma.article.findMany({
@@ -116,35 +140,53 @@ export default async function GuestFolioPage({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Guest Folio
+            Guest Folio · {folio.reservation.guest.fullName}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Central billing view for in-house guest charges and payments.
+            {folio.folioNo} · Kamar {folio.reservation.room?.number ?? "-"} (
+            {folio.reservation.roomType.name}) ·{" "}
+            {stayRangeLabel(
+              folio.reservation.arrivalDate,
+              folio.reservation.departureDate,
+            )}
           </p>
         </div>
-        <p className="num text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-          {folio.folioNo}
-        </p>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Link
+            href={`/api/folios/${folio.id}/bill`}
+            className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            PDF Bill
+          </Link>
+          <AddChargeDialog
+            folioId={folio.id}
+            articles={chargeArticles}
+            disabled={folio.status !== FolioStatus.OPEN}
+          />
+          <RecordPaymentDialog
+            folioId={folio.id}
+            balance={totals.balance}
+            disabled={folio.status !== FolioStatus.OPEN}
+          />
+        </div>
       </div>
 
-      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="min-w-0 lg:col-span-2">
-          <FolioHeader folio={folio} />
+      <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <FolioCharges status={folio.status} lineItems={folio.lineItems} />
+          <FolioPayments payments={folio.payments} />
         </div>
-        <FolioCharges
-          folioId={folio.id}
-          status={folio.status}
-          lineItems={folio.lineItems}
-          articles={chargeArticles}
-        />
-        <FolioSummary
-          folioId={folio.id}
-          status={folio.status}
-          reservationStatus={folio.reservation.status}
-          totals={totals}
-          serviceChargePercent={Number(settings.serviceChargePercent)}
-          taxPercent={Number(settings.taxPercent)}
-        />
+        <aside className="flex min-w-0 flex-col gap-3">
+          <FolioHeader folio={folio} />
+          <FolioSummary
+            folioId={folio.id}
+            status={folio.status}
+            reservationStatus={folio.reservation.status}
+            totals={totals}
+          />
+        </aside>
       </div>
     </main>
   );

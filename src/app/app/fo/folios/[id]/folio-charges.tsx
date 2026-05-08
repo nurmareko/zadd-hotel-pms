@@ -3,10 +3,6 @@ import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
 import { formatIDR } from "@/lib/format";
-import {
-  AddChargeDialog,
-  type ChargeArticleOption,
-} from "./add-charge-dialog";
 
 type FolioChargeLineItem = {
   id: number;
@@ -16,6 +12,7 @@ type FolioChargeLineItem = {
   amount: { toString(): string };
   postedAt: Date;
   article: {
+    code: string;
     name: string;
     type: ArticleType;
   };
@@ -28,10 +25,8 @@ type FolioChargeLineItem = {
 };
 
 type FolioChargesProps = {
-  folioId: number;
   status: FolioStatus;
   lineItems: FolioChargeLineItem[];
-  articles: ChargeArticleOption[];
 };
 
 const qtyFormatter = new Intl.NumberFormat("id-ID", {
@@ -48,43 +43,55 @@ function descriptionLabel(lineItem: FolioChargeLineItem) {
   return lineItem.fbOrder ? `${base} - Order ${lineItem.fbOrder.orderNo}` : base;
 }
 
-export function FolioCharges({
-  folioId,
-  status,
-  lineItems,
-  articles,
-}: FolioChargesProps) {
+const statusClassNames: Record<FolioStatus, string> = {
+  [FolioStatus.OPEN]: "bg-status-oc-bg text-status-oc-fg border-status-oc-pip",
+  [FolioStatus.CLOSED]:
+    "bg-status-ooo-bg text-status-ooo-fg border-status-ooo-pip",
+  [FolioStatus.VOIDED]: "bg-status-od-bg text-status-od-fg border-status-od-pip",
+};
+
+function FolioStatusBadge({ status }: { status: FolioStatus }) {
+  return (
+    <span
+      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${statusClassNames[status]}`}
+    >
+      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
+      {status}
+    </span>
+  );
+}
+
+export function FolioCharges({ status, lineItems }: FolioChargesProps) {
   return (
     <section className="min-w-0 border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        // CHARGES
-      </div>
-      <div className="space-y-3.5 p-3.5">
-        <div className="flex justify-end">
-          <AddChargeDialog
-            folioId={folioId}
-            articles={articles}
-            disabled={status !== FolioStatus.OPEN}
-          />
+      <div className="flex items-center justify-between gap-3 bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <h2>Charges</h2>
+        <div className="flex items-center gap-2">
+          <span className="num text-[10px] text-slate-400">
+            {lineItems.length} line items
+          </span>
+          <FolioStatusBadge status={status} />
         </div>
+      </div>
+      <div className="p-0">
 
         {lineItems.length === 0 ? (
-          <div className="border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
+          <div className="m-3.5 border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
             No charges posted yet.
           </div>
         ) : (
-          <div className="overflow-x-auto border border-console-border">
+          <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full border-collapse text-[12px]">
               <thead className="bg-console-ink text-console-accent">
                 <tr>
                   <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
                     Date
                   </th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
+                    Code
+                  </th>
                   <th className="min-w-64 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
                     Description
-                  </th>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Posted by
                   </th>
                   <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
                     Qty
@@ -106,11 +113,11 @@ export function FolioCharges({
                     <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
                       {postedAtLabel(lineItem.postedAt)}
                     </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-medium text-console-ink">
+                      {lineItem.article.code}
+                    </td>
                     <td className="px-3 py-2.5 font-medium text-console-ink">
                       {descriptionLabel(lineItem)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                      {lineItem.postedBy.fullName}
                     </td>
                     <td className="num whitespace-nowrap px-3 py-2.5 text-right">
                       {qtyFormatter.format(Number(lineItem.quantity))}

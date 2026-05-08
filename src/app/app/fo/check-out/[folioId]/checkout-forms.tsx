@@ -8,13 +8,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { paymentMethods } from "../../folios/[id]/schema";
 import { completeCheckout, recordFinalPayment } from "./actions";
 
@@ -71,14 +64,14 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3.5 p-3.5">
+    <form id="final-payment-form" onSubmit={onSubmit} className="p-3.5">
       <input type="hidden" name="folioId" value={folioId} />
       <input type="hidden" name="method" value={method} />
 
-      <div className="grid gap-3.5 sm:grid-cols-3">
+      <div className="grid gap-3.5 sm:grid-cols-2">
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-            Amount
+            Jumlah
           </span>
           <Input
             name="amount"
@@ -92,29 +85,30 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
 
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-            Method
+            Metode
           </span>
-          <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
-            <SelectTrigger className="mt-1 h-8 w-full rounded-none border-console-border bg-console-surface text-[12px]">
-              <SelectValue placeholder="Pilih metode" />
-            </SelectTrigger>
-            <SelectContent align="start" className="rounded-none border-console-border">
-              {paymentMethods.map((paymentMethod) => (
-                <SelectItem
-                  key={paymentMethod}
-                  value={paymentMethod}
-                  className="rounded-none text-[12px]"
-                >
-                  {paymentMethod}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="mt-1 grid grid-cols-3 gap-1.5">
+            {paymentMethods.map((paymentMethod) => (
+              <button
+                key={paymentMethod}
+                type="button"
+                onClick={() => setMethod(paymentMethod)}
+                className={`h-8 border px-2 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+                  method === paymentMethod
+                    ? "border-console-ink bg-console-ink text-console-accent"
+                    : "border-console-border bg-console-surface text-console-ink hover:border-console-ink hover:bg-console-bg"
+                }`}
+              >
+                {paymentMethod}
+              </button>
+            ))}
+          </div>
         </label>
 
-        <label className="block">
+        <label className="block sm:col-span-2">
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-            Reference{method === PaymentMethod.TRANSFER ? " / Required" : ""}
+            Referensi Pembayaran
+            {method === PaymentMethod.TRANSFER ? " / Required" : ""}
           </span>
           <Input
             name="reference"
@@ -130,7 +124,7 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </p>
       ) : null}
 
-      <div className="flex justify-end border-t border-console-border pt-3.5">
+      <div className="mt-3.5 flex justify-end border-t border-console-border pt-3.5">
         <Button
           type="submit"
           disabled={isPending}
@@ -146,9 +140,13 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
 
 export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
   const router = useRouter();
-  const [confirmed, setConfirmed] = useState(false);
+  const [roomStatusConfirmed, setRoomStatusConfirmed] = useState(true);
+  const [folioCloseConfirmed, setFolioCloseConfirmed] = useState(true);
+  const [pdfConfirmed, setPdfConfirmed] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const confirmed =
+    roomStatusConfirmed && folioCloseConfirmed && pdfConfirmed;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -176,22 +174,58 @@ export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3.5 p-3.5">
+    <form id="complete-checkout-form" onSubmit={onSubmit} className="p-3.5">
       <input type="hidden" name="folioId" value={folioId} />
 
-      <label className="flex items-start gap-2 border border-console-border bg-console-bg p-3 text-[12px] font-medium text-console-ink">
-        <input
-          name="confirmed"
-          type="checkbox"
-          checked={confirmed}
-          onChange={(event) => setConfirmed(event.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded-none border-console-border"
-        />
-        <span>
-          Saya konfirmasi tamu telah meninggalkan kamar dan barang sudah
-          diperiksa.
-        </span>
-      </label>
+      <div className="space-y-1">
+        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+          <input
+            type="checkbox"
+            checked={roomStatusConfirmed}
+            onChange={(event) => setRoomStatusConfirmed(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+          />
+          <span>
+            <span className="block font-medium">
+              Set status kamar → Vacant Dirty (VD)
+            </span>
+            <span className="block text-[11px] text-slate-500">
+              Otomatis dikirim ke Housekeeping.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+          <input
+            name="confirmed"
+            type="checkbox"
+            checked={folioCloseConfirmed}
+            onChange={(event) => setFolioCloseConfirmed(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+          />
+          <span>
+            <span className="block font-medium">Tutup folio</span>
+            <span className="block text-[11px] text-slate-500">
+              Charge tidak dapat ditambahkan setelah folio ditutup.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+          <input
+            type="checkbox"
+            checked={pdfConfirmed}
+            onChange={(event) => setPdfConfirmed(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+          />
+          <span>
+            <span className="block font-medium">Generate PDF bill</span>
+            <span className="block text-[11px] text-slate-500">
+              File tersedia setelah konfirmasi.
+            </span>
+          </span>
+        </label>
+      </div>
 
       {actionError ? (
         <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
@@ -199,7 +233,7 @@ export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
         </p>
       ) : null}
 
-      <div className="flex justify-end border-t border-console-border pt-3.5">
+      <div className="mt-3.5 flex justify-end border-t border-console-border pt-3.5">
         <Button
           type="submit"
           disabled={!confirmed || isPending}

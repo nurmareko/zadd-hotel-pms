@@ -1,9 +1,10 @@
 import { ReservationStatus, RoomStatus, type Room } from "@prisma/client";
-import { differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { formatIDR } from "@/lib/format";
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { CheckInForm } from "./check-in-form";
 
@@ -41,28 +42,11 @@ function ErrorState({
 
       <section className="border border-console-border bg-console-surface">
         <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          // Check-In Blocked
+          {"// Check-In Blocked"}
         </div>
         <div className="p-3.5 text-[12px] text-status-od-fg">{message}</div>
       </section>
     </main>
-  );
-}
-
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 text-[12px] font-medium text-console-ink">{value}</dd>
-    </div>
   );
 }
 
@@ -93,7 +77,15 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
   const reservation = await prisma.reservation.findUnique({
     where: { id: parsedReservationId },
     include: {
-      guest: { select: { fullName: true } },
+      guest: {
+        select: {
+          fullName: true,
+          idNumber: true,
+          phone: true,
+          email: true,
+          nationality: true,
+        },
+      },
       room: { select: { id: true, number: true } },
       roomType: { select: { id: true, code: true, name: true } },
     },
@@ -112,7 +104,10 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     );
   }
 
-  if (startOfDay(reservation.arrivalDate) > startOfDay(new Date())) {
+  const arrivalDate = dateOnlyBoundary(reservation.arrivalDate);
+  const { today } = todayDateOnly();
+
+  if (arrivalDate > today) {
     return (
       <ErrorState
         title={reservation.reservationNo}
@@ -121,9 +116,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     );
   }
 
-  const arrivalDate = startOfDay(reservation.arrivalDate);
-  const nextDate = new Date(arrivalDate);
-  nextDate.setDate(nextDate.getDate() + 1);
+  const nextDate = addDays(arrivalDate, 1);
 
   const [roomsOfType, arrivalOverlaps] = await Promise.all([
     prisma.room.findMany({
@@ -148,7 +141,11 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
       .filter((roomId): roomId is number => roomId !== null),
   );
   const roomOptions = roomsOfType
-    .filter((room) => reservation.roomId || getArrivalDayAvailability(room, occupiedRoomIds, null))
+    .filter(
+      (room) =>
+        reservation.roomId ||
+        getArrivalDayAvailability(room, occupiedRoomIds, null),
+    )
     .map((room) => ({
       id: room.id,
       number: room.number,
@@ -174,6 +171,8 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
   );
   const rateAmount = reservation.rateAmount.toString();
   const totalStay = Number(rateAmount) * nights;
+  const arrivalLabel = dateLabel(reservation.arrivalDate);
+  const departureLabel = dateLabel(reservation.departureDate);
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -181,58 +180,49 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Check-In
+            Check-In · {reservation.guest.fullName}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Review reservation, assign a room, capture GRC, then open folio.
+            {reservation.reservationNo} · {reservation.roomType.name} ·{" "}
+            {arrivalLabel} → {departureLabel} ({nights} malam)
           </p>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <Link
+            href={`/app/fo/reservations/${reservation.id}`}
+            className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+          >
+            Batal
+          </Link>
+          <button
+            type="submit"
+            form="check-in-form"
+            className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          >
+            Konfirmasi Check-In
+          </button>
         </div>
       </div>
 
-      <div className="max-w-3xl space-y-3">
-        <section className="border border-console-border bg-console-surface">
-          <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            // Reservation
-          </div>
-          <dl className="grid gap-3.5 p-3.5 sm:grid-cols-2">
-            <DetailItem
-              label="Reservation No"
-              value={reservation.reservationNo}
-            />
-            <DetailItem label="Guest" value={reservation.guest.fullName} />
-            <DetailItem
-              label="Arrival"
-              value={dateLabel(reservation.arrivalDate)}
-            />
-            <DetailItem
-              label="Departure"
-              value={dateLabel(reservation.departureDate)}
-            />
-            <DetailItem
-              label="Room Type"
-              value={`${reservation.roomType.code} - ${reservation.roomType.name}`}
-            />
-            <DetailItem label="Rate / Night" value={formatIDR(rateAmount)} />
-            <DetailItem label="Total Nights" value={`${nights} night(s)`} />
-            <DetailItem label="Room Total" value={formatIDR(totalStay)} />
-            <DetailItem
-              label="Adults / Children"
-              value={`${reservation.adults} / ${reservation.children}`}
-            />
-            {reservation.notes ? (
-              <div className="sm:col-span-2">
-                <DetailItem label="Notes" value={reservation.notes} />
-              </div>
-            ) : null}
-          </dl>
-        </section>
-
+      <div className="max-w-6xl">
         <CheckInForm
           reservationId={reservation.id}
-          cancelHref={`/app/fo/reservations/${reservation.id}`}
+          reservationNo={reservation.reservationNo}
+          guest={{
+            fullName: reservation.guest.fullName,
+            idNumber: reservation.guest.idNumber,
+            phone: reservation.guest.phone,
+            email: reservation.guest.email,
+            nationality: reservation.guest.nationality,
+          }}
           roomTypeName={reservation.roomType.name}
-          arrivalLabel={dateLabel(reservation.arrivalDate)}
+          arrivalLabel={arrivalLabel}
+          departureLabel={departureLabel}
+          nights={nights}
+          totalStay={totalStay}
           assignedRoomId={reservation.roomId}
+          assignedRoomNumber={reservation.room?.number ?? null}
           existingDeposit={reservation.deposit.toString()}
           availableRoomsCount={availableRoomsCount}
           roomOptions={roomOptions}

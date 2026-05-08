@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { ReservationStatus, type RoomStatus } from "@prisma/client";
 
+import { dateOnlyBoundary } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 import { TapeChartGrid, type TapeChartRow } from "./tape-chart-grid";
@@ -186,7 +187,8 @@ export default async function FoTapeChartPage({
   const { startDate } = await searchParams;
   const visibleStartDate = parseStartDate(startDate);
   const days = buildDays(visibleStartDate);
-  const gridEndDate = addDays(visibleStartDate, DAY_COUNT);
+  const gridStartDate = dateOnlyBoundary(visibleStartDate);
+  const gridEndDate = addDays(gridStartDate, DAY_COUNT);
 
   const [rooms, reservations] = await Promise.all([
     prisma.room.findMany({
@@ -197,7 +199,7 @@ export default async function FoTapeChartPage({
       where: {
         AND: [
           { arrivalDate: { lt: gridEndDate } },
-          { departureDate: { gt: visibleStartDate } },
+          { departureDate: { gt: gridStartDate } },
           {
             status: {
               in: [
@@ -277,13 +279,13 @@ export default async function FoTapeChartPage({
           >
             Hari Ini
           </Link>
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent"
+          <Link
+            href="/app/fo/reservations/new"
+            className="flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             Reservasi Baru
-          </button>
+          </Link>
         </div>
       </div>
 

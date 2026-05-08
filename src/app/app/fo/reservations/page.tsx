@@ -3,6 +3,7 @@ import { addDays, formatISO } from "date-fns";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
+import { todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 import { ReservationFilters } from "./reservation-filters";
@@ -27,13 +28,11 @@ type SearchParams = {
   dir?: SortDirection;
 };
 
-function toUtcDateOnly(date: Date) {
-  return new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-}
+function parseDateParam(value: string | undefined, today: Date) {
+  if (value === "today") {
+    return today;
+  }
 
-function parseDateParam(value: string | undefined) {
   const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
   if (!match) {
@@ -101,15 +100,15 @@ export default async function ReservationListPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const today = toUtcDateOnly(new Date());
+  const { today } = todayDateOnly();
   const defaultToDate = addDays(today, DEFAULT_WINDOW_DAYS);
   const q = params.q?.trim() ?? "";
   const status = parseStatus(params.status);
   const roomType = params.type?.trim() ?? "";
   const fromDate =
-    params.from === undefined ? today : parseDateParam(params.from);
+    params.from === undefined ? today : parseDateParam(params.from, today);
   const toDate =
-    params.to === undefined ? defaultToDate : parseDateParam(params.to);
+    params.to === undefined ? defaultToDate : parseDateParam(params.to, today);
   const sort = parseSort(params.sort);
   const dir = parseDirection(params.dir);
 

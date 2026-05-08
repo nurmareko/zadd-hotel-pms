@@ -3,15 +3,12 @@ import Link from "next/link";
 
 import { formatIDR } from "@/lib/format";
 import type { FolioTotals } from "@/lib/folio-totals";
-import { RecordPaymentDialog } from "./record-payment-dialog";
 
 type FolioSummaryProps = {
   folioId: number;
   status: FolioStatus;
   reservationStatus: ReservationStatus;
   totals: FolioTotals;
-  serviceChargePercent: number;
-  taxPercent: number;
 };
 
 function SummaryRow({
@@ -24,10 +21,12 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-2 last:border-b-0">
-      <span className="text-[11px] text-slate-600">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-1">
+      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+        {label}
+      </span>
       <span
-        className={`num text-right text-[12px] ${strong ? "font-bold text-console-ink" : "font-medium text-console-ink"}`}
+        className={`num text-right ${strong ? "text-[15px] font-semibold" : "font-medium text-console-ink"}`}
       >
         {value}
       </span>
@@ -35,28 +34,18 @@ function SummaryRow({
   );
 }
 
-function BalanceLabel({ balance }: { balance: number }) {
+function balanceClassName(balance: number) {
   const roundedBalance = Math.round(balance);
 
   if (roundedBalance > 0) {
-    return (
-      <span className="num text-[13px] font-bold text-status-od-fg">
-        Owes {formatIDR(balance)}
-      </span>
-    );
+    return "text-status-od-fg";
   }
 
   if (roundedBalance < 0) {
-    return (
-      <span className="num text-[13px] font-bold text-status-vd-fg">
-        Credit {formatIDR(Math.abs(balance))}
-      </span>
-    );
+    return "text-status-vd-fg";
   }
 
-  return (
-    <span className="num text-[13px] font-bold text-status-vc-fg">Settled</span>
-  );
+  return "text-status-vc-fg";
 }
 
 export function FolioSummary({
@@ -64,75 +53,45 @@ export function FolioSummary({
   status,
   reservationStatus,
   totals,
-  serviceChargePercent,
-  taxPercent,
 }: FolioSummaryProps) {
   const isOpen = status === FolioStatus.OPEN;
   const canCheckOut = isOpen && reservationStatus === ReservationStatus.CHECKED_IN;
 
   return (
-    <section className="min-w-0 border border-console-border bg-console-surface lg:sticky lg:top-4">
+    <section className="min-w-0 border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// SUMMARY"}
+        {"// Saldo"}
       </div>
-      <div className="space-y-4 p-3.5">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <div>
-            <div className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-              [ Pendapatan ]
-            </div>
-            <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
-            <SummaryRow
-              label={`Biaya Layanan (${serviceChargePercent}%)`}
-              value={formatIDR(totals.serviceCharge)}
-            />
-            <SummaryRow
-              label={`Pajak (${taxPercent}%)`}
-              value={formatIDR(totals.tax)}
-            />
-            {Math.round(totals.taxableExtras) !== 0 ? (
-              <SummaryRow
-                label="Manual Tax/Service"
-                value={formatIDR(totals.taxableExtras)}
-              />
-            ) : null}
-            <SummaryRow
-              label="Total Tagihan"
-              value={formatIDR(totals.totalCharges)}
-              strong
-            />
-          </div>
-
-          <div>
-            <div className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-              [ Pembayaran ]
-            </div>
-            <SummaryRow
-              label="Telah Dibayar"
-              value={formatIDR(totals.totalPaid)}
-            />
-            <div className="flex items-center justify-between gap-3 py-2">
-              <span className="text-[11px] text-slate-600">Saldo</span>
-              <BalanceLabel balance={totals.balance} />
-            </div>
-          </div>
+      <div className="p-3.5 text-[13px]">
+        <SummaryRow
+          label="Total charges"
+          value={formatIDR(totals.totalCharges)}
+        />
+        <SummaryRow
+          label="Total payments"
+          value={`-${formatIDR(totals.totalPaid)}`}
+        />
+        <div className="my-2 border-t border-console-border-soft" />
+        <div className="flex items-center justify-between gap-3 py-1 text-[15px] font-semibold">
+          <span>Saldo terhutang</span>
+          <span className={`num ${balanceClassName(totals.balance)}`}>
+            {formatIDR(totals.balance)}
+          </span>
         </div>
-
-        <div className="flex flex-col gap-2 border-t border-console-border pt-3.5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-stretch xl:flex-row xl:items-center">
-          <RecordPaymentDialog
-            folioId={folioId}
-            balance={totals.balance}
-            disabled={!isOpen}
-          />
-          {canCheckOut ? (
-            <Link
-              href={`/app/fo/check-out/${folioId}`}
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-            >
-              Check Out
-            </Link>
-          ) : null}
-        </div>
+      </div>
+      <div className="border-t border-console-border bg-console-bg p-3.5">
+        {canCheckOut ? (
+          <Link
+            href={`/app/fo/check-out/${folioId}`}
+            className="inline-flex h-8 w-full items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          >
+            Lanjut ke Check-Out
+          </Link>
+        ) : (
+          <span className="block text-[11px] text-slate-500">
+            Check-out tersedia saat folio open dan reservasi checked-in.
+          </span>
+        )}
       </div>
     </section>
   );

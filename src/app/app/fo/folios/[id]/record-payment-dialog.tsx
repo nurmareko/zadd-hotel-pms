@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,10 @@ export function RecordPaymentDialog({
     },
   });
 
-  const method = form.watch("method");
+  const method = useWatch({
+    control: form.control,
+    name: "method",
+  });
 
   function formDefaults() {
     return {
@@ -138,7 +141,7 @@ export function RecordPaymentDialog({
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              // Catat Pembayaran
+              {"// Catat Pembayaran"}
             </DialogTitle>
           </DialogHeader>
 
