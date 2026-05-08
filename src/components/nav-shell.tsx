@@ -7,21 +7,28 @@ import { signOut } from "next-auth/react";
 import {
   BedDouble,
   Calculator,
+  CalendarDays,
+  ClipboardList,
   ConciergeBell,
+  FileText,
+  LayoutDashboard,
   LogOut,
+  Moon,
   Settings,
+  Tag,
   User,
+  Users,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
 import type { AppRole } from "@/auth";
 import { Button } from "@/components/ui/button";
-import { getRoleHome } from "@/lib/role-routes";
 
 type NavLink = {
   label: string;
   href: string;
+  icon: LucideIcon;
 };
 
 type NavGroup = {
@@ -29,10 +36,7 @@ type NavGroup = {
   links: NavLink[];
 };
 
-type MobileNavLink = NavLink & {
-  activeHref?: string;
-  icon: LucideIcon;
-};
+type MobileNavLink = NavLink & { activeHref?: string };
 
 type NavShellProps = {
   children: ReactNode;
@@ -40,36 +44,44 @@ type NavShellProps = {
   userFullName: string;
 };
 
+const roleModuleNames: Record<AppRole, string> = {
+  FO: "FRONT OFFICE",
+  HK: "HOUSEKEEPING",
+  FB: "FOOD & BEVERAGE",
+  ACC: "ACCOUNTING",
+  ADMIN: "ADMINISTRATOR",
+};
+
 const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   FO: [
     {
       label: "Front Office",
       links: [
-        { label: "Dashboard", href: "/app/fo" },
-        { label: "Tape Chart", href: "/app/fo/tape-chart" },
-        { label: "Reservations", href: "/app/fo/reservations" },
+        { label: "Dashboard", href: "/app/fo", icon: LayoutDashboard },
+        { label: "Tape Chart", href: "/app/fo/tape-chart", icon: CalendarDays },
+        { label: "Reservations", href: "/app/fo/reservations", icon: ClipboardList },
       ],
     },
   ],
   HK: [
     {
       label: "Housekeeping",
-      links: [{ label: "Rooms", href: "/app/hk" }],
+      links: [{ label: "Rooms", href: "/app/hk", icon: BedDouble }],
     },
   ],
   FB: [
     {
       label: "Food & Beverage",
-      links: [{ label: "Tables", href: "/app/fb" }],
+      links: [{ label: "Tables", href: "/app/fb", icon: UtensilsCrossed }],
     },
   ],
   ACC: [
     {
       label: "Accounting",
       links: [
-        { label: "Dashboard", href: "/app/acc" },
-        { label: "Night Audit", href: "/app/acc/night-audit" },
-        { label: "Night Report", href: "/app/acc/night-report" },
+        { label: "Dashboard", href: "/app/acc", icon: LayoutDashboard },
+        { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
+        { label: "Night Report", href: "/app/acc/night-report", icon: FileText },
       ],
     },
   ],
@@ -77,11 +89,11 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     {
       label: "Admin",
       links: [
-        { label: "Users", href: "/app/admin/users" },
-        { label: "Rooms", href: "/app/admin/rooms" },
-        { label: "Articles", href: "/app/admin/articles" },
-        { label: "Menu", href: "/app/admin/menu" },
-        { label: "Settings", href: "/app/admin/settings" },
+        { label: "Users", href: "/app/admin/users", icon: Users },
+        { label: "Rooms", href: "/app/admin/rooms", icon: BedDouble },
+        { label: "Articles", href: "/app/admin/articles", icon: Tag },
+        { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },
+        { label: "Settings", href: "/app/admin/settings", icon: Settings },
       ],
     },
   ],
@@ -89,7 +101,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
 
 const accountGroup: NavGroup = {
   label: "Account",
-  links: [{ label: "Profile", href: "/app/profile" }],
+  links: [{ label: "Profile", href: "/app/profile", icon: User }],
 };
 
 const mobileModuleLinks: Record<AppRole, MobileNavLink> = {
@@ -119,7 +131,7 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
   const pathname = usePathname();
   const navGroups = [...navGroupsByRole[userRole], accountGroup];
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
-  const mobileLinks = [
+  const mobileLinks: MobileNavLink[] = [
     mobileModuleLinks[userRole],
     { label: "Profile", href: "/app/profile", icon: User },
   ];
@@ -127,22 +139,58 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
   return (
     <div className="min-h-screen flex-1 bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 hidden w-[240px] flex-col border-r border-border bg-sidebar px-4 py-5 md:flex">
-        <Link
-          href={getRoleHome(userRole)}
-          className="mb-6 block text-base font-semibold"
+        {/* Brand header */}
+        <div
+          className="mb-5 flex items-center gap-2.5 pb-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
-          Hotel PMS
-        </Link>
+          <div
+            className="flex shrink-0 items-center justify-center text-console-accent"
+            style={{
+              width: 28,
+              height: 28,
+              border: "1px solid #00d4aa",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Z
+          </div>
+          <div>
+            <div
+              className="text-white"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              ZADD PMS
+            </div>
+            <div
+              className="text-slate-400"
+              style={{
+                fontSize: 9,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {roleModuleNames[userRole]}
+            </div>
+          </div>
+        </div>
 
         <nav className="flex-1 space-y-6">
           {navGroups.map((group) => (
             <section key={group.label}>
-              <h2 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <h2 className="mb-2 px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4b5563]">
                 {group.label}
               </h2>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {group.links.map((link) => {
                   const isActive = activeSidebarHref === link.href;
+                  const Icon = link.icon;
 
                   return (
                     <Link
@@ -150,12 +198,13 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
                       href={link.href}
                       aria-current={isActive ? "page" : undefined}
                       className={[
-                        "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-2 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
                         isActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                          ? "text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
+                          : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
                       ].join(" ")}
                     >
+                      <Icon size={14} aria-hidden="true" />
                       {link.label}
                     </Link>
                   );
@@ -165,18 +214,23 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
           ))}
         </nav>
 
-        <div className="border-t border-border pt-4">
-          <p className="truncate px-3 text-sm font-medium">{userFullName}</p>
-          <p className="mt-1 px-3 text-xs font-medium text-muted-foreground">
+        <div
+          className="pt-4"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <p className="truncate px-3 text-sm font-medium text-white">
+            {userFullName}
+          </p>
+          <p className="mt-1 px-3 text-xs font-medium text-sidebar-foreground">
             {userRole}
           </p>
           <Button
             type="button"
             variant="ghost"
-            className="mt-3 w-full justify-start"
+            className="mt-3 w-full justify-start gap-2 text-[12px] uppercase tracking-[0.04em] text-sidebar-foreground hover:bg-transparent hover:text-console-accent"
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
-            <LogOut aria-hidden="true" />
+            <LogOut size={14} aria-hidden="true" />
             Sign out
           </Button>
         </div>
