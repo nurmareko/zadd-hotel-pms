@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -77,8 +77,12 @@ export function AddChargeDialog({
     },
   });
 
-  const quantity = Number(form.watch("quantity") || 0);
-  const unitPrice = Number(form.watch("unitPrice") || 0);
+  const [quantityValue, unitPriceValue] = useWatch({
+    control: form.control,
+    name: ["quantity", "unitPrice"],
+  });
+  const quantity = Number(quantityValue || 0);
+  const unitPrice = Number(unitPriceValue || 0);
   const amount = useMemo(
     () =>
       Number.isFinite(quantity) && Number.isFinite(unitPrice)
@@ -142,7 +146,7 @@ export function AddChargeDialog({
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              // Tambah Charge
+              {"// Tambah Charge"}
             </DialogTitle>
           </DialogHeader>
 

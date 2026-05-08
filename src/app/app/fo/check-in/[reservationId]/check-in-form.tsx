@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -147,11 +147,24 @@ export function CheckInForm({
     },
   });
 
-  const purposeOfVisit = form.watch("purposeOfVisit");
-  const depositMethod = form.watch("depositMethod");
-  const depositAmount = Number(form.watch("depositAmount") || 0);
-  const selectedRoomId = form.watch("roomId");
-  const guestName = form.watch("guestFullName") || guest.fullName;
+  const [
+    purposeOfVisit,
+    depositMethod,
+    depositAmountValue,
+    selectedRoomId,
+    guestFullName,
+  ] = useWatch({
+    control: form.control,
+    name: [
+      "purposeOfVisit",
+      "depositMethod",
+      "depositAmount",
+      "roomId",
+      "guestFullName",
+    ],
+  });
+  const depositAmount = Number(depositAmountValue || 0);
+  const guestName = guestFullName || guest.fullName;
   const selectedRoom = roomOptions.find(
     (room) => String(room.id) === selectedRoomId,
   );

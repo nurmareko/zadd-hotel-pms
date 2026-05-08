@@ -3,7 +3,7 @@ import {
   ReservationStatus,
   type ArticleType,
 } from "@prisma/client";
-import { differenceInCalendarDays, format } from "date-fns";
+import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import { AlertTriangle, Check, CheckCircle2, Download, Undo2 } from "lucide-react";
 import Link from "next/link";
@@ -58,13 +58,6 @@ type PreviewSettings = {
   taxPercent: { toString(): string } | number;
 };
 
-const folioStatusClassNames = {
-  [FolioStatus.OPEN]: "bg-status-oc-bg text-status-oc-fg border-status-oc-pip",
-  [FolioStatus.CLOSED]:
-    "bg-status-ooo-bg text-status-ooo-fg border-status-ooo-pip",
-  [FolioStatus.VOIDED]: "bg-status-od-bg text-status-od-fg border-status-od-pip",
-};
-
 function dateLabel(date: Date) {
   return format(date, "dd MMM yyyy", { locale: indonesianLocale });
 }
@@ -96,17 +89,6 @@ function StepCard({
       </div>
       {children}
     </section>
-  );
-}
-
-function StatusBadge({ status }: { status: FolioStatus }) {
-  return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${folioStatusClassNames[status]}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {status}
-    </span>
   );
 }
 
@@ -325,10 +307,6 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
   }
 
   const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
-  const nights = differenceInCalendarDays(
-    folio.reservation.departureDate,
-    folio.reservation.arrivalDate,
-  );
   const isClosed = folio.status === FolioStatus.CLOSED;
   const isCheckoutAllowed =
     folio.status === FolioStatus.OPEN &&

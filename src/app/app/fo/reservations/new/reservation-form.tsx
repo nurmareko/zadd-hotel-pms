@@ -129,9 +129,15 @@ export function ReservationForm({
     defaultValues,
   });
 
-  const [roomTypeIdValue, roomIdValue, arrivalDate, departureDate] = useWatch({
+  const [
+    roomTypeIdValue,
+    roomIdValue,
+    arrivalDate,
+    departureDate,
+    depositValue,
+  ] = useWatch({
     control: form.control,
-    name: ["roomTypeId", "roomId", "arrivalDate", "departureDate"],
+    name: ["roomTypeId", "roomId", "arrivalDate", "departureDate", "deposit"],
   });
   const selectedRoomTypeId = Number(roomTypeIdValue || 0);
   const selectedRoomId = Number(roomIdValue || 0);
@@ -141,7 +147,7 @@ export function ReservationForm({
   );
   const nights = nightsBetween(arrivalDate, departureDate);
   const rateAmount = selectedRoomType ? Number(selectedRoomType.baseRate) : 0;
-  const depositAmount = Number(form.watch("deposit") || 0);
+  const depositAmount = Number(depositValue || 0);
 
   const roomOptions = useMemo(() => {
     return rooms
