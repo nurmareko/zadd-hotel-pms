@@ -1,9 +1,10 @@
 import { ReservationStatus } from "@prisma/client";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -62,9 +63,10 @@ export default async function ReservationDetailPage({
     notFound();
   }
 
+  const { today } = todayDateOnly();
   const canCheckIn =
     reservation.status === ReservationStatus.CONFIRMED &&
-    startOfDay(reservation.arrivalDate) <= startOfDay(new Date());
+    dateOnlyBoundary(reservation.arrivalDate) <= today;
   const nights = Math.max(
     0,
     Math.round(

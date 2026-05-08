@@ -1,9 +1,10 @@
 import { ReservationStatus, RoomStatus, type Room } from "@prisma/client";
-import { differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { CheckInForm } from "./check-in-form";
 
@@ -103,7 +104,10 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     );
   }
 
-  if (startOfDay(reservation.arrivalDate) > startOfDay(new Date())) {
+  const arrivalDate = dateOnlyBoundary(reservation.arrivalDate);
+  const { today } = todayDateOnly();
+
+  if (arrivalDate > today) {
     return (
       <ErrorState
         title={reservation.reservationNo}
@@ -112,9 +116,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     );
   }
 
-  const arrivalDate = startOfDay(reservation.arrivalDate);
-  const nextDate = new Date(arrivalDate);
-  nextDate.setDate(nextDate.getDate() + 1);
+  const nextDate = addDays(arrivalDate, 1);
 
   const [roomsOfType, arrivalOverlaps] = await Promise.all([
     prisma.room.findMany({

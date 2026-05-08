@@ -1,11 +1,14 @@
 "use server";
 
 import { Prisma, ReservationStatus, RoomStatus } from "@prisma/client";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+// Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
+// Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { CheckInSchema, type CheckInValues } from "./schema";
 
@@ -69,7 +72,11 @@ async function runCheckInTransaction(input: CheckInValues, userId: number) {
         };
       }
 
-      if (startOfDay(reservation.arrivalDate) > startOfDay(new Date())) {
+      const arrivalDate = dateOnlyBoundary(reservation.arrivalDate);
+      const departureDate = dateOnlyBoundary(reservation.departureDate);
+      const { today } = todayDateOnly();
+
+      if (arrivalDate > today) {
         return {
           ok: false as const,
           error: "Arrival date is not eligible for check-in yet",
@@ -101,8 +108,8 @@ async function runCheckInTransaction(input: CheckInValues, userId: number) {
           id: { not: reservation.id },
           roomId: room.id,
           status: { in: ACTIVE_RESERVATION_STATUSES },
-          arrivalDate: { lt: reservation.departureDate },
-          departureDate: { gt: reservation.arrivalDate },
+          arrivalDate: { lt: departureDate },
+          departureDate: { gt: arrivalDate },
         },
         select: { id: true },
       });

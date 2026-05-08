@@ -7,6 +7,9 @@ import {
 } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
+// Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
+// Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
+import { todayDateOnly } from "@/lib/date-only";
 import { formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
@@ -157,8 +160,9 @@ async function getActivityRows(today: Date, tomorrow: Date) {
 }
 
 export default async function FODashboardPage() {
-  const today = startOfDay(new Date());
-  const tomorrow = addDays(today, 1);
+  const timestampToday = startOfDay(new Date());
+  const timestampTomorrow = addDays(timestampToday, 1);
+  const { today: dateOnlyToday, tomorrow: dateOnlyTomorrow } = todayDateOnly();
 
   const [
     inHouseCount,
@@ -172,14 +176,14 @@ export default async function FODashboardPage() {
     prisma.reservation.count({
       where: {
         status: ReservationStatus.CHECKED_IN,
-        arrivalDate: { lte: today },
-        departureDate: { gt: today },
+        arrivalDate: { lte: dateOnlyToday },
+        departureDate: { gt: dateOnlyToday },
       },
     }),
     prisma.reservation.findMany({
       where: {
         status: ReservationStatus.CONFIRMED,
-        arrivalDate: { gte: today, lt: tomorrow },
+        arrivalDate: { gte: dateOnlyToday, lt: dateOnlyTomorrow },
       },
       include: {
         guest: { select: { fullName: true } },
@@ -190,13 +194,13 @@ export default async function FODashboardPage() {
     prisma.reservation.count({
       where: {
         status: ReservationStatus.CHECKED_IN,
-        arrivalDate: { gte: today, lt: tomorrow },
+        arrivalDate: { gte: dateOnlyToday, lt: dateOnlyTomorrow },
       },
     }),
     prisma.reservation.findMany({
       where: {
         status: ReservationStatus.CHECKED_IN,
-        departureDate: { gte: today, lt: tomorrow },
+        departureDate: { gte: dateOnlyToday, lt: dateOnlyTomorrow },
       },
       include: {
         guest: { select: { fullName: true } },
@@ -214,7 +218,7 @@ export default async function FODashboardPage() {
     }),
     prisma.room.findMany({ select: { status: true } }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
-    getActivityRows(today, tomorrow),
+    getActivityRows(timestampToday, timestampTomorrow),
   ]);
 
   const totalExpectedArrivals = arrivalsToday.length + arrivedToday;
@@ -305,7 +309,7 @@ export default async function FODashboardPage() {
   const arrivalsHref = todayReservationsHref(ReservationStatus.CONFIRMED);
   const departuresHref = todayReservationsHref(ReservationStatus.CHECKED_IN);
 
-  const dashboardDateLabel = format(today, "EEEE, d MMMM yyyy", {
+  const dashboardDateLabel = format(timestampToday, "EEEE, d MMMM yyyy", {
     locale: indonesianLocale,
   });
 

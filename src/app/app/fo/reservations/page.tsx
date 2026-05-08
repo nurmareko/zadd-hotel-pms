@@ -3,6 +3,7 @@ import { addDays, formatISO } from "date-fns";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
+import { todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 import { ReservationFilters } from "./reservation-filters";
@@ -26,12 +27,6 @@ type SearchParams = {
   sort?: SortKey;
   dir?: SortDirection;
 };
-
-function toUtcDateOnly(date: Date) {
-  return new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-}
 
 function parseDateParam(value: string | undefined, today: Date) {
   if (value === "today") {
@@ -105,7 +100,7 @@ export default async function ReservationListPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const today = toUtcDateOnly(new Date());
+  const { today } = todayDateOnly();
   const defaultToDate = addDays(today, DEFAULT_WINDOW_DAYS);
   const q = params.q?.trim() ?? "";
   const status = parseStatus(params.status);
