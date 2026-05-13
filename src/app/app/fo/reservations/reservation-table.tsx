@@ -1,4 +1,4 @@
-import type { ReservationStatus } from "@prisma/client";
+import type { ReservationStatus, ReservationType } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import { ArrowDown, ArrowUp } from "lucide-react";
@@ -27,6 +27,7 @@ type ReservationTableProps = {
     rateAmount: { toString(): string };
     deposit: { toString(): string };
     status: ReservationStatus;
+    reservationType: ReservationType;
     guest: {
       fullName: string;
     };
@@ -65,6 +66,14 @@ const statusClassNames: Record<
     badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
     pip: "bg-status-od-pip",
   },
+};
+
+const reservationTypeLabels: Record<ReservationType, string> = {
+  INDIVIDUAL: "Individual",
+  COMPANY: "Company",
+  GOVERNMENT: "Government",
+  OTA: "Online Travel Agent",
+  WALK_IN: "Walk-in",
 };
 
 function dateLabel(date: Date) {
@@ -190,7 +199,7 @@ export function ReservationTable({
 }: ReservationTableProps) {
   return (
     <div className="overflow-auto">
-      <table className="w-full min-w-[920px] border-collapse text-[12px]">
+      <table className="w-full min-w-[1020px] border-collapse text-[12px]">
         <caption className="sr-only">Daftar reservasi hotel</caption>
         <thead>
           <tr>
@@ -214,6 +223,12 @@ export function ReservationTable({
               scope="col"
             >
               Tipe Kamar
+            </th>
+            <th
+              className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent"
+              scope="col"
+            >
+              Tipe Reservasi
             </th>
             <th
               aria-sort={ariaSort(filters, "arrival")}
@@ -275,6 +290,9 @@ export function ReservationTable({
                   </LinkedCell>
                   <LinkedCell href={href}>{reservation.roomType.name}</LinkedCell>
                   <LinkedCell href={href}>
+                    {reservationTypeLabels[reservation.reservationType]}
+                  </LinkedCell>
+                  <LinkedCell href={href}>
                     <span className="num">
                       {dateLabel(reservation.arrivalDate)}
                     </span>
@@ -304,7 +322,7 @@ export function ReservationTable({
             <tr>
               <td
                 className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
-                colSpan={8}
+                colSpan={9}
               >
                 Tidak ada reservasi yang cocok dengan filter Anda.
               </td>

@@ -23,10 +23,10 @@ datasource db {
 // ============================================================
 
 enum RoomStatus {
-  VC  // Vacant Clean
-  VD  // Vacant Dirty
-  OC  // Occupied Clean
-  OD  // Occupied Dirty
+  VC // Vacant Clean
+  VD // Vacant Dirty
+  OC // Occupied Clean
+  OD // Occupied Dirty
   OOO // Out of Order
 }
 
@@ -46,9 +46,23 @@ enum ReservationStatus {
   NO_SHOW
 }
 
+enum ReservationUsageType {
+  REGULAR // normal hotel guest
+  WALK_IN // ad-hoc non-staying guest (replaces ManualBill)
+}
+
+enum ArrangementType {
+  RO // Room Only
+  RB // Room + Breakfast
+  FBM // Full Board Meeting (Room + Breakfast + Coffee Break + Lunch + Dinner)
+}
+
 enum ReservationType {
-  REGULAR   // normal hotel guest
-  WALK_IN   // ad-hoc non-staying guest (replaces ManualBill)
+  INDIVIDUAL
+  COMPANY
+  GOVERNMENT
+  OTA // Online Travel Agent
+  WALK_IN
 }
 
 enum FolioStatus {
@@ -58,9 +72,9 @@ enum FolioStatus {
 }
 
 enum FBOrderStatus {
-  OPEN       // captain order stage (being taken / in kitchen)
-  BILLED     // customer has been presented the bill
-  CLOSED     // paid
+  OPEN // captain order stage (being taken / in kitchen)
+  BILLED // customer has been presented the bill
+  CLOSED // paid
   VOIDED
 }
 
@@ -202,28 +216,31 @@ model Guest {
 }
 
 model Reservation {
-  id             Int               @id @default(autoincrement())
-  reservationNo  String            @unique @map("reservation_no") @db.VarChar(20)
-  type           ReservationType   @default(REGULAR)
-  guestId        Int               @map("guest_id")
-  roomTypeId     Int               @map("room_type_id")
-  roomId         Int?              @map("room_id")
-  arrivalDate    DateTime          @map("arrival_date") @db.Date
-  departureDate  DateTime          @map("departure_date") @db.Date
-  adults         Int               @default(1)
-  children       Int               @default(0)
-  status         ReservationStatus @default(CONFIRMED)
-  rateAmount     Decimal           @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
-  deposit        Decimal           @default(0) @db.Decimal(12, 2)
-  notes          String?           @db.Text
+  id              Int                  @id @default(autoincrement())
+  reservationNo   String               @unique @map("reservation_no") @db.VarChar(20)
+  type            ReservationUsageType @default(REGULAR)
+  arrangementType ArrangementType      @default(RO) @map("arrangement_type")
+  reservationType ReservationType      @default(INDIVIDUAL) @map("reservation_type")
+  comment         String?              @db.Text
+  guestId         Int                  @map("guest_id")
+  roomTypeId      Int                  @map("room_type_id")
+  roomId          Int?                 @map("room_id")
+  arrivalDate     DateTime             @map("arrival_date") @db.Date
+  departureDate   DateTime             @map("departure_date") @db.Date
+  adults          Int                  @default(1)
+  children        Int                  @default(0)
+  status          ReservationStatus    @default(CONFIRMED)
+  rateAmount      Decimal              @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
+  deposit         Decimal              @default(0) @db.Decimal(12, 2)
+  notes           String?              @db.Text
 
   // GRC fields (inlined from GuestRegistrationCard entity)
-  grcFilledAt    DateTime?         @map("grc_filled_at")
-  purposeOfVisit String?           @map("purpose_of_visit") @db.VarChar(100)
+  grcFilledAt    DateTime? @map("grc_filled_at")
+  purposeOfVisit String?   @map("purpose_of_visit") @db.VarChar(100)
 
-  createdById    Int               @map("created_by_id")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  createdById Int      @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   guest     Guest    @relation(fields: [guestId], references: [id])
   roomType  RoomType @relation(fields: [roomTypeId], references: [id])

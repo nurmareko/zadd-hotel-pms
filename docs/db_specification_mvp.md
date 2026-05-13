@@ -199,7 +199,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality)
-9. Reservation(*id*, reservation_no, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, adults, children, status, deposit, rate_amount, notes, grc_filled_at, grc_purpose_of_visit, created_at, updated_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, adults, children, status, deposit, rate_amount, notes, grc_filled_at, grc_purpose_of_visit, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -329,6 +329,10 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique reservation identifier |
 | reservation_no | VARCHAR(20) | UNIQUE, NOT NULL | Reservation number |
+| type | VARCHAR(20) | NOT NULL, DEFAULT 'REGULAR' | Internal usage type: REGULAR, WALK_IN |
+| arrangement_type | VARCHAR(10) | NOT NULL, DEFAULT 'RO' | RO, RB, FBM |
+| reservation_type | VARCHAR(20) | NOT NULL, DEFAULT 'INDIVIDUAL' | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
+| comment | TEXT | — | Reservation comment for staff/manager context |
 | guest_id | INT | FOREIGN KEY → guest(id) | Booking guest |
 | room_type_id | INT | FOREIGN KEY → room_type(id) | Room type booked |
 | room_id | INT | FOREIGN KEY → room(id) | Physical room assigned at check-in |

@@ -1,4 +1,9 @@
-import { FolioStatus, ReservationStatus } from "@prisma/client";
+import {
+  ArrangementType,
+  FolioStatus,
+  ReservationStatus,
+  ReservationType,
+} from "@prisma/client";
 import { differenceInCalendarDays, format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
@@ -10,6 +15,8 @@ type FolioHeaderProps = {
     closedAt: Date | null;
     reservation: {
       reservationNo: string;
+      arrangementType: ArrangementType;
+      reservationType: ReservationType;
       arrivalDate: Date;
       departureDate: Date;
       status: ReservationStatus;
@@ -46,6 +53,20 @@ const reservationStatusClassNames: Record<ReservationStatus, string> = {
     "bg-status-od-bg text-status-od-fg border-status-od-pip",
   [ReservationStatus.NO_SHOW]:
     "bg-status-vd-bg text-status-vd-fg border-status-vd-pip",
+};
+
+const reservationTypeLabels: Record<ReservationType, string> = {
+  [ReservationType.INDIVIDUAL]: "Individual",
+  [ReservationType.COMPANY]: "Company",
+  [ReservationType.GOVERNMENT]: "Government",
+  [ReservationType.OTA]: "Online Travel Agent",
+  [ReservationType.WALK_IN]: "Walk-in",
+};
+
+const arrangementLabels: Record<ArrangementType, string> = {
+  [ArrangementType.RO]: "RO",
+  [ArrangementType.RB]: "RB (+ Breakfast)",
+  [ArrangementType.FBM]: "FBM (+ Breakfast, Coffee Break, Lunch, Dinner)",
 };
 
 function dateLabel(date: Date) {
@@ -104,6 +125,14 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {reservation.room?.number ?? "-"} / {reservation.roomType.name}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-500">
+          <span className="border border-console-border-soft px-1.5 py-0.5">
+            Tipe Reservasi: {reservationTypeLabels[reservation.reservationType]}
+          </span>
+          <span className="border border-console-border-soft px-1.5 py-0.5">
+            Arrangement: {arrangementLabels[reservation.arrangementType]}
+          </span>
         </div>
 
         <div className="my-3 border-t border-console-border-soft" />
