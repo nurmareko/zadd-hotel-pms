@@ -1,5 +1,6 @@
 import { ReservationStatus } from "@prisma/client";
 import { formatISO } from "date-fns";
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -82,6 +83,8 @@ export default async function ReservationDetailPage({
   const canCheckIn =
     reservation.status === ReservationStatus.CONFIRMED &&
     dateOnlyBoundary(reservation.arrivalDate) <= today;
+  const canPrintGrc =
+    formMode === "view" && reservation.status !== ReservationStatus.CANCELLED;
   const defaultValues: CreateReservationInput = {
     fullName: reservation.guest.fullName,
     idNumber: reservation.guest.idNumber ?? "",
@@ -147,6 +150,16 @@ export default async function ReservationDetailPage({
               Edit Reservasi
             </Link>
           )}
+          {canPrintGrc ? (
+            <a
+              href={`/api/reservations/${reservation.id}/grc`}
+              download
+              className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              Cetak GRC
+            </a>
+          ) : null}
           {canCheckIn ? (
             <Link
               href={`/app/fo/check-in/${reservation.id}`}

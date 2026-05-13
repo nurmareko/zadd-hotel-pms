@@ -17,7 +17,7 @@ type StringableDecimal = {
 type GrcProps = {
   folio: {
     folioNo: string;
-  };
+  } | null;
   reservation: {
     reservationNo: string;
     arrivalDate: Date;
@@ -149,7 +149,7 @@ function dateLabel(date: Date) {
 function dateTimeLabel(date: Date | null) {
   return date
     ? format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale })
-    : "-";
+    : "Tanggal: ______________________";
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -173,6 +173,8 @@ export function Grc({
     reservation.departureDate,
     reservation.arrivalDate,
   );
+  const purposeOfVisit = reservation.purposeOfVisit ?? "______________________";
+  const roomNumber = room?.number ?? "belum ditentukan saat check-in";
 
   return (
     <Document>
@@ -187,7 +189,7 @@ export function Grc({
           <Text style={styles.blockHeader}>{"// RESERVATION"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Reservation No" value={reservation.reservationNo} />
-            <Field label="Folio No" value={folio.folioNo} />
+            <Field label="Folio No" value={folio?.folioNo ?? "-"} />
             <Field label="Arrival" value={dateLabel(reservation.arrivalDate)} />
             <Field
               label="Departure"
@@ -225,7 +227,7 @@ export function Grc({
         <View style={styles.block}>
           <Text style={styles.blockHeader}>{"// STAY DETAILS"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Room" value={room?.number ?? "-"} />
+            <Field label="Room" value={roomNumber} />
             <Field label="Room Type" value={roomType.name} />
             <Field
               label="Rate"
@@ -241,7 +243,7 @@ export function Grc({
           <View style={[styles.blockBody, styles.grid]}>
             <Field
               label="Purpose of Visit"
-              value={reservation.purposeOfVisit ?? "-"}
+              value={purposeOfVisit}
             />
             <Field
               label="Filled At"
