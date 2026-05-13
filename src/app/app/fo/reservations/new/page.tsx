@@ -97,8 +97,11 @@ export default async function NewReservationPage({
     departureDate: toDateInputValue(departureDate),
     adults: "1",
     children: "0",
+    reservationType: "INDIVIDUAL",
+    arrangementType: "RO",
     deposit: "0",
     notes: "",
+    comment: "",
   };
 
   return (

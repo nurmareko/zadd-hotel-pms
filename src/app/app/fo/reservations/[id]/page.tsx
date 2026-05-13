@@ -1,79 +1,106 @@
 import { ReservationStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { formatISO } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
-import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { ReservationForm } from "../new/reservation-form";
+import type { CreateReservationInput } from "../new/schema";
 
 export const dynamic = "force-dynamic";
 
 type ReservationDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string | string[] }>;
 };
 
-function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 text-[12px] font-medium text-console-ink">{value}</dd>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-1 text-[13px]">
-      <span className="text-slate-500">{label}</span>
-      <span className="num text-right font-medium text-console-ink">
-        {value}
-      </span>
-    </div>
-  );
+function toDateInputValue(date: Date) {
+  return formatISO(date, { representation: "date" });
 }
 
 export default async function ReservationDetailPage({
   params,
+  searchParams,
 }: ReservationDetailPageProps) {
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const reservationId = Number(id);
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
     notFound();
   }
 
-  const reservation = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    include: {
-      guest: { select: { fullName: true } },
-      room: { select: { number: true } },
-      roomType: { select: { code: true, name: true } },
-    },
-  });
+  const [reservation, roomTypes, rooms, activeReservations] = await Promise.all([
+    prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: {
+        guest: true,
+        room: { select: { number: true } },
+        roomType: { select: { name: true } },
+      },
+    }),
+    prisma.roomType.findMany({
+      select: { id: true, code: true, name: true, baseRate: true },
+      orderBy: { code: "asc" },
+    }),
+    prisma.room.findMany({
+      select: {
+        id: true,
+        number: true,
+        floor: true,
+        status: true,
+        roomTypeId: true,
+      },
+      orderBy: { number: "asc" },
+    }),
+    prisma.reservation.findMany({
+      where: {
+        id: { not: reservationId },
+        roomId: { not: null },
+        status: { in: ["CONFIRMED", "CHECKED_IN"] },
+      },
+      select: {
+        id: true,
+        roomId: true,
+        arrivalDate: true,
+        departureDate: true,
+      },
+    }),
+  ]);
 
   if (!reservation) {
     notFound();
   }
 
+  const requestedMode = firstParam(query.mode);
+  const formMode = requestedMode === "edit" ? "edit" : "view";
   const { today } = todayDateOnly();
   const canCheckIn =
     reservation.status === ReservationStatus.CONFIRMED &&
     dateOnlyBoundary(reservation.arrivalDate) <= today;
-  const nights = Math.max(
-    0,
-    Math.round(
-      (reservation.departureDate.getTime() - reservation.arrivalDate.getTime()) /
-        86_400_000,
-    ),
-  );
+  const defaultValues: CreateReservationInput = {
+    fullName: reservation.guest.fullName,
+    idNumber: reservation.guest.idNumber ?? "",
+    phone: reservation.guest.phone ?? "",
+    email: reservation.guest.email ?? "",
+    address: reservation.guest.address ?? "",
+    nationality: reservation.guest.nationality ?? "",
+    roomTypeId: String(reservation.roomTypeId),
+    roomId: reservation.roomId ? String(reservation.roomId) : "",
+    arrivalDate: toDateInputValue(reservation.arrivalDate),
+    departureDate: toDateInputValue(reservation.departureDate),
+    adults: String(reservation.adults),
+    children: String(reservation.children),
+    reservationType: reservation.reservationType,
+    arrangementType: reservation.arrangementType,
+    deposit: reservation.deposit.toString(),
+    notes: reservation.notes ?? "",
+    comment: reservation.comment ?? "",
+  };
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -84,7 +111,8 @@ export default async function ReservationDetailPage({
             Reservation Form
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Review data tamu dan periode menginap reservasi.
+            {reservation.reservationNo} · {reservation.status.replace("_", " ")}{" "}
+            · {reservation.guest.fullName}
           </p>
         </div>
 
@@ -95,6 +123,30 @@ export default async function ReservationDetailPage({
           >
             Kembali
           </Link>
+          {formMode === "edit" ? (
+            <>
+              <Link
+                href={`/app/fo/reservations/${reservation.id}?mode=view`}
+                className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              >
+                Batal
+              </Link>
+              <button
+                type="submit"
+                form="reservation-form"
+                className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              >
+                Simpan Perubahan
+              </button>
+            </>
+          ) : (
+            <Link
+              href={`/app/fo/reservations/${reservation.id}?mode=edit`}
+              className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            >
+              Edit Reservasi
+            </Link>
+          )}
           {canCheckIn ? (
             <Link
               href={`/app/fo/check-in/${reservation.id}`}
@@ -106,100 +158,23 @@ export default async function ReservationDetailPage({
         </div>
       </div>
 
-      <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="border border-console-border bg-console-surface">
-          <div className="p-5">
-            <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-              Data Tamu
-            </h2>
-            <dl className="grid gap-3.5 sm:grid-cols-2">
-              <DetailItem
-                label="Nama Lengkap"
-                value={reservation.guest.fullName}
-              />
-              <DetailItem label="Nomor Identitas" value="-" />
-              <DetailItem label="Telepon" value="-" />
-              <DetailItem label="Email" value="-" />
-              <DetailItem label="Kewarganegaraan" value="-" />
-              <DetailItem label="Alamat" value="-" />
-            </dl>
-
-            <div className="mt-5 border-t border-console-border-soft pt-5">
-              <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                Detail Reservasi
-              </h2>
-              <dl className="grid gap-3.5 sm:grid-cols-2">
-                <DetailItem
-                  label="Reservation No"
-                  value={reservation.reservationNo}
-                />
-                <DetailItem label="Status" value={reservation.status} />
-                <DetailItem
-                  label="Arrival"
-                  value={dateLabel(reservation.arrivalDate)}
-                />
-                <DetailItem
-                  label="Departure"
-                  value={dateLabel(reservation.departureDate)}
-                />
-                <DetailItem
-                  label="Tipe Kamar"
-                  value={`${reservation.roomType.code} - ${reservation.roomType.name}`}
-                />
-                <DetailItem
-                  label="Kamar"
-                  value={reservation.room?.number ?? "-"}
-                />
-              </dl>
-            </div>
-          </div>
-        </section>
-
-        <aside className="flex min-w-0 flex-col gap-3">
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Ringkasan Tarif"}
-            </div>
-            <div className="p-3.5">
-              <SummaryRow label="Tipe" value={reservation.roomType.name} />
-              <SummaryRow
-                label="Rate / malam"
-                value={formatIDR(reservation.rateAmount.toString())}
-              />
-              <SummaryRow label="Jumlah malam" value={String(nights)} />
-              <div className="my-2 border-t border-console-border-soft" />
-              <SummaryRow
-                label="Subtotal kamar"
-                value={formatIDR(
-                  Number(reservation.rateAmount.toString()) * nights,
-                )}
-              />
-              <SummaryRow
-                label="Deposit"
-                value={formatIDR(reservation.deposit.toString())}
-              />
-            </div>
-          </section>
-
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Ketersediaan"}
-            </div>
-            <div className="p-3.5 text-[13px]">
-              <div className="flex items-center gap-2 bg-status-oc-bg px-2.5 py-2 font-medium text-status-oc-fg">
-                <span className="h-2 w-2 bg-status-oc-pip" aria-hidden="true" />
-                <span>
-                  {reservation.room
-                    ? `Kamar ${reservation.room.number} tercatat`
-                    : "Kamar belum tercatat"}
-                </span>
-              </div>
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">
-                Status dan ketersediaan mengikuti data reservasi saat ini.
-              </p>
-            </div>
-          </section>
-        </aside>
+      <div className="max-w-6xl">
+        <ReservationForm
+          defaultValues={defaultValues}
+          roomTypes={roomTypes.map((roomType) => ({
+            ...roomType,
+            baseRate: roomType.baseRate.toString(),
+          }))}
+          rooms={rooms}
+          activeReservations={activeReservations.map((activeReservation) => ({
+            id: activeReservation.id,
+            roomId: activeReservation.roomId ?? 0,
+            arrivalDate: toDateInputValue(activeReservation.arrivalDate),
+            departureDate: toDateInputValue(activeReservation.departureDate),
+          }))}
+          mode={formMode}
+          reservationId={reservation.id}
+        />
       </div>
     </main>
   );

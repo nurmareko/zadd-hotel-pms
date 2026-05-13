@@ -221,7 +221,6 @@ export default async function FODashboardPage() {
     getActivityRows(timestampToday, timestampTomorrow),
   ]);
 
-  const totalExpectedArrivals = arrivalsToday.length + arrivedToday;
   const nonOutOfOrderRooms = rooms.filter(
     (room) => room.status !== RoomStatus.OOO,
   );

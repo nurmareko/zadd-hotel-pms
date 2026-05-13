@@ -160,6 +160,16 @@ export default async function GuestFolioPage({
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             PDF Bill
           </Link>
+          {folio.reservation.grcFilledAt ? (
+            <a
+              href={`/api/folios/${folio.id}/grc`}
+              download
+              className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              Cetak GRC
+            </a>
+          ) : null}
           <AddChargeDialog
             folioId={folio.id}
             articles={chargeArticles}

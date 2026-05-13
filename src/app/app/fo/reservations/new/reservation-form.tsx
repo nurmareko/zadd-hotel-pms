@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatIDR } from "@/lib/format";
-import { createReservation } from "./actions";
+import { createReservation, updateReservation } from "./actions";
 import {
   CreateReservationSchema,
   type CreateReservationInput,
@@ -49,6 +49,8 @@ type ReservationFormProps = {
   roomTypes: RoomTypeOption[];
   rooms: RoomOption[];
   activeReservations: ActiveReservation[];
+  mode?: "create" | "edit" | "view";
+  reservationId?: number;
 };
 
 const fieldClassName =
@@ -59,6 +61,25 @@ const selectClassName =
   "h-8 w-full rounded-none border border-console-border bg-console-surface px-2 text-[12px] outline-none focus:border-console-ink focus:ring-3 focus:ring-slate-500/20";
 const sectionTitleClassName =
   "mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500";
+
+const reservationTypeOptions = [
+  { value: "INDIVIDUAL", label: "Individual" },
+  { value: "COMPANY", label: "Company" },
+  { value: "GOVERNMENT", label: "Government" },
+  { value: "OTA", label: "Online Travel Agent" },
+  { value: "WALK_IN", label: "Walk-in" },
+] as const;
+
+const arrangementTypeOptions = [
+  { value: "RO", label: "RO (Room Only)" },
+  { value: "RB", label: "RB (Room + Breakfast)" },
+  { value: "FBM", label: "FBM (Full Board Meeting)" },
+] as const;
+
+const arrangementHints: Partial<Record<string, string>> = {
+  RB: "Termasuk: Breakfast",
+  FBM: "Termasuk: Breakfast, Coffee Break, Lunch, Dinner",
+};
 
 function nightsBetween(arrivalDate: string, departureDate: string) {
   const arrival = new Date(`${arrivalDate}T00:00:00Z`);
@@ -119,8 +140,11 @@ export function ReservationForm({
   roomTypes,
   rooms,
   activeReservations,
+  mode = "create",
+  reservationId,
 }: ReservationFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
+  const isViewMode = mode === "view";
   const form = useForm<CreateReservationInput>({
     resolver: zodResolver(CreateReservationSchema) as unknown as Resolver<
       CreateReservationInput
@@ -135,9 +159,17 @@ export function ReservationForm({
     arrivalDate,
     departureDate,
     depositValue,
+    arrangementTypeValue,
   ] = useWatch({
     control: form.control,
-    name: ["roomTypeId", "roomId", "arrivalDate", "departureDate", "deposit"],
+    name: [
+      "roomTypeId",
+      "roomId",
+      "arrivalDate",
+      "departureDate",
+      "deposit",
+      "arrangementType",
+    ],
   });
   const selectedRoomTypeId = Number(roomTypeIdValue || 0);
   const selectedRoomId = Number(roomIdValue || 0);
@@ -167,6 +199,10 @@ export function ReservationForm({
   }, [activeReservations, arrivalDate, departureDate, rooms, selectedRoomTypeId]);
 
   useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+
     if (!selectedRoomId) {
       return;
     }
@@ -176,15 +212,22 @@ export function ReservationForm({
     if (!selectedRoom || !selectedRoom.isAvailable) {
       form.setValue("roomId", "", { shouldValidate: true });
     }
-  }, [form, roomOptions, selectedRoomId]);
+  }, [form, isViewMode, roomOptions, selectedRoomId]);
 
   const availableRoomCount = roomOptions.filter(
     (room) => room.isAvailable,
   ).length;
 
   async function onSubmit() {
+    if (isViewMode) {
+      return;
+    }
+
     setActionError(null);
-    const result = await createReservation(form.getValues());
+    const result =
+      mode === "edit" && reservationId
+        ? await updateReservation(reservationId, form.getValues())
+        : await createReservation(form.getValues());
 
     if (!result.ok) {
       const message = resultErrorMessage(result.error);
@@ -211,7 +254,11 @@ export function ReservationForm({
                   <FormItem>
                     <FormLabel>Nama Lengkap</FormLabel>
                     <FormControl>
-                      <Input className={fieldClassName} {...field} />
+                      <Input
+                        className={fieldClassName}
+                        readOnly={isViewMode}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -225,7 +272,11 @@ export function ReservationForm({
                   <FormItem>
                     <FormLabel>Nomor Identitas</FormLabel>
                     <FormControl>
-                      <Input className={fieldClassName} {...field} />
+                      <Input
+                        className={fieldClassName}
+                        readOnly={isViewMode}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -239,7 +290,11 @@ export function ReservationForm({
                   <FormItem>
                     <FormLabel>Telepon</FormLabel>
                     <FormControl>
-                      <Input className={fieldClassName} {...field} />
+                      <Input
+                        className={fieldClassName}
+                        readOnly={isViewMode}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -256,6 +311,7 @@ export function ReservationForm({
                       <Input
                         type="email"
                         className={fieldClassName}
+                        readOnly={isViewMode}
                         {...field}
                       />
                     </FormControl>
@@ -271,7 +327,11 @@ export function ReservationForm({
                   <FormItem>
                     <FormLabel>Kewarganegaraan</FormLabel>
                     <FormControl>
-                      <Input className={fieldClassName} {...field} />
+                      <Input
+                        className={fieldClassName}
+                        readOnly={isViewMode}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -286,7 +346,11 @@ export function ReservationForm({
                     <FormItem>
                       <FormLabel>Alamat</FormLabel>
                       <FormControl>
-                        <Textarea className={textareaClassName} {...field} />
+                        <Textarea
+                          className={textareaClassName}
+                          readOnly={isViewMode}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -300,6 +364,30 @@ export function ReservationForm({
               <div className="grid gap-3.5 md:grid-cols-2">
                 <FormField
                   control={form.control}
+                  name="reservationType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipe Reservasi</FormLabel>
+                      <FormControl>
+                        <select
+                          className={selectClassName}
+                          disabled={isViewMode}
+                          {...field}
+                        >
+                          {reservationTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="arrivalDate"
                   render={({ field }) => (
                     <FormItem>
@@ -308,6 +396,7 @@ export function ReservationForm({
                         <Input
                           type="date"
                           className={fieldClassName}
+                          readOnly={isViewMode}
                           {...field}
                         />
                       </FormControl>
@@ -326,6 +415,7 @@ export function ReservationForm({
                         <Input
                           type="date"
                           className={fieldClassName}
+                          readOnly={isViewMode}
                           {...field}
                         />
                       </FormControl>
@@ -343,6 +433,7 @@ export function ReservationForm({
                       <FormControl>
                         <select
                           className={selectClassName}
+                          disabled={isViewMode}
                           {...field}
                           onChange={(event) => {
                             field.onChange(event.target.value);
@@ -377,7 +468,7 @@ export function ReservationForm({
                       <FormControl>
                         <select
                           className={selectClassName}
-                          disabled={!selectedRoomTypeId}
+                          disabled={isViewMode || !selectedRoomTypeId}
                           {...field}
                         >
                           <option value="">Pilih kamar</option>
@@ -415,6 +506,7 @@ export function ReservationForm({
                               step={1}
                               placeholder="Dewasa"
                               className={fieldClassName}
+                              readOnly={isViewMode}
                               {...field}
                             />
                           </FormControl>
@@ -435,6 +527,7 @@ export function ReservationForm({
                               step={1}
                               placeholder="Anak"
                               className={fieldClassName}
+                              readOnly={isViewMode}
                               {...field}
                             />
                           </FormControl>
@@ -444,6 +537,35 @@ export function ReservationForm({
                     />
                   </div>
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="arrangementType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipe Arrangement</FormLabel>
+                      <FormControl>
+                        <select
+                          className={selectClassName}
+                          disabled={isViewMode}
+                          {...field}
+                        >
+                          {arrangementTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      {arrangementHints[arrangementTypeValue] ? (
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          {arrangementHints[arrangementTypeValue]}
+                        </p>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -457,6 +579,7 @@ export function ReservationForm({
                           min={0}
                           step={1000}
                           className={fieldClassName}
+                          readOnly={isViewMode}
                           {...field}
                         />
                       </FormControl>
@@ -476,6 +599,28 @@ export function ReservationForm({
                           <Textarea
                             className={textareaClassName}
                             placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
+                            readOnly={isViewMode}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="comment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Komentar Reservasi</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className={textareaClassName}
+                            placeholder="Catatan untuk staf atau manajer terkait reservasi ini..."
+                            readOnly={isViewMode}
                             {...field}
                           />
                         </FormControl>

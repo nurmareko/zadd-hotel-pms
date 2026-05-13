@@ -1,8 +1,10 @@
 import {
+  ArrangementType,
   ArticleType,
   FolioStatus,
   ReservationStatus,
   ReservationType,
+  ReservationUsageType,
   RoomStatus,
 } from "@prisma/client";
 import { addDays, startOfDay } from "date-fns";
@@ -74,6 +76,24 @@ const articles = [
     defaultPrice: 75000,
   },
   {
+    code: "COFFEE-BREAK",
+    name: "Coffee Break",
+    type: ArticleType.FB,
+    defaultPrice: 50000,
+  },
+  {
+    code: "LUNCH",
+    name: "Lunch",
+    type: ArticleType.FB,
+    defaultPrice: 150000,
+  },
+  {
+    code: "DINNER",
+    name: "Dinner",
+    type: ArticleType.FB,
+    defaultPrice: 175000,
+  },
+  {
     code: "LAUNDRY",
     name: "Laundry",
     type: ArticleType.MISC,
@@ -129,8 +149,11 @@ const reservations: Array<{
   adults: number;
   children?: number;
   status: ReservationStatus;
+  arrangementType: ArrangementType;
+  reservationType: ReservationType;
   deposit?: number;
   notes?: string;
+  comment?: string;
 }> = [
   {
     reservationNo: "DEMO-RSV-001",
@@ -141,6 +164,8 @@ const reservations: Array<{
     departureOffset: -4,
     adults: 2,
     status: ReservationStatus.CHECKED_OUT,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 550000,
   },
   {
@@ -153,6 +178,8 @@ const reservations: Array<{
     adults: 2,
     children: 2,
     status: ReservationStatus.CHECKED_OUT,
+    arrangementType: ArrangementType.RB,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
   {
@@ -164,6 +191,8 @@ const reservations: Array<{
     departureOffset: -1,
     adults: 2,
     status: ReservationStatus.CHECKED_OUT,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.OTA,
     deposit: 850000,
   },
   {
@@ -175,6 +204,8 @@ const reservations: Array<{
     departureOffset: 2,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 550000,
   },
   {
@@ -186,7 +217,10 @@ const reservations: Array<{
     departureOffset: 3,
     adults: 2,
     status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.RB,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
+    comment: "Late arrival requested, prepare quiet room.",
   },
   {
     reservationNo: "DEMO-RSV-006",
@@ -197,7 +231,10 @@ const reservations: Array<{
     departureOffset: 1,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.COMPANY,
     deposit: 850000,
+    comment: "Company booking, billing contact follows later.",
   },
   {
     reservationNo: "DEMO-RSV-007",
@@ -209,6 +246,8 @@ const reservations: Array<{
     adults: 2,
     children: 1,
     status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.FBM,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
   {
@@ -220,6 +259,8 @@ const reservations: Array<{
     departureOffset: 5,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 550000,
   },
   {
@@ -231,6 +272,8 @@ const reservations: Array<{
     departureOffset: 4,
     adults: 2,
     status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
   },
   {
@@ -242,6 +285,8 @@ const reservations: Array<{
     departureOffset: 6,
     adults: 2,
     status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RB,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
   },
   {
@@ -253,6 +298,8 @@ const reservations: Array<{
     departureOffset: 5,
     adults: 1,
     status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
   },
   {
@@ -265,6 +312,8 @@ const reservations: Array<{
     adults: 2,
     children: 2,
     status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
   {
@@ -276,6 +325,8 @@ const reservations: Array<{
     departureOffset: 10,
     adults: 2,
     status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RB,
+    reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
   {
@@ -287,6 +338,8 @@ const reservations: Array<{
     departureOffset: 8,
     adults: 1,
     status: ReservationStatus.CANCELLED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.INDIVIDUAL,
     notes: "Cancelled by guest before arrival.",
   },
 ];
@@ -457,7 +510,10 @@ async function main() {
         where: { reservationNo: reservation.reservationNo },
         create: {
           reservationNo: reservation.reservationNo,
-          type: ReservationType.REGULAR,
+          type: ReservationUsageType.REGULAR,
+          arrangementType: reservation.arrangementType,
+          reservationType: reservation.reservationType,
+          comment: reservation.comment ?? null,
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,
@@ -477,7 +533,10 @@ async function main() {
           createdById: createdBy.id,
         },
         update: {
-          type: ReservationType.REGULAR,
+          type: ReservationUsageType.REGULAR,
+          arrangementType: reservation.arrangementType,
+          reservationType: reservation.reservationType,
+          comment: reservation.comment ?? null,
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,

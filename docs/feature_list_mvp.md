@@ -14,6 +14,10 @@ Supports the guest lifecycle from booking to final payment.
 - **Guest Folio** — line-item charges, manual charge posting by staff, and payment recording (cash, transfer, card) against the folio.
 - **Check-out** — zero-balance verification, final payment processing, and auto-update of room status to Vacant Dirty.
 - **Bill printing** — guest bill is downloadable as PDF for archiving or physical printing.
+- **Tipe Reservasi** — categorization for reporting: Individual, Company, Government, OTA, Walk-in.
+- **Tipe Arrangement** — rate package: Room Only, Room + Breakfast, Full Board Meeting. Drives auto-posting during Night Audit.
+- **Komentar Reservasi** — free-text notes field on reservations.
+- **Cetak Guest Registration Card** — downloadable PDF GRC from the folio.
 
 ## Housekeeping
 
