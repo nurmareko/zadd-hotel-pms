@@ -2,6 +2,7 @@ import {
   ArrangementType,
   ArticleType,
   FolioStatus,
+  PaymentMethod,
   ReservationStatus,
   ReservationType,
   ReservationUsageType,
@@ -9,6 +10,7 @@ import {
 } from "@prisma/client";
 import { addDays, startOfDay } from "date-fns";
 
+import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
 
 const roomTypes = [
@@ -61,6 +63,8 @@ const guests = [
   "Sari Indah",
   "Rina Anggraini",
 ] as const;
+
+const purposeOfVisitPool = ["Bisnis", "Liburan", "Keluarga", "Acara"] as const;
 
 const articles = [
   {
@@ -351,22 +355,41 @@ function dateFromOffset(today: Date, offset: number) {
   return date;
 }
 
+function purposeOfVisitForReservation(index: number) {
+  return purposeOfVisitPool[index % purposeOfVisitPool.length];
+}
+
+function nightAuditPostedAt(date: Date) {
+  const postedAt = new Date(date);
+  postedAt.setHours(23, 0, 0, 0);
+
+  return postedAt;
+}
+
+function stayNights(arrivalDate: Date, departureDate: Date) {
+  const nights: Date[] = [];
+
+  for (
+    let night = new Date(arrivalDate);
+    night < departureDate;
+    night = addDays(night, 1)
+  ) {
+    nights.push(nightAuditPostedAt(night));
+  }
+
+  return nights;
+}
+
 async function findSeedUser() {
   const foUser = await prisma.user.findUnique({ where: { username: "fo1" } });
 
-  if (foUser) {
-    return foUser;
+  if (!foUser) {
+    throw new Error(
+      "Run the main Prisma seed first so demo data can be attributed to fo1.",
+    );
   }
 
-  const adminUser = await prisma.user.findUnique({
-    where: { username: "admin" },
-  });
-
-  if (adminUser) {
-    return adminUser;
-  }
-
-  throw new Error("Run the main Prisma seed first so demo reservations have a creator.");
+  return foUser;
 }
 
 async function main() {
@@ -376,6 +399,8 @@ async function main() {
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
     const roomsByNumber = new Map<string, { id: number }>();
     const guestsByFullName = new Map<string, { id: number }>();
+    let grcCheckedInCount = 0;
+    let grcCheckedOutCount = 0;
 
     for (const roomType of roomTypes) {
       const seededRoomType = await prisma.roomType.upsert({
@@ -478,6 +503,13 @@ async function main() {
       reservationId: number;
       arrivalDate: Date;
     }> = [];
+    const checkedOutReservations: Array<{
+      reservationNo: string;
+      reservationId: number;
+      arrivalDate: Date;
+      departureDate: Date;
+      rateAmount: number;
+    }> = [];
 
     for (const [index, reservation] of reservations.entries()) {
       const guest = guestsByFullName.get(reservation.guestFullName);
@@ -501,10 +533,13 @@ async function main() {
 
       const arrivalDate = dateFromOffset(today, reservation.arrivalOffset);
       const departureDate = dateFromOffset(today, reservation.departureOffset);
-      const grcFilledAt =
+      const hasCompletedGrc =
         reservation.status === ReservationStatus.CHECKED_IN
-          ? arrivalDate
-          : null;
+          || reservation.status === ReservationStatus.CHECKED_OUT;
+      const grcFilledAt = hasCompletedGrc ? arrivalDate : null;
+      const purposeOfVisit = hasCompletedGrc
+        ? purposeOfVisitForReservation(index)
+        : null;
 
       const seededReservation = await prisma.reservation.upsert({
         where: { reservationNo: reservation.reservationNo },
@@ -526,10 +561,7 @@ async function main() {
           deposit: reservation.deposit ?? 0,
           notes: reservation.notes,
           grcFilledAt,
-          purposeOfVisit:
-            reservation.status === ReservationStatus.CHECKED_IN
-              ? "Hospitality praktikum"
-              : null,
+          purposeOfVisit,
           createdById: createdBy.id,
         },
         update: {
@@ -549,34 +581,37 @@ async function main() {
           deposit: reservation.deposit ?? 0,
           notes: reservation.notes,
           grcFilledAt,
-          purposeOfVisit:
-            reservation.status === ReservationStatus.CHECKED_IN
-              ? "Hospitality praktikum"
-              : null,
+          purposeOfVisit,
           createdById: createdBy.id,
         },
       });
 
+      if (hasCompletedGrc && !room) {
+        throw new Error(`${reservation.reservationNo} needs an assigned room.`);
+      }
+
       if (reservation.status === ReservationStatus.CHECKED_IN) {
-        if (!reservation.roomNumber) {
+        const roomNumber = reservation.roomNumber;
+
+        if (!roomNumber) {
           throw new Error(`${reservation.reservationNo} needs an assigned room.`);
         }
 
         const roomSeed = rooms.find(
-          (roomToFind) => roomToFind.number === reservation.roomNumber,
+          (roomToFind) => roomToFind.number === roomNumber,
         );
         const checkedInRoomType = roomSeed
           ? roomTypesByCode.get(roomSeed.roomTypeCode)
           : null;
 
         if (!roomSeed || !checkedInRoomType) {
-          throw new Error(`Missing seed data for room ${reservation.roomNumber}`);
+          throw new Error(`Missing seed data for room ${roomNumber}`);
         }
 
         await prisma.room.upsert({
-          where: { number: reservation.roomNumber },
+          where: { number: roomNumber },
           create: {
-            number: reservation.roomNumber,
+            number: roomNumber,
             floor: roomSeed.floor,
             roomTypeId: checkedInRoomType.id,
             status: RoomStatus.OC,
@@ -591,6 +626,18 @@ async function main() {
           reservationId: seededReservation.id,
           arrivalDate,
         });
+        grcCheckedInCount += 1;
+      }
+
+      if (reservation.status === ReservationStatus.CHECKED_OUT) {
+        checkedOutReservations.push({
+          reservationNo: reservation.reservationNo,
+          reservationId: seededReservation.id,
+          arrivalDate,
+          departureDate,
+          rateAmount: Number(roomType.baseRate),
+        });
+        grcCheckedOutCount += 1;
       }
 
       if ((index + 1) % 5 === 0) {
@@ -599,6 +646,9 @@ async function main() {
     }
 
     console.log(`✓ seeded ${reservations.length} reservations`);
+    console.log(
+      `✓ populated GRC data for ${grcCheckedInCount} checked-in and ${grcCheckedOutCount} checked-out reservations`,
+    );
 
     for (const [index, reservation] of checkedInReservations.entries()) {
       await prisma.folio.upsert({
@@ -618,6 +668,96 @@ async function main() {
     }
 
     console.log(`✓ seeded ${checkedInReservations.length} open folios`);
+
+    const [roomChargeArticle, hotelSettings] = await Promise.all([
+      prisma.article.findUnique({ where: { code: "ROOM-CHARGE" } }),
+      prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+    ]);
+
+    if (!roomChargeArticle) {
+      throw new Error("Missing ROOM-CHARGE article.");
+    }
+
+    if (!hotelSettings) {
+      throw new Error("Run the main Prisma seed first so hotel settings exist.");
+    }
+
+    let closedFolioCount = 0;
+    let closedFolioLineItemCount = 0;
+    let totalMismatchCount = 0;
+
+    for (const [index, reservation] of checkedOutReservations.entries()) {
+      const folioNo = `FOL-DEMO-${String(index + 1).padStart(3, "0")}`;
+      const nights = stayNights(reservation.arrivalDate, reservation.departureDate);
+      const folio = await prisma.folio.upsert({
+        where: { folioNo },
+        create: {
+          folioNo,
+          reservationId: reservation.reservationId,
+          status: FolioStatus.CLOSED,
+          openedAt: reservation.arrivalDate,
+          closedAt: reservation.departureDate,
+        },
+        update: {
+          reservationId: reservation.reservationId,
+          status: FolioStatus.CLOSED,
+          openedAt: reservation.arrivalDate,
+          closedAt: reservation.departureDate,
+        },
+      });
+
+      await prisma.folioLineItem.deleteMany({ where: { folioId: folio.id } });
+      await prisma.payment.deleteMany({ where: { folioId: folio.id } });
+
+      await prisma.folioLineItem.createMany({
+        data: nights.map((postedAt) => ({
+          folioId: folio.id,
+          articleId: roomChargeArticle.id,
+          fbOrderId: null,
+          quantity: 1,
+          unitPrice: reservation.rateAmount,
+          amount: reservation.rateAmount,
+          description: "Room charge",
+          postedById: createdBy.id,
+          postedAt,
+        })),
+      });
+
+      const lineItems = await prisma.folioLineItem.findMany({
+        where: { folioId: folio.id },
+        include: { article: true },
+      });
+      const totalsBeforePayment = computeFolioTotals(lineItems, [], hotelSettings);
+      const expectedSubtotal = reservation.rateAmount * nights.length;
+
+      if (Math.round(totalsBeforePayment.subtotal) !== expectedSubtotal) {
+        totalMismatchCount += 1;
+      }
+
+      await prisma.payment.create({
+        data: {
+          folioId: folio.id,
+          fbOrderId: null,
+          amount: totalsBeforePayment.totalCharges,
+          method: PaymentMethod.CASH,
+          reference: null,
+          receivedById: createdBy.id,
+          receivedAt: reservation.departureDate,
+        },
+      });
+
+      closedFolioCount += 1;
+      closedFolioLineItemCount += lineItems.length;
+    }
+
+    console.log(
+      `✓ seeded ${closedFolioCount} closed folios with ${closedFolioLineItemCount} line items`,
+    );
+    console.log(
+      `✓ folio subtotal check: ${
+        totalMismatchCount === 0 ? "all matched expected room-night totals" : `${totalMismatchCount} mismatch(es)`
+      }`,
+    );
     console.log("✓ demo seed complete");
   } catch (error) {
     console.error(error);
