@@ -32,18 +32,18 @@ const rooms: Array<{
   { number: "103", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "104", floor: 1, roomTypeCode: "STD", status: RoomStatus.VC },
   { number: "105", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
-  { number: "106", floor: 1, roomTypeCode: "STD", status: RoomStatus.VD },
+  { number: "106", floor: 1, roomTypeCode: "STD", status: RoomStatus.VCU },
   { number: "107", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "108", floor: 1, roomTypeCode: "STD", status: RoomStatus.OOO },
   { number: "201", floor: 2, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "202", floor: 2, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "203", floor: 2, roomTypeCode: "SUP", status: RoomStatus.VC },
   { number: "204", floor: 2, roomTypeCode: "DLX", status: RoomStatus.VD },
-  { number: "205", floor: 2, roomTypeCode: "SUP", status: RoomStatus.VC },
+  { number: "205", floor: 2, roomTypeCode: "SUP", status: RoomStatus.VCU },
   { number: "206", floor: 2, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "207", floor: 2, roomTypeCode: "SUP", status: RoomStatus.VC },
   { number: "208", floor: 2, roomTypeCode: "DLX", status: RoomStatus.VC },
-  { number: "301", floor: 3, roomTypeCode: "STD", status: RoomStatus.VC },
+  { number: "301", floor: 3, roomTypeCode: "STD", status: RoomStatus.OD },
   { number: "302", floor: 3, roomTypeCode: "SUP", status: RoomStatus.VC },
   { number: "303", floor: 3, roomTypeCode: "STD", status: RoomStatus.VC },
   { number: "304", floor: 3, roomTypeCode: "SUP", status: RoomStatus.VC },
@@ -52,6 +52,33 @@ const rooms: Array<{
   { number: "307", floor: 3, roomTypeCode: "STD", status: RoomStatus.VD },
   { number: "308", floor: 3, roomTypeCode: "SUP", status: RoomStatus.VC },
 ];
+
+const hkRoomStatuses: Record<string, RoomStatus> = {
+  "101": RoomStatus.OC,
+  "102": RoomStatus.VD,
+  "103": RoomStatus.OC,
+  "104": RoomStatus.VC,
+  "105": RoomStatus.VC,
+  "106": RoomStatus.VCU,
+  "107": RoomStatus.VC,
+  "108": RoomStatus.OOO,
+  "201": RoomStatus.VC,
+  "202": RoomStatus.OC,
+  "203": RoomStatus.OC,
+  "204": RoomStatus.VD,
+  "205": RoomStatus.VCU,
+  "206": RoomStatus.VC,
+  "207": RoomStatus.VC,
+  "208": RoomStatus.VC,
+  "301": RoomStatus.OD,
+  "302": RoomStatus.VC,
+  "303": RoomStatus.VC,
+  "304": RoomStatus.VC,
+  "305": RoomStatus.VC,
+  "306": RoomStatus.VC,
+  "307": RoomStatus.VD,
+  "308": RoomStatus.VC,
+};
 
 const guests = [
   "Andi Pratama",
@@ -359,6 +386,13 @@ function purposeOfVisitForReservation(index: number) {
   return purposeOfVisitPool[index % purposeOfVisitPool.length];
 }
 
+function hoursAgo(hours: number) {
+  const date = new Date();
+  date.setHours(date.getHours() - hours);
+
+  return date;
+}
+
 function nightAuditPostedAt(date: Date) {
   const postedAt = new Date(date);
   postedAt.setHours(23, 0, 0, 0);
@@ -392,10 +426,186 @@ async function findSeedUser() {
   return foUser;
 }
 
+async function findHousekeepingUser() {
+  const hkUser = await prisma.user.findUnique({ where: { username: "hk1" } });
+
+  if (!hkUser) {
+    throw new Error(
+      "Run the main Prisma seed first so housekeeping logs can be attributed to hk1.",
+    );
+  }
+
+  return hkUser;
+}
+
+async function seedHousekeepingLogs({
+  roomsByNumber,
+  updatedById,
+}: {
+  roomsByNumber: Map<string, { id: number }>;
+  updatedById: number;
+}) {
+  const seededRoomIds = [...roomsByNumber.values()].map((room) => room.id);
+
+  await prisma.housekeepingLog.deleteMany({
+    where: { roomId: { in: seededRoomIds } },
+  });
+
+  for (const [number, status] of Object.entries(hkRoomStatuses)) {
+    const room = roomsByNumber.get(number);
+
+    if (!room) {
+      throw new Error(`Missing room ${number} for HK demo logs.`);
+    }
+
+    await prisma.room.update({
+      where: { id: room.id },
+      data: { status },
+    });
+  }
+
+  const logData = [
+    {
+      roomNumber: "101",
+      oldStatus: RoomStatus.VC,
+      newStatus: RoomStatus.OC,
+      note: "Check-in tamu, kamar digunakan.",
+      updatedAt: hoursAgo(44),
+    },
+    {
+      roomNumber: "102",
+      oldStatus: RoomStatus.OC,
+      newStatus: RoomStatus.OD,
+      note: "Tamu masih in-house, kamar perlu turn-down.",
+      updatedAt: hoursAgo(62),
+    },
+    {
+      roomNumber: "102",
+      oldStatus: RoomStatus.OD,
+      newStatus: RoomStatus.VD,
+      note: "Check-out selesai, masuk antrean pembersihan.",
+      updatedAt: hoursAgo(27),
+    },
+    {
+      roomNumber: "103",
+      oldStatus: RoomStatus.VC,
+      newStatus: RoomStatus.OC,
+      note: "Check-in tamu, kamar terisi.",
+      updatedAt: hoursAgo(29),
+    },
+    {
+      roomNumber: "106",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VD,
+      note: "Pembersihan dimulai oleh petugas lantai 1.",
+      updatedAt: hoursAgo(35),
+      cleaningStartedAt: hoursAgo(35),
+      cleaningCompletedAt: hoursAgo(34),
+    },
+    {
+      roomNumber: "106",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VCU,
+      note: "Kamar selesai dibersihkan, menunggu inspeksi supervisor.",
+      updatedAt: hoursAgo(34),
+    },
+    {
+      roomNumber: "108",
+      oldStatus: RoomStatus.VC,
+      newStatus: RoomStatus.OOO,
+      note: "AC tidak dingin, menunggu engineering.",
+      updatedAt: hoursAgo(51),
+    },
+    {
+      roomNumber: "202",
+      oldStatus: RoomStatus.VC,
+      newStatus: RoomStatus.OC,
+      note: "Check-in tamu korporat.",
+      updatedAt: hoursAgo(53),
+    },
+    {
+      roomNumber: "203",
+      oldStatus: RoomStatus.VC,
+      newStatus: RoomStatus.OC,
+      note: "Family room terisi.",
+      updatedAt: hoursAgo(19),
+    },
+    {
+      roomNumber: "204",
+      oldStatus: RoomStatus.OC,
+      newStatus: RoomStatus.VD,
+      note: "Check-out selesai, prioritas untuk kedatangan berikutnya.",
+      updatedAt: hoursAgo(23),
+    },
+    {
+      roomNumber: "204",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VD,
+      note: "Pembersihan sedang berjalan.",
+      updatedAt: hoursAgo(1),
+      cleaningStartedAt: hoursAgo(1),
+    },
+    {
+      roomNumber: "205",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VD,
+      note: "Linen dan amenity diganti lengkap.",
+      updatedAt: hoursAgo(48),
+      cleaningStartedAt: hoursAgo(48),
+      cleaningCompletedAt: hoursAgo(47),
+    },
+    {
+      roomNumber: "205",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VCU,
+      note: "Siap inspeksi sebelum dijual.",
+      updatedAt: hoursAgo(47),
+    },
+    {
+      roomNumber: "301",
+      oldStatus: RoomStatus.OC,
+      newStatus: RoomStatus.OD,
+      note: "Tamu minta pembersihan sore, prioritas karena departure dekat.",
+      updatedAt: hoursAgo(5),
+    },
+    {
+      roomNumber: "307",
+      oldStatus: RoomStatus.OC,
+      newStatus: RoomStatus.VD,
+      note: "Kamar kosong setelah check-out grup.",
+      updatedAt: hoursAgo(31),
+    },
+  ].map((log) => {
+    const room = roomsByNumber.get(log.roomNumber);
+
+    if (!room) {
+      throw new Error(`Missing room ${log.roomNumber} for HK log.`);
+    }
+
+    return {
+      roomId: room.id,
+      oldStatus: log.oldStatus,
+      newStatus: log.newStatus,
+      note: log.note,
+      updatedById,
+      updatedAt: log.updatedAt,
+      cleaningStartedAt: log.cleaningStartedAt ?? null,
+      cleaningCompletedAt: log.cleaningCompletedAt ?? null,
+    };
+  });
+
+  await prisma.housekeepingLog.createMany({ data: logData });
+
+  console.log(
+    `✓ seeded ${logData.length} housekeeping log entries across ${Object.keys(hkRoomStatuses).length} rooms`,
+  );
+}
+
 async function main() {
   try {
     const today = startOfDay(new Date());
     const createdBy = await findSeedUser();
+    const housekeepingUser = await findHousekeepingUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
     const roomsByNumber = new Map<string, { id: number }>();
     const guestsByFullName = new Map<string, { id: number }>();
@@ -649,6 +859,11 @@ async function main() {
     console.log(
       `✓ populated GRC data for ${grcCheckedInCount} checked-in and ${grcCheckedOutCount} checked-out reservations`,
     );
+
+    await seedHousekeepingLogs({
+      roomsByNumber,
+      updatedById: housekeepingUser.id,
+    });
 
     for (const [index, reservation] of checkedInReservations.entries()) {
       await prisma.folio.upsert({

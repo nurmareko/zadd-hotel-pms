@@ -70,7 +70,7 @@ erDiagram
     varchar number UK
     int floor
     int room_type_id FK
-    varchar status
+    varchar status "VC, OC, VD, OD, VCU, OOO"
   }
   ARTICLE {
     int id PK
@@ -156,6 +156,8 @@ erDiagram
     varchar new_status
     int updated_by_id FK
     timestamp updated_at
+    timestamp cleaning_started_at
+    timestamp cleaning_completed_at
   }
   NIGHT_AUDIT {
     int id PK
@@ -211,7 +213,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Housekeeping**
 
-15. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at)
+15. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at)
 
 **Accounting**
 
@@ -287,7 +289,7 @@ A few choices worth explaining:
 | number | VARCHAR(10) | UNIQUE, NOT NULL | Room number |
 | floor | INT | NOT NULL | Floor number |
 | room_type_id | INT | FOREIGN KEY → room_type(id) | Room type reference |
-| status | VARCHAR(10) | NOT NULL, DEFAULT 'VC' | Room status (VC, VD, OC, OD, OOO) |
+| status | VARCHAR(10) | NOT NULL, DEFAULT 'VC' | Room status (VC, OC, VD, OD, VCU, OOO). VCU means Vacant Clean Unchecked, waiting for HK inspection. |
 
 ### `article`
 
@@ -428,6 +430,8 @@ A few choices worth explaining:
 | note | TEXT | — | Staff note |
 | updated_by_id | INT | FOREIGN KEY → user(id) | HK staff who updated |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Update time |
+| cleaning_started_at | TIMESTAMP | — | Start time for a cleaning session log row |
+| cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
 
 ### `night_audit`
 

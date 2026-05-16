@@ -6,6 +6,7 @@ export const roomStatuses = [
   RoomStatus.VD,
   RoomStatus.OC,
   RoomStatus.OD,
+  RoomStatus.VCU,
   RoomStatus.OOO,
 ] as const;
 

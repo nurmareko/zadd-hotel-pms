@@ -33,6 +33,13 @@ const legendItems = [
     pip: "bg-status-od-pip",
   },
   {
+    code: "VCU",
+    label: "Unchecked",
+    bg: "bg-status-vcu-bg",
+    text: "text-status-vcu-fg",
+    pip: "bg-status-vcu-pip",
+  },
+  {
     code: "OOO",
     label: "Out of Order",
     bg: "bg-status-ooo-bg",
