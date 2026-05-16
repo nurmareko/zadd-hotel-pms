@@ -1,44 +1,130 @@
-import Link from "next/link";
+import { ReservationStatus } from "@prisma/client";
+import { notFound } from "next/navigation";
 
+import { todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
-export default async function HKRoomPlaceholderPage({
+import { ActionPanel } from "./action-panel";
+import { RoomHeader } from "./room-header";
+import { RoomHistory } from "./room-history";
+import { StatusInfo } from "./status-info";
+
+export const revalidate = 0;
+
+export default async function HKRoomDetailPage({
   params,
 }: {
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
   const parsedRoomId = Number(roomId);
-  const room = Number.isInteger(parsedRoomId)
-    ? await prisma.room.findUnique({
-        where: { id: parsedRoomId },
-        select: { number: true, roomType: { select: { name: true } } },
-      })
-    : null;
+
+  if (!Number.isInteger(parsedRoomId) || parsedRoomId <= 0) {
+    notFound();
+  }
+
+  const { today } = todayDateOnly();
+  const room = await prisma.room.findUnique({
+    where: { id: parsedRoomId },
+    include: {
+      roomType: true,
+      housekeepingLogs: {
+        include: { updatedBy: { select: { fullName: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+      },
+      reservations: {
+        where: {
+          OR: [
+            { status: ReservationStatus.CHECKED_OUT },
+            {
+              status: ReservationStatus.CONFIRMED,
+              arrivalDate: { gte: today },
+            },
+          ],
+        },
+        include: { guest: { select: { fullName: true } } },
+        orderBy: [{ departureDate: "desc" }, { arrivalDate: "asc" }],
+      },
+    },
+  });
+
+  if (!room) {
+    notFound();
+  }
+
+  const recentGuest =
+    room.reservations
+      .filter((reservation) => reservation.status === ReservationStatus.CHECKED_OUT)
+      .sort((first, second) => second.departureDate.getTime() - first.departureDate.getTime())[0] ??
+    null;
+  const upcomingReservation =
+    room.reservations
+      .filter((reservation) => reservation.status === ReservationStatus.CONFIRMED)
+      .sort((first, second) => first.arrivalDate.getTime() - second.arrivalDate.getTime())[0] ??
+    null;
+  const latestLog = room.housekeepingLogs[0] ?? null;
+  const activeCleaningLog =
+    room.housekeepingLogs.find(
+      (log) => log.cleaningStartedAt && !log.cleaningCompletedAt,
+    ) ?? null;
+  const latestCompletedCleaningLog =
+    room.housekeepingLogs.find(
+      (log) => log.cleaningStartedAt && log.cleaningCompletedAt,
+    ) ?? null;
 
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4">
-        <Link
-          href="/app/hk"
-          className="text-[11px] font-semibold uppercase tracking-[0.05em] text-slate-500 hover:text-console-ink"
-        >
-          &lt;- Kembali ke Dashboard
-        </Link>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
+        <RoomHeader
+          roomNumber={room.number}
+          roomTypeName={room.roomType.name}
+          status={room.status}
+        />
+        <StatusInfo
+          status={room.status}
+          statusSince={latestLog?.updatedAt ?? null}
+          recentGuest={
+            recentGuest
+              ? {
+                  guestName: recentGuest.guest.fullName,
+                  departureDate: recentGuest.departureDate,
+                }
+              : null
+          }
+          upcomingReservation={
+            upcomingReservation
+              ? {
+                  guestName: upcomingReservation.guest.fullName,
+                  arrivalDate: upcomingReservation.arrivalDate,
+                }
+              : null
+          }
+        />
+        <ActionPanel
+          roomId={room.id}
+          status={room.status}
+          activeCleaningLog={
+            activeCleaningLog
+              ? {
+                  id: activeCleaningLog.id,
+                  startedAt: activeCleaningLog.cleaningStartedAt!,
+                  updatedByName: activeCleaningLog.updatedBy.fullName,
+                }
+              : null
+          }
+          latestCompletedCleaningLog={
+            latestCompletedCleaningLog
+              ? {
+                  startedAt: latestCompletedCleaningLog.cleaningStartedAt!,
+                  completedAt: latestCompletedCleaningLog.cleaningCompletedAt!,
+                  updatedByName: latestCompletedCleaningLog.updatedBy.fullName,
+                }
+              : null
+          }
+        />
+        <RoomHistory logs={room.housekeepingLogs} />
       </div>
-
-      <section className="border border-console-border bg-console-surface p-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
-          Kamar {room?.number ?? roomId}
-        </h1>
-        <p className="mt-1 text-[11px] text-slate-500">
-          {room?.roomType.name ?? "Room detail"}
-        </p>
-        <div className="mt-4 border border-console-border-soft bg-console-bg p-3 text-[12px] text-slate-600">
-          Room detail and update flow - HK-02. Coming next session.
-        </div>
-      </section>
     </main>
   );
 }
