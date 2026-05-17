@@ -55,20 +55,15 @@ function logSecondaryLine(log: HistoryLog) {
     return null;
   }
 
-  const guestCounts = [
-    log.reportedAdultCount != null ? `${log.reportedAdultCount} dewasa` : null,
-    log.reportedChildCount != null ? `${log.reportedChildCount} anak` : null,
-  ].filter(Boolean);
   const changeFlags = [
     log.linenChanged ? "sprei diganti" : null,
     log.towelChanged ? "handuk diganti" : null,
   ].filter(Boolean);
-  const details = [
-    guestCounts.length > 0 ? guestCounts.join(", ") : null,
-    changeFlags.length > 0 ? changeFlags.join(", ") : null,
-  ].filter(Boolean);
+  const flags = changeFlags.length > 0 ? changeFlags.join(", ") : null;
+  const note = log.note ? `"${log.note}"` : null;
+  const details = [flags, note].filter(Boolean);
 
-  return details.length > 0 ? details.join(" · ") : null;
+  return details.length > 0 ? details.join(" — ") : null;
 }
 
 export function RoomHistory({ logs }: { logs: HistoryLog[] }) {

@@ -473,8 +473,6 @@ async function seedHousekeepingLogs({
 
   function cleaningCapture(seed: number) {
     return {
-      reportedAdultCount: (seed % 3) + 1,
-      reportedChildCount: seed % 3 === 0 ? 1 : 0,
       linenChanged: seed % 5 !== 0,
       towelChanged: seed % 4 !== 1,
     };
@@ -484,12 +482,10 @@ async function seedHousekeepingLogs({
     roomNumber: string;
     oldStatus: RoomStatus;
     newStatus: RoomStatus;
-    note: string;
+    note?: string | null;
     updatedAt: Date;
     cleaningStartedAt?: Date;
     cleaningCompletedAt?: Date;
-    reportedAdultCount?: number;
-    reportedChildCount?: number;
     linenChanged?: boolean;
     towelChanged?: boolean;
   };
@@ -513,7 +509,7 @@ async function seedHousekeepingLogs({
       roomNumber: "102",
       oldStatus: RoomStatus.OD,
       newStatus: RoomStatus.VCU,
-      note: "Check-out selesai, kamar selesai dibersihkan.",
+      note: "Tidak ada masalah",
       updatedAt: hoursAgo(27),
       cleaningStartedAt: hoursAgo(28),
       cleaningCompletedAt: hoursAgo(27),
@@ -537,7 +533,7 @@ async function seedHousekeepingLogs({
       roomNumber: "106",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "Pembersihan selesai oleh petugas lantai 1.",
+      note: "Sudah saya bersihkan",
       updatedAt: hoursAgo(35),
       cleaningStartedAt: hoursAgo(35),
       cleaningCompletedAt: hoursAgo(34),
@@ -575,7 +571,7 @@ async function seedHousekeepingLogs({
       roomNumber: "204",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VD,
-      note: "Pembersihan sedang berjalan.",
+      note: "Minibar perlu di-restock",
       updatedAt: hoursAgo(1),
       cleaningStartedAt: hoursAgo(1),
     },
@@ -583,7 +579,7 @@ async function seedHousekeepingLogs({
       roomNumber: "205",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "Linen dan amenity diganti lengkap.",
+      note: null,
       updatedAt: hoursAgo(48),
       cleaningStartedAt: hoursAgo(48),
       cleaningCompletedAt: hoursAgo(47),
@@ -607,7 +603,7 @@ async function seedHousekeepingLogs({
       roomNumber: "307",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "Pembersihan grup selesai, siap dicek.",
+      note: "AC sedikit berisik, sudah saya laporkan",
       updatedAt: minutesAgo(30 * 60 + 30),
       cleaningStartedAt: hoursAgo(31),
       cleaningCompletedAt: minutesAgo(30 * 60 + 30),
@@ -633,13 +629,11 @@ async function seedHousekeepingLogs({
       roomId: room.id,
       oldStatus: log.oldStatus,
       newStatus: log.newStatus,
-      note: log.note,
+      note: log.note ?? null,
       updatedById,
       updatedAt: log.updatedAt,
       cleaningStartedAt: log.cleaningStartedAt ?? null,
       cleaningCompletedAt: log.cleaningCompletedAt ?? null,
-      reportedAdultCount: log.reportedAdultCount ?? null,
-      reportedChildCount: log.reportedChildCount ?? null,
       linenChanged: log.linenChanged ?? false,
       towelChanged: log.towelChanged ?? false,
     };

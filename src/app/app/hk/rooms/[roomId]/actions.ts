@@ -146,14 +146,7 @@ export async function stopCleaning(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const {
-    roomId,
-    notes,
-    reportedAdultCount,
-    reportedChildCount,
-    linenChanged,
-    towelChanged,
-  } = parsed.data;
+  const { roomId, notes, linenChanged, towelChanged } = parsed.data;
 
   try {
     const result = await prisma.$transaction(
@@ -205,8 +198,6 @@ export async function stopCleaning(formData: FormData): Promise<ActionResult> {
             updatedById: userId,
             updatedAt: now,
             note: notes,
-            reportedAdultCount: reportedAdultCount ?? null,
-            reportedChildCount: reportedChildCount ?? null,
             linenChanged,
             towelChanged,
           },

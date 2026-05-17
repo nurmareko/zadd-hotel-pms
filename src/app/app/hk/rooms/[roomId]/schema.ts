@@ -7,11 +7,6 @@ const OptionalNotesSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
-const OptionalCountSchema = z.preprocess(
-  (value) => (value === "" || value == null ? undefined : value),
-  z.coerce.number().int().min(0).optional(),
-);
-
 const FormBooleanSchema = z.preprocess((value) => {
   if (typeof value === "boolean") {
     return value;
@@ -30,8 +25,6 @@ export const RoomActionSchema = z.object({
 
 export const StopCleaningSchema = RoomActionSchema.extend({
   notes: OptionalNotesSchema,
-  reportedAdultCount: OptionalCountSchema,
-  reportedChildCount: OptionalCountSchema,
   linenChanged: FormBooleanSchema.default(false),
   towelChanged: FormBooleanSchema.default(false),
 });

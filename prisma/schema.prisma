@@ -358,8 +358,6 @@ model HousekeepingLog {
   updatedAt           DateTime   @default(now()) @map("updated_at")
   cleaningStartedAt   DateTime?  @map("cleaning_started_at")
   cleaningCompletedAt DateTime?  @map("cleaning_completed_at")
-  reportedAdultCount  Int?       @map("reported_adult_count")
-  reportedChildCount  Int?       @map("reported_child_count")
   linenChanged        Boolean    @default(false) @map("linen_changed")
   towelChanged        Boolean    @default(false) @map("towel_changed")
 
