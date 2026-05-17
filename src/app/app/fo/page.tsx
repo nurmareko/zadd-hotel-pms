@@ -254,6 +254,11 @@ export default async function FODashboardPage() {
       count: rooms.filter((room) => room.status === RoomStatus.OD).length,
     },
     {
+      status: RoomStatus.VCU,
+      label: "Unchecked",
+      count: rooms.filter((room) => room.status === RoomStatus.VCU).length,
+    },
+    {
       status: RoomStatus.OOO,
       label: "OOO",
       count: rooms.filter((room) => room.status === RoomStatus.OOO).length,

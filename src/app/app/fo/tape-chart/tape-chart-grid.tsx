@@ -68,6 +68,13 @@ const statusClasses: Record<
     accent: "var(--red-500)",
     hoverBg: "#fee2e2",
   },
+  VCU: {
+    bg: "bg-status-vcu-bg",
+    border: "border-status-vcu-pip",
+    text: "text-status-vcu-fg",
+    accent: "var(--yellow-500)",
+    hoverBg: "#fef9c3",
+  },
   OOO: {
     bg: "bg-status-ooo-bg",
     border: "border-status-ooo-pip",

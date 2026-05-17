@@ -26,6 +26,10 @@ const statusClassNames: Record<
     badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
     pip: "bg-status-od-pip",
   },
+  VCU: {
+    badge: "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
+    pip: "bg-status-vcu-pip",
+  },
   OOO: {
     badge: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
     pip: "bg-status-ooo-pip",
@@ -54,7 +58,7 @@ export function RoomStatusCard({ rows }: { rows: RoomStatusSummaryRow[] }) {
         </h2>
       </div>
 
-      <div className="grid grid-cols-5 gap-2 p-3.5">
+      <div className="grid grid-cols-2 gap-2 p-3.5 sm:grid-cols-3">
         {rows.map((row) => (
           <div
             key={row.status}

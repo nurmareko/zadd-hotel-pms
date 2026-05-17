@@ -24,9 +24,10 @@ datasource db {
 
 enum RoomStatus {
   VC // Vacant Clean
-  VD // Vacant Dirty
   OC // Occupied Clean
+  VD // Vacant Dirty
   OD // Occupied Dirty
+  VCU // Vacant Clean Unchecked
   OOO // Out of Order
 }
 
@@ -348,13 +349,17 @@ model FBOrderItem {
 // ============================================================
 
 model HousekeepingLog {
-  id          Int        @id @default(autoincrement())
-  roomId      Int        @map("room_id")
-  oldStatus   RoomStatus @map("old_status")
-  newStatus   RoomStatus @map("new_status")
-  note        String?    @db.Text
-  updatedById Int        @map("updated_by_id")
-  updatedAt   DateTime   @default(now()) @map("updated_at")
+  id                  Int        @id @default(autoincrement())
+  roomId              Int        @map("room_id")
+  oldStatus           RoomStatus @map("old_status")
+  newStatus           RoomStatus @map("new_status")
+  note                String?    @db.Text
+  updatedById         Int        @map("updated_by_id")
+  updatedAt           DateTime   @default(now()) @map("updated_at")
+  cleaningStartedAt   DateTime?  @map("cleaning_started_at")
+  cleaningCompletedAt DateTime?  @map("cleaning_completed_at")
+  linenChanged        Boolean    @default(false) @map("linen_changed")
+  towelChanged        Boolean    @default(false) @map("towel_changed")
 
   room      Room @relation(fields: [roomId], references: [id])
   updatedBy User @relation(fields: [updatedById], references: [id])

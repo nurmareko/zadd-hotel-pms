@@ -1,9 +1,9 @@
 export default async function HkUpdateStatusPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ roomId: string }>;
 }) {
-  const { id } = await params;
+  const { roomId } = await params;
 
   return (
     <main className="p-6">
@@ -12,7 +12,7 @@ export default async function HkUpdateStatusPage({
           HK Update Status — placeholder
         </h1>
         <p className="text-sm text-muted-foreground mt-2 font-mono">
-          roomId={id}
+          roomId={roomId}
         </p>
       </div>
     </main>
