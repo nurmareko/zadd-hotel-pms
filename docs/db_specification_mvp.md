@@ -213,7 +213,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Housekeeping**
 
-15. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at)
+15. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, reported_adult_count, reported_child_count, linen_changed, towel_changed)
 
 **Accounting**
 
@@ -432,6 +432,10 @@ A few choices worth explaining:
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Update time |
 | cleaning_started_at | TIMESTAMP | — | Start time for a cleaning session log row |
 | cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
+| reported_adult_count | INT | — | HK-reported adult count observed when cleaning completes |
+| reported_child_count | INT | — | HK-reported child count observed when cleaning completes |
+| linen_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether bed linen was changed during cleaning |
+| towel_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether towels were changed during cleaning |
 
 ### `night_audit`
 

@@ -46,6 +46,31 @@ function logDescription(log: HistoryLog) {
   return transitionLabel(log.oldStatus, log.newStatus);
 }
 
+function logSecondaryLine(log: HistoryLog) {
+  if (log.oldStatus === "VCU" && log.newStatus === "VD" && log.note) {
+    return `"${log.note}"`;
+  }
+
+  if (!log.cleaningStartedAt || !log.cleaningCompletedAt) {
+    return null;
+  }
+
+  const guestCounts = [
+    log.reportedAdultCount != null ? `${log.reportedAdultCount} dewasa` : null,
+    log.reportedChildCount != null ? `${log.reportedChildCount} anak` : null,
+  ].filter(Boolean);
+  const changeFlags = [
+    log.linenChanged ? "sprei diganti" : null,
+    log.towelChanged ? "handuk diganti" : null,
+  ].filter(Boolean);
+  const details = [
+    guestCounts.length > 0 ? guestCounts.join(", ") : null,
+    changeFlags.length > 0 ? changeFlags.join(", ") : null,
+  ].filter(Boolean);
+
+  return details.length > 0 ? details.join(" · ") : null;
+}
+
 export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
   return (
     <section className="border border-console-border bg-console-surface">
@@ -62,31 +87,35 @@ export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
       ) : (
         <div className="max-h-[420px] overflow-y-auto">
           {logs.map((log) => (
-            <div
-              key={log.id}
-              className="grid gap-1 border-t border-console-border-soft px-3.5 py-3 text-[12px] first:border-t-0 sm:grid-cols-[108px_110px_minmax(0,1fr)] sm:items-start"
-            >
-              <div className="num text-[11px] text-slate-500">
-                {format(log.updatedAt, "d MMM, HH:mm", {
-                  locale: indonesianLocale,
-                })}
-              </div>
-              <div className="truncate font-medium text-console-ink">
-                {log.updatedBy.fullName}
-              </div>
-              <div className="min-w-0 text-slate-600">
-                <span>{logDescription(log)}</span>
-                {log.note &&
-                !(log.oldStatus === "OOO" || log.newStatus === "OOO") ? (
-                  <span className="block pt-0.5 text-[11px] text-slate-500">
-                    {log.note}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+            <HistoryRow key={log.id} log={log} />
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function HistoryRow({ log }: { log: HistoryLog }) {
+  const secondaryLine = logSecondaryLine(log);
+
+  return (
+    <div className="grid gap-1 border-t border-console-border-soft px-3.5 py-3 text-[12px] first:border-t-0 sm:grid-cols-[108px_110px_minmax(0,1fr)] sm:items-start">
+      <div className="num text-[11px] text-slate-500">
+        {format(log.updatedAt, "d MMM, HH:mm", {
+          locale: indonesianLocale,
+        })}
+      </div>
+      <div className="truncate font-medium text-console-ink">
+        {log.updatedBy.fullName}
+      </div>
+      <div className="min-w-0 text-slate-600">
+        <span>{logDescription(log)}</span>
+        {secondaryLine ? (
+          <span className="block pt-0.5 text-[11px] text-slate-500">
+            {secondaryLine}
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }

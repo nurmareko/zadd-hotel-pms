@@ -393,6 +393,13 @@ function hoursAgo(hours: number) {
   return date;
 }
 
+function minutesAgo(minutes: number) {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - minutes);
+
+  return date;
+}
+
 function nightAuditPostedAt(date: Date) {
   const postedAt = new Date(date);
   postedAt.setHours(23, 0, 0, 0);
@@ -464,7 +471,30 @@ async function seedHousekeepingLogs({
     });
   }
 
-  const logData = [
+  function cleaningCapture(seed: number) {
+    return {
+      reportedAdultCount: (seed % 3) + 1,
+      reportedChildCount: seed % 3 === 0 ? 1 : 0,
+      linenChanged: seed % 5 !== 0,
+      towelChanged: seed % 4 !== 1,
+    };
+  }
+
+  type HousekeepingLogSeed = {
+    roomNumber: string;
+    oldStatus: RoomStatus;
+    newStatus: RoomStatus;
+    note: string;
+    updatedAt: Date;
+    cleaningStartedAt?: Date;
+    cleaningCompletedAt?: Date;
+    reportedAdultCount?: number;
+    reportedChildCount?: number;
+    linenChanged?: boolean;
+    towelChanged?: boolean;
+  };
+
+  const logSeeds: HousekeepingLogSeed[] = [
     {
       roomNumber: "101",
       oldStatus: RoomStatus.VC,
@@ -482,9 +512,19 @@ async function seedHousekeepingLogs({
     {
       roomNumber: "102",
       oldStatus: RoomStatus.OD,
-      newStatus: RoomStatus.VD,
-      note: "Check-out selesai, masuk antrean pembersihan.",
+      newStatus: RoomStatus.VCU,
+      note: "Check-out selesai, kamar selesai dibersihkan.",
       updatedAt: hoursAgo(27),
+      cleaningStartedAt: hoursAgo(28),
+      cleaningCompletedAt: hoursAgo(27),
+      ...cleaningCapture(2),
+    },
+    {
+      roomNumber: "102",
+      oldStatus: RoomStatus.VCU,
+      newStatus: RoomStatus.VD,
+      note: "Lantai masih basah",
+      updatedAt: minutesAgo(26 * 60 + 45),
     },
     {
       roomNumber: "103",
@@ -496,18 +536,12 @@ async function seedHousekeepingLogs({
     {
       roomNumber: "106",
       oldStatus: RoomStatus.VD,
-      newStatus: RoomStatus.VD,
-      note: "Pembersihan dimulai oleh petugas lantai 1.",
+      newStatus: RoomStatus.VCU,
+      note: "Pembersihan selesai oleh petugas lantai 1.",
       updatedAt: hoursAgo(35),
       cleaningStartedAt: hoursAgo(35),
       cleaningCompletedAt: hoursAgo(34),
-    },
-    {
-      roomNumber: "106",
-      oldStatus: RoomStatus.VD,
-      newStatus: RoomStatus.VCU,
-      note: "Kamar selesai dibersihkan, menunggu inspeksi supervisor.",
-      updatedAt: hoursAgo(34),
+      ...cleaningCapture(6),
     },
     {
       roomNumber: "108",
@@ -548,18 +582,12 @@ async function seedHousekeepingLogs({
     {
       roomNumber: "205",
       oldStatus: RoomStatus.VD,
-      newStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VCU,
       note: "Linen dan amenity diganti lengkap.",
       updatedAt: hoursAgo(48),
       cleaningStartedAt: hoursAgo(48),
       cleaningCompletedAt: hoursAgo(47),
-    },
-    {
-      roomNumber: "205",
-      oldStatus: RoomStatus.VD,
-      newStatus: RoomStatus.VCU,
-      note: "Siap inspeksi sebelum dijual.",
-      updatedAt: hoursAgo(47),
+      ...cleaningCapture(5),
     },
     {
       roomNumber: "301",
@@ -575,7 +603,26 @@ async function seedHousekeepingLogs({
       note: "Kamar kosong setelah check-out grup.",
       updatedAt: hoursAgo(31),
     },
-  ].map((log) => {
+    {
+      roomNumber: "307",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VCU,
+      note: "Pembersihan grup selesai, siap dicek.",
+      updatedAt: minutesAgo(30 * 60 + 30),
+      cleaningStartedAt: hoursAgo(31),
+      cleaningCompletedAt: minutesAgo(30 * 60 + 30),
+      ...cleaningCapture(7),
+    },
+    {
+      roomNumber: "307",
+      oldStatus: RoomStatus.VCU,
+      newStatus: RoomStatus.VD,
+      note: "Linen belum diganti",
+      updatedAt: hoursAgo(30),
+    },
+  ];
+
+  const logData = logSeeds.map((log) => {
     const room = roomsByNumber.get(log.roomNumber);
 
     if (!room) {
@@ -591,6 +638,10 @@ async function seedHousekeepingLogs({
       updatedAt: log.updatedAt,
       cleaningStartedAt: log.cleaningStartedAt ?? null,
       cleaningCompletedAt: log.cleaningCompletedAt ?? null,
+      reportedAdultCount: log.reportedAdultCount ?? null,
+      reportedChildCount: log.reportedChildCount ?? null,
+      linenChanged: log.linenChanged ?? false,
+      towelChanged: log.towelChanged ?? false,
     };
   });
 

@@ -7,17 +7,41 @@ const OptionalNotesSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
+const OptionalCountSchema = z.preprocess(
+  (value) => (value === "" || value == null ? undefined : value),
+  z.coerce.number().int().min(0).optional(),
+);
+
+const FormBooleanSchema = z.preprocess((value) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return ["1", "true", "on", "yes"].includes(value.toLowerCase());
+  }
+
+  return false;
+}, z.boolean());
+
 export const RoomActionSchema = z.object({
   roomId: z.coerce.number().int().positive("Kamar tidak valid"),
 });
 
 export const StopCleaningSchema = RoomActionSchema.extend({
   notes: OptionalNotesSchema,
+  reportedAdultCount: OptionalCountSchema,
+  reportedChildCount: OptionalCountSchema,
+  linenChanged: FormBooleanSchema.default(false),
+  towelChanged: FormBooleanSchema.default(false),
 });
 
 export const InspectRoomSchema = RoomActionSchema.extend({
-  passed: z.enum(["true", "false"]).transform((value) => value === "true"),
+  passed: FormBooleanSchema,
   notes: OptionalNotesSchema,
+}).refine((data) => data.passed || Boolean(data.notes?.trim()), {
+  message: "Alasan kegagalan inspeksi wajib diisi",
+  path: ["notes"],
 });
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

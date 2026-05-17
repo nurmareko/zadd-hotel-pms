@@ -53,6 +53,7 @@ export function InspectionPanel({
 }: InspectionPanelProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isFailMode, setIsFailMode] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function runInspection(form: HTMLFormElement, passed: boolean) {
@@ -80,6 +81,16 @@ export function InspectionPanel({
     const submitter = (event.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     const passed = submitter?.value !== "false";
+    const notes = new FormData(event.currentTarget).get("notes");
+
+    setIsFailMode(!passed);
+
+    if (!passed && (!notes || String(notes).trim().length === 0)) {
+      const message = "Alasan kegagalan inspeksi wajib diisi";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
     runInspection(event.currentTarget, passed);
   }
@@ -102,11 +113,12 @@ export function InspectionPanel({
 
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-            Catatan Inspeksi
+            {isFailMode ? "Alasan kegagalan *" : "Catatan Inspeksi"}
           </span>
           <Textarea
             name="notes"
             placeholder="Catatan jika ada temuan saat inspeksi"
+            aria-invalid={isFailMode && Boolean(error)}
             className="mt-1 min-h-24 rounded-none border-console-border bg-console-surface text-[12px]"
           />
         </label>

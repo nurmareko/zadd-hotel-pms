@@ -112,4 +112,32 @@ Estimasi: 2-3 jam dengan diagram Mermaid di dokumentasi markdown.
 
 ---
 
+## Meeting #1 follow-up: VHP comparative analysis
+
+Setelah pertemuan, Pak Tito memberikan screenshot VHP (PMS yang saat ini 
+digunakan). Tim melakukan analisis komparatif untuk mengidentifikasi fitur 
+operasional yang perlu dipertimbangkan.
+
+### Ditambahkan ke MVP (small additions):
+- Reason field wajib pada inspeksi gagal
+- Reason + estimated duration pada status OOO  
+- Pencatatan jumlah tamu (Adult/Child) saat HK menyelesaikan kamar
+- Indikator pergantian linen/towel pada catatan pembersihan
+
+### Didokumentasikan sebagai future enhancement (post-MVP):
+- Credit Points / weighted task allocation
+- Auto-assignment logic untuk maid
+- Visual floor plan dengan status warna
+- Lost and Found tracking
+- Purchase Request untuk perlengkapan HK
+- Stock/inventory tracking (extra bed, crib)
+- Maid Station grouping
+
+### Pertanyaan klarifikasi untuk meeting berikutnya:
+- **Auto-assignment:** "Saat ini, bagaimana supervisor menentukan staf mana yang membersihkan kamar mana? Manual atau berdasarkan rotasi/lantai/beban kerja?"
+- **Credit Points / weighted tasks:** "VHP menggunakan sistem 'Credit Points' di mana kamar besar dihitung lebih dari kamar kecil untuk distribusi kerja. Apakah ini penting di operasional Bapak, atau cukup distribusi manual?"
+- **Discrepancy adult/child:** "Apakah staf HK secara rutin diminta menghitung jumlah tamu di kamar untuk dibandingkan dengan data Front Office? Atau ini hanya dilakukan saat ada indikasi 'shadow guest'?"
+- **Linen indicators:** "Apakah penggantian sprei (LD) dan handuk (TW) dilakukan setiap hari, atau hanya saat ada penanda tertentu dari FO atau permintaan tamu?"
+- **Lost and Found:** "Saat ada barang tertinggal, apakah pencatatan dilakukan oleh HK atau dialihkan ke FO untuk komunikasi dengan tamu? Apakah perlu di sistem PMS atau cukup di buku catatan?"
+
 *Dokumen ini akan diperbarui setelah meeting berikutnya dengan keputusan terhadap pertanyaan di Bagian C.*
