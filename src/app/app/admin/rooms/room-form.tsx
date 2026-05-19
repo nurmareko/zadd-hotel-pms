@@ -34,6 +34,7 @@ export type RoomTypeOption = {
   id: number;
   code: string;
   name: string;
+  baseRate?: string;
 };
 
 type RoomFormDefaultValues = {
@@ -72,6 +73,18 @@ function isRoomStatus(value: unknown): value is RoomStatusValue {
   return roomStatuses.some((status) => status === value);
 }
 
+const inputClassName =
+  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+
+const labelClassName =
+  "text-[10px] font-semibold uppercase tracking-[0.06em]";
+
+const buttonClassName =
+  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+
+const primaryButtonClassName =
+  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+
 export function RoomForm({
   defaultValues,
   roomTypes,
@@ -105,40 +118,48 @@ export function RoomForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="number"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Number</FormLabel>
-              <FormControl>
-                <Input placeholder="101" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Nomor Kamar</FormLabel>
+                <FormControl>
+                  <Input placeholder="101" {...field} className={inputClassName} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="floor"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Floor</FormLabel>
-              <FormControl>
-                <Input type="number" step={1} placeholder="1" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="floor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Lantai</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step={1}
+                    placeholder="1"
+                    {...field}
+                    className={inputClassName}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="roomTypeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Room Type</FormLabel>
+              <FormLabel className={labelClassName}>Tipe Kamar</FormLabel>
               <Select
                 value={field.value ? String(field.value) : null}
                 onValueChange={(value) => {
@@ -148,8 +169,8 @@ export function RoomForm({
                 }}
               >
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select room type" />
+                  <SelectTrigger className={`${inputClassName} w-full`}>
+                    <SelectValue placeholder="Pilih tipe kamar" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent align="start">
@@ -170,7 +191,7 @@ export function RoomForm({
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel className={labelClassName}>Status</FormLabel>
               <Select
                 value={field.value}
                 onValueChange={(value) => {
@@ -180,8 +201,8 @@ export function RoomForm({
                 }}
               >
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
+                  <SelectTrigger className={`${inputClassName} w-full`}>
+                    <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent align="start">
@@ -197,19 +218,25 @@ export function RoomForm({
           )}
         />
 
-        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className={buttonClassName}
+            onClick={onCancel}
+          >
+            Batal
           </Button>
           <Button
             type="submit"
+            className={primaryButtonClassName}
             disabled={form.formState.isSubmitting || roomTypes.length === 0}
           >
             {form.formState.isSubmitting
               ? "Saving..."
               : isEditing
-                ? "Save Changes"
-                : "Create Room"}
+                ? "Simpan Perubahan"
+                : "Buat Kamar"}
           </Button>
         </div>
       </form>

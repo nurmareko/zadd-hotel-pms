@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { formatIDR } from "@/lib/format";
 import { deleteRoomType } from "./actions";
+import type { RoomRow } from "./room-table";
 import { RoomTypeForm } from "./room-type-form";
 import { RoomTypeRowActions } from "./room-type-row-actions";
 
@@ -46,6 +47,7 @@ export type RoomTypeRow = {
 
 type RoomTypeTableProps = {
   roomTypes: RoomTypeRow[];
+  rooms?: RoomRow[];
 };
 
 function AddRoomTypeButton({ onClick }: { onClick: () => void }) {

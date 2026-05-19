@@ -27,6 +27,7 @@ export function RoomRowActions({ room, onDelete, onEdit }: RoomRowActionsProps) 
             type="button"
             variant="ghost"
             size="icon"
+            className="h-8 w-8 rounded-none text-console-ink hover:bg-console-bg"
             aria-label={`Actions for room ${room.number}`}
           />
         }
@@ -41,7 +42,7 @@ export function RoomRowActions({ room, onDelete, onEdit }: RoomRowActionsProps) 
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(room)}>
           <Trash2 aria-hidden="true" />
-          Delete
+          Hapus
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
