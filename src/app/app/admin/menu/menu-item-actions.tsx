@@ -49,6 +49,7 @@ export function MenuItemActions({
             type="button"
             variant="ghost"
             size="icon"
+            className="h-8 w-8 rounded-none text-console-ink hover:bg-console-bg"
             aria-label={`Actions for ${item.name}`}
           />
         }
@@ -62,12 +63,12 @@ export function MenuItemActions({
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={handleToggle}>
           <Power aria-hidden="true" />
-          {item.isActive ? "Deactivate" : "Activate"}
+          {item.isActive ? "Nonaktifkan" : "Aktifkan"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
           <Trash2 aria-hidden="true" />
-          Delete
+          Hapus
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
