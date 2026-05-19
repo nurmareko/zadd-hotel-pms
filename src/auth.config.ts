@@ -32,6 +32,10 @@ const authConfig = {
       session.user.username = token.username as string;
       session.user.fullName = token.fullName as string;
       session.user.role = token.role as AppRole;
+      session.user.sessionStartedAt =
+        typeof token.iat === "number"
+          ? new Date(token.iat * 1000).toISOString()
+          : undefined;
 
       return session;
     },

@@ -56,6 +56,18 @@ const emptyValues: MenuItemFormInput = {
   price: "",
 };
 
+const inputClassName =
+  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+
+const labelClassName =
+  "text-[10px] font-semibold uppercase tracking-[0.06em]";
+
+const buttonClassName =
+  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+
+const primaryButtonClassName =
+  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+
 export function MenuForm({
   defaultValues,
   onCancel,
@@ -99,28 +111,61 @@ export function MenuForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Code</FormLabel>
-              <FormControl>
-                <Input placeholder="COFFEE" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Code</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="COFFEE"
+                    {...field}
+                    className={inputClassName}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Harga</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="25000"
+                    {...field}
+                    value={
+                      typeof field.value === "string" ||
+                      typeof field.value === "number"
+                        ? field.value
+                        : ""
+                    }
+                    className={inputClassName}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel className={labelClassName}>Nama Menu</FormLabel>
               <FormControl>
-                <Input placeholder="Coffee" {...field} />
+                <Input placeholder="Coffee" {...field} className={inputClassName} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -137,7 +182,7 @@ export function MenuForm({
 
             return (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel className={labelClassName}>Kategori</FormLabel>
                 <Select
                   value={selectValue}
                   onValueChange={(value) => {
@@ -162,8 +207,8 @@ export function MenuForm({
                   }}
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select category" />
+                    <SelectTrigger className={`${inputClassName} w-full`}>
+                      <SelectValue placeholder="Pilih kategori" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
@@ -178,7 +223,7 @@ export function MenuForm({
                 {usesCustomCategory ? (
                   <FormControl>
                     <Input
-                      className="mt-2"
+                      className={`${inputClassName} mt-2`}
                       placeholder="Custom category"
                       value={field.value}
                       onBlur={field.onBlur}
@@ -192,42 +237,25 @@ export function MenuForm({
           }}
         />
 
-        <FormField
-          control={form.control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="25000"
-                  {...field}
-                  value={
-                    typeof field.value === "string" ||
-                    typeof field.value === "number"
-                      ? field.value
-                      : ""
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className={buttonClassName}
+            onClick={onCancel}
+          >
+            Batal
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className={primaryButtonClassName}
+            disabled={form.formState.isSubmitting}
+          >
             {form.formState.isSubmitting
               ? "Saving..."
               : isEditing
-                ? "Save Changes"
-                : "Create Menu Item"}
+                ? "Simpan Perubahan"
+                : "Buat Menu"}
           </Button>
         </div>
       </form>

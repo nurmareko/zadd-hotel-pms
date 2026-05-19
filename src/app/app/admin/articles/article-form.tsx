@@ -59,6 +59,18 @@ const emptyValues: ArticleFormInput = {
   defaultPrice: "",
 };
 
+const inputClassName =
+  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+
+const labelClassName =
+  "text-[10px] font-semibold uppercase tracking-[0.06em]";
+
+const buttonClassName =
+  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+
+const primaryButtonClassName =
+  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+
 function isArticleType(value: unknown): value is ArticleTypeValue {
   return articleTypes.some((type) => type === value);
 }
@@ -97,61 +109,67 @@ export function ArticleForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Code</FormLabel>
-              <FormControl>
-                <Input placeholder="ROOM" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Code</FormLabel>
+                <FormControl>
+                  <Input placeholder="ROOM" {...field} className={inputClassName} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Tipe</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    if (isArticleType(value)) {
+                      field.onChange(value);
+                    }
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger className={`${inputClassName} w-full`}>
+                      <SelectValue placeholder="Pilih tipe" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent align="start">
+                    {articleTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel className={labelClassName}>Nama</FormLabel>
               <FormControl>
-                <Input placeholder="Room Charge" {...field} />
+                <Input
+                  placeholder="Room Charge"
+                  {...field}
+                  className={inputClassName}
+                />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <Select
-                value={field.value}
-                onValueChange={(value) => {
-                  if (isArticleType(value)) {
-                    field.onChange(value);
-                  }
-                }}
-              >
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent align="start">
-                  {articleTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -162,7 +180,7 @@ export function ArticleForm({
           name="defaultPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Price</FormLabel>
+              <FormLabel className={labelClassName}>Default Price</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -171,6 +189,7 @@ export function ArticleForm({
                   placeholder="Optional"
                   {...field}
                   value={field.value ?? ""}
+                  className={inputClassName}
                 />
               </FormControl>
               <FormMessage />
@@ -178,16 +197,25 @@ export function ArticleForm({
           )}
         />
 
-        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className={buttonClassName}
+            onClick={onCancel}
+          >
+            Batal
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className={primaryButtonClassName}
+            disabled={form.formState.isSubmitting}
+          >
             {form.formState.isSubmitting
               ? "Saving..."
               : isEditing
-                ? "Save Changes"
-                : "Create Article"}
+                ? "Simpan Perubahan"
+                : "Buat Article"}
           </Button>
         </div>
       </form>

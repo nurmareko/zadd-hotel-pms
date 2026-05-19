@@ -51,6 +51,7 @@ export function UserRowActions({
             type="button"
             variant="ghost"
             size="icon"
+            className="h-8 w-8 rounded-none text-console-ink hover:bg-console-bg"
             aria-label={`Actions for ${user.username}`}
           />
         }
@@ -68,12 +69,12 @@ export function UserRowActions({
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={handleToggle}>
           <Power aria-hidden="true" />
-          {user.isActive ? "Deactivate" : "Activate"}
+          {user.isActive ? "Nonaktifkan" : "Aktifkan"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(user)}>
           <Trash2 aria-hidden="true" />
-          Delete
+          Hapus
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
