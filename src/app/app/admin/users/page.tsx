@@ -29,7 +29,7 @@ export default async function UserManagementPage() {
   });
 
   return (
-    <main className="p-4 sm:p-6">
+    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
       <UserTable
         users={users.map((user) => ({
           id: user.id,

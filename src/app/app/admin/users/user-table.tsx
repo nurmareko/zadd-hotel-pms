@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { FormEvent, useState, useTransition } from "react";
+import { Download, Plus, Search } from "lucide-react";
+import { FormEvent, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -51,36 +51,61 @@ type UserTableProps = {
   users: UserRow[];
 };
 
+const buttonClassName =
+  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+
+const primaryButtonClassName =
+  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+
+const roleClassNames: Record<RoleCode, string> = {
+  FO: "border-blue-500 bg-status-oc-bg text-status-oc-fg",
+  HK: "border-amber-500 bg-status-vd-bg text-status-vd-fg",
+  FB: "border-emerald-500 bg-status-vc-bg text-status-vc-fg",
+  ACC: "border-slate-500 bg-status-ooo-bg text-status-ooo-fg",
+  ADMIN: "border-red-500 bg-status-od-bg text-status-od-fg",
+};
+
 function AddUserButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" onClick={onClick}>
-      <Plus aria-hidden="true" />
-      Add User
+    <Button type="button" className={primaryButtonClassName} onClick={onClick}>
+      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+      Tambah Pengguna
     </Button>
   );
 }
 
 function RoleBadge({ role }: { role: RoleCode }) {
-  const className =
-    role === "ADMIN"
-      ? "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:ring-violet-800"
-      : "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800";
-
-  return <Badge className={className}>{role}</Badge>;
+  return (
+    <Badge
+      className={`h-5 rounded-none border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${roleClassNames[role]}`}
+    >
+      {role}
+    </Badge>
+  );
 }
 
 function ActiveBadge({ isActive }: { isActive: boolean }) {
+  const className = isActive
+    ? "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
+    : "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg";
+
   return (
     <Badge
-      className={
-        isActive
-          ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800"
-          : "bg-muted text-muted-foreground ring-border"
-      }
+      className={`h-5 rounded-none border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${className}`}
     >
-      {isActive ? "Active" : "Inactive"}
+      {isActive ? "Aktif" : "Nonaktif"}
     </Badge>
   );
+}
+
+function userInitials(fullName: string) {
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 export function UserTable({ users }: UserTableProps) {
@@ -88,9 +113,34 @@ export function UserTable({ users }: UserTableProps) {
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
   const [resettingUser, setResettingUser] = useState<UserRow | null>(null);
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleCode | "">("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">(
+    "",
+  );
   const [newPassword, setNewPassword] = useState("");
   const [isDeleting, startDeleteTransition] = useTransition();
   const [isResetting, startResetTransition] = useTransition();
+  const filteredUsers = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return users.filter((user) => {
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        user.fullName.toLowerCase().includes(normalizedQuery) ||
+        user.username.toLowerCase().includes(normalizedQuery) ||
+        (user.email ?? "").toLowerCase().includes(normalizedQuery);
+      const matchesRole = roleFilter ? user.role === roleFilter : true;
+      const matchesStatus =
+        statusFilter === "active"
+          ? user.isActive
+          : statusFilter === "inactive"
+            ? !user.isActive
+            : true;
+
+      return matchesQuery && matchesRole && matchesStatus;
+    });
+  }, [query, roleFilter, statusFilter, users]);
 
   function handleDelete() {
     if (!deletingUser) {
@@ -141,83 +191,167 @@ export function UserTable({ users }: UserTableProps) {
 
   return (
     <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            User Management
+          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
+            <span className="text-console-accent">▸ </span>
+            Pengelolaan Pengguna
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage student and administrator accounts.
+          <p className="mt-1 text-[11px] leading-5 text-slate-500">
+            Kelola akun praktikum dan penetapan role.
           </p>
         </div>
-        {users.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className={buttonClassName}>
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            Export
+          </Button>
           <AddUserButton onClick={() => setCreateOpen(true)} />
-        ) : null}
+        </div>
       </div>
 
       {users.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center">
-          <p className="text-sm text-muted-foreground">Belum ada user.</p>
+        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
+          <p className="text-[12px] text-slate-500">Belum ada pengguna.</p>
           <div className="mt-4">
             <AddUserButton onClick={() => setCreateOpen(true)} />
           </div>
         </div>
       ) : (
-        <div className="mt-6 rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-16 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-mono text-xs font-medium">
-                    {user.username}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {user.fullName}
-                  </TableCell>
-                  <TableCell>{user.email ?? "—"}</TableCell>
-                  <TableCell>
-                    <RoleBadge role={user.role} />
-                  </TableCell>
-                  <TableCell>
-                    <ActiveBadge isActive={user.isActive} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <UserRowActions
-                      user={user}
-                      onDelete={setDeletingUser}
-                      onEdit={setEditingUser}
-                      onResetPassword={setResettingUser}
-                    />
-                  </TableCell>
+        <section className="border border-console-border bg-console-surface">
+          <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
+            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 border border-console-border bg-white px-2.5 text-slate-500">
+              <Search className="h-3.5 w-3.5" aria-hidden="true" />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-console-ink outline-none placeholder:text-slate-400"
+                placeholder="Cari nama, username, atau email..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <select
+              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              value={roleFilter}
+              onChange={(event) =>
+                setRoleFilter(event.target.value as RoleCode | "")
+              }
+            >
+              <option value="">Semua Role</option>
+              <option value="FO">FO</option>
+              <option value="HK">HK</option>
+              <option value="FB">FB</option>
+              <option value="ACC">ACC</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <select
+              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as "active" | "inactive" | "")
+              }
+            >
+              <option value="">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
+              <span className="num">{filteredUsers.length}</span> pengguna
+            </span>
+          </div>
+          <div className="overflow-auto">
+            <Table className="min-w-[860px] border-collapse text-[12px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Nama
+                  </TableHead>
+                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Username
+                  </TableHead>
+                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Email
+                  </TableHead>
+                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Role
+                  </TableHead>
+                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Status
+                  </TableHead>
+                  <TableHead className="w-16 bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    Aksi
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow
+                    key={user.id}
+                    className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                  >
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-7 w-7 items-center justify-center border border-console-border bg-slate-200 text-[10px] font-bold text-slate-700">
+                          {userInitials(user.fullName)}
+                        </span>
+                        <span className="font-semibold text-console-ink">
+                          {user.fullName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-mono text-[12px] font-medium">
+                      {user.username}
+                    </TableCell>
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-slate-500">
+                      {user.email ?? "-"}
+                    </TableCell>
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                      <RoleBadge role={user.role} />
+                    </TableCell>
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                      <ActiveBadge isActive={user.isActive} />
+                    </TableCell>
+                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-right">
+                      <UserRowActions
+                        user={user}
+                        onDelete={setDeletingUser}
+                        onEdit={setEditingUser}
+                        onResetPassword={setResettingUser}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                    >
+                      Tidak ada pengguna yang cocok dengan filter.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
+        </section>
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-            <DialogDescription>
-              Create a user account and assign one module role.
+        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
+          <DialogHeader className="bg-console-ink px-3.5 py-3">
+            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+              {"// Tambah Pengguna"}
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-slate-400">
+              Buat akun pengguna dan tetapkan satu role modul.
             </DialogDescription>
           </DialogHeader>
-          <UserForm
-            onCancel={() => setCreateOpen(false)}
-            onSaved={() => setCreateOpen(false)}
-          />
+          <div className="p-3.5">
+            <UserForm
+              onCancel={() => setCreateOpen(false)}
+              onSaved={() => setCreateOpen(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -229,20 +363,24 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update account details and the assigned role.
+        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
+          <DialogHeader className="bg-console-ink px-3.5 py-3">
+            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+              {"// Edit Pengguna"}
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-slate-400">
+              Perbarui detail akun dan role yang ditetapkan.
             </DialogDescription>
           </DialogHeader>
-          {editingUser ? (
-            <UserForm
-              defaultValues={editingUser}
-              onCancel={() => setEditingUser(null)}
-              onSaved={() => setEditingUser(null)}
-            />
-          ) : null}
+          <div className="p-3.5">
+            {editingUser ? (
+              <UserForm
+                defaultValues={editingUser}
+                onCancel={() => setEditingUser(null)}
+                onSaved={() => setEditingUser(null)}
+              />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -254,34 +392,48 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Set a new password for {resettingUser?.username ?? "this user"}.
+        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
+          <DialogHeader className="bg-console-ink px-3.5 py-3">
+            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+              {"// Reset Password"}
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-slate-400">
+              Atur password baru untuk{" "}
+              {resettingUser?.username ?? "pengguna ini"}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleResetPassword} className="space-y-4">
+          <form onSubmit={handleResetPassword} className="space-y-4 p-3.5">
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label
+                htmlFor="new-password"
+                className="text-[10px] font-semibold uppercase tracking-[0.06em]"
+              >
+                Password Baru
+              </Label>
               <Input
                 id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 placeholder="Minimum 6 characters"
+                className="h-8 rounded-none border-console-border bg-console-surface text-[12px]"
               />
             </div>
-            <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 disabled={isResetting}
+                className={buttonClassName}
                 onClick={closeResetDialog}
               >
-                Cancel
+                Batal
               </Button>
-              <Button type="submit" disabled={isResetting}>
+              <Button
+                type="submit"
+                className={primaryButtonClassName}
+                disabled={isResetting}
+              >
                 {isResetting ? "Saving..." : "Reset Password"}
               </Button>
             </div>
@@ -297,9 +449,9 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-none border-console-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus pengguna?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes {deletingUser?.username ?? "this user"} from the
               system. This action cannot be undone.
