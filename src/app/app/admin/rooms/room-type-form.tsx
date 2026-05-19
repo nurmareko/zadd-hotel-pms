@@ -50,6 +50,21 @@ const emptyValues: RoomTypeFormInput = {
   baseRate: "",
 };
 
+const inputClassName =
+  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+
+const textareaClassName =
+  "min-h-20 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+
+const labelClassName =
+  "text-[10px] font-semibold uppercase tracking-[0.06em]";
+
+const buttonClassName =
+  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+
+const primaryButtonClassName =
+  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+
 export function RoomTypeForm({
   defaultValues,
   onCancel,
@@ -84,45 +99,52 @@ export function RoomTypeForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Code</FormLabel>
-              <FormControl>
-                <Input placeholder="DLX" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Code</FormLabel>
+                <FormControl>
+                  <Input placeholder="DLX" {...field} className={inputClassName} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Deluxe Room" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={labelClassName}>Nama Tipe</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Deluxe Room"
+                    {...field}
+                    className={inputClassName}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel className={labelClassName}>Deskripsi</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Optional room type notes"
                   {...field}
                   value={field.value ?? ""}
+                  className={textareaClassName}
                 />
               </FormControl>
               <FormMessage />
@@ -136,7 +158,7 @@ export function RoomTypeForm({
             name="capacity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Capacity</FormLabel>
+                <FormLabel className={labelClassName}>Kapasitas</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -144,6 +166,7 @@ export function RoomTypeForm({
                     step={1}
                     placeholder="2"
                     {...field}
+                    className={inputClassName}
                   />
                 </FormControl>
                 <FormMessage />
@@ -156,7 +179,7 @@ export function RoomTypeForm({
             name="baseRate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Base Rate</FormLabel>
+                <FormLabel className={labelClassName}>Base Rate</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -164,6 +187,7 @@ export function RoomTypeForm({
                     step={1}
                     placeholder="750000"
                     {...field}
+                    className={inputClassName}
                   />
                 </FormControl>
                 <FormMessage />
@@ -172,16 +196,25 @@ export function RoomTypeForm({
           />
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className={buttonClassName}
+            onClick={onCancel}
+          >
+            Batal
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className={primaryButtonClassName}
+            disabled={form.formState.isSubmitting}
+          >
             {form.formState.isSubmitting
               ? "Saving..."
               : isEditing
-                ? "Save Changes"
-                : "Create Room Type"}
+                ? "Simpan Perubahan"
+                : "Buat Tipe"}
           </Button>
         </div>
       </form>

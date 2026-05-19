@@ -31,6 +31,7 @@ export function RoomTypeRowActions({
             type="button"
             variant="ghost"
             size="icon"
+            className="h-8 w-8 rounded-none text-console-ink hover:bg-console-bg"
             aria-label={`Actions for ${roomType.name}`}
           />
         }
@@ -48,7 +49,7 @@ export function RoomTypeRowActions({
           onClick={() => onDelete(roomType)}
         >
           <Trash2 aria-hidden="true" />
-          Delete
+          Hapus
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
