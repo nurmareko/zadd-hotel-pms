@@ -104,3 +104,11 @@ praktikum. Students rotate through 5 operational roles
 - Advisory lock retry on `migrate reset`: transient Postgres concurrency; retry.
 - Date filters around midnight look wrong: verify `@db.Date` queries use
   `dateOnlyBoundary()` / `todayDateOnly()`, not `startOfDay()`.
+
+### Prisma advisory lock timeout on `migrate reset`
+
+`npx prisma migrate reset --force` can hang on Postgres advisory lock acquisition, especially when Neon is sleepy or a previous connection wasn't released. Recovery:
+
+1. Cancel and retry once — often clears
+2. If still hung: `npx prisma migrate deploy` against the same schema, then `npx tsx prisma/seed.ts && npm run db:demo` to manually replicate what `migrate reset` does
+3. Has bitten us at least twice (HK person-count removal, FB foundation). Treat as expected occasional friction, not a real bug
