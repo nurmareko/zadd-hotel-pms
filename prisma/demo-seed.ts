@@ -1,14 +1,17 @@
 import {
   ArrangementType,
   ArticleType,
+  FBOrderStatus,
   FolioStatus,
   PaymentMethod,
   ReservationStatus,
   ReservationType,
   ReservationUsageType,
   RoomStatus,
+  TableLocation,
+  TableStatus,
 } from "@prisma/client";
-import { addDays, startOfDay } from "date-fns";
+import { addDays, format, startOfDay, subHours, subMinutes } from "date-fns";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
@@ -145,29 +148,30 @@ const articles = [
 ] as const;
 
 const menuItems = [
-  { code: "COFFEE", name: "Coffee", category: "Beverage", price: 28000 },
-  { code: "TEA", name: "Tea", category: "Beverage", price: 22000 },
-  { code: "NASI-GORENG", name: "Nasi Goreng", category: "Main", price: 65000 },
-  { code: "MIE-GORENG", name: "Mie Goreng", category: "Main", price: 60000 },
-  { code: "SANDWICH", name: "Sandwich", category: "Snack", price: 55000 },
-  {
-    code: "FRIES",
-    name: "French Fries",
-    category: "Snack",
-    price: 42000,
-  },
-  {
-    code: "WATER",
-    name: "Mineral Water",
-    category: "Beverage",
-    price: 18000,
-  },
-  {
-    code: "ORANGE-JUICE",
-    name: "Orange Juice",
-    category: "Beverage",
-    price: 35000,
-  },
+  { code: "COFFEE", name: "Kopi Tubruk", category: "Drinks", price: 28000 },
+  { code: "TEA", name: "Teh Manis", category: "Drinks", price: 22000 },
+  { code: "WATER", name: "Mineral Water", category: "Drinks", price: 18000 },
+  { code: "ORANGE-JUICE", name: "Orange Juice", category: "Drinks", price: 35000 },
+  { code: "NASI-GORENG", name: "Nasi Goreng Spesial", category: "Mains", price: 65000 },
+  { code: "MIE-GORENG", name: "Mie Goreng Seafood", category: "Mains", price: 60000 },
+  { code: "SATE-AYAM", name: "Sate Ayam", category: "Mains", price: 55000 },
+  { code: "SANDWICH", name: "Club Sandwich", category: "Breakfast", price: 55000 },
+  { code: "OMELETTE", name: "Omelette", category: "Breakfast", price: 42000 },
+  { code: "FRIES", name: "French Fries", category: "Snacks", price: 42000 },
+  { code: "PISANG-GORENG", name: "Pisang Goreng", category: "Desserts", price: 30000 },
+  { code: "ES-CAMPUR", name: "Es Campur", category: "Desserts", price: 36000 },
+] as const;
+
+const restaurantTables = [
+  { number: "T1", capacity: 2, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
+  { number: "T2", capacity: 2, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
+  { number: "T3", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.OCCUPIED },
+  { number: "T4", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
+  { number: "T5", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
+  { number: "T6", capacity: 2, location: TableLocation.INDOOR, status: TableStatus.OUT_OF_SERVICE, notes: "Kursi perlu diganti." },
+  { number: "T7", capacity: 4, location: TableLocation.OUTDOOR, status: TableStatus.AVAILABLE },
+  { number: "T8", capacity: 6, location: TableLocation.OUTDOOR, status: TableStatus.RESERVED, notes: "Reserved untuk dosen tamu." },
+  { number: "T9", capacity: 8, location: TableLocation.PRIVATE, status: TableStatus.AVAILABLE },
 ] as const;
 
 const reservations: Array<{
@@ -445,6 +449,38 @@ async function findHousekeepingUser() {
   return hkUser;
 }
 
+async function findFoodBeverageUser() {
+  const fbUser = await prisma.user.findUnique({ where: { username: "fb1" } });
+
+  if (!fbUser) {
+    throw new Error(
+      "Run the main Prisma seed first so F&B orders can be attributed to fb1.",
+    );
+  }
+
+  return fbUser;
+}
+
+function computeFbAmounts(
+  itemSeeds: Array<{ quantity: number; unitPrice: number }>,
+  hotelSettings: { serviceChargePercent: unknown; taxPercent: unknown },
+) {
+  const subtotal = itemSeeds.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0,
+  );
+  const serviceCharge =
+    subtotal * (Number(hotelSettings.serviceChargePercent) / 100);
+  const tax = (subtotal + serviceCharge) * (Number(hotelSettings.taxPercent) / 100);
+
+  return {
+    subtotal: Math.round(subtotal),
+    serviceCharge: Math.round(serviceCharge),
+    tax: Math.round(tax),
+    total: Math.round(subtotal + serviceCharge + tax),
+  };
+}
+
 async function seedHousekeepingLogs({
   roomsByNumber,
   updatedById,
@@ -651,6 +687,7 @@ async function main() {
     const today = startOfDay(new Date());
     const createdBy = await findSeedUser();
     const housekeepingUser = await findHousekeepingUser();
+    const fbUser = await findFoodBeverageUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
     const roomsByNumber = new Map<string, { id: number }>();
     const guestsByFullName = new Map<string, { id: number }>();
@@ -752,6 +789,16 @@ async function main() {
     }
 
     console.log(`✓ seeded ${menuItems.length} menu items`);
+
+    for (const table of restaurantTables) {
+      await prisma.restaurantTable.upsert({
+        where: { number: table.number },
+        create: table,
+        update: table,
+      });
+    }
+
+    console.log(`✓ seeded ${restaurantTables.length} restaurant tables`);
 
     const checkedInReservations: Array<{
       reservationNo: string;
@@ -942,6 +989,7 @@ async function main() {
       throw new Error("Run the main Prisma seed first so hotel settings exist.");
     }
 
+    const seededHotelSettings = hotelSettings;
     let closedFolioCount = 0;
     let closedFolioLineItemCount = 0;
     let totalMismatchCount = 0;
@@ -1017,6 +1065,205 @@ async function main() {
       `✓ folio subtotal check: ${
         totalMismatchCount === 0 ? "all matched expected room-night totals" : `${totalMismatchCount} mismatch(es)`
       }`,
+    );
+
+    const orderPrefix = `FB-${format(today, "ddMM")}-`;
+    const existingDemoFbOrders = await prisma.fBOrder.findMany({
+      where: { orderNo: { startsWith: orderPrefix } },
+      select: { id: true },
+    });
+    const existingDemoFbOrderIds = existingDemoFbOrders.map((order) => order.id);
+
+    if (existingDemoFbOrderIds.length > 0) {
+      await prisma.folioLineItem.deleteMany({
+        where: { fbOrderId: { in: existingDemoFbOrderIds } },
+      });
+      await prisma.payment.deleteMany({
+        where: { fbOrderId: { in: existingDemoFbOrderIds } },
+      });
+      await prisma.fBOrder.deleteMany({
+        where: { id: { in: existingDemoFbOrderIds } },
+      });
+    }
+
+    const [seededMenuItems, seededTables, dinnerArticle, chargeToRoomFolio] =
+      await Promise.all([
+        prisma.menuItem.findMany(),
+        prisma.restaurantTable.findMany(),
+        prisma.article.findUnique({ where: { code: "DINNER" } }),
+        prisma.folio.findFirst({
+          where: {
+            status: FolioStatus.OPEN,
+            reservation: { status: ReservationStatus.CHECKED_IN },
+          },
+          orderBy: { id: "asc" },
+        }),
+      ]);
+
+    if (!dinnerArticle) {
+      throw new Error("Missing DINNER article for F&B charge-to-room seed.");
+    }
+
+    if (!chargeToRoomFolio) {
+      throw new Error("Missing checked-in open folio for charge-to-room seed.");
+    }
+
+    const menuByCode = new Map(
+      seededMenuItems.map((menuItem) => [menuItem.code, menuItem]),
+    );
+    const tableByNumber = new Map(
+      seededTables.map((table) => [table.number, table]),
+    );
+
+    async function createFbOrder({
+      sequence,
+      status,
+      tableNumber,
+      guestCount,
+      openedAt,
+      closedAt,
+      paymentMethod,
+      chargedFolioId,
+      items,
+    }: {
+      sequence: number;
+      status: FBOrderStatus;
+      tableNumber: string;
+      guestCount: number;
+      openedAt: Date;
+      closedAt?: Date;
+      paymentMethod?: PaymentMethod;
+      chargedFolioId?: number;
+      items: Array<{ code: string; quantity: number; notes?: string }>;
+    }) {
+      const table = tableByNumber.get(tableNumber);
+
+      if (!table) {
+        throw new Error(`Missing restaurant table ${tableNumber}.`);
+      }
+
+      const itemSeeds = items.map((item) => {
+        const menuItem = menuByCode.get(item.code);
+
+        if (!menuItem) {
+          throw new Error(`Missing menu item ${item.code}.`);
+        }
+
+        const unitPrice = Number(menuItem.price);
+
+        return {
+          ...item,
+          menuItemId: menuItem.id,
+          unitPrice,
+          amount: item.quantity * unitPrice,
+        };
+      });
+      const amounts = computeFbAmounts(itemSeeds, seededHotelSettings);
+
+      return prisma.fBOrder.create({
+        data: {
+          orderNo: `${orderPrefix}${String(sequence).padStart(4, "0")}`,
+          tableNo: table.number,
+          tableId: table.id,
+          guestCount,
+          status,
+          paymentMethod,
+          chargedFolioId,
+          subtotal: amounts.subtotal,
+          serviceCharge: amounts.serviceCharge,
+          tax: amounts.tax,
+          total: amounts.total,
+          waitedById: fbUser.id,
+          openedAt,
+          closedAt: closedAt ?? null,
+          items: {
+            create: itemSeeds.map((item) => ({
+              menuItemId: item.menuItemId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              amount: item.amount,
+              notes: item.notes ?? null,
+            })),
+          },
+        },
+      });
+    }
+
+    const openOrder = await createFbOrder({
+      sequence: 1,
+      status: FBOrderStatus.OPEN,
+      tableNumber: "T3",
+      guestCount: 4,
+      openedAt: subMinutes(new Date(), 42),
+      items: [
+        { code: "NASI-GORENG", quantity: 2, notes: "Pedas sedang" },
+        { code: "SATE-AYAM", quantity: 1 },
+        { code: "TEA", quantity: 4, notes: "Less sugar" },
+      ],
+    });
+
+    const cashOrder = await createFbOrder({
+      sequence: 2,
+      status: FBOrderStatus.CLOSED,
+      tableNumber: "T2",
+      guestCount: 2,
+      openedAt: subHours(new Date(), 4),
+      closedAt: subHours(new Date(), 3),
+      paymentMethod: PaymentMethod.CASH,
+      items: [
+        { code: "OMELETTE", quantity: 2 },
+        { code: "COFFEE", quantity: 2 },
+        { code: "PISANG-GORENG", quantity: 1 },
+      ],
+    });
+
+    await prisma.payment.create({
+      data: {
+        folioId: null,
+        fbOrderId: cashOrder.id,
+        amount: cashOrder.total,
+        method: PaymentMethod.CASH,
+        reference: "DEMO-CASH",
+        receivedById: fbUser.id,
+        receivedAt: cashOrder.closedAt ?? new Date(),
+      },
+    });
+
+    const roomChargeOrder = await createFbOrder({
+      sequence: 3,
+      status: FBOrderStatus.CLOSED,
+      tableNumber: "T7",
+      guestCount: 3,
+      openedAt: subHours(new Date(), 2),
+      closedAt: subMinutes(new Date(), 75),
+      paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+      chargedFolioId: chargeToRoomFolio.id,
+      items: [
+        { code: "MIE-GORENG", quantity: 2, notes: "Tanpa seafood pedas" },
+        { code: "ORANGE-JUICE", quantity: 3 },
+        { code: "ES-CAMPUR", quantity: 1 },
+      ],
+    });
+
+    await prisma.folioLineItem.create({
+      data: {
+        folioId: chargeToRoomFolio.id,
+        articleId: dinnerArticle.id,
+        fbOrderId: roomChargeOrder.id,
+        description: `F&B charge ${roomChargeOrder.orderNo}`,
+        quantity: 1,
+        unitPrice: roomChargeOrder.total,
+        amount: roomChargeOrder.total,
+        postedById: fbUser.id,
+        postedAt: roomChargeOrder.closedAt ?? new Date(),
+      },
+    });
+
+    console.log(
+      `✓ seeded 3 F&B orders (${openOrder.orderNo}, ${cashOrder.orderNo}, ${roomChargeOrder.orderNo})`,
+    );
+    console.log(
+      `✓ charge-to-room linked ${roomChargeOrder.orderNo} to folio ${chargeToRoomFolio.folioNo}`,
     );
     console.log("✓ demo seed complete");
   } catch (error) {
