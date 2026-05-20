@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 17 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 18 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 17 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 18 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -36,6 +36,7 @@ erDiagram
   ARTICLE ||--o{ FOLIO_LINE_ITEM : "charged_as"
 
   MENU_ITEM ||--o{ FB_ORDER_ITEM : "ordered_as"
+  RESTAURANT_TABLE ||--o{ FB_ORDER : "hosts"
   FB_ORDER ||--o{ FB_ORDER_ITEM : "contains"
   FB_ORDER ||--o{ PAYMENT : "settled_by"
   FB_ORDER ||--o{ FOLIO_LINE_ITEM : "charged_to_room"
@@ -131,11 +132,20 @@ erDiagram
     varchar category
     decimal price
   }
+  RESTAURANT_TABLE {
+    int id PK
+    varchar number UK
+    int capacity
+    varchar location
+    varchar status
+  }
   FB_ORDER {
     int id PK
     varchar order_no UK
+    int table_id FK
     varchar table_no
     varchar status
+    int guest_count
     varchar payment_method
     int charged_folio_id FK
     decimal total
@@ -208,20 +218,21 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Food & Beverage**
 
 12. MenuItem(*id*, code, name, category, price, is_active)
-13. FBOrder(*id*, order_no, *charged_folio_id\#*, *waited_by_id\#*, table_no, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
-14. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
+13. RestaurantTable(*id*, number, capacity, location, status, notes, created_at, updated_at)
+14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
+15. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 
 **Housekeeping**
 
-15. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, reported_adult_count, reported_child_count, linen_changed, towel_changed)
+16. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, reported_adult_count, reported_child_count, linen_changed, towel_changed)
 
 **Accounting**
 
-16. NightAudit(*id*, business_date, *run_by_id\#*, run_at, status, total_revenue, occupancy_rate, report_data)
+17. NightAudit(*id*, business_date, *run_by_id\#*, run_at, status, total_revenue, occupancy_rate, report_data)
 
 **Payment**
 
-17. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
+18. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
 
 ---
 
@@ -389,13 +400,28 @@ A few choices worth explaining:
 | price | DECIMAL(12,2) | NOT NULL | Selling price |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Active status |
 
+### `restaurant_table`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique restaurant table identifier |
+| number | VARCHAR(10) | UNIQUE, NOT NULL | Table number/code (for example T1) |
+| capacity | INT | NOT NULL, DEFAULT 2 | Default seating capacity |
+| location | VARCHAR(20) | NOT NULL, DEFAULT 'INDOOR' | INDOOR, OUTDOOR, PRIVATE |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'AVAILABLE' | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
+| notes | TEXT | — | Operational notes |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
 ### `fb_order`
 
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique order identifier |
 | order_no | VARCHAR(20) | UNIQUE, NOT NULL | Order number |
-| table_no | VARCHAR(10) | — | Table number |
+| table_id | INT | FOREIGN KEY → restaurant_table(id) | Assigned restaurant table |
+| table_no | VARCHAR(10) | — | Legacy/free-text table number |
+| guest_count | INT | NOT NULL, DEFAULT 1 | Guest count/pax |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'OPEN' | OPEN, BILLED, CLOSED, VOIDED |
 | payment_method | VARCHAR(20) | — | CASH, CHARGE_TO_ROOM (set at billing) |
 | charged_folio_id | INT | FOREIGN KEY → folio(id) | Target folio for charge-to-room |

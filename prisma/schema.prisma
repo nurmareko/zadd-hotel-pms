@@ -1,7 +1,7 @@
 // Hotel PMS — MVP Prisma Schema (Solo dev, 2-month timeline)
 // Drop into prisma/schema.prisma and run `npx prisma migrate dev --name init`
 //
-// Changes vs full design (24 tables → 17 tables):
+// Changes vs full design (24 tables → 18 tables):
 // - Rate inlined into RoomType (one fixed base rate per type)
 // - GuestRegistrationCard inlined into Reservation (grc_filled_at, purpose_of_visit)
 // - Segment removed (no segment reporting)
@@ -77,6 +77,19 @@ enum FBOrderStatus {
   BILLED // customer has been presented the bill
   CLOSED // paid
   VOIDED
+}
+
+enum TableLocation {
+  INDOOR
+  OUTDOOR
+  PRIVATE
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  OUT_OF_SERVICE
 }
 
 enum PaymentMethod {
@@ -305,11 +318,28 @@ model MenuItem {
   @@map("menu_item")
 }
 
+model RestaurantTable {
+  id        Int           @id @default(autoincrement())
+  number    String        @unique @db.VarChar(10)
+  capacity  Int           @default(2)
+  location  TableLocation @default(INDOOR)
+  status    TableStatus   @default(AVAILABLE)
+  notes     String?       @db.Text
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  orders FBOrder[]
+
+  @@map("restaurant_table")
+}
+
 model FBOrder {
   id             Int            @id @default(autoincrement())
   orderNo        String         @unique @map("order_no") @db.VarChar(20)
   tableNo        String?        @map("table_no") @db.VarChar(10)
+  tableId        Int?           @map("table_id")
   status         FBOrderStatus  @default(OPEN)
+  guestCount     Int            @default(1) @map("guest_count")
   paymentMethod  PaymentMethod? @map("payment_method")
   chargedFolioId Int?           @map("charged_folio_id")
   subtotal       Decimal        @default(0) @db.Decimal(12, 2)
@@ -320,8 +350,9 @@ model FBOrder {
   openedAt       DateTime       @default(now()) @map("opened_at")
   closedAt       DateTime?      @map("closed_at")
 
-  chargedFolio   Folio?          @relation("ChargedFolio", fields: [chargedFolioId], references: [id])
-  waitedBy       User            @relation(fields: [waitedById], references: [id])
+  chargedFolio   Folio?           @relation("ChargedFolio", fields: [chargedFolioId], references: [id])
+  table          RestaurantTable? @relation(fields: [tableId], references: [id])
+  waitedBy       User             @relation(fields: [waitedById], references: [id])
   items          FBOrderItem[]
   folioLineItems FolioLineItem[]
   payments       Payment[]

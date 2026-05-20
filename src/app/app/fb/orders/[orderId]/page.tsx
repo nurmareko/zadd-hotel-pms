@@ -1,26 +1,28 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
+import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-type NewOrderPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+type OrderDetailPageProps = {
+  params: Promise<{ orderId: string }>;
 };
 
-function firstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
+export default async function FbOrderDetailPlaceholderPage({
+  params,
+}: OrderDetailPageProps) {
+  const { orderId } = await params;
+  const order = await prisma.fBOrder.findUnique({
+    where: { id: Number(orderId) || -1 },
+    include: {
+      table: { select: { number: true } },
+      items: { select: { id: true } },
+    },
+  });
 
-export default async function FbCaptainOrderPlaceholderPage({
-  searchParams,
-}: NewOrderPageProps) {
-  const params = (await searchParams) ?? {};
-  const tableId = firstParam(params.tableId);
-  const table = tableId
-    ? await prisma.restaurantTable.findUnique({
-        where: { id: Number(tableId) || -1 },
-        select: { number: true, capacity: true },
-      })
-    : null;
+  if (!order) {
+    notFound();
+  }
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -28,11 +30,12 @@ export default async function FbCaptainOrderPlaceholderPage({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Captain Order
+            Order Detail
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Placeholder FB-02 ·{" "}
-            {table ? `Meja ${table.number} · kapasitas ${table.capacity}` : "Tanpa meja"}
+            Placeholder FB-02 · {order.orderNo} · Meja{" "}
+            {order.table?.number ?? "-"} · <span className="num">{order.items.length}</span>{" "}
+            item · {formatIDR(order.total.toString())}
           </p>
         </div>
         <Link
@@ -47,8 +50,8 @@ export default async function FbCaptainOrderPlaceholderPage({
           {"// NEXT SESSION"}
         </div>
         <p className="mt-3 max-w-2xl text-[13px] leading-6 text-slate-600">
-          Form captain order, pemilihan menu, quantity, dan catatan dapur akan
-          dibangun pada FB-02. Rute ini sudah siap sebagai target dari Floor Plan.
+          Detail/edit order, captain order item entry, dan transisi ke billing
+          akan dibangun pada FB-02. Rute occupied table sudah mengarah ke sini.
         </p>
       </section>
     </main>
