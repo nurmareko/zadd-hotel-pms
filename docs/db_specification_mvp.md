@@ -211,7 +211,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, adults, children, status, deposit, rate_amount, notes, grc_filled_at, grc_purpose_of_visit, created_at, updated_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, status, deposit, rate_amount, notes, grc_filled_at, grc_purpose_of_visit, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -224,7 +224,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Housekeeping**
 
-16. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, reported_adult_count, reported_child_count, linen_changed, towel_changed)
+16. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
 
 **Accounting**
 
@@ -351,8 +351,6 @@ A few choices worth explaining:
 | room_id | INT | FOREIGN KEY → room(id) | Physical room assigned at check-in |
 | arrival_date | DATE | NOT NULL | Planned check-in date |
 | departure_date | DATE | NOT NULL | Planned check-out date |
-| adults | INT | NOT NULL, DEFAULT 1 | Number of adults |
-| children | INT | NOT NULL, DEFAULT 0 | Number of children |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
 | rate_amount | DECIMAL(12,2) | NOT NULL | Rate snapshot at booking time |
@@ -458,8 +456,6 @@ A few choices worth explaining:
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Update time |
 | cleaning_started_at | TIMESTAMP | — | Start time for a cleaning session log row |
 | cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
-| reported_adult_count | INT | — | HK-reported adult count observed when cleaning completes |
-| reported_child_count | INT | — | HK-reported child count observed when cleaning completes |
 | linen_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether bed linen was changed during cleaning |
 | towel_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether towels were changed during cleaning |
 
