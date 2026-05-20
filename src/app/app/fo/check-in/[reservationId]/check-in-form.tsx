@@ -182,6 +182,7 @@ export function CheckInForm({
 
     return `Deposit ${formatIDR(existingDeposit)} was recorded at booking. Confirm or update.`;
   }, [existingDeposit]);
+  const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(
     values: CheckInFormValues,
@@ -622,6 +623,15 @@ export function CheckInForm({
             </div>
             <div className="border-t border-console-border bg-console-bg px-3.5 py-3 text-[12px] text-slate-600">
               Folio akan otomatis dibuka setelah check-in.
+            </div>
+            <div className="border-t border-console-border bg-console-surface p-3.5">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-8 w-full rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
+              >
+                {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
+              </button>
             </div>
           </section>
         </aside>

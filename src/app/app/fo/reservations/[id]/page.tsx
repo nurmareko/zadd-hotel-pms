@@ -134,13 +134,6 @@ export default async function ReservationDetailPage({
               >
                 Batal
               </Link>
-              <button
-                type="submit"
-                form="reservation-form"
-                className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-              >
-                Simpan Perubahan
-              </button>
             </>
           ) : (
             <Link
@@ -187,6 +180,7 @@ export default async function ReservationDetailPage({
           }))}
           mode={formMode}
           reservationId={reservation.id}
+          submitLabel="Simpan Perubahan"
         />
       </div>
     </main>

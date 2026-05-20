@@ -7,8 +7,6 @@ import {
   startOfDay,
 } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import Link from "next/link";
 import { ReservationStatus, type RoomStatus } from "@prisma/client";
 
 import { dateOnlyBoundary } from "@/lib/date-only";
@@ -16,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 
 import { TapeChartGrid, type TapeChartRow } from "./tape-chart-grid";
 import { TapeChartLegend } from "./tape-chart-legend";
+import { TapeChartControls } from "./tape-chart-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -251,42 +250,13 @@ export default async function FoTapeChartPage({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Link
-              href={getDateHref(previousStartDate)}
-              aria-label="Tanggal sebelumnya"
-              className="flex h-8 w-8 items-center justify-center border border-console-border bg-console-surface text-console-ink"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
-            <div className="flex h-8 items-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold tracking-[0.04em]">
-              <span className="num">
-                {rangeStart} – {rangeEnd}
-              </span>
-            </div>
-            <Link
-              href={getDateHref(nextStartDate)}
-              aria-label="Tanggal berikutnya"
-              className="flex h-8 w-8 items-center justify-center border border-console-border bg-console-surface text-console-ink"
-            >
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-          <Link
-            href="/app/fo/tape-chart"
-            className="inline-flex h-8 items-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink"
-          >
-            Hari Ini
-          </Link>
-          <Link
-            href="/app/fo/reservations/new"
-            className="flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            Reservasi Baru
-          </Link>
-        </div>
+        <TapeChartControls
+          previousHref={getDateHref(previousStartDate)}
+          nextHref={getDateHref(nextStartDate)}
+          todayHref="/app/fo/tape-chart"
+          newReservationHref="/app/fo/reservations/new"
+          rangeLabel={`${rangeStart} – ${rangeEnd}`}
+        />
       </div>
 
       <TapeChartLegend roomCount={rooms.length} dayCount={displayDays.length} />

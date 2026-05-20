@@ -124,13 +124,6 @@ export default async function NewReservationPage({
           >
             Batal
           </Link>
-          <button
-            type="submit"
-            form="reservation-form"
-            className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          >
-            Simpan Reservasi
-          </button>
         </div>
       </div>
 
@@ -148,6 +141,7 @@ export default async function NewReservationPage({
             arrivalDate: toDateInputValue(reservation.arrivalDate),
             departureDate: toDateInputValue(reservation.departureDate),
           }))}
+          submitLabel="Simpan Reservasi"
         />
       </div>
     </main>
