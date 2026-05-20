@@ -51,6 +51,7 @@ type ReservationFormProps = {
   activeReservations: ActiveReservation[];
   mode?: "create" | "edit" | "view";
   reservationId?: number;
+  submitLabel?: string;
 };
 
 const fieldClassName =
@@ -142,6 +143,7 @@ export function ReservationForm({
   activeReservations,
   mode = "create",
   reservationId,
+  submitLabel = "Simpan Reservasi",
 }: ReservationFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const isViewMode = mode === "view";
@@ -217,6 +219,7 @@ export function ReservationForm({
   const availableRoomCount = roomOptions.filter(
     (room) => room.isAvailable,
   ).length;
+  const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit() {
     if (isViewMode) {
@@ -700,6 +703,16 @@ export function ReservationForm({
               </p>
             </div>
           </section>
+
+          {!isViewMode ? (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
+            >
+              {isSubmitting ? "Menyimpan..." : submitLabel}
+            </button>
+          ) : null}
         </aside>
       </form>
     </Form>

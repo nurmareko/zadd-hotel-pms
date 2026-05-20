@@ -204,13 +204,6 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             Cetak GRC
           </a>
-          <button
-            type="submit"
-            form="check-in-form"
-            className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          >
-            Konfirmasi Check-In
-          </button>
         </div>
       </div>
 
