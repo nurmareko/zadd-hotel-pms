@@ -1,59 +1,117 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+
+import { MenuBrowse } from "./menu-browse";
+import { OrderCart } from "./order-cart";
 
 type OrderDetailPageProps = {
   params: Promise<{ orderId: string }>;
 };
 
-export default async function FbOrderDetailPlaceholderPage({
-  params,
-}: OrderDetailPageProps) {
+export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orderId } = await params;
-  const order = await prisma.fBOrder.findUnique({
-    where: { id: Number(orderId) || -1 },
-    include: {
-      table: { select: { number: true } },
-      items: { select: { id: true } },
-    },
-  });
+  const id = Number(orderId) || -1;
 
-  if (!order) {
+  const [order, menuItems, settings] = await Promise.all([
+    prisma.fBOrder.findUnique({
+      where: { id },
+      include: {
+        table: { select: { id: true, number: true } },
+        waitedBy: { select: { fullName: true } },
+        items: {
+          include: {
+            menuItem: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                isActive: true,
+              },
+            },
+          },
+          orderBy: { id: "asc" },
+        },
+      },
+    }),
+    prisma.menuItem.findMany({
+      where: { isActive: true },
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        price: true,
+      },
+    }),
+    prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+  ]);
+
+  if (!order || !settings) {
     notFound();
   }
 
+  const computedTotals = computeFBOrderTotals(order.items, settings);
+  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex items-end justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Order Detail
+            Captain Order · Meja {order.table?.number ?? order.tableNo ?? "-"}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Placeholder FB-02 · {order.orderNo} · Meja{" "}
-            {order.table?.number ?? "-"} · <span className="num">{order.items.length}</span>{" "}
-            item · {formatIDR(order.total.toString())}
+            Order #{order.orderNo} ·{" "}
+            <span className="num">{order.guestCount}</span> pax ·{" "}
+            <span className="num">{itemCount}</span> item ·{" "}
+            {formatIDR(computedTotals.total.toString())}
           </p>
         </div>
-        <Link
-          className="inline-flex h-8 items-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-          href="/app/fb"
-        >
-          Kembali
-        </Link>
       </div>
-      <section className="border border-console-border bg-console-surface p-6">
-        <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-600">
-          {"// NEXT SESSION"}
-        </div>
-        <p className="mt-3 max-w-2xl text-[13px] leading-6 text-slate-600">
-          Detail/edit order, captain order item entry, dan transisi ke billing
-          akan dibangun pada FB-02. Rute occupied table sudah mengarah ke sini.
-        </p>
-      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(360px,2fr)]">
+        <MenuBrowse
+          menuItems={menuItems.map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            price: item.price.toString(),
+          }))}
+          orderId={order.id}
+          orderStatus={order.status}
+        />
+        <OrderCart
+          order={{
+            id: order.id,
+            orderNo: order.orderNo,
+            status: order.status,
+            tableNo: order.table?.number ?? order.tableNo ?? "-",
+            guestCount: order.guestCount,
+            subtotal: computedTotals.subtotal.toString(),
+            serviceCharge: computedTotals.serviceCharge.toString(),
+            tax: computedTotals.tax.toString(),
+            total: computedTotals.total.toString(),
+            items: order.items.map((item) => ({
+              id: item.id,
+              name: item.menuItem.isActive ? item.menuItem.name : "Item tidak tersedia",
+              category: item.menuItem.category,
+              isAvailable: item.menuItem.isActive,
+              unitPrice: item.unitPrice.toString(),
+              quantity: item.quantity,
+              amount: item.amount.toString(),
+              notes: item.notes ?? "",
+            })),
+          }}
+          settings={{
+            serviceChargePercent: settings.serviceChargePercent.toString(),
+            taxPercent: settings.taxPercent.toString(),
+          }}
+        />
+      </div>
     </main>
   );
 }
