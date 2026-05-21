@@ -243,7 +243,7 @@ A few choices worth explaining:
 1. **Rate is inlined into RoomType.** In the MVP, each room type has a single fixed rate (`base_rate`). Dynamic rate plans with date validity and guest segmentation are deferred.
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at` and `grc_purpose_of_visit` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in.
 3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
-4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level (CHECK constraint) or in the application layer.
+4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep the Tape Chart read fast. HousekeepingLog is the audit trail of every status change.
 6. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 
@@ -485,4 +485,4 @@ A few choices worth explaining:
 | received_by_id | INT | FOREIGN KEY → user(id) | Receiving staff |
 | received_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Payment time |
 
-> **Polymorphic constraint on Payment**: exactly one of `folio_id` or `fb_order_id` must be populated.
+> **Polymorphic constraint on Payment**: exactly one of `folio_id` or `fb_order_id` must be populated (`payment_exactly_one_owner_check`).
