@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import { PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
@@ -47,6 +48,13 @@ type FBBillProps = {
     serviceChargePercent: StringableDecimal;
   };
   totals: FBOrderTotals;
+  receipt?: {
+    paymentMethod: PaymentMethod | null;
+    reference?: string | null;
+    folioNo?: string | null;
+    amountTendered?: string | null;
+    change?: string | null;
+  };
 };
 
 const styles = StyleSheet.create({
@@ -194,6 +202,26 @@ function hasPercent(percent: StringableDecimal) {
   return Number(percent.toString()) > 0;
 }
 
+function paymentMethodLabel(method: PaymentMethod | null) {
+  if (method === PaymentMethod.CASH) {
+    return "Tunai";
+  }
+
+  if (method === PaymentMethod.CARD) {
+    return "Kartu";
+  }
+
+  if (method === PaymentMethod.TRANSFER) {
+    return "Transfer";
+  }
+
+  if (method === PaymentMethod.CHARGE_TO_ROOM) {
+    return "Charge to Room";
+  }
+
+  return "-";
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.field}>
@@ -220,7 +248,7 @@ function SummaryRow({
   );
 }
 
-export function FBBill({ order, settings, totals }: FBBillProps) {
+export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
   const tableNo = order.table?.number ?? order.tableNo ?? "-";
 
   return (
@@ -229,7 +257,9 @@ export function FBBill({ order, settings, totals }: FBBillProps) {
         <View style={styles.header}>
           <Text style={styles.hotelName}>{settings.hotelName}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
-          <Text style={styles.title}>BILL / TAGIHAN</Text>
+          <Text style={styles.title}>
+            {receipt ? "RECEIPT / STRUK" : "BILL / TAGIHAN"}
+          </Text>
         </View>
 
         <View style={styles.block}>
@@ -308,6 +338,34 @@ export function FBBill({ order, settings, totals }: FBBillProps) {
             </View>
           </View>
         </View>
+
+        {receipt ? (
+          <View style={styles.block}>
+            <Text style={styles.blockHeader}>{"// PAYMENT"}</Text>
+            <View style={styles.blockBody}>
+              <SummaryRow
+                label="Metode"
+                value={paymentMethodLabel(receipt.paymentMethod)}
+              />
+              {receipt.reference ? (
+                <SummaryRow label="Referensi" value={receipt.reference} />
+              ) : null}
+              {receipt.folioNo ? (
+                <SummaryRow label="Folio" value={receipt.folioNo} />
+              ) : null}
+              {receipt.paymentMethod === PaymentMethod.CASH &&
+              receipt.amountTendered ? (
+                <SummaryRow
+                  label="Uang diterima"
+                  value={formatIDR(receipt.amountTendered)}
+                />
+              ) : null}
+              {receipt.paymentMethod === PaymentMethod.CASH && receipt.change ? (
+                <SummaryRow label="Kembalian" value={formatIDR(receipt.change)} />
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.footer}>
           <Text style={styles.strong}>Terima kasih atas kunjungan Anda</Text>

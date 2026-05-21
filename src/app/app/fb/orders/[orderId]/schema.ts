@@ -1,3 +1,4 @@
+import { PaymentMethod } from "@prisma/client";
 import { z } from "zod";
 
 export const CreateOrderSchema = z.object({
@@ -54,4 +55,52 @@ export const VoidOrderSchema = z.object({
     .trim()
     .min(1, "Void reason is required")
     .max(255, "Void reason must be 255 characters or fewer"),
+});
+
+const OptionalPaymentReferenceSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z.string().max(100, "Reference must be 100 characters or fewer").optional(),
+);
+
+export const directPaymentMethods = [
+  PaymentMethod.CASH,
+  PaymentMethod.CARD,
+  PaymentMethod.TRANSFER,
+] as const;
+
+export const PayOrderDirectSchema = z
+  .object({
+    orderId: z.coerce.number().int().positive("Order is required"),
+    method: z.enum(directPaymentMethods),
+    amountTendered: z.coerce.number().optional(),
+    reference: OptionalPaymentReferenceSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.method === PaymentMethod.CASH &&
+      (value.amountTendered === undefined || value.amountTendered < 0)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["amountTendered"],
+        message: "Uang diterima harus diisi untuk pembayaran tunai",
+      });
+    }
+  });
+
+export const ChargeOrderToRoomSchema = z.object({
+  orderId: z.coerce.number().int().positive("Order is required"),
+  roomNumber: z
+    .string()
+    .trim()
+    .min(1, "Nomor kamar harus diisi")
+    .max(10, "Nomor kamar terlalu panjang"),
+});
+
+export const LookupRoomForChargeSchema = z.object({
+  roomNumber: z
+    .string()
+    .trim()
+    .min(1, "Nomor kamar harus diisi")
+    .max(10, "Nomor kamar terlalu panjang"),
 });
