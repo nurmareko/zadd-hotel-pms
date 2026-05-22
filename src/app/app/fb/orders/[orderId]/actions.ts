@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 import {
   AddItemToOrderSchema,
@@ -49,18 +49,13 @@ export type ChargeLookupResult =
       roomNumber: string;
       folioNo: string;
       folioId: number;
+      reservationId: number;
     }
   | { ok: false; error: string };
 
 type OrderTotalDb = Pick<typeof prisma, "fBOrderItem" | "hotelSettings">;
 type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
   $queryRaw?: Prisma.TransactionClient["$queryRaw"];
-};
-
-const PAYMENT_TRANSACTION_OPTIONS = {
-  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-  maxWait: 10000,
-  timeout: 20000,
 };
 
 class PaymentActionError extends Error {}
@@ -247,10 +242,15 @@ async function resolveRoomForCharge(
     roomNumber: room.number,
     folioNo: folio.folioNo,
     folioId: folio.id,
+    reservationId: reservation.id,
   };
 }
 
-function revalidatePaymentPaths(orderId: number, folioId?: number) {
+function revalidatePaymentPaths(
+  orderId: number,
+  folioId?: number,
+  reservationId?: number,
+) {
   revalidateOrderPaths(orderId);
   revalidatePath(`/app/fb/orders/${orderId}/bill`);
   revalidatePath(`/app/fb/orders/${orderId}/payment`);
@@ -258,6 +258,11 @@ function revalidatePaymentPaths(orderId: number, folioId?: number) {
   if (folioId) {
     revalidatePath(`/app/fo/folios/${folioId}`);
     revalidatePath(`/app/fo/check-out/${folioId}`);
+    revalidatePath("/app/fo/tape-chart");
+  }
+
+  if (reservationId) {
+    revalidatePath(`/app/fo/reservations/${reservationId}`);
   }
 }
 
@@ -325,7 +330,10 @@ async function runCreateOrderTransaction(
 
       return { ok: true as const, orderId: order.id };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    },
   );
 }
 
@@ -440,7 +448,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
     }
 
     return recalculateOrderTotals(tx, order.id);
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateOrderPaths(parsed.data.orderId);
@@ -485,7 +493,7 @@ export async function removeItemFromOrder(input: unknown): Promise<ActionResult>
     await tx.fBOrderItem.delete({ where: { id: item.id } });
 
     return recalculateOrderTotals(tx, order.id);
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateOrderPaths();
@@ -542,7 +550,7 @@ export async function updateItemQuantity(
     }
 
     return recalculateOrderTotals(tx, order.id);
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateOrderPaths();
@@ -590,7 +598,7 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
     });
 
     return { ok: true as const };
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateOrderPaths();
@@ -650,7 +658,7 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
     }
 
     return { ok: true as const };
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateOrderPaths(parsed.data.orderId);
@@ -674,8 +682,9 @@ export async function lookupRoomForCharge(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  return prisma.$transaction((tx) =>
-    resolveRoomForCharge(tx, parsed.data.roomNumber),
+  return prisma.$transaction(
+    (tx) => resolveRoomForCharge(tx, parsed.data.roomNumber),
+    TRANSACTION_OPTIONS,
   );
 }
 
@@ -798,7 +807,10 @@ export async function payOrderDirect(
           change: change?.toFixed(2),
         };
       },
-      PAYMENT_TRANSACTION_OPTIONS,
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
     );
 
     if (result.ok) {
@@ -954,11 +966,18 @@ export async function chargeOrderToRoom(
           folioNo: roomLookup.folioNo,
         };
       },
-      PAYMENT_TRANSACTION_OPTIONS,
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
     );
 
     if (result.ok) {
-      revalidatePaymentPaths(parsed.data.orderId, result.folioId);
+      revalidatePaymentPaths(
+        parsed.data.orderId,
+        result.folioId,
+        roomLookup.reservationId,
+      );
     }
 
     return result;

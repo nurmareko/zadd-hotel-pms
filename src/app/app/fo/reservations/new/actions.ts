@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   CreateReservationSchema,
   type CreateReservationValues,
@@ -152,7 +152,10 @@ async function runCreateReservationTransaction(
 
       return { ok: true as const, reservationId: reservation.id };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    },
   );
 }
 
@@ -254,7 +257,10 @@ async function runUpdateReservationTransaction(
 
       return { ok: true as const };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    },
   );
 }
 

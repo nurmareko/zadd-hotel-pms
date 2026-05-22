@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 import { BillOrderIdSchema } from "./schema";
 
@@ -99,7 +99,7 @@ export async function confirmBill(input: unknown): Promise<BillActionResult> {
     });
 
     return { ok: true as const };
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateBillPaths(parsed.data.orderId);
@@ -138,7 +138,7 @@ export async function reopenOrder(input: unknown): Promise<BillActionResult> {
     });
 
     return { ok: true as const };
-  });
+  }, TRANSACTION_OPTIONS);
 
   if (result.ok) {
     revalidateBillPaths(parsed.data.orderId);

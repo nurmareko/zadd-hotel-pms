@@ -5,7 +5,7 @@ import { hash } from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   UserCreateSchema,
   UserIdSchema,
@@ -106,7 +106,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
           roleId: roleRecord.id,
         },
       });
-    });
+    }, TRANSACTION_OPTIONS);
 
     revalidatePath(USERS_PATH);
 
@@ -164,7 +164,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
           roleId: roleRecord.id,
         },
       });
-    });
+    }, TRANSACTION_OPTIONS);
 
     revalidatePath(USERS_PATH);
 

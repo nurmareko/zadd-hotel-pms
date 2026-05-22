@@ -11,7 +11,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { computeFolioTotals } from "@/lib/folio-totals";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { PaymentSchema } from "../../folios/[id]/schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -25,6 +25,8 @@ const CompleteCheckoutSchema = z.object({
     }),
   ),
 });
+
+class CheckoutActionError extends Error {}
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid check-out data";
@@ -133,89 +135,119 @@ export async function completeCheckout(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const result = await prisma.$transaction(
-    async (tx) => {
-      await tx.$queryRaw<Array<{ id: number }>>`
-        SELECT id FROM "folio" WHERE id = ${parsed.data.folioId} FOR UPDATE
-      `;
-
-      const [folio, settings] = await Promise.all([
-        tx.folio.findUnique({
-          where: { id: parsed.data.folioId },
+  const [folio, settings] = await Promise.all([
+    prisma.folio.findUnique({
+      where: { id: parsed.data.folioId },
+      include: {
+        reservation: {
           include: {
-            reservation: {
-              include: {
-                room: { select: { id: true, status: true } },
-              },
-            },
-            lineItems: { include: { article: true } },
-            payments: true,
+            room: { select: { id: true, status: true } },
           },
-        }),
-        tx.hotelSettings.findUnique({ where: { id: 1 } }),
-      ]);
-
-      if (!folio) {
-        return { ok: false as const, error: "Folio not found" };
-      }
-
-      if (!settings) {
-        return { ok: false as const, error: "Hotel settings not found" };
-      }
-
-      if (folio.status === FolioStatus.CLOSED) {
-        return { ok: true as const };
-      }
-
-      if (folio.status !== FolioStatus.OPEN) {
-        return {
-          ok: false as const,
-          error: "Cannot check out a voided folio",
-        };
-      }
-
-      if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
-        return {
-          ok: false as const,
-          error: "Reservation is not in checked-in state",
-        };
-      }
-
-      const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
-
-      if (Math.round(totals.balance) > 0) {
-        return {
-          ok: false as const,
-          error: "Saldo masih belum lunas. Catat pembayaran final dahulu.",
-        };
-      }
-
-      const now = new Date();
-
-      await tx.folio.update({
-        where: { id: folio.id },
-        data: {
-          status: FolioStatus.CLOSED,
-          closedAt: now,
         },
-      });
+        lineItems: { include: { article: true } },
+        payments: true,
+      },
+    }),
+    prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+  ]);
 
-      await tx.reservation.update({
-        where: { id: folio.reservationId },
-        data: { status: ReservationStatus.CHECKED_OUT },
-      });
+  if (!folio) {
+    return { ok: false, error: "Folio not found" };
+  }
 
-      if (folio.reservation.roomId) {
-        await tx.room.update({
-          where: { id: folio.reservation.roomId },
-          data: { status: RoomStatus.VD },
+  if (!settings) {
+    return { ok: false, error: "Hotel settings not found" };
+  }
+
+  if (folio.status === FolioStatus.CLOSED) {
+    revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
+    revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
+    revalidatePath("/app/fo/tape-chart");
+    revalidatePath("/app/fo/reservations");
+    revalidatePath("/app/hk");
+
+    return { ok: true };
+  }
+
+  if (folio.status !== FolioStatus.OPEN) {
+    return {
+      ok: false,
+      error: "Cannot check out a voided folio",
+    };
+  }
+
+  if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
+    return {
+      ok: false,
+      error: "Reservation is not in checked-in state",
+    };
+  }
+
+  const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
+
+  if (Math.round(totals.balance) > 0) {
+    return {
+      ok: false,
+      error: "Saldo masih belum lunas. Catat pembayaran final dahulu.",
+    };
+  }
+
+  const now = new Date();
+
+  let result: ActionResult;
+
+  try {
+    result = await prisma.$transaction(
+      async (tx) => {
+        const closedFolio = await tx.folio.updateMany({
+          where: { id: folio.id, status: FolioStatus.OPEN },
+          data: {
+            status: FolioStatus.CLOSED,
+            closedAt: now,
+          },
         });
-      }
 
-      return { ok: true as const };
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+        if (closedFolio.count === 0) {
+          throw new CheckoutActionError(
+            "Folio status changed. Muat ulang halaman.",
+          );
+        }
+
+        const checkedOutReservation = await tx.reservation.updateMany({
+          where: {
+            id: folio.reservationId,
+            status: ReservationStatus.CHECKED_IN,
+          },
+          data: { status: ReservationStatus.CHECKED_OUT },
+        });
+
+        if (checkedOutReservation.count === 0) {
+          throw new CheckoutActionError(
+            "Reservation is not in checked-in state",
+          );
+        }
+
+        if (folio.reservation.roomId) {
+          await tx.room.update({
+            where: { id: folio.reservation.roomId },
+            data: { status: RoomStatus.VD },
+          });
+        }
+
+        return { ok: true as const };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+  } catch (error) {
+    if (error instanceof CheckoutActionError) {
+      return { ok: false, error: error.message };
+    }
+
+    throw error;
+  }
 
   if (!result.ok) {
     return result;
