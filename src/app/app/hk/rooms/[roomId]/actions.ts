@@ -4,7 +4,7 @@ import { Prisma, RoomStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 import {
   InspectRoomSchema,
@@ -116,7 +116,10 @@ export async function startCleaning(formData: FormData): Promise<ActionResult> {
 
         return { ok: true as const };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
     );
 
     if (result.ok) {
@@ -210,7 +213,10 @@ export async function stopCleaning(formData: FormData): Promise<ActionResult> {
 
         return { ok: true as const };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
     );
 
     if (result.ok) {
@@ -288,7 +294,10 @@ export async function inspectRoom(formData: FormData): Promise<ActionResult> {
 
         return { ok: true as const };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
     );
 
     if (result.ok) {
