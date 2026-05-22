@@ -52,6 +52,19 @@ export type ChargeLookupResult =
     }
   | { ok: false; error: string };
 
+type OrderTotalDb = Pick<typeof prisma, "fBOrderItem" | "hotelSettings">;
+type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
+  $queryRaw?: Prisma.TransactionClient["$queryRaw"];
+};
+
+const PAYMENT_TRANSACTION_OPTIONS = {
+  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+  maxWait: 10000,
+  timeout: 20000,
+};
+
+class PaymentActionError extends Error {}
+
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid order data";
 }
@@ -133,37 +146,13 @@ async function ensureOpenOrderLocked(
   });
 }
 
-async function lockOrderForPayment(
-  tx: Prisma.TransactionClient,
-  orderId: number,
-) {
-  await tx.$queryRaw<Array<{ id: number }>>`
-    SELECT id FROM "fb_order" WHERE id = ${orderId} FOR UPDATE
-  `;
-
-  return tx.fBOrder.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      orderNo: true,
-      status: true,
-      tableId: true,
-      paymentMethod: true,
-      chargedFolioId: true,
-    },
-  });
-}
-
-async function computeOrderTotalForPayment(
-  tx: Prisma.TransactionClient,
-  orderId: number,
-) {
+async function computeOrderTotalForPayment(db: OrderTotalDb, orderId: number) {
   const [items, settings] = await Promise.all([
-    tx.fBOrderItem.findMany({
+    db.fBOrderItem.findMany({
       where: { fbOrderId: orderId },
       select: { amount: true },
     }),
-    tx.hotelSettings.findUnique({ where: { id: 1 } }),
+    db.hotelSettings.findUnique({ where: { id: 1 } }),
   ]);
 
   if (!settings) {
@@ -190,19 +179,19 @@ async function freeOrderTable(
 }
 
 async function resolveRoomForCharge(
-  tx: Prisma.TransactionClient,
+  db: RoomChargeDb,
   roomNumber: string,
   options: { lockRows?: boolean } = {},
 ): Promise<ChargeLookupResult> {
   const normalizedRoomNumber = roomNumber.trim();
 
-  if (options.lockRows) {
-    await tx.$queryRaw<Array<{ id: number }>>`
+  if (options.lockRows && db.$queryRaw) {
+    await db.$queryRaw<Array<{ id: number }>>`
       SELECT id FROM "room" WHERE "number" = ${normalizedRoomNumber} FOR UPDATE
     `;
   }
 
-  const room = await tx.room.findUnique({
+  const room = await db.room.findUnique({
     where: { number: normalizedRoomNumber },
     select: { id: true, number: true },
   });
@@ -214,7 +203,7 @@ async function resolveRoomForCharge(
     };
   }
 
-  const reservation = await tx.reservation.findFirst({
+  const reservation = await db.reservation.findFirst({
     where: {
       roomId: room.id,
       status: ReservationStatus.CHECKED_IN,
@@ -237,13 +226,13 @@ async function resolveRoomForCharge(
     return { ok: false, error: "Folio tidak terbuka" };
   }
 
-  if (options.lockRows) {
-    await tx.$queryRaw<Array<{ id: number }>>`
+  if (options.lockRows && db.$queryRaw) {
+    await db.$queryRaw<Array<{ id: number }>>`
       SELECT id FROM "folio" WHERE id = ${reservation.folio.id} FOR UPDATE
     `;
   }
 
-  const folio = await tx.folio.findUnique({
+  const folio = await db.folio.findUnique({
     where: { id: reservation.folio.id },
     select: { id: true, folioNo: true, status: true },
   });
@@ -705,103 +694,125 @@ export async function payOrderDirect(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const result = await prisma.$transaction(
-    async (tx) => {
-      const order = await lockOrderForPayment(tx, parsed.data.orderId);
-
-      if (!order) {
-        return { ok: false as const, error: "Order not found" };
-      }
-
-      if (order.status === FBOrderStatus.CLOSED) {
-        return {
-          ok: true as const,
-          paymentMethod: order.paymentMethod ?? parsed.data.method,
-          alreadyClosed: true,
-        };
-      }
-
-      if (order.status !== FBOrderStatus.BILLED) {
-        return {
-          ok: false as const,
-          error:
-            order.status === FBOrderStatus.OPEN
-              ? "Order harus dibuat bill dahulu sebelum pembayaran"
-              : "Order voided tidak dapat dibayar",
-        };
-      }
-
-      const computed = await computeOrderTotalForPayment(tx, order.id);
-
-      if (!computed.ok) {
-        return computed;
-      }
-
-      const total = computed.totals.total;
-      let amountTendered: Prisma.Decimal | undefined;
-      let change: Prisma.Decimal | undefined;
-
-      if (parsed.data.method === PaymentMethod.CASH) {
-        amountTendered = new Prisma.Decimal(parsed.data.amountTendered ?? 0);
-
-        if (amountTendered.lt(total)) {
-          return {
-            ok: false as const,
-            error: "Uang diterima kurang dari total tagihan",
-          };
-        }
-
-        change = amountTendered.minus(total);
-      }
-
-      const now = new Date();
-      const reference =
-        parsed.data.method === PaymentMethod.CASH && amountTendered && change
-          ? `CASH_TENDERED=${amountTendered.toFixed(2)};CHANGE=${change.toFixed(2)}`
-          : parsed.data.reference || null;
-
-      await tx.payment.create({
-        data: {
-          folioId: null,
-          fbOrderId: order.id,
-          amount: total,
-          method: parsed.data.method,
-          reference,
-          receivedById: userId,
-          receivedAt: now,
-        },
-      });
-
-      await tx.fBOrder.update({
-        where: { id: order.id },
-        data: {
-          status: FBOrderStatus.CLOSED,
-          paymentMethod: parsed.data.method,
-          subtotal: computed.totals.subtotal,
-          serviceCharge: computed.totals.serviceCharge,
-          tax: computed.totals.tax,
-          total,
-          closedAt: now,
-        },
-      });
-
-      await freeOrderTable(tx, order.tableId);
-
-      return {
-        ok: true as const,
-        paymentMethod: parsed.data.method,
-        amountTendered: amountTendered?.toFixed(2),
-        change: change?.toFixed(2),
-      };
+  const order = await prisma.fBOrder.findUnique({
+    where: { id: parsed.data.orderId },
+    select: {
+      id: true,
+      status: true,
+      tableId: true,
+      paymentMethod: true,
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+  });
 
-  if (result.ok) {
-    revalidatePaymentPaths(parsed.data.orderId);
+  if (!order) {
+    return { ok: false, error: "Order not found" };
   }
 
-  return result;
+  if (order.status === FBOrderStatus.CLOSED) {
+    return {
+      ok: true,
+      paymentMethod: order.paymentMethod ?? parsed.data.method,
+      alreadyClosed: true,
+    };
+  }
+
+  if (order.status !== FBOrderStatus.BILLED) {
+    return {
+      ok: false,
+      error:
+        order.status === FBOrderStatus.OPEN
+          ? "Order harus dibuat bill dahulu sebelum pembayaran"
+          : "Order voided tidak dapat dibayar",
+    };
+  }
+
+  const computed = await computeOrderTotalForPayment(prisma, order.id);
+
+  if (!computed.ok) {
+    return computed;
+  }
+
+  const total = computed.totals.total;
+  let amountTendered: Prisma.Decimal | undefined;
+  let change: Prisma.Decimal | undefined;
+
+  if (parsed.data.method === PaymentMethod.CASH) {
+    amountTendered = new Prisma.Decimal(parsed.data.amountTendered ?? 0);
+
+    if (amountTendered.lt(total)) {
+      return {
+        ok: false,
+        error: "Uang diterima kurang dari total tagihan",
+      };
+    }
+
+    change = amountTendered.minus(total);
+  }
+
+  const now = new Date();
+  const reference =
+    parsed.data.method === PaymentMethod.CASH && amountTendered && change
+      ? `CASH_TENDERED=${amountTendered.toFixed(2)};CHANGE=${change.toFixed(2)}`
+      : parsed.data.reference || null;
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const updatedOrder = await tx.fBOrder.updateMany({
+          where: { id: order.id, status: FBOrderStatus.BILLED },
+          data: {
+            status: FBOrderStatus.CLOSED,
+            paymentMethod: parsed.data.method,
+            subtotal: computed.totals.subtotal,
+            serviceCharge: computed.totals.serviceCharge,
+            tax: computed.totals.tax,
+            total,
+            closedAt: now,
+          },
+        });
+
+        if (updatedOrder.count === 0) {
+          throw new PaymentActionError(
+            "Status order berubah. Muat ulang halaman.",
+          );
+        }
+
+        await tx.payment.create({
+          data: {
+            folioId: null,
+            fbOrderId: order.id,
+            amount: total,
+            method: parsed.data.method,
+            reference,
+            receivedById: userId,
+            receivedAt: now,
+          },
+        });
+
+        await freeOrderTable(tx, order.tableId);
+
+        return {
+          ok: true as const,
+          paymentMethod: parsed.data.method,
+          amountTendered: amountTendered?.toFixed(2),
+          change: change?.toFixed(2),
+        };
+      },
+      PAYMENT_TRANSACTION_OPTIONS,
+    );
+
+    if (result.ok) {
+      revalidatePaymentPaths(parsed.data.orderId);
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof PaymentActionError) {
+      return { ok: false, error: error.message };
+    }
+
+    throw error;
+  }
 }
 
 export async function chargeOrderToRoom(
@@ -819,110 +830,143 @@ export async function chargeOrderToRoom(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const result = await prisma.$transaction(
-    async (tx) => {
-      const order = await lockOrderForPayment(tx, parsed.data.orderId);
-
-      if (!order) {
-        return { ok: false as const, error: "Order not found" };
-      }
-
-      if (order.status === FBOrderStatus.CLOSED) {
-        return {
-          ok: true as const,
-          paymentMethod: order.paymentMethod ?? PaymentMethod.CHARGE_TO_ROOM,
-          folioId: order.chargedFolioId ?? undefined,
-          alreadyClosed: true,
-        };
-      }
-
-      if (order.status !== FBOrderStatus.BILLED) {
-        return {
-          ok: false as const,
-          error:
-            order.status === FBOrderStatus.OPEN
-              ? "Order harus dibuat bill dahulu sebelum charge ke kamar"
-              : "Order voided tidak dapat dibebankan ke kamar",
-        };
-      }
-
-      const roomLookup = await resolveRoomForCharge(tx, parsed.data.roomNumber, {
-        lockRows: true,
-      });
-
-      if (!roomLookup.ok) {
-        return roomLookup;
-      }
-
-      const computed = await computeOrderTotalForPayment(tx, order.id);
-
-      if (!computed.ok) {
-        return computed;
-      }
-
-      const article =
-        (await tx.article.findUnique({
-          where: { code: "DINNER" },
-          select: { id: true },
-        })) ??
-        (await tx.article.findFirst({
-          where: { type: ArticleType.FB },
-          orderBy: { code: "asc" },
-          select: { id: true },
-        }));
-
-      if (!article) {
-        return {
-          ok: false as const,
-          error: "Artikel F&B belum tersedia untuk posting folio",
-        };
-      }
-
-      const now = new Date();
-
-      await tx.folioLineItem.create({
-        data: {
-          folioId: roomLookup.folioId,
-          articleId: article.id,
-          fbOrderId: order.id,
-          description: `F&B — ${order.orderNo}`,
-          quantity: new Prisma.Decimal(1),
-          unitPrice: computed.totals.total,
-          amount: computed.totals.total,
-          postedById: userId,
-          postedAt: now,
-        },
-      });
-
-      await tx.fBOrder.update({
-        where: { id: order.id },
-        data: {
-          status: FBOrderStatus.CLOSED,
-          paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
-          chargedFolioId: roomLookup.folioId,
-          subtotal: computed.totals.subtotal,
-          serviceCharge: computed.totals.serviceCharge,
-          tax: computed.totals.tax,
-          total: computed.totals.total,
-          closedAt: now,
-        },
-      });
-
-      await freeOrderTable(tx, order.tableId);
-
-      return {
-        ok: true as const,
-        paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
-        folioId: roomLookup.folioId,
-        folioNo: roomLookup.folioNo,
-      };
+  const order = await prisma.fBOrder.findUnique({
+    where: { id: parsed.data.orderId },
+    select: {
+      id: true,
+      orderNo: true,
+      status: true,
+      tableId: true,
+      paymentMethod: true,
+      chargedFolioId: true,
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+  });
 
-  if (result.ok) {
-    revalidatePaymentPaths(parsed.data.orderId, result.folioId);
+  if (!order) {
+    return { ok: false, error: "Order not found" };
   }
 
-  return result;
+  if (order.status === FBOrderStatus.CLOSED) {
+    return {
+      ok: true,
+      paymentMethod: order.paymentMethod ?? PaymentMethod.CHARGE_TO_ROOM,
+      folioId: order.chargedFolioId ?? undefined,
+      alreadyClosed: true,
+    };
+  }
+
+  if (order.status !== FBOrderStatus.BILLED) {
+    return {
+      ok: false,
+      error:
+        order.status === FBOrderStatus.OPEN
+          ? "Order harus dibuat bill dahulu sebelum charge ke kamar"
+          : "Order voided tidak dapat dibebankan ke kamar",
+    };
+  }
+
+  const roomLookup = await resolveRoomForCharge(prisma, parsed.data.roomNumber);
+
+  if (!roomLookup.ok) {
+    return roomLookup;
+  }
+
+  const computed = await computeOrderTotalForPayment(prisma, order.id);
+
+  if (!computed.ok) {
+    return computed;
+  }
+
+  const article =
+    (await prisma.article.findUnique({
+      where: { code: "DINNER" },
+      select: { id: true },
+    })) ??
+    (await prisma.article.findFirst({
+      where: { type: ArticleType.FB },
+      orderBy: { code: "asc" },
+      select: { id: true },
+    }));
+
+  if (!article) {
+    return {
+      ok: false,
+      error: "Artikel F&B belum tersedia untuk posting folio",
+    };
+  }
+
+  const now = new Date();
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const openFolio = await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "folio"
+          WHERE id = ${roomLookup.folioId}
+            AND status = ${FolioStatus.OPEN}::"FolioStatus"
+          FOR UPDATE
+        `;
+
+        if (openFolio.length === 0) {
+          throw new PaymentActionError("Folio tidak terbuka");
+        }
+
+        const updatedOrder = await tx.fBOrder.updateMany({
+          where: { id: order.id, status: FBOrderStatus.BILLED },
+          data: {
+            status: FBOrderStatus.CLOSED,
+            paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+            chargedFolioId: roomLookup.folioId,
+            subtotal: computed.totals.subtotal,
+            serviceCharge: computed.totals.serviceCharge,
+            tax: computed.totals.tax,
+            total: computed.totals.total,
+            closedAt: now,
+          },
+        });
+
+        if (updatedOrder.count === 0) {
+          throw new PaymentActionError(
+            "Status order berubah. Muat ulang halaman.",
+          );
+        }
+
+        await tx.folioLineItem.create({
+          data: {
+            folioId: roomLookup.folioId,
+            articleId: article.id,
+            fbOrderId: order.id,
+            description: `F&B — ${order.orderNo}`,
+            quantity: new Prisma.Decimal(1),
+            unitPrice: computed.totals.total,
+            amount: computed.totals.total,
+            postedById: userId,
+            postedAt: now,
+          },
+        });
+
+        await freeOrderTable(tx, order.tableId);
+
+        return {
+          ok: true as const,
+          paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+          folioId: roomLookup.folioId,
+          folioNo: roomLookup.folioNo,
+        };
+      },
+      PAYMENT_TRANSACTION_OPTIONS,
+    );
+
+    if (result.ok) {
+      revalidatePaymentPaths(parsed.data.orderId, result.folioId);
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof PaymentActionError) {
+      return { ok: false, error: error.message };
+    }
+
+    throw error;
+  }
 }
