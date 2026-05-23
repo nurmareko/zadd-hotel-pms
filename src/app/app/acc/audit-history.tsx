@@ -105,7 +105,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   <td className="px-3 py-[9px] text-right">
                     <Link
                       className="inline-flex h-7 items-center border border-console-border bg-white px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-                      href={`/app/acc/night-report?auditId=${row.id}`}
+                      href={`/app/acc/reports/${row.id}`}
                     >
                       Lihat Laporan
                     </Link>

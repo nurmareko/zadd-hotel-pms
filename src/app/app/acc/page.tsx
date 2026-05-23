@@ -142,6 +142,7 @@ export default async function AccountingDashboardPage() {
           todayAudit={
             todayAudit
               ? {
+                  id: todayAudit.id,
                   runAt: todayAudit.runAt,
                   runByName: todayAudit.runBy.fullName,
                 }

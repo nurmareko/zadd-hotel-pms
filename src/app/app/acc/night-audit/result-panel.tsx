@@ -57,7 +57,7 @@ export function ResultPanel({ summary }: ResultPanelProps) {
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Link
               className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-              href={`/app/acc/night-report?auditId=${summary.auditId}`}
+              href={`/app/acc/reports/${summary.auditId}`}
             >
               Lihat Laporan
             </Link>

@@ -3,6 +3,7 @@ import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 
 export type TodayAuditStatus = {
+  id: number;
   runAt: Date;
   runByName: string;
 } | null;
@@ -33,7 +34,7 @@ export function AuditStatusBanner({
           </div>
           <Link
             className="inline-flex h-8 items-center justify-center border border-status-vc-pip bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
-            href="/app/acc/night-report"
+            href={`/app/acc/reports/${todayAudit.id}`}
           >
             Lihat Laporan
           </Link>
