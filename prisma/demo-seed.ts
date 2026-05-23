@@ -158,8 +158,8 @@ const menuItems = [
   { code: "SANDWICH", name: "Club Sandwich", category: "Breakfast", price: 55000 },
   { code: "OMELETTE", name: "Omelette", category: "Breakfast", price: 42000 },
   { code: "FRIES", name: "French Fries", category: "Snacks", price: 42000 },
-  { code: "PISANG-GORENG", name: "Pisang Goreng", category: "Desserts", price: 30000 },
-  { code: "ES-CAMPUR", name: "Es Campur", category: "Desserts", price: 36000 },
+  { code: "PISANG-GORENG", name: "Pisang Goreng", category: "Dessert", price: 30000 },
+  { code: "ES-CAMPUR", name: "Es Campur", category: "Dessert", price: 36000 },
 ] as const;
 
 const restaurantTables = [
