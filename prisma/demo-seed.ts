@@ -3,6 +3,7 @@ import {
   ArticleType,
   FBOrderStatus,
   FolioStatus,
+  NightAuditStatus,
   PaymentMethod,
   ReservationStatus,
   ReservationType,
@@ -14,6 +15,7 @@ import {
 import { addDays, format, startOfDay, subHours, subMinutes } from "date-fns";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
+import { dateOnlyBoundary } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 const roomTypes = [
@@ -461,6 +463,18 @@ async function findFoodBeverageUser() {
   return fbUser;
 }
 
+async function findAccountingUser() {
+  const accUser = await prisma.user.findUnique({ where: { username: "acc1" } });
+
+  if (!accUser) {
+    throw new Error(
+      "Run the main Prisma seed first so night audits can be attributed to acc1.",
+    );
+  }
+
+  return accUser;
+}
+
 function computeFbAmounts(
   itemSeeds: Array<{ quantity: number; unitPrice: number }>,
   hotelSettings: { serviceChargePercent: unknown; taxPercent: unknown },
@@ -688,6 +702,7 @@ async function main() {
     const createdBy = await findSeedUser();
     const housekeepingUser = await findHousekeepingUser();
     const fbUser = await findFoodBeverageUser();
+    const accountingUser = await findAccountingUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
     const roomsByNumber = new Map<string, { id: number }>();
     const guestsByFullName = new Map<string, { id: number }>();
@@ -1264,6 +1279,86 @@ async function main() {
     );
     console.log(
       `✓ charge-to-room linked ${roomChargeOrder.orderNo} to folio ${chargeToRoomFolio.folioNo}`,
+    );
+
+    await prisma.nightAudit.deleteMany({});
+
+    const auditSeeds = [
+      {
+        offset: -1,
+        roomsOccupied: 16,
+        occupancyRate: 66.67,
+        roomRevenue: 13600000,
+        fbRevenue: 2750000,
+        otherRevenue: 450000,
+        checkInCount: 7,
+        checkOutCount: 5,
+        inHouseCount: 16,
+      },
+      {
+        offset: -2,
+        roomsOccupied: 15,
+        occupancyRate: 62.5,
+        roomRevenue: 11700000,
+        fbRevenue: 2100000,
+        otherRevenue: 325000,
+        checkInCount: 6,
+        checkOutCount: 6,
+        inHouseCount: 15,
+      },
+      {
+        offset: -3,
+        roomsOccupied: 14,
+        occupancyRate: 58.33,
+        roomRevenue: 11480000,
+        fbRevenue: 1850000,
+        otherRevenue: 290000,
+        checkInCount: 5,
+        checkOutCount: 4,
+        inHouseCount: 14,
+      },
+      {
+        offset: -4,
+        roomsOccupied: 13,
+        occupancyRate: 54.17,
+        roomRevenue: 9880000,
+        fbRevenue: 1650000,
+        otherRevenue: 210000,
+        checkInCount: 4,
+        checkOutCount: 5,
+        inHouseCount: 13,
+      },
+    ];
+
+    await prisma.nightAudit.createMany({
+      data: auditSeeds.map((audit, index) => {
+        const businessDate = dateOnlyBoundary(addDays(today, audit.offset));
+        const runAt = addDays(businessDate, 1);
+        runAt.setHours(1, 45 + index * 7, 0, 0);
+
+        return {
+          businessDate,
+          status: NightAuditStatus.COMPLETED,
+          runAt,
+          runById: accountingUser.id,
+          totalRooms: rooms.length,
+          roomsOccupied: audit.roomsOccupied,
+          occupancyRate: audit.occupancyRate,
+          roomRevenue: audit.roomRevenue,
+          fbRevenue: audit.fbRevenue,
+          otherRevenue: audit.otherRevenue,
+          totalRevenue:
+            audit.roomRevenue + audit.fbRevenue + audit.otherRevenue,
+          checkInCount: audit.checkInCount,
+          checkOutCount: audit.checkOutCount,
+          inHouseCount: audit.inHouseCount,
+          createdAt: runAt,
+        };
+      }),
+    });
+
+    console.log(
+      `✓ seeded ${auditSeeds.length} historical night audits (today left unaudited)`,
     );
     console.log("✓ demo seed complete");
   } catch (error) {

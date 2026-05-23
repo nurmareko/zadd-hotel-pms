@@ -228,7 +228,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Accounting**
 
-17. NightAudit(*id*, business_date, *run_by_id\#*, run_at, status, total_revenue, occupancy_rate, report_data)
+17. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
 
 **Payment**
 
@@ -465,12 +465,20 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique night audit identifier |
 | business_date | DATE | UNIQUE, NOT NULL | Business date closed |
-| run_by_id | INT | FOREIGN KEY → user(id) | Night auditor |
+| status | VARCHAR(20) | NOT NULL, DEFAULT COMPLETED | Audit status |
 | run_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Execution time |
-| status | VARCHAR(20) | NOT NULL | PENDING, RUNNING, COMPLETED, FAILED |
-| total_revenue | DECIMAL(14,2) | — | Total revenue for the day |
-| occupancy_rate | DECIMAL(5,2) | — | Occupancy rate (%) |
-| report_data | JSONB | — | Snapshot data for the night report |
+| run_by_id | INT | FOREIGN KEY → user(id) | Night auditor |
+| total_rooms | INT | NOT NULL | Rooms in inventory at audit time |
+| rooms_occupied | INT | NOT NULL | Occupied rooms at audit time |
+| occupancy_rate | DECIMAL(5,2) | NOT NULL | Occupancy rate (%) |
+| room_revenue | DECIMAL(14,2) | NOT NULL | Room revenue snapshot |
+| fb_revenue | DECIMAL(14,2) | NOT NULL | F&B revenue snapshot |
+| other_revenue | DECIMAL(14,2) | NOT NULL | Other revenue snapshot |
+| total_revenue | DECIMAL(14,2) | NOT NULL | Total revenue for the day |
+| check_in_count | INT | NOT NULL | Arrival/check-in count snapshot |
+| check_out_count | INT | NOT NULL | Departure/check-out count snapshot |
+| in_house_count | INT | NOT NULL | In-house guest count snapshot |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
 
 ### `payment`
 
