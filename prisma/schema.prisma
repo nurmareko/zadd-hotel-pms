@@ -14,8 +14,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
@@ -100,10 +101,7 @@ enum PaymentMethod {
 }
 
 enum NightAuditStatus {
-  PENDING
-  RUNNING
   COMPLETED
-  FAILED
 }
 
 // ============================================================
@@ -403,17 +401,26 @@ model HousekeepingLog {
 // ============================================================
 
 model NightAudit {
-  id            Int              @id @default(autoincrement())
-  businessDate  DateTime         @unique @map("business_date") @db.Date
-  runById       Int              @map("run_by_id")
-  runAt         DateTime         @default(now()) @map("run_at")
-  status        NightAuditStatus
-  totalRevenue  Decimal?         @map("total_revenue") @db.Decimal(14, 2)
-  occupancyRate Decimal?         @map("occupancy_rate") @db.Decimal(5, 2)
-  reportData    Json?            @map("report_data") // snapshot: revenue breakdown, guest list, transactions
+  id           Int              @id @default(autoincrement())
+  businessDate DateTime         @map("business_date") @db.Date
+  status       NightAuditStatus @default(COMPLETED)
+  runAt        DateTime         @default(now()) @map("run_at")
+  runById      Int              @map("run_by_id")
+  runBy        User             @relation(fields: [runById], references: [id])
 
-  runBy User @relation(fields: [runById], references: [id])
+  totalRooms    Int      @map("total_rooms")
+  roomsOccupied Int      @map("rooms_occupied")
+  occupancyRate Decimal  @map("occupancy_rate") @db.Decimal(5, 2)
+  roomRevenue   Decimal  @map("room_revenue") @db.Decimal(14, 2)
+  fbRevenue     Decimal  @map("fb_revenue") @db.Decimal(14, 2)
+  otherRevenue  Decimal  @map("other_revenue") @db.Decimal(14, 2)
+  totalRevenue  Decimal  @map("total_revenue") @db.Decimal(14, 2)
+  checkInCount  Int      @map("check_in_count")
+  checkOutCount Int      @map("check_out_count")
+  inHouseCount  Int      @map("in_house_count")
+  createdAt     DateTime @default(now()) @map("created_at")
 
+  @@unique([businessDate])
   @@map("night_audit")
 }
 
