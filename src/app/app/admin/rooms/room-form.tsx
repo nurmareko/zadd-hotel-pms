@@ -2,6 +2,7 @@
 
 import { RoomStatus } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -93,6 +94,14 @@ export function RoomForm({
 }: RoomFormProps) {
   const isEditing = Boolean(defaultValues);
   const blankValues = emptyValues(roomTypes);
+  const roomTypeItems = useMemo(
+    () =>
+      roomTypes.map((roomType) => ({
+        label: `${roomType.code} - ${roomType.name}`,
+        value: String(roomType.id),
+      })),
+    [roomTypes],
+  );
   const form = useForm<RoomFormInput>({
     resolver: zodResolver(
       isEditing ? RoomUpdateSchema : RoomCreateSchema,
@@ -161,6 +170,7 @@ export function RoomForm({
             <FormItem>
               <FormLabel className={labelClassName}>Tipe Kamar</FormLabel>
               <Select
+                items={roomTypeItems}
                 value={field.value ? String(field.value) : null}
                 onValueChange={(value) => {
                   if (typeof value === "string") {
