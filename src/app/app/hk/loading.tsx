@@ -1,21 +1,18 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  KpiStripSkeleton,
+  PageHeaderSkeleton,
+  Skeleton,
+} from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4">
-        <Skeleton className="h-6 w-72 max-w-full" />
-        <Skeleton className="mt-2 h-3 w-44" />
-      </div>
+      <PageHeaderSkeleton titleWidth="w-72" subtitleWidth="w-44" />
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton
-            key={index}
-            className="h-[86px] border border-console-border"
-          />
-        ))}
-      </div>
+      <KpiStripSkeleton
+        count={4}
+        className="grid-cols-2 sm:grid-cols-2 xl:grid-cols-4"
+      />
 
       <section className="mt-4">
         <div className="sticky top-[57px] z-10 border-b border-console-border bg-console-bg md:top-0">
@@ -51,7 +48,7 @@ export default function Loading() {
                     <Skeleton className="h-3 w-20" />
                   </div>
                 </div>
-                <Skeleton className="h-9 w-20 self-center" />
+                <Skeleton className="h-9 w-20 self-center border border-console-border" />
               </div>
             ))}
           </div>
