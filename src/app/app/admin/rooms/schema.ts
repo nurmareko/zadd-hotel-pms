@@ -15,6 +15,7 @@ const OptionalDescriptionSchema = z
   .trim()
   .max(500, "Description must be 500 characters or fewer")
   .or(z.literal(""))
+  .nullable()
   .optional()
   .transform((value) => (value ? value : null));
 

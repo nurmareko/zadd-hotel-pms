@@ -45,7 +45,7 @@ type RoomTypeFormProps = {
 const emptyValues: RoomTypeFormInput = {
   code: "",
   name: "",
-  description: "",
+  description: null,
   capacity: "",
   baseRate: "",
 };
@@ -71,9 +71,7 @@ export function RoomTypeForm({
   onSaved,
 }: RoomTypeFormProps) {
   const isEditing = Boolean(defaultValues);
-  const initialValues = defaultValues
-    ? { ...defaultValues, description: defaultValues.description ?? "" }
-    : emptyValues;
+  const initialValues = defaultValues ?? emptyValues;
   const form = useForm<RoomTypeFormInput>({
     resolver: zodResolver(
       isEditing ? RoomTypeUpdateSchema : RoomTypeCreateSchema,
