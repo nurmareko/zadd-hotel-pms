@@ -51,7 +51,7 @@ praktikum. Students rotate through 5 operational roles
 - DB:   Neon, provisioned through Vercel Storage, Singapore region
 - Env:  `vercel env pull .env` to sync local env with Vercel
 - Env file is `.env`, not `.env.local`; Prisma reads `.env` natively.
-- DATABASE_URL is pooled (runtime). DIRECT_URL is unpooled (migrations).
+- DATABASE_URL is pooled (runtime). DATABASE_URL_UNPOOLED is unpooled (migrations).
 - `package.json` MUST keep `"postinstall": "prisma generate"` so Vercel builds
   regenerate `@prisma/client` after schema changes.
 
