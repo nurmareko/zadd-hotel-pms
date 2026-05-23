@@ -1,17 +1,29 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  KpiStripSkeleton,
+  PageHeaderSkeleton,
+  Skeleton,
+  TabStripSkeleton,
+} from "@/components/ui/skeleton";
 
 function FloorPlanGroupSkeleton() {
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2">
-        <Skeleton className="h-3 w-28" />
+        <Skeleton className="h-3 w-28 bg-console-border" />
       </div>
       <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, index) => (
-          <Skeleton
+          <div
             key={index}
-            className="h-28 border border-console-border"
-          />
+            className="min-h-[126px] border border-l-4 border-console-border bg-console-surface p-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <Skeleton className="h-7 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="mt-3 h-3 w-24" />
+            <Skeleton className="mt-4 h-4 w-32 max-w-full" />
+          </div>
         ))}
       </div>
     </section>
@@ -21,29 +33,15 @@ function FloorPlanGroupSkeleton() {
 export default function Loading() {
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="mt-2 h-3 w-44" />
-        </div>
-        <Skeleton className="h-8 w-36 border border-console-ink" />
-      </div>
+      <PageHeaderSkeleton
+        titleWidth="w-40"
+        subtitleWidth="w-44"
+        actionCount={1}
+      />
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton
-            key={index}
-            className="h-24 border border-console-border"
-          />
-        ))}
-      </div>
+      <KpiStripSkeleton count={4} className="md:grid-cols-2 xl:grid-cols-4" />
 
-      <div className="mt-4 border-b border-console-border">
-        <nav className="flex gap-5" aria-label="F&B tabs loading">
-          <Skeleton className="h-8 w-20 border-b-2 border-console-border" />
-          <Skeleton className="h-8 w-24 border-b-2 border-console-border" />
-        </nav>
-      </div>
+      <TabStripSkeleton className="mt-4" />
 
       <div className="mt-4 flex flex-col gap-4">
         {Array.from({ length: 3 }).map((_, index) => (

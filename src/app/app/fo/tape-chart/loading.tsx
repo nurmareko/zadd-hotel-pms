@@ -1,4 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  PageHeaderSkeleton,
+  Skeleton,
+} from "@/components/ui/skeleton";
 
 const ROWS = 10;
 const DAYS = 7;
@@ -8,20 +11,11 @@ export default function Loading() {
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="mt-2 h-3 w-[420px] max-w-full" />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-8 border border-console-border" />
-          <Skeleton className="h-8 w-44 border border-console-border" />
-          <Skeleton className="h-8 w-8 border border-console-border" />
-          <Skeleton className="h-8 w-28 border border-console-border" />
-          <Skeleton className="h-8 w-36 border border-console-border" />
-        </div>
-      </div>
+      <PageHeaderSkeleton
+        titleWidth="w-48"
+        subtitleWidth="w-[420px]"
+        actionCount={5}
+      />
 
       <div className="mb-3 flex flex-col gap-2 text-[12px] sm:flex-row sm:items-center">
         <div className="flex flex-wrap items-center gap-2">
@@ -44,7 +38,7 @@ export default function Loading() {
             <thead>
               <tr>
                 <th
-                  className="border-b border-r border-console-border bg-slate-50 px-2.5 py-2 text-left"
+                  className="border-b border-r border-console-border bg-console-bg px-2.5 py-2 text-left"
                   style={{ minWidth: 128, width: 128 }}
                 >
                   <Skeleton className="h-3 w-14" />
@@ -52,7 +46,7 @@ export default function Loading() {
                 {Array.from({ length: DAYS }).map((_, index) => (
                   <th
                     key={index}
-                    className="border-b border-console-border bg-slate-50 px-1 py-1.5"
+                    className="border-b border-console-border bg-console-bg px-1 py-1.5"
                     style={{ minWidth: 64, width: 64 }}
                   >
                     <Skeleton className="mx-auto h-3 w-8" />

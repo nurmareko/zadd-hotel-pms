@@ -1,22 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
-
-function SectionSkeleton({ rows = 4 }: { rows?: number }) {
-  return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <Skeleton className="h-3 w-32" />
-      </div>
-      <div className="space-y-3 p-3.5">
-        {Array.from({ length: rows }).map((_, index) => (
-          <div key={index} className="grid grid-cols-[120px_minmax(0,1fr)] gap-3">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+import { CardSkeleton, Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
@@ -29,15 +11,16 @@ export default function Loading() {
               <Skeleton className="h-6 w-32" />
               <Skeleton className="mt-2 h-3 w-40" />
             </div>
-            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-6 w-16 border border-console-border" />
           </div>
         </header>
 
-        <SectionSkeleton rows={4} />
-        <SectionSkeleton rows={3} />
+        <CardSkeleton rows={4} titleWidth="w-32" />
+        <CardSkeleton rows={3} titleWidth="w-28" />
+
         <section className="border border-console-border bg-console-surface">
           <div className="bg-console-ink px-3.5 py-3">
-            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-24 bg-console-border" />
           </div>
           <div className="max-h-[420px] overflow-y-auto">
             {Array.from({ length: 5 }).map((_, index) => (
