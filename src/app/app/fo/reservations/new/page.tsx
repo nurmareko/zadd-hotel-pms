@@ -55,7 +55,13 @@ export default async function NewReservationPage({
   const departureDate = addDays(arrivalDate, 1);
   const [roomTypes, rooms, activeReservations] = await Promise.all([
     prisma.roomType.findMany({
-      select: { id: true, code: true, name: true, baseRate: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        capacity: true,
+        baseRate: true,
+      },
       orderBy: { code: "asc" },
     }),
     prisma.room.findMany({

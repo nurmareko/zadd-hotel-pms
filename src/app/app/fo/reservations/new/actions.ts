@@ -13,10 +13,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
-  CreateReservationSchema,
+  createReservationSchema,
   type CreateReservationValues,
-  EditReservationSchema,
   type EditReservationValues,
+  reservationCapacityError,
 } from "./schema";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -53,6 +53,14 @@ async function selectedRoomLabel(roomId: number) {
   return room?.number ?? String(roomId);
 }
 
+async function currentReservationSchema() {
+  const roomTypes = await prisma.roomType.findMany({
+    select: { id: true, capacity: true },
+  });
+
+  return createReservationSchema(roomTypes);
+}
+
 async function runCreateReservationTransaction(
   input: CreateReservationValues,
   userId: number,
@@ -73,6 +81,7 @@ async function runCreateReservationTransaction(
           roomType: {
             select: {
               baseRate: true,
+              capacity: true,
             },
           },
         },
@@ -86,6 +95,15 @@ async function runCreateReservationTransaction(
         return {
           ok: false as const,
           error: `Room ${room.number} is out of order. Choose another.`,
+        };
+      }
+
+      const totalGuests = input.adults + input.children;
+
+      if (totalGuests > room.roomType.capacity) {
+        return {
+          ok: false as const,
+          error: reservationCapacityError(totalGuests, room.roomType.capacity),
         };
       }
 
@@ -191,6 +209,7 @@ async function runUpdateReservationTransaction(
           roomType: {
             select: {
               baseRate: true,
+              capacity: true,
             },
           },
         },
@@ -204,6 +223,15 @@ async function runUpdateReservationTransaction(
         return {
           ok: false as const,
           error: `Room ${room.number} is out of order. Choose another.`,
+        };
+      }
+
+      const totalGuests = input.adults + input.children;
+
+      if (totalGuests > room.roomType.capacity) {
+        return {
+          ok: false as const,
+          error: reservationCapacityError(totalGuests, room.roomType.capacity),
         };
       }
 
@@ -273,7 +301,7 @@ export async function createReservation(
     return { ok: false, error: "Unauthorized" };
   }
 
-  const parsed = CreateReservationSchema.safeParse(input);
+  const parsed = (await currentReservationSchema()).safeParse(input);
 
   if (!parsed.success) {
     return { ok: false, error: validationError(parsed.error) };
@@ -336,7 +364,7 @@ export async function updateReservation(
     return { ok: false, error: "Invalid reservation" };
   }
 
-  const parsed = EditReservationSchema.safeParse(input);
+  const parsed = (await currentReservationSchema()).safeParse(input);
 
   if (!parsed.success) {
     return { ok: false, error: validationError(parsed.error) };
