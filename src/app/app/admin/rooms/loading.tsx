@@ -5,6 +5,7 @@ export default function Loading() {
     <AdminTableLoadingSkeleton
       titleWidth="w-64"
       subtitleWidth="w-80"
+      actionCount={0}
       tabCount={2}
       filterFields={1}
       rows={8}

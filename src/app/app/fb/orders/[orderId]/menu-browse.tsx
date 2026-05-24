@@ -18,7 +18,7 @@ type MenuBrowseProps = {
   orderStatus: string;
 };
 
-const categoryTabs = ["Mains", "Drinks", "Desserts", "Breakfast", "All"];
+const categoryTabs = ["Mains", "Beverage", "Desserts", "Breakfast", "All"];
 
 export function MenuBrowse({
   menuItems,

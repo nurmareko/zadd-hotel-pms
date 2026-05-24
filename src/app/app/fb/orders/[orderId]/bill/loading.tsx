@@ -28,7 +28,7 @@ export default function Loading() {
               </div>
             ))}
           </div>
-          <TableSkeleton rows={6} cols={5} minWidth="760px" />
+          <TableSkeleton rows={6} cols={4} minWidth="760px" />
           <div className="ml-auto mt-3 w-full max-w-xs space-y-2 border-t border-console-border-soft pt-3">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex justify-between gap-3">

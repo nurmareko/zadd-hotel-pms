@@ -1,3 +1,5 @@
+import styles from "./tape-chart-grid.module.css";
+
 type TapeChartLegendProps = {
   roomCount: number;
   dayCount: number;
@@ -9,42 +11,44 @@ const legendItems = [
     label: "Vacant Clean",
     bg: "bg-status-vc-bg",
     text: "text-status-vc-fg",
-    pip: "bg-status-vc-pip",
+    sample: "border-l-[3px] border-status-vc-pip",
   },
   {
-    code: "OC",
-    label: "Occupied",
+    code: "CNF",
+    label: "Confirmed",
     bg: "bg-status-oc-bg",
     text: "text-status-oc-fg",
-    pip: "bg-status-oc-pip",
+    sample: "border border-dashed border-status-oc-pip",
+  },
+  {
+    code: "IN",
+    label: "Checked In",
+    bg: "bg-status-oc-bg",
+    text: "text-status-oc-fg",
+    sample: "border-l-[3px] border-status-oc-pip",
   },
   {
     code: "VD",
     label: "Vacant Dirty",
     bg: "bg-status-vd-bg",
     text: "text-status-vd-fg",
-    pip: "bg-status-vd-pip",
-  },
-  {
-    code: "OD",
-    label: "Occupied Dirty",
-    bg: "bg-status-od-bg",
-    text: "text-status-od-fg",
-    pip: "bg-status-od-pip",
+    sample: "border-l-[3px] border-status-vd-pip",
   },
   {
     code: "VCU",
     label: "Unchecked",
     bg: "bg-status-vcu-bg",
     text: "text-status-vcu-fg",
-    pip: "bg-status-vcu-pip",
+    sample: "border border-dotted border-status-vcu-pip",
+    pattern: styles.vcuCell,
   },
   {
     code: "OOO",
     label: "Out of Order",
     bg: "bg-status-ooo-bg",
     text: "text-status-ooo-fg",
-    pip: "bg-status-ooo-pip",
+    sample: "border border-status-ooo-pip",
+    pattern: styles.outOfOrderCell,
   },
 ] as const;
 
@@ -66,7 +70,11 @@ export function TapeChartLegend({
             ].join(" ")}
           >
             <span
-              className={["h-1.5 w-1.5", item.pip].join(" ")}
+              className={[
+                "h-3 w-4 bg-white",
+                item.sample,
+                "pattern" in item ? item.pattern : "",
+              ].join(" ")}
               aria-hidden="true"
             />
             {item.code} · {item.label}

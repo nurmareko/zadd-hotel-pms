@@ -10,3 +10,23 @@
   outline: 1px solid var(--tape-cell-accent);
   outline-offset: -1px;
 }
+
+.vcuCell {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 5px,
+    rgb(234 179 8 / 0.2) 5px,
+    rgb(234 179 8 / 0.2) 6px
+  );
+}
+
+.outOfOrderCell {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0,
+    transparent 5px,
+    rgb(100 116 139 / 0.22) 5px,
+    rgb(100 116 139 / 0.22) 7px
+  );
+}

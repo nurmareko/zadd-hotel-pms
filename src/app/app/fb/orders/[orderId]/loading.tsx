@@ -7,11 +7,17 @@ import {
 function MenuGridSkeleton() {
   return (
     <section className="border border-console-border bg-console-surface">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-3">
+      <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3.5 py-2 md:flex-row md:items-center md:justify-between">
         <Skeleton className="h-3 w-32 bg-console-border" />
+        <Skeleton className="h-8 w-full border border-slate-600 bg-console-border md:max-w-[240px]" />
       </div>
-      <div className="border-b border-console-border bg-console-surface p-3.5">
-        <Skeleton className="h-8 w-full border border-console-border" />
+      <div className="flex flex-wrap gap-3 border-b border-console-border px-3.5 py-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Skeleton
+            key={index}
+            className="h-5 w-20 border-b-2 border-console-border"
+          />
+        ))}
       </div>
       <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 2xl:grid-cols-3">
         {Array.from({ length: 9 }).map((_, index) => (

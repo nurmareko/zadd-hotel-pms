@@ -7,6 +7,7 @@ import type { RoomStatus } from "@prisma/client";
 import styles from "./tape-chart-grid.module.css";
 
 type TapeCellStatus = RoomStatus;
+type TapeVisualState = TapeCellStatus | "CONFIRMED" | "CHECKED_IN";
 
 export type TapeChartCell = {
   dayIso: string;
@@ -37,8 +38,17 @@ type TapeChartGridProps = {
 };
 
 const statusClasses: Record<
-  TapeCellStatus,
-  { bg: string; border: string; text: string; accent: string; hoverBg: string }
+  TapeVisualState,
+  {
+    bg: string;
+    border: string;
+    text: string;
+    accent: string;
+    hoverBg: string;
+    cue: string;
+    treatment: string;
+    pattern?: string;
+  }
 > = {
   VC: {
     bg: "bg-status-vc-bg",
@@ -46,6 +56,8 @@ const statusClasses: Record<
     text: "text-slate-700",
     accent: "var(--emerald-500)",
     hoverBg: "#d1fae5",
+    cue: "VC",
+    treatment: "border-l-[3px]",
   },
   OC: {
     bg: "bg-status-oc-bg",
@@ -53,6 +65,26 @@ const statusClasses: Record<
     text: "text-status-oc-fg",
     accent: "var(--blue-500)",
     hoverBg: "#dbeafe",
+    cue: "OC",
+    treatment: "border-l-[3px]",
+  },
+  CONFIRMED: {
+    bg: "bg-status-oc-bg",
+    border: "border-status-oc-pip",
+    text: "text-status-oc-fg",
+    accent: "var(--blue-500)",
+    hoverBg: "#dbeafe",
+    cue: "CNF",
+    treatment: "border border-dashed",
+  },
+  CHECKED_IN: {
+    bg: "bg-status-oc-bg",
+    border: "border-status-oc-pip",
+    text: "text-status-oc-fg",
+    accent: "var(--blue-500)",
+    hoverBg: "#dbeafe",
+    cue: "IN",
+    treatment: "border-l-[3px]",
   },
   VD: {
     bg: "bg-status-vd-bg",
@@ -60,6 +92,8 @@ const statusClasses: Record<
     text: "text-status-vd-fg",
     accent: "var(--amber-500)",
     hoverBg: "#fef3c7",
+    cue: "VD",
+    treatment: "border-l-[3px]",
   },
   OD: {
     bg: "bg-status-od-bg",
@@ -67,6 +101,8 @@ const statusClasses: Record<
     text: "text-status-od-fg",
     accent: "var(--red-500)",
     hoverBg: "#fee2e2",
+    cue: "OD",
+    treatment: "border-l-[3px]",
   },
   VCU: {
     bg: "bg-status-vcu-bg",
@@ -74,6 +110,9 @@ const statusClasses: Record<
     text: "text-status-vcu-fg",
     accent: "var(--yellow-500)",
     hoverBg: "#fef9c3",
+    cue: "VCU",
+    treatment: "border border-dotted",
+    pattern: styles.vcuCell,
   },
   OOO: {
     bg: "bg-status-ooo-bg",
@@ -81,17 +120,49 @@ const statusClasses: Record<
     text: "text-status-ooo-fg",
     accent: "var(--slate-500)",
     hoverBg: "var(--slate-200)",
+    cue: "OOO",
+    treatment: "border border-solid",
+    pattern: styles.outOfOrderCell,
   },
 };
-
-function getCellLabel(cell: TapeChartCell) {
-  return cell.guestLabel ?? cell.status;
-}
 
 function isOccupiedCell(cell: TapeChartCell) {
   return Boolean(
     cell.reservationId && (cell.status === "OC" || cell.status === "OD"),
   );
+}
+
+function getVisualState(cell: TapeChartCell): TapeVisualState {
+  if (cell.folioId) {
+    return "CHECKED_IN";
+  }
+
+  if (cell.reservationId) {
+    return "CONFIRMED";
+  }
+
+  return cell.status;
+}
+
+function getStateLabel(state: TapeVisualState) {
+  switch (state) {
+    case "CONFIRMED":
+      return "Confirmed reservation";
+    case "CHECKED_IN":
+      return "Checked-in guest";
+    case "VC":
+      return "Vacant Clean";
+    case "OC":
+      return "Occupied Clean";
+    case "VD":
+      return "Vacant Dirty";
+    case "OD":
+      return "Occupied Dirty";
+    case "VCU":
+      return "Vacant Clean Unchecked";
+    case "OOO":
+      return "Out of Order";
+  }
 }
 
 export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
@@ -207,9 +278,9 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                   </span>
                 </th>
                 {row.cells.map((cell) => {
-                  const classes = statusClasses[cell.status];
+                  const visualState = getVisualState(cell);
+                  const classes = statusClasses[visualState];
                   const isOccupied = isOccupiedCell(cell);
-                  const isConfirmedReservation = isOccupied && !cell.folioId;
 
                   return (
                     <td
@@ -222,17 +293,19 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                       onKeyDown={(event) =>
                         handleCellKeyDown(event, row, cell)
                       }
+                      aria-label={`${row.roomNumber} ${cell.dayIso}: ${getStateLabel(
+                        visualState,
+                      )}${cell.guestLabel ? `, ${cell.guestLabel}` : ""}`}
                       role="button"
                       style={{ height: 32, minWidth: 64, width: 64 }}
                       tabIndex={0}
                     >
                       <div
                         className={[
-                          "overflow-hidden text-ellipsis whitespace-nowrap px-1.5 text-[11px] font-medium leading-[22px]",
-                          isConfirmedReservation
-                            ? "border border-dashed"
-                            : "border-l-[3px]",
+                          "flex items-center gap-1 overflow-hidden whitespace-nowrap px-1 text-[11px] font-medium leading-[22px]",
+                          classes.treatment,
                           isOccupied ? styles.occupiedCell : styles.emptyCell,
+                          classes.pattern,
                           classes.bg,
                           classes.border,
                           classes.text,
@@ -248,7 +321,14 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                           } as CSSProperties
                         }
                       >
-                        {getCellLabel(cell)}
+                        <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.04em]">
+                          {classes.cue}
+                        </span>
+                        {cell.guestLabel ? (
+                          <span className="min-w-0 truncate">
+                            {cell.guestLabel}
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                   );
