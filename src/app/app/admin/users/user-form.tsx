@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useForm, type FieldPath, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
@@ -94,6 +95,7 @@ export function UserForm({
     defaultValues: initialValues,
   });
   const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   function onInvalid() {
     focusFirstFormError(formElement);
@@ -141,9 +143,8 @@ export function UserForm({
                 <FormControl>
                   <Input
                     placeholder="fo2"
-                    readOnly={isEditing}
                     {...field}
-                    className={`${inputClassName} ${isEditing ? "bg-console-bg" : ""}`}
+                    className={inputClassName}
                   />
                 </FormControl>
                 <FormMessage />
@@ -230,13 +231,31 @@ export function UserForm({
               <FormItem>
                 <FormLabel className={labelClassName}>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Minimum 8 characters"
-                    {...field}
-                    value={field.value ?? ""}
-                    className={inputClassName}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Minimum 8 characters"
+                      {...field}
+                      value={field.value ?? ""}
+                      className={`${inputClassName} pr-9`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-8 w-8 rounded-none text-slate-500 hover:bg-console-bg hover:text-console-ink"
+                      onClick={() => setShowPassword((isShown) => !isShown)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

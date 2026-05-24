@@ -168,7 +168,20 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
     return validationFailure(parsed.error);
   }
 
-  const { id, role, fullName, email } = parsed.data;
+  const { id, role, username, fullName, email } = parsed.data;
+
+  const existingUsername = await prisma.user.findFirst({
+    where: { username, id: { not: id } },
+    select: { id: true },
+  });
+
+  if (existingUsername) {
+    return {
+      ok: false,
+      error: "Username sudah digunakan",
+      field: "username",
+    };
+  }
 
   if (email) {
     const existingEmail = await prisma.user.findFirst({
@@ -186,6 +199,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
       await tx.user.update({
         where: { id },
         data: {
+          username,
           fullName,
           email,
         },

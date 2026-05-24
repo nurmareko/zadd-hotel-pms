@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Plus, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Search } from "lucide-react";
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -50,6 +50,8 @@ export type UserRow = {
 type UserTableProps = {
   users: UserRow[];
 };
+
+type SortDirection = "asc" | "desc" | null;
 
 const buttonClassName =
   "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
@@ -114,6 +116,7 @@ export function UserTable({ users }: UserTableProps) {
   const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
   const [resettingUser, setResettingUser] = useState<UserRow | null>(null);
   const [query, setQuery] = useState("");
+  const [nameSort, setNameSort] = useState<SortDirection>(null);
   const [roleFilter, setRoleFilter] = useState<RoleCode | "">("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">(
     "",
@@ -141,6 +144,30 @@ export function UserTable({ users }: UserTableProps) {
       return matchesQuery && matchesRole && matchesStatus;
     });
   }, [query, roleFilter, statusFilter, users]);
+  const displayedUsers = useMemo(() => {
+    if (!nameSort) {
+      return filteredUsers;
+    }
+
+    return [...filteredUsers].sort((firstUser, secondUser) => {
+      const nameComparison = firstUser.fullName.localeCompare(
+        secondUser.fullName,
+        "id",
+        { sensitivity: "base" },
+      );
+      const comparison =
+        nameComparison ||
+        firstUser.username.localeCompare(secondUser.username, "id", {
+          sensitivity: "base",
+        });
+
+      return nameSort === "asc" ? comparison : -comparison;
+    });
+  }, [filteredUsers, nameSort]);
+
+  function toggleNameSort() {
+    setNameSort((currentSort) => (currentSort === "asc" ? "desc" : "asc"));
+  }
 
   function handleDelete() {
     if (!deletingUser) {
@@ -202,10 +229,6 @@ export function UserTable({ users }: UserTableProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className={buttonClassName}>
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Export
-          </Button>
           <AddUserButton onClick={() => setCreateOpen(true)} />
         </div>
       </div>
@@ -262,8 +285,31 @@ export function UserTable({ users }: UserTableProps) {
             <Table className="min-w-[860px] border-collapse text-[12px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                    Nama
+                  <TableHead
+                    className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent"
+                    aria-sort={
+                      nameSort === "asc"
+                        ? "ascending"
+                        : nameSort === "desc"
+                          ? "descending"
+                          : "none"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="flex h-5 items-center gap-1.5 uppercase tracking-[0.08em] text-console-accent hover:text-white"
+                      onClick={toggleNameSort}
+                      aria-label="Sort users by name"
+                    >
+                      Nama
+                      {nameSort === "asc" ? (
+                        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                      ) : nameSort === "desc" ? (
+                        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+                      )}
+                    </button>
                   </TableHead>
                   <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
                     Username
@@ -283,7 +329,7 @@ export function UserTable({ users }: UserTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {displayedUsers.map((user) => (
                   <TableRow
                     key={user.id}
                     className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
@@ -320,7 +366,7 @@ export function UserTable({ users }: UserTableProps) {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredUsers.length === 0 ? (
+                {displayedUsers.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={6}
