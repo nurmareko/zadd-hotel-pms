@@ -20,10 +20,24 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const parsedGuestCount = Number(guestCount);
+
+    if (!Number.isInteger(parsedGuestCount) || parsedGuestCount < 1) {
+      toast.error("Jumlah tamu minimal 1");
+      return;
+    }
+
+    if (parsedGuestCount > table.capacity) {
+      toast.error(
+        `Jumlah tamu tidak boleh melebihi kapasitas meja ${table.capacity}`,
+      );
+      return;
+    }
+
     startTransition(async () => {
       const result = await createOrder({
         tableId: table.id,
-        guestCount,
+        guestCount: parsedGuestCount,
       });
 
       if (!result.ok) {
@@ -60,7 +74,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           id="guest-count"
           inputMode="numeric"
           min={1}
-          max={99}
+          max={table.capacity}
           onChange={(event) => setGuestCount(event.target.value)}
           type="number"
           value={guestCount}
