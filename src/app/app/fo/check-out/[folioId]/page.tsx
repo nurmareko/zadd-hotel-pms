@@ -9,6 +9,14 @@ import { AlertTriangle, Check, CheckCircle2, Download, Undo2 } from "lucide-reac
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import {
+  absoluteBalanceLabel,
+  billBalanceAmountLabel,
+  billBalanceLabel,
+  checkoutBalanceHeading,
+  folioBalanceState,
+  refundDueNote,
+} from "@/lib/folio-balance-display";
 import { formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
@@ -129,19 +137,32 @@ function MetricBox({ label, value }: { label: string; value: string }) {
 }
 
 function ZeroBalanceNotice({ balance }: { balance: number }) {
-  const roundedBalance = Math.round(balance);
+  const balanceState = folioBalanceState(balance);
 
-  if (roundedBalance > 0) {
+  if (balanceState === "due") {
     return (
       <div className="mt-3 flex items-start gap-2 border border-red-300 bg-status-od-bg p-3.5 text-status-od-fg">
         <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
         <div>
-          <div className="font-semibold">
-            Saldo belum nol - outstanding {formatIDR(balance)}
-          </div>
+          <div className="font-semibold">{checkoutBalanceHeading(balance)}</div>
           <div className="mt-1 text-[12px]">
             Lakukan pembayaran akhir di langkah 2 sebelum check-out dapat
             diselesaikan.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (balanceState === "credit") {
+    return (
+      <div className="mt-3 flex items-start gap-2 border border-status-vd-pip bg-status-vd-bg p-3.5 text-status-vd-fg">
+        <CheckCircle2 className="mt-0.5 h-4 w-4" aria-hidden="true" />
+        <div>
+          <div className="font-semibold">{checkoutBalanceHeading(balance)}</div>
+          <div className="mt-1 text-[12px]">{refundDueNote(balance)}</div>
+          <div className="mt-1 text-[12px]">
+            Check-out dapat dikonfirmasi di langkah 3.
           </div>
         </div>
       </div>
@@ -152,7 +173,7 @@ function ZeroBalanceNotice({ balance }: { balance: number }) {
     <div className="mt-3 flex items-start gap-2 border border-status-vc-pip bg-status-vc-bg p-3.5 text-status-vc-fg">
       <CheckCircle2 className="mt-0.5 h-4 w-4" aria-hidden="true" />
       <div>
-        <div className="font-semibold">Saldo sudah nol</div>
+        <div className="font-semibold">{checkoutBalanceHeading(balance)}</div>
         <div className="mt-1 text-[12px]">
           Check-out dapat dikonfirmasi di langkah 3.
         </div>
@@ -221,10 +242,15 @@ function PreviewBill({
         <div className="mt-2 border-t border-slate-300 pt-2">
           <SummaryRow label="TOTAL" value={formatIDR(totals.totalCharges)} strong />
           <SummaryRow label="Dibayar" value={`-${formatIDR(totals.totalPaid)}`} />
-          <div className="flex items-center justify-between gap-3 py-1 font-semibold text-status-od-fg">
-            <span>Outstanding</span>
-            <span className="num">{formatIDR(totals.balance)}</span>
+          <div className="flex items-center justify-between gap-3 py-1 font-semibold text-console-ink">
+            <span>{billBalanceLabel(totals.balance)}</span>
+            <span className="num">{billBalanceAmountLabel(totals.balance)}</span>
           </div>
+          {folioBalanceState(totals.balance) === "credit" ? (
+            <div className="pt-1 text-[11px] text-status-vd-fg">
+              {refundDueNote(totals.balance)}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -311,7 +337,8 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
   const isCheckoutAllowed =
     folio.status === FolioStatus.OPEN &&
     folio.reservation.status === ReservationStatus.CHECKED_IN;
-  const hasBalanceDue = Math.round(totals.balance) > 0;
+  const balanceState = folioBalanceState(totals.balance);
+  const hasBalanceDue = balanceState === "due";
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -368,14 +395,18 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
           {!isClosed && isCheckoutAllowed && hasBalanceDue ? (
             <StepCard
               title="2. Pembayaran Akhir"
-              meta={`Outstanding: ${formatIDR(totals.balance)}`}
+              meta={checkoutBalanceHeading(totals.balance)}
             >
               <FinalPaymentForm folioId={folio.id} balance={totals.balance} />
             </StepCard>
           ) : (
             <StepCard title="2. Pembayaran Akhir">
               <div className="p-3.5 text-[12px] text-slate-500">
-                Tidak ada pembayaran akhir yang perlu dicatat.
+                {balanceState === "credit"
+                  ? `Tidak ada pembayaran akhir yang perlu dicatat. Kembalikan kelebihan ${absoluteBalanceLabel(
+                      totals.balance,
+                    )} kepada tamu.`
+                  : "Tidak ada pembayaran akhir yang perlu dicatat."}
               </div>
             </StepCard>
           )}
@@ -413,7 +444,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                 </div>
               </div>
             ) : isCheckoutAllowed && !hasBalanceDue ? (
-              <CompleteCheckoutForm folioId={folio.id} />
+              <CompleteCheckoutForm folioId={folio.id} balance={totals.balance} />
             ) : (
               <div className="p-3.5 text-[12px] text-status-od-fg">
                 Folio ini belum siap untuk check-out.
