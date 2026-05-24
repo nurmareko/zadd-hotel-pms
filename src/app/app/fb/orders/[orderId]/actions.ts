@@ -278,7 +278,7 @@ async function runCreateOrderTransaction(
 
       const table = await tx.restaurantTable.findUnique({
         where: { id: input.tableId },
-        select: { id: true, number: true, status: true },
+        select: { id: true, number: true, status: true, capacity: true },
       });
 
       if (!table) {
@@ -289,6 +289,13 @@ async function runCreateOrderTransaction(
         return {
           ok: false as const,
           error: `Meja ${table.number} tidak tersedia untuk order baru.`,
+        };
+      }
+
+      if (input.guestCount > table.capacity) {
+        return {
+          ok: false as const,
+          error: `Jumlah tamu tidak boleh melebihi kapasitas meja ${table.capacity}.`,
         };
       }
 
