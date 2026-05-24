@@ -1,13 +1,14 @@
 "use client";
 
 import { PaymentMethod } from "@prisma/client";
-import { Check, CreditCard } from "lucide-react";
+import { AlertTriangle, Check, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
 import { paymentMethods } from "../../folios/[id]/schema";
 import { completeCheckout, recordFinalPayment } from "./actions";
 
@@ -18,6 +19,7 @@ type FinalPaymentFormProps = {
 
 type CompleteCheckoutFormProps = {
   folioId: number;
+  balance: number;
 };
 
 const fieldClassName =
@@ -138,7 +140,10 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
   );
 }
 
-export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
+export function CompleteCheckoutForm({
+  folioId,
+  balance,
+}: CompleteCheckoutFormProps) {
   const router = useRouter();
   const [roomStatusConfirmed, setRoomStatusConfirmed] = useState(true);
   const [folioCloseConfirmed, setFolioCloseConfirmed] = useState(true);
@@ -147,6 +152,7 @@ export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
   const [isPending, startTransition] = useTransition();
   const confirmed =
     roomStatusConfirmed && folioCloseConfirmed && pdfConfirmed;
+  const isCreditBalance = folioBalanceState(balance) === "credit";
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -176,6 +182,16 @@ export function CompleteCheckoutForm({ folioId }: CompleteCheckoutFormProps) {
   return (
     <form id="complete-checkout-form" onSubmit={onSubmit} className="p-3.5">
       <input type="hidden" name="folioId" value={folioId} />
+
+      {isCreditBalance ? (
+        <div className="mb-3 flex items-start gap-2 border border-status-vd-pip bg-status-vd-bg p-3 text-[12px] text-status-vd-fg">
+          <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
+          <div>
+            <div className="font-semibold">Refund harus dikembalikan</div>
+            <div className="mt-1">{refundDueNote(balance)}</div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-1">
         <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">

@@ -45,7 +45,13 @@ export default async function ReservationDetailPage({
       },
     }),
     prisma.roomType.findMany({
-      select: { id: true, code: true, name: true, baseRate: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        capacity: true,
+        baseRate: true,
+      },
       orderBy: { code: "asc" },
     }),
     prisma.room.findMany({

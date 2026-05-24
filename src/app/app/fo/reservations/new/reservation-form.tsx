@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatIDR } from "@/lib/format";
 import { createReservation, updateReservation } from "./actions";
 import {
-  CreateReservationSchema,
+  createReservationSchema,
   type CreateReservationInput,
 } from "./schema";
 
@@ -26,6 +26,7 @@ type RoomTypeOption = {
   id: number;
   code: string;
   name: string;
+  capacity: number;
   baseRate: string;
 };
 
@@ -146,9 +147,14 @@ export function ReservationForm({
   submitLabel = "Simpan Reservasi",
 }: ReservationFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
+  const hasMountedRoomTypeValidation = useRef(false);
   const isViewMode = mode === "view";
+  const reservationSchema = useMemo(
+    () => createReservationSchema(roomTypes),
+    [roomTypes],
+  );
   const form = useForm<CreateReservationInput>({
-    resolver: zodResolver(CreateReservationSchema) as unknown as Resolver<
+    resolver: zodResolver(reservationSchema) as unknown as Resolver<
       CreateReservationInput
     >,
     mode: "onChange",
@@ -162,6 +168,8 @@ export function ReservationForm({
     departureDate,
     depositValue,
     arrangementTypeValue,
+    adultsValue,
+    childrenValue,
   ] = useWatch({
     control: form.control,
     name: [
@@ -171,10 +179,13 @@ export function ReservationForm({
       "departureDate",
       "deposit",
       "arrangementType",
+      "adults",
+      "children",
     ],
   });
   const selectedRoomTypeId = Number(roomTypeIdValue || 0);
   const selectedRoomId = Number(roomIdValue || 0);
+  const totalGuests = Number(adultsValue || 0) + Number(childrenValue || 0);
 
   const selectedRoomType = roomTypes.find(
     (roomType) => roomType.id === selectedRoomTypeId,
@@ -215,6 +226,19 @@ export function ReservationForm({
       form.setValue("roomId", "", { shouldValidate: true });
     }
   }, [form, isViewMode, roomOptions, selectedRoomId]);
+
+  useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+
+    if (!hasMountedRoomTypeValidation.current) {
+      hasMountedRoomTypeValidation.current = true;
+      return;
+    }
+
+    void form.trigger(["adults", "children", "roomTypeId"]);
+  }, [adultsValue, childrenValue, form, isViewMode, selectedRoomTypeId]);
 
   const availableRoomCount = roomOptions.filter(
     (room) => room.isAvailable,
@@ -452,6 +476,7 @@ export function ReservationForm({
                               value={String(roomType.id)}
                             >
                               {roomType.code} - {roomType.name} -{" "}
+                              {roomType.capacity} pax -{" "}
                               {formatIDR(roomType.baseRate)}/mlm
                             </option>
                           ))}
@@ -495,6 +520,11 @@ export function ReservationForm({
                 <div>
                   <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
                     Jumlah Tamu
+                    {selectedRoomType ? (
+                      <span className="ml-2 font-normal normal-case text-slate-500">
+                        {totalGuests || 0}/{selectedRoomType.capacity} pax
+                      </span>
+                    ) : null}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <FormField

@@ -1,10 +1,7 @@
-import {
-  PageHeaderSkeleton,
-  Skeleton,
-} from "@/components/ui/skeleton";
+import { PageHeaderSkeleton, Skeleton } from "@/components/ui/skeleton";
 
 const ROWS = 10;
-const DAYS = 7;
+const DAYS = 14;
 
 export default function Loading() {
   const tableMinWidth = 128 + DAYS * 64;
@@ -20,7 +17,10 @@ export default function Loading() {
       <div className="mb-3 flex flex-col gap-2 text-[12px] sm:flex-row sm:items-center">
         <div className="flex flex-wrap items-center gap-2">
           {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-5 w-24 border border-console-border-soft" />
+            <Skeleton
+              key={index}
+              className="h-5 w-24 border border-console-border-soft"
+            />
           ))}
         </div>
         <Skeleton className="h-3 w-28 sm:ml-auto" />

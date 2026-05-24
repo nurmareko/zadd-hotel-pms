@@ -1,7 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { useForm, type FieldPath, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { focusFirstFormError } from "@/lib/form-error-focus";
 import { createUser, updateUser } from "./actions";
 import {
   roleCodes,
@@ -91,6 +94,12 @@ export function UserForm({
     ) as Resolver<UserFormInput>,
     defaultValues: initialValues,
   });
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  function onInvalid() {
+    focusFirstFormError(formElement);
+  }
 
   async function onSubmit(values: UserFormInput) {
     const result = isEditing
@@ -104,12 +113,26 @@ export function UserForm({
       return;
     }
 
+    if (result.field) {
+      form.setError(
+        result.field as FieldPath<UserFormInput>,
+        { type: "server", message: result.error },
+        { shouldFocus: true },
+      );
+      focusFirstFormError(formElement);
+    }
+
     toast.error(result.error);
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        ref={setFormElement}
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        noValidate
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -120,9 +143,8 @@ export function UserForm({
                 <FormControl>
                   <Input
                     placeholder="fo2"
-                    readOnly={isEditing}
                     {...field}
-                    className={`${inputClassName} ${isEditing ? "bg-console-bg" : ""}`}
+                    className={inputClassName}
                   />
                 </FormControl>
                 <FormMessage />
@@ -209,13 +231,31 @@ export function UserForm({
               <FormItem>
                 <FormLabel className={labelClassName}>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    {...field}
-                    value={field.value ?? ""}
-                    className={inputClassName}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Minimum 8 characters"
+                      {...field}
+                      value={field.value ?? ""}
+                      className={`${inputClassName} pr-9`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-8 w-8 rounded-none text-slate-500 hover:bg-console-bg hover:text-console-ink"
+                      onClick={() => setShowPassword((isShown) => !isShown)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -8,6 +8,12 @@ import {
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
+import {
+  billBalanceAmountLabel,
+  billBalanceLabel,
+  folioBalanceState,
+  refundDueNote,
+} from "@/lib/folio-balance-display";
 import { formatIDR } from "@/lib/format";
 import type { FolioTotals } from "@/lib/folio-totals";
 
@@ -216,6 +222,8 @@ function SummaryRow({
 }
 
 export function Bill({ folio, settings, totals, businessDate }: BillProps) {
+  const balanceState = folioBalanceState(totals.balance);
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -335,10 +343,15 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.strong}>
-            Balance: {formatIDR(totals.balance)}
-            {Math.round(totals.balance) < 0 ? " (credit)" : ""}
-          </Text>
+          <View>
+            <Text style={styles.strong}>
+              {billBalanceLabel(totals.balance)}:{" "}
+              {billBalanceAmountLabel(totals.balance)}
+            </Text>
+            {balanceState === "credit" ? (
+              <Text style={styles.muted}>{refundDueNote(totals.balance)}</Text>
+            ) : null}
+          </View>
           <Text>Business date: {dateLabel(businessDate)}</Text>
         </View>
       </Page>

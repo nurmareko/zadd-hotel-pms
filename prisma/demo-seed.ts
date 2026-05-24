@@ -150,10 +150,10 @@ const articles = [
 ] as const;
 
 const menuItems = [
-  { code: "COFFEE", name: "Kopi Tubruk", category: "Drinks", price: 28000 },
-  { code: "TEA", name: "Teh Manis", category: "Drinks", price: 22000 },
-  { code: "WATER", name: "Mineral Water", category: "Drinks", price: 18000 },
-  { code: "ORANGE-JUICE", name: "Orange Juice", category: "Drinks", price: 35000 },
+  { code: "COFFEE", name: "Kopi Tubruk", category: "Beverage", price: 28000 },
+  { code: "TEA", name: "Teh Manis", category: "Beverage", price: 22000 },
+  { code: "WATER", name: "Mineral Water", category: "Beverage", price: 18000 },
+  { code: "ORANGE-JUICE", name: "Orange Juice", category: "Beverage", price: 35000 },
   { code: "NASI-GORENG", name: "Nasi Goreng Spesial", category: "Mains", price: 65000 },
   { code: "MIE-GORENG", name: "Mie Goreng Seafood", category: "Mains", price: 60000 },
   { code: "SATE-AYAM", name: "Sate Ayam", category: "Mains", price: 55000 },

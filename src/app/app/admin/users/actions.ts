@@ -13,13 +13,22 @@ import {
   UserUpdateSchema,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const USERS_PATH = "/app/admin/users";
 const PASSWORD_COST = 10;
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid user data";
+function validationFailure(error: {
+  issues: { message: string; path: PropertyKey[] }[];
+}): ActionResult {
+  const issue = error.issues[0];
+  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+
+  return {
+    ok: false,
+    error: issue?.message ?? "Data pengguna tidak valid",
+    field,
+  };
 }
 
 async function getAdminSession() {
@@ -43,30 +52,37 @@ function uniqueTargetIncludes(
     : typeof target === "string" && target.includes(field);
 }
 
-function prismaErrorMessage(error: unknown) {
+function prismaErrorResult(error: unknown): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       if (uniqueTargetIncludes(error, "username")) {
-        return "Username already exists";
+        return {
+          ok: false,
+          error: "Username sudah digunakan",
+          field: "username",
+        };
       }
 
       if (uniqueTargetIncludes(error, "email")) {
-        return "Email already exists";
+        return { ok: false, error: "Email sudah digunakan", field: "email" };
       }
 
-      return "User already exists";
+      return { ok: false, error: "Pengguna sudah ada" };
     }
 
     if (error.code === "P2003") {
-      return "This user has activity history. Deactivate instead.";
+      return {
+        ok: false,
+        error: "Pengguna memiliki riwayat aktivitas. Nonaktifkan pengguna.",
+      };
     }
 
     if (error.code === "P2025") {
-      return "User not found";
+      return { ok: false, error: "Pengguna tidak ditemukan" };
     }
   }
 
-  return "Something went wrong";
+  return { ok: false, error: "Terjadi kesalahan" };
 }
 
 export async function createUser(input: unknown): Promise<ActionResult> {
@@ -77,10 +93,35 @@ export async function createUser(input: unknown): Promise<ActionResult> {
   const parsed = UserCreateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const { password, role, username, fullName, email } = parsed.data;
+
+  const existingUsername = await prisma.user.findUnique({
+    where: { username },
+    select: { id: true },
+  });
+
+  if (existingUsername) {
+    return {
+      ok: false,
+      error: "Username sudah digunakan",
+      field: "username",
+    };
+  }
+
+  if (email) {
+    const existingEmail = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingEmail) {
+      return { ok: false, error: "Email sudah digunakan", field: "email" };
+    }
+  }
+
   const passwordHash = await hash(password, PASSWORD_COST);
 
   try {
@@ -112,7 +153,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -124,16 +165,41 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
   const parsed = UserUpdateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
-  const { id, role, fullName, email } = parsed.data;
+  const { id, role, username, fullName, email } = parsed.data;
+
+  const existingUsername = await prisma.user.findFirst({
+    where: { username, id: { not: id } },
+    select: { id: true },
+  });
+
+  if (existingUsername) {
+    return {
+      ok: false,
+      error: "Username sudah digunakan",
+      field: "username",
+    };
+  }
+
+  if (email) {
+    const existingEmail = await prisma.user.findFirst({
+      where: { email, id: { not: id } },
+      select: { id: true },
+    });
+
+    if (existingEmail) {
+      return { ok: false, error: "Email sudah digunakan", field: "email" };
+    }
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id },
         data: {
+          username,
           fullName,
           email,
         },
@@ -170,7 +236,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -184,11 +250,11 @@ export async function deleteUser(id: number): Promise<ActionResult> {
   const parsed = UserIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   if (session.user.id === String(parsed.data.id)) {
-    return { ok: false, error: "Cannot delete your own account" };
+    return { ok: false, error: "Tidak bisa menghapus akun sendiri" };
   }
 
   try {
@@ -200,7 +266,7 @@ export async function deleteUser(id: number): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -214,11 +280,11 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
   const parsed = UserIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   if (session.user.id === String(parsed.data.id)) {
-    return { ok: false, error: "Cannot deactivate your own account" };
+    return { ok: false, error: "Tidak bisa menonaktifkan akun sendiri" };
   }
 
   try {
@@ -236,7 +302,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -248,7 +314,7 @@ export async function resetUserPassword(input: unknown): Promise<ActionResult> {
   const parsed = UserPasswordResetSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const passwordHash = await hash(parsed.data.password, PASSWORD_COST);
@@ -263,6 +329,6 @@ export async function resetUserPassword(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }

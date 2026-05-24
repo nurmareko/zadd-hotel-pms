@@ -217,6 +217,7 @@ export function AdminTableLoadingSkeleton({
   kpiCount = 0,
   tabCount = 0,
   filterFields = 2,
+  actionCount = 1,
   rows = 8,
   cols = 6,
   minWidth = "760px",
@@ -226,6 +227,7 @@ export function AdminTableLoadingSkeleton({
   kpiCount?: number;
   tabCount?: number;
   filterFields?: number;
+  actionCount?: number;
   rows?: number;
   cols?: number;
   minWidth?: string;
@@ -235,7 +237,7 @@ export function AdminTableLoadingSkeleton({
       <PageHeaderSkeleton
         titleWidth={titleWidth}
         subtitleWidth={subtitleWidth}
-        actionCount={1}
+        actionCount={actionCount}
       />
       {kpiCount > 0 ? (
         <KpiStripSkeleton

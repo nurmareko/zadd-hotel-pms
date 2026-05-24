@@ -14,12 +14,21 @@ import {
   RoomUpdateSchema,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const ROOMS_PATH = "/app/admin/rooms";
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid room data";
+function validationFailure(error: {
+  issues: { message: string; path: PropertyKey[] }[];
+}): ActionResult {
+  const issue = error.issues[0];
+  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+
+  return {
+    ok: false,
+    error: issue?.message ?? "Data kamar tidak valid",
+    field,
+  };
 }
 
 async function canManageRooms() {
@@ -28,26 +37,43 @@ async function canManageRooms() {
   return session?.user.role === "ADMIN";
 }
 
-function prismaErrorMessage(error: unknown, entity: "room" | "roomType") {
+function prismaErrorResult(
+  error: unknown,
+  entity: "room" | "roomType",
+): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return entity === "room"
-        ? "Room number already exists"
-        : "Code already exists";
+        ? {
+            ok: false,
+            error: "Nomor kamar sudah digunakan",
+            field: "number",
+          }
+        : { ok: false, error: "Kode sudah digunakan", field: "code" };
     }
 
     if (error.code === "P2003") {
-      return entity === "room"
-        ? "This room has reservation history. Set to OOO instead."
-        : "This room type has rooms. Delete those first.";
+      return {
+        ok: false,
+        error:
+          entity === "room"
+            ? "Kamar memiliki riwayat reservasi. Ubah status ke OOO."
+            : "Tipe kamar masih memiliki kamar. Hapus kamar terlebih dahulu.",
+      };
     }
 
     if (error.code === "P2025") {
-      return entity === "room" ? "Room not found" : "Room type not found";
+      return {
+        ok: false,
+        error:
+          entity === "room"
+            ? "Kamar tidak ditemukan"
+            : "Tipe kamar tidak ditemukan",
+      };
     }
   }
 
-  return "Something went wrong";
+  return { ok: false, error: "Terjadi kesalahan" };
 }
 
 export async function createRoomType(input: unknown): Promise<ActionResult> {
@@ -58,10 +84,19 @@ export async function createRoomType(input: unknown): Promise<ActionResult> {
   const parsed = RoomTypeCreateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
+    const existingCode = await prisma.roomType.findUnique({
+      where: { code: parsed.data.code },
+      select: { id: true },
+    });
+
+    if (existingCode) {
+      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+    }
+
     await prisma.roomType.create({
       data: parsed.data,
     });
@@ -70,7 +105,7 @@ export async function createRoomType(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "roomType") };
+    return prismaErrorResult(error, "roomType");
   }
 }
 
@@ -82,12 +117,21 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
   const parsed = RoomTypeUpdateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const { id, ...data } = parsed.data;
 
   try {
+    const existingCode = await prisma.roomType.findFirst({
+      where: { code: data.code, id: { not: id } },
+      select: { id: true },
+    });
+
+    if (existingCode) {
+      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+    }
+
     await prisma.roomType.update({
       where: { id },
       data,
@@ -97,7 +141,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "roomType") };
+    return prismaErrorResult(error, "roomType");
   }
 }
 
@@ -109,7 +153,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
   const parsed = RoomTypeIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
@@ -120,7 +164,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
     if (roomCount > 0) {
       return {
         ok: false,
-        error: "This room type has rooms. Delete those first.",
+        error: "Tipe kamar masih memiliki kamar. Hapus kamar terlebih dahulu.",
       };
     }
 
@@ -132,7 +176,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "roomType") };
+    return prismaErrorResult(error, "roomType");
   }
 }
 
@@ -144,10 +188,23 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
   const parsed = RoomCreateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
+    const existingNumber = await prisma.room.findUnique({
+      where: { number: parsed.data.number },
+      select: { id: true },
+    });
+
+    if (existingNumber) {
+      return {
+        ok: false,
+        error: "Nomor kamar sudah digunakan",
+        field: "number",
+      };
+    }
+
     await prisma.room.create({
       data: parsed.data,
     });
@@ -156,7 +213,7 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "room") };
+    return prismaErrorResult(error, "room");
   }
 }
 
@@ -168,12 +225,25 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
   const parsed = RoomUpdateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const { id, ...data } = parsed.data;
 
   try {
+    const existingNumber = await prisma.room.findFirst({
+      where: { number: data.number, id: { not: id } },
+      select: { id: true },
+    });
+
+    if (existingNumber) {
+      return {
+        ok: false,
+        error: "Nomor kamar sudah digunakan",
+        field: "number",
+      };
+    }
+
     await prisma.room.update({
       where: { id },
       data,
@@ -183,7 +253,7 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "room") };
+    return prismaErrorResult(error, "room");
   }
 }
 
@@ -195,7 +265,7 @@ export async function deleteRoom(id: number): Promise<ActionResult> {
   const parsed = RoomIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
@@ -206,7 +276,7 @@ export async function deleteRoom(id: number): Promise<ActionResult> {
     if (reservationCount > 0) {
       return {
         ok: false,
-        error: "This room has reservation history. Set to OOO instead.",
+        error: "Kamar memiliki riwayat reservasi. Ubah status ke OOO.",
       };
     }
 
@@ -218,6 +288,6 @@ export async function deleteRoom(id: number): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error, "room") };
+    return prismaErrorResult(error, "room");
   }
 }

@@ -2,7 +2,8 @@
 
 import { ArticleType } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
+import { useState } from "react";
+import { useForm, type FieldPath, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { focusFirstFormError } from "@/lib/form-error-focus";
 import { createArticle, updateArticle } from "./actions";
 import {
   articleTypes,
@@ -90,6 +92,11 @@ export function ArticleForm({
     ) as Resolver<ArticleFormInput>,
     defaultValues: initialValues,
   });
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
+
+  function onInvalid() {
+    focusFirstFormError(formElement);
+  }
 
   async function onSubmit(values: ArticleFormInput) {
     const result = isEditing
@@ -103,12 +110,26 @@ export function ArticleForm({
       return;
     }
 
+    if (result.field) {
+      form.setError(
+        result.field as FieldPath<ArticleFormInput>,
+        { type: "server", message: result.error },
+        { shouldFocus: true },
+      );
+      focusFirstFormError(formElement);
+    }
+
     toast.error(result.error);
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        ref={setFormElement}
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        noValidate
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -186,7 +207,7 @@ export function ArticleForm({
                   type="number"
                   min={0}
                   step={1}
-                  placeholder="Optional"
+                  placeholder="0"
                   {...field}
                   value={field.value ?? ""}
                   className={inputClassName}

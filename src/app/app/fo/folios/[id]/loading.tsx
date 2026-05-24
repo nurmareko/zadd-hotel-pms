@@ -16,18 +16,17 @@ export default function Loading() {
 
       <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3">
-          <CardSkeleton rows={5} titleWidth="w-36" />
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3">
               <Skeleton className="h-3 w-36 bg-console-border" />
             </div>
-            <TableSkeleton rows={7} cols={5} minWidth="720px" />
+            <TableSkeleton rows={7} cols={6} minWidth="720px" />
           </section>
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3">
               <Skeleton className="h-3 w-32 bg-console-border" />
             </div>
-            <TableSkeleton rows={4} cols={4} minWidth="640px" />
+            <TableSkeleton rows={4} cols={5} minWidth="640px" />
           </section>
         </div>
         <aside className="flex min-w-0 flex-col gap-3">

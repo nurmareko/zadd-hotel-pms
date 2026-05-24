@@ -11,13 +11,22 @@ import {
   RestaurantTableUpdateSchema,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const TABLES_PATH = "/app/admin/tables";
 const FB_PATH = "/app/fb";
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid table data";
+function validationFailure(error: {
+  issues: { message: string; path: PropertyKey[] }[];
+}): ActionResult {
+  const issue = error.issues[0];
+  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+
+  return {
+    ok: false,
+    error: issue?.message ?? "Data meja tidak valid",
+    field,
+  };
 }
 
 async function canManageRestaurantTables() {
@@ -26,18 +35,18 @@ async function canManageRestaurantTables() {
   return session?.user.role === "ADMIN";
 }
 
-function prismaErrorMessage(error: unknown) {
+function prismaErrorResult(error: unknown): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      return "Table number already exists";
+      return { ok: false, error: "Nomor meja sudah digunakan", field: "number" };
     }
 
     if (error.code === "P2025") {
-      return "Table not found";
+      return { ok: false, error: "Meja tidak ditemukan" };
     }
   }
 
-  return "Something went wrong";
+  return { ok: false, error: "Terjadi kesalahan" };
 }
 
 function revalidateTableScreens() {
@@ -55,10 +64,23 @@ export async function createRestaurantTable(
   const parsed = RestaurantTableCreateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
+    const existingNumber = await prisma.restaurantTable.findUnique({
+      where: { number: parsed.data.number },
+      select: { id: true },
+    });
+
+    if (existingNumber) {
+      return {
+        ok: false,
+        error: "Nomor meja sudah digunakan",
+        field: "number",
+      };
+    }
+
     await prisma.restaurantTable.create({
       data: parsed.data,
     });
@@ -67,7 +89,7 @@ export async function createRestaurantTable(
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -81,12 +103,25 @@ export async function updateRestaurantTable(
   const parsed = RestaurantTableUpdateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const { id, ...data } = parsed.data;
 
   try {
+    const existingNumber = await prisma.restaurantTable.findFirst({
+      where: { number: data.number, id: { not: id } },
+      select: { id: true },
+    });
+
+    if (existingNumber) {
+      return {
+        ok: false,
+        error: "Nomor meja sudah digunakan",
+        field: "number",
+      };
+    }
+
     const openOrderCount = await prisma.fBOrder.count({
       where: { tableId: id, status: FBOrderStatus.OPEN },
     });
@@ -94,7 +129,8 @@ export async function updateRestaurantTable(
     if (openOrderCount > 0 && data.status !== TableStatus.OCCUPIED) {
       return {
         ok: false,
-        error: "Table has an open order. Keep status as OCCUPIED first.",
+        error: "Meja memiliki order terbuka. Status harus tetap OCCUPIED.",
+        field: "status",
       };
     }
 
@@ -107,7 +143,7 @@ export async function updateRestaurantTable(
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -121,7 +157,7 @@ export async function deleteRestaurantTable(
   const parsed = RestaurantTableIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
@@ -132,7 +168,7 @@ export async function deleteRestaurantTable(
     if (orderCount > 0) {
       return {
         ok: false,
-        error: "This table has order history. Set it OUT_OF_SERVICE instead.",
+        error: "Meja memiliki riwayat order. Ubah status ke OUT_OF_SERVICE.",
       };
     }
 
@@ -144,6 +180,6 @@ export async function deleteRestaurantTable(
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }

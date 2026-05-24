@@ -2,7 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type FieldPath,
+  type Resolver,
+} from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -14,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { focusFirstFormError } from "@/lib/form-error-focus";
 import { formatIDR } from "@/lib/format";
 import { completeCheckIn } from "./actions";
 import {
@@ -125,6 +131,7 @@ export function CheckInForm({
 }: CheckInFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [floorFilter, setFloorFilter] = useState("");
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(CheckInSchema) as unknown as Resolver<
       CheckInFormValues
@@ -184,6 +191,10 @@ export function CheckInForm({
   }, [existingDeposit]);
   const isSubmitting = form.formState.isSubmitting;
 
+  function onInvalid() {
+    focusFirstFormError(formElement);
+  }
+
   async function onSubmit(
     values: CheckInFormValues,
     event?: BaseSyntheticEvent,
@@ -212,6 +223,15 @@ export function CheckInForm({
     const result = await completeCheckIn(formData);
 
     if (!result.ok) {
+      if (result.field) {
+        form.setError(
+          result.field as FieldPath<CheckInFormValues>,
+          { type: "server", message: result.error },
+          { shouldFocus: true },
+        );
+        focusFirstFormError(formElement);
+      }
+
       setActionError(resultErrorMessage(result.error));
       toast.error(resultErrorMessage(result.error));
     }
@@ -221,7 +241,9 @@ export function CheckInForm({
     <Form {...form}>
       <form
         id="check-in-form"
-        onSubmit={form.handleSubmit(onSubmit)}
+        ref={setFormElement}
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        noValidate
         className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
         <input
@@ -318,7 +340,6 @@ export function CheckInForm({
                     <FormLabel>Nama Tamu</FormLabel>
                     <FormControl>
                       <Input
-                        required
                         placeholder="Nama lengkap tamu"
                         className={fieldClassName}
                         {...field}

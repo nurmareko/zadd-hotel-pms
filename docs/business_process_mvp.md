@@ -181,6 +181,8 @@ flowchart TD
 
 **Why credit is acceptable:** if the guest overpaid (rare but happens with deposit + low actual usage), the credit is recorded but doesn't block check-out. A small overpayment isn't worth holding the guest at the desk; the credit becomes a known accounting item resolved later.
 
+**MVP simplification:** room charges are posted by Night Audit, not by Check-out. If a guest checks out before Night Audit has posted the room charge, the folio can show a credit balance from the deposit. The Check-out screen labels that state as a refund due and allows checkout; it does not post room charges itself.
+
 ---
 
 ## 6. Housekeeping Process

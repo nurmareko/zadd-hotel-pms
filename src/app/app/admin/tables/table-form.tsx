@@ -2,8 +2,8 @@
 
 import { TableLocation, TableStatus } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useState } from "react";
+import { useForm, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { focusFirstFormError } from "@/lib/form-error-focus";
 import { createRestaurantTable, updateRestaurantTable } from "./actions";
 import {
   RestaurantTableCreateSchema,
@@ -110,6 +111,11 @@ export function RestaurantTableForm({
     resolver: zodResolver(RestaurantTableCreateSchema),
     defaultValues: initialValues,
   });
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
+
+  function onInvalid() {
+    focusFirstFormError(formElement);
+  }
 
   async function onSubmit(values: RestaurantTableFormValues) {
     const result = isEditing
@@ -123,12 +129,26 @@ export function RestaurantTableForm({
       return;
     }
 
+    if (result.field) {
+      form.setError(
+        result.field as FieldPath<RestaurantTableFormInput>,
+        { type: "server", message: result.error },
+        { shouldFocus: true },
+      );
+      focusFirstFormError(formElement);
+    }
+
     toast.error(result.error);
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        ref={setFormElement}
+        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+        noValidate
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}

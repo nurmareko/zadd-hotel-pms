@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -47,9 +47,6 @@ export type MenuItemRow = {
 type MenuTableProps = {
   items: MenuItemRow[];
 };
-
-const buttonClassName =
-  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
 
 const primaryButtonClassName =
   "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
@@ -171,10 +168,6 @@ export function MenuTable({ items }: MenuTableProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className={buttonClassName}>
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Export
-          </Button>
           <AddMenuItemButton onClick={() => setCreateOpen(true)} />
         </div>
       </div>
