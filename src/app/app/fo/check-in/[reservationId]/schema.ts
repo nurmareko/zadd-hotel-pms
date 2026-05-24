@@ -18,7 +18,7 @@ export const checkInDepositMethods = [
 const TextOrEmptySchema = z
   .string()
   .trim()
-  .max(100, "Text must be 100 characters or fewer")
+  .max(100, "Teks maksimal 100 karakter")
   .optional()
   .transform((value) => value ?? "");
 
@@ -26,7 +26,7 @@ const OptionalGuestFieldSchema = (maxLength: number) =>
   z
     .string()
     .trim()
-    .max(maxLength, `Text must be ${maxLength} characters or fewer`)
+    .max(maxLength, `Teks maksimal ${maxLength} karakter`)
     .optional()
     .transform((value) => value ?? "");
 
@@ -35,8 +35,8 @@ const OptionalGuestEmailSchema = z
     z
       .string()
       .trim()
-      .email("Email is invalid")
-      .max(100, "Email must be 100 characters or fewer"),
+      .email("Format email tidak valid")
+      .max(100, "Email maksimal 100 karakter"),
     z.literal(""),
   ])
   .optional()
@@ -45,40 +45,51 @@ const OptionalGuestEmailSchema = z
 const BooleanConfirmationSchema = z.preprocess(
   (value) => value === true || value === "true" || value === "on",
   z.boolean().refine((value) => value, {
-    message: "Guest arrival confirmation is required",
+    message: "Konfirmasi kedatangan tamu wajib dicentang",
   }),
 );
 
 const MoneySchema = z.preprocess(
-  (value) => (value === "" || value == null ? 0 : value),
-  z.coerce.number("Deposit amount is required").min(0, "Deposit cannot be negative"),
+  (value) =>
+    (typeof value === "string" && value.trim() === "") || value == null
+      ? 0
+      : value,
+  z.coerce
+    .number("Jumlah deposit harus berupa angka")
+    .min(0, "Jumlah deposit tidak boleh negatif"),
 );
 
 export const CheckInSchema = z
   .object({
     reservationId: z.coerce
-      .number("Reservation is required")
-      .int("Reservation is invalid")
-      .positive("Reservation is required"),
+      .number("Reservasi wajib dipilih")
+      .int("Reservasi tidak valid")
+      .positive("Reservasi wajib dipilih"),
     roomId: z.coerce
-      .number("Room is required")
-      .int("Room is invalid")
-      .positive("Room is required"),
+      .number("Pilih kamar untuk check-in")
+      .int("Kamar tidak valid")
+      .positive("Pilih kamar untuk check-in"),
     guestFullName: z
       .string()
       .trim()
-      .min(1, "Required")
-      .max(100, "Name must be 100 characters or fewer"),
+      .min(1, "Nama tamu wajib diisi")
+      .min(2, "Nama tamu minimal 2 karakter")
+      .max(100, "Nama tamu maksimal 100 karakter"),
     guestIdNumber: OptionalGuestFieldSchema(50),
     guestPhone: OptionalGuestFieldSchema(20),
     guestEmail: OptionalGuestEmailSchema,
     guestNationality: OptionalGuestFieldSchema(50),
-    purposeOfVisit: z.enum(purposeOfVisitOptions),
+    purposeOfVisit: z.enum(purposeOfVisitOptions, {
+      error: "Pilih tujuan kunjungan",
+    }),
     purposeOfVisitOther: TextOrEmptySchema,
     arrivalConfirmation: BooleanConfirmationSchema,
     depositAmount: MoneySchema,
     depositMethod: z
-      .union([z.enum(checkInDepositMethods), z.literal("")])
+      .union([
+        z.enum(checkInDepositMethods, { error: "Pilih metode deposit" }),
+        z.literal(""),
+      ])
       .optional()
       .default(""),
     depositReference: TextOrEmptySchema,
@@ -87,14 +98,16 @@ export const CheckInSchema = z
     if (value.purposeOfVisit === "Lainnya" && !value.purposeOfVisitOther) {
       ctx.addIssue({
         code: "custom",
-        message: "Custom purpose of visit is required when choosing Lainnya",
+        path: ["purposeOfVisitOther"],
+        message: "Tuliskan detail tujuan kunjungan",
       });
     }
 
     if (value.depositAmount > 0 && !value.depositMethod) {
       ctx.addIssue({
         code: "custom",
-        message: "Deposit method is required when deposit amount is greater than 0",
+        path: ["depositMethod"],
+        message: "Pilih metode deposit",
       });
     }
 
@@ -105,7 +118,8 @@ export const CheckInSchema = z
     ) {
       ctx.addIssue({
         code: "custom",
-        message: "Deposit reference is required for transfer payments",
+        path: ["depositReference"],
+        message: "Referensi deposit wajib diisi untuk transfer",
       });
     }
   })

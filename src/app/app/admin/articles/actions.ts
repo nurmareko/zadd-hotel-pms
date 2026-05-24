@@ -11,12 +11,21 @@ import {
   ArticleUpdateSchema,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const ARTICLES_PATH = "/app/admin/articles";
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid article data";
+function validationFailure(error: {
+  issues: { message: string; path: PropertyKey[] }[];
+}): ActionResult {
+  const issue = error.issues[0];
+  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+
+  return {
+    ok: false,
+    error: issue?.message ?? "Data artikel tidak valid",
+    field,
+  };
 }
 
 async function canManageArticles() {
@@ -25,22 +34,22 @@ async function canManageArticles() {
   return session?.user.role === "ADMIN";
 }
 
-function prismaErrorMessage(error: unknown) {
+function prismaErrorResult(error: unknown): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      return "Code already exists";
+      return { ok: false, error: "Kode sudah digunakan", field: "code" };
     }
 
     if (error.code === "P2003") {
-      return "Article is in use";
+      return { ok: false, error: "Artikel sedang digunakan" };
     }
 
     if (error.code === "P2025") {
-      return "Article not found";
+      return { ok: false, error: "Artikel tidak ditemukan" };
     }
   }
 
-  return "Something went wrong";
+  return { ok: false, error: "Terjadi kesalahan" };
 }
 
 export async function createArticle(input: unknown): Promise<ActionResult> {
@@ -51,10 +60,19 @@ export async function createArticle(input: unknown): Promise<ActionResult> {
   const parsed = ArticleCreateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
+    const existingCode = await prisma.article.findUnique({
+      where: { code: parsed.data.code },
+      select: { id: true },
+    });
+
+    if (existingCode) {
+      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+    }
+
     await prisma.article.create({
       data: parsed.data,
     });
@@ -63,7 +81,7 @@ export async function createArticle(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -75,12 +93,21 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
   const parsed = ArticleUpdateSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const { id, ...data } = parsed.data;
 
   try {
+    const existingCode = await prisma.article.findFirst({
+      where: { code: data.code, id: { not: id } },
+      select: { id: true },
+    });
+
+    if (existingCode) {
+      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+    }
+
     await prisma.article.update({
       where: { id },
       data,
@@ -90,7 +117,7 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }
 
@@ -102,7 +129,7 @@ export async function deleteArticle(id: number): Promise<ActionResult> {
   const parsed = ArticleIdSchema.safeParse({ id });
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   try {
@@ -114,6 +141,6 @@ export async function deleteArticle(id: number): Promise<ActionResult> {
 
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: prismaErrorMessage(error) };
+    return prismaErrorResult(error);
   }
 }

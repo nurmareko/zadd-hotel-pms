@@ -12,7 +12,7 @@ import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { CheckInSchema, type CheckInValues } from "./schema";
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
@@ -40,8 +40,17 @@ type CheckInContext = {
 
 class CheckInActionError extends Error {}
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid check-in data";
+function validationFailure(error: {
+  issues: { message: string; path: PropertyKey[] }[];
+}): ActionResult {
+  const issue = error.issues[0];
+  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+
+  return {
+    ok: false,
+    error: issue?.message ?? "Data check-in tidak valid",
+    field,
+  };
 }
 
 function isRetryableFolioNumberError(error: unknown) {
@@ -64,7 +73,7 @@ async function roomUnavailableMessage(roomId: number) {
     select: { number: true },
   });
 
-  return `Room ${room?.number ?? roomId} is no longer available - someone else booked it. Choose another.`;
+  return `Kamar ${room?.number ?? roomId} sudah tidak tersedia. Pilih kamar lain.`;
 }
 
 async function prepareCheckInContext(input: CheckInValues) {
@@ -83,7 +92,7 @@ async function prepareCheckInContext(input: CheckInValues) {
   if (!reservation || reservation.status !== ReservationStatus.CONFIRMED) {
     return {
       ok: false as const,
-      error: "Reservation is not in confirmable state",
+      error: "Reservasi tidak dalam status yang bisa check-in",
     };
   }
 
@@ -94,7 +103,7 @@ async function prepareCheckInContext(input: CheckInValues) {
   if (arrivalDate > today) {
     return {
       ok: false as const,
-      error: "Arrival date is not eligible for check-in yet",
+      error: "Tanggal kedatangan belum bisa check-in",
     };
   }
 
@@ -104,13 +113,18 @@ async function prepareCheckInContext(input: CheckInValues) {
   });
 
   if (!room || room.roomTypeId !== reservation.roomTypeId) {
-    return { ok: false as const, error: "Room is invalid for this booking" };
+    return {
+      ok: false as const,
+      error: "Kamar tidak valid untuk reservasi ini",
+      field: "roomId",
+    };
   }
 
   if (room.status === RoomStatus.OOO) {
     return {
       ok: false as const,
-      error: `Room ${room.number} is out of order. Choose another.`,
+      error: `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
+      field: "roomId",
     };
   }
 
@@ -128,7 +142,8 @@ async function prepareCheckInContext(input: CheckInValues) {
   if (overlappingReservation) {
     return {
       ok: false as const,
-      error: `Room ${room.number} is no longer available - someone else booked it. Choose another.`,
+      error: `Kamar ${room.number} sudah tidak tersedia. Pilih kamar lain.`,
+      field: "roomId",
     };
   }
 
@@ -171,7 +186,7 @@ async function runCheckInTransaction(
 
       if (overlappingReservation) {
         throw new CheckInActionError(
-          `Room ${room.number} is no longer available - someone else booked it. Choose another.`,
+          `Kamar ${room.number} sudah tidak tersedia. Pilih kamar lain.`,
         );
       }
 
@@ -222,7 +237,7 @@ async function runCheckInTransaction(
 
       if (updatedRoom.count === 0) {
         throw new CheckInActionError(
-          `Room ${room.number} is out of order. Choose another.`,
+          `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
         );
       }
 
@@ -260,7 +275,7 @@ export async function completeCheckIn(
   const parsed = CheckInSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
   const userId = Number(session.user.id);

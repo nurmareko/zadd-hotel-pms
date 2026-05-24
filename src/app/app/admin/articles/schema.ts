@@ -9,43 +9,47 @@ export const articleTypes = [
   ArticleType.MISC,
 ] as const;
 
-const OptionalDefaultPriceSchema = z.preprocess(
-  (value) =>
-    value === "" || value === null || typeof value === "undefined"
-      ? null
-      : value,
-  z.coerce
-    .number("Default price must be a number")
-    .min(0, "Default price must be at least 0")
-    .nullable(),
-);
+const formNumber = (schema: z.ZodNumber) =>
+  z.preprocess(
+    (value) =>
+      (typeof value === "string" && value.trim() === "") ||
+      value === null ||
+      typeof value === "undefined"
+        ? undefined
+        : Number(value),
+    schema,
+  );
 
 export const ArticleCreateSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Code is required")
-    .max(20, "Code must be 20 characters or fewer")
+    .min(1, "Kode wajib diisi")
+    .max(20, "Kode maksimal 20 karakter")
     .regex(
-      /^[A-Za-z0-9_-]+$/,
-      "Code may only contain letters, numbers, underscores, and hyphens",
-    )
-    .transform((value) => value.toUpperCase()),
+      /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+      "Kode harus huruf besar, angka, dan tanda hubung",
+    ),
   name: z
     .string()
     .trim()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or fewer"),
-  type: z.enum(articleTypes),
-  defaultPrice: OptionalDefaultPriceSchema,
+    .min(1, "Nama wajib diisi")
+    .min(2, "Nama minimal 2 karakter")
+    .max(100, "Nama maksimal 100 karakter"),
+  type: z.enum(articleTypes, { error: "Pilih kategori artikel yang valid" }),
+  defaultPrice: formNumber(
+    z
+      .number({ error: "Default price wajib diisi dan harus berupa angka" })
+      .min(0, "Default price tidak boleh negatif"),
+  ),
 });
 
 export const ArticleUpdateSchema = ArticleCreateSchema.extend({
-  id: z.coerce.number().int().positive("Article is required"),
+  id: z.coerce.number().int().positive("Artikel wajib dipilih"),
 });
 
 export const ArticleIdSchema = z.object({
-  id: z.coerce.number().int().positive("Article is required"),
+  id: z.coerce.number().int().positive("Artikel wajib dipilih"),
 });
 
 export type ArticleTypeValue = (typeof articleTypes)[number];
