@@ -40,9 +40,8 @@ type TapeChartGridProps = {
 const statusClasses: Record<
   TapeVisualState,
   {
-    bg: string;
-    border: string;
-    text: string;
+    bgColor: string;
+    textColor: string;
     accent: string;
     hoverBg: string;
     cue: string;
@@ -51,75 +50,67 @@ const statusClasses: Record<
   }
 > = {
   VC: {
-    bg: "bg-status-vc-bg",
-    border: "border-status-vc-pip",
-    text: "text-slate-700",
-    accent: "var(--emerald-500)",
-    hoverBg: "#d1fae5",
+    bgColor: "#F2F7EC",
+    textColor: "#35451F",
+    accent: "#639922",
+    hoverBg: "#E5F0D8",
     cue: "VC",
     treatment: "border-l-[3px]",
   },
   OC: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#F2F1FF",
+    textColor: "#3D3973",
+    accent: "#7F77DD",
+    hoverBg: "#E6E3FF",
     cue: "OC",
     treatment: "border-l-[3px]",
   },
   CONFIRMED: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#EEF7FF",
+    textColor: "#17466F",
+    accent: "#378ADD",
+    hoverBg: "#DCEFFF",
     cue: "CNF",
     treatment: "border border-dashed",
   },
   CHECKED_IN: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#F2F1FF",
+    textColor: "#3D3973",
+    accent: "#7F77DD",
+    hoverBg: "#E6E3FF",
     cue: "IN",
     treatment: "border-l-[3px]",
   },
   VD: {
-    bg: "bg-status-vd-bg",
-    border: "border-status-vd-pip",
-    text: "text-status-vd-fg",
-    accent: "var(--amber-500)",
-    hoverBg: "#fef3c7",
+    bgColor: "#FFF1EC",
+    textColor: "#71321E",
+    accent: "#D85A30",
+    hoverBg: "#FFE2D7",
     cue: "VD",
     treatment: "border-l-[3px]",
   },
   OD: {
-    bg: "bg-status-od-bg",
-    border: "border-status-od-pip",
-    text: "text-status-od-fg",
-    accent: "var(--red-500)",
-    hoverBg: "#fee2e2",
+    bgColor: "#FFF1EC",
+    textColor: "#71321E",
+    accent: "#D85A30",
+    hoverBg: "#FFE2D7",
     cue: "OD",
     treatment: "border-l-[3px]",
   },
   VCU: {
-    bg: "bg-status-vcu-bg",
-    border: "border-status-vcu-pip",
-    text: "text-status-vcu-fg",
-    accent: "var(--yellow-500)",
-    hoverBg: "#fef9c3",
+    bgColor: "#FFF7E8",
+    textColor: "#744A0C",
+    accent: "#EF9F27",
+    hoverBg: "#FFECC2",
     cue: "VCU",
     treatment: "border border-dotted",
     pattern: styles.vcuCell,
   },
   OOO: {
-    bg: "bg-status-ooo-bg",
-    border: "border-status-ooo-pip",
-    text: "text-status-ooo-fg",
-    accent: "var(--slate-500)",
-    hoverBg: "var(--slate-200)",
+    bgColor: "#F2F2EF",
+    textColor: "#42423F",
+    accent: "#888780",
+    hoverBg: "#E7E7E1",
     cue: "OOO",
     treatment: "border border-solid",
     pattern: styles.outOfOrderCell,
@@ -306,9 +297,6 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                           classes.treatment,
                           isOccupied ? styles.occupiedCell : styles.emptyCell,
                           classes.pattern,
-                          classes.bg,
-                          classes.border,
-                          classes.text,
                         ].join(" ")}
                         data-folio-id={cell.folioId}
                         data-reservation-id={cell.reservationId}
@@ -316,6 +304,9 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                           {
                             "--tape-cell-accent": classes.accent,
                             "--tape-cell-hover-bg": classes.hoverBg,
+                            backgroundColor: classes.bgColor,
+                            borderColor: classes.accent,
+                            color: classes.textColor,
                             height: "calc(100% - 4px)",
                             margin: 2,
                           } as CSSProperties
