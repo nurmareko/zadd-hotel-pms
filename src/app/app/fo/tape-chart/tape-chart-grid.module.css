@@ -4,10 +4,11 @@
 
 .cell:hover .emptyCell {
   background: var(--tape-cell-hover-bg);
+  filter: brightness(0.94);
 }
 
 .cell:hover .occupiedCell {
-  outline: 1px solid var(--tape-cell-accent);
+  outline: 1px solid var(--tape-cell-cue);
   outline-offset: -1px;
 }
 
@@ -16,8 +17,8 @@
     90deg,
     transparent 0,
     transparent 5px,
-    rgb(234 179 8 / 0.2) 5px,
-    rgb(234 179 8 / 0.2) 6px
+    rgb(65 36 2 / 0.22) 5px,
+    rgb(65 36 2 / 0.22) 6px
   );
 }
 
@@ -26,7 +27,7 @@
     135deg,
     transparent 0,
     transparent 5px,
-    rgb(100 116 139 / 0.22) 5px,
-    rgb(100 116 139 / 0.22) 7px
+    rgb(255 255 255 / 0.28) 5px,
+    rgb(255 255 255 / 0.28) 7px
   );
 }

@@ -9,45 +9,51 @@ const legendItems = [
   {
     code: "VC",
     label: "Vacant Clean",
-    bg: "bg-status-vc-bg",
-    text: "text-status-vc-fg",
-    sample: "border-l-[3px] border-status-vc-pip",
+    bgColor: "#639922",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    sample: "border-l-[3px]",
   },
   {
     code: "CNF",
     label: "Confirmed",
-    bg: "bg-status-oc-bg",
-    text: "text-status-oc-fg",
-    sample: "border border-dashed border-status-oc-pip",
+    bgColor: "#378ADD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    sample: "border border-dashed",
   },
   {
     code: "IN",
     label: "Checked In",
-    bg: "bg-status-oc-bg",
-    text: "text-status-oc-fg",
-    sample: "border-l-[3px] border-status-oc-pip",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    sample: "border-l-[3px]",
   },
   {
     code: "VD",
     label: "Vacant Dirty",
-    bg: "bg-status-vd-bg",
-    text: "text-status-vd-fg",
-    sample: "border-l-[3px] border-status-vd-pip",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    sample: "border-l-[3px]",
   },
   {
     code: "VCU",
     label: "Unchecked",
-    bg: "bg-status-vcu-bg",
-    text: "text-status-vcu-fg",
-    sample: "border border-dotted border-status-vcu-pip",
+    bgColor: "#EF9F27",
+    textColor: "#412402",
+    cueColor: "rgb(65 36 2 / 0.58)",
+    sample: "border border-dotted",
     pattern: styles.vcuCell,
   },
   {
     code: "OOO",
     label: "Out of Order",
-    bg: "bg-status-ooo-bg",
-    text: "text-status-ooo-fg",
-    sample: "border border-status-ooo-pip",
+    bgColor: "#888780",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.78)",
+    sample: "border",
     pattern: styles.outOfOrderCell,
   },
 ] as const;
@@ -65,16 +71,26 @@ export function TapeChartLegend({
             key={item.code}
             className={[
               "inline-flex h-5 items-center gap-1.5 border border-console-border-soft px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
-              item.bg,
-              item.text,
             ].join(" ")}
+            style={{
+              backgroundColor: item.bgColor,
+              color: item.textColor,
+              textShadow:
+                item.textColor === "#FFFFFF"
+                  ? "0 1px 1px rgb(0 0 0 / 0.35)"
+                  : "none",
+            }}
           >
             <span
               className={[
-                "h-3 w-4 bg-white",
+                "h-3 w-4",
                 item.sample,
                 "pattern" in item ? item.pattern : "",
               ].join(" ")}
+              style={{
+                backgroundColor: item.bgColor,
+                borderColor: item.cueColor,
+              }}
               aria-hidden="true"
             />
             {item.code} · {item.label}

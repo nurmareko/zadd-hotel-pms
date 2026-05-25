@@ -40,10 +40,9 @@ type TapeChartGridProps = {
 const statusClasses: Record<
   TapeVisualState,
   {
-    bg: string;
-    border: string;
-    text: string;
-    accent: string;
+    bgColor: string;
+    textColor: string;
+    cueColor: string;
     hoverBg: string;
     cue: string;
     treatment: string;
@@ -51,75 +50,67 @@ const statusClasses: Record<
   }
 > = {
   VC: {
-    bg: "bg-status-vc-bg",
-    border: "border-status-vc-pip",
-    text: "text-slate-700",
-    accent: "var(--emerald-500)",
-    hoverBg: "#d1fae5",
+    bgColor: "#639922",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#639922",
     cue: "VC",
     treatment: "border-l-[3px]",
   },
   OC: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#7F77DD",
     cue: "OC",
     treatment: "border-l-[3px]",
   },
   CONFIRMED: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#378ADD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#378ADD",
     cue: "CNF",
     treatment: "border border-dashed",
   },
   CHECKED_IN: {
-    bg: "bg-status-oc-bg",
-    border: "border-status-oc-pip",
-    text: "text-status-oc-fg",
-    accent: "var(--blue-500)",
-    hoverBg: "#dbeafe",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#7F77DD",
     cue: "IN",
     treatment: "border-l-[3px]",
   },
   VD: {
-    bg: "bg-status-vd-bg",
-    border: "border-status-vd-pip",
-    text: "text-status-vd-fg",
-    accent: "var(--amber-500)",
-    hoverBg: "#fef3c7",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#D85A30",
     cue: "VD",
     treatment: "border-l-[3px]",
   },
   OD: {
-    bg: "bg-status-od-bg",
-    border: "border-status-od-pip",
-    text: "text-status-od-fg",
-    accent: "var(--red-500)",
-    hoverBg: "#fee2e2",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#D85A30",
     cue: "OD",
     treatment: "border-l-[3px]",
   },
   VCU: {
-    bg: "bg-status-vcu-bg",
-    border: "border-status-vcu-pip",
-    text: "text-status-vcu-fg",
-    accent: "var(--yellow-500)",
-    hoverBg: "#fef9c3",
+    bgColor: "#EF9F27",
+    textColor: "#412402",
+    cueColor: "rgb(65 36 2 / 0.58)",
+    hoverBg: "#EF9F27",
     cue: "VCU",
     treatment: "border border-dotted",
     pattern: styles.vcuCell,
   },
   OOO: {
-    bg: "bg-status-ooo-bg",
-    border: "border-status-ooo-pip",
-    text: "text-status-ooo-fg",
-    accent: "var(--slate-500)",
-    hoverBg: "var(--slate-200)",
+    bgColor: "#888780",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.78)",
+    hoverBg: "#888780",
     cue: "OOO",
     treatment: "border border-solid",
     pattern: styles.outOfOrderCell,
@@ -306,18 +297,22 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                           classes.treatment,
                           isOccupied ? styles.occupiedCell : styles.emptyCell,
                           classes.pattern,
-                          classes.bg,
-                          classes.border,
-                          classes.text,
                         ].join(" ")}
                         data-folio-id={cell.folioId}
                         data-reservation-id={cell.reservationId}
                         style={
                           {
-                            "--tape-cell-accent": classes.accent,
+                            "--tape-cell-cue": classes.cueColor,
                             "--tape-cell-hover-bg": classes.hoverBg,
+                            backgroundColor: classes.bgColor,
+                            borderColor: classes.cueColor,
+                            color: classes.textColor,
                             height: "calc(100% - 4px)",
                             margin: 2,
+                            textShadow:
+                              classes.textColor === "#FFFFFF"
+                                ? "0 1px 1px rgb(0 0 0 / 0.35)"
+                                : "none",
                           } as CSSProperties
                         }
                       >
