@@ -1,8 +1,10 @@
 "use client";
 
-import { OrderItemRow, type OrderCartItem } from "./order-item-row";
-import { OrderActions } from "./order-actions";
+import { fbOrderGuestLabel } from "@/lib/fb-order-guest";
 import { formatIDR } from "@/lib/format";
+
+import { OrderActions } from "./order-actions";
+import { OrderItemRow, type OrderCartItem } from "./order-item-row";
 
 export type OrderCartData = {
   id: number;
@@ -31,6 +33,17 @@ function shouldShowAmount(amount: string) {
 
 export function OrderCart({ order, settings }: OrderCartProps) {
   const canEdit = order.status === "OPEN";
+  const itemsByGuest = Array.from(
+    order.items.reduce((groups, item) => {
+      const guestNumber = item.guestNumber || 1;
+      const currentItems = groups.get(guestNumber) ?? [];
+
+      currentItems.push(item);
+      groups.set(guestNumber, currentItems);
+
+      return groups;
+    }, new Map<number, OrderCartItem[]>()),
+  ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
     <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
@@ -49,8 +62,15 @@ export function OrderCart({ order, settings }: OrderCartProps) {
         </div>
       ) : (
         <div>
-          {order.items.map((item) => (
-            <OrderItemRow canEdit={canEdit} item={item} key={item.id} />
+          {itemsByGuest.map(([guestNumber, guestItems]) => (
+            <section key={guestNumber}>
+              <div className="border-b border-console-border-soft bg-console-bg px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">
+                {fbOrderGuestLabel(guestNumber)}
+              </div>
+              {guestItems.map((item) => (
+                <OrderItemRow canEdit={canEdit} item={item} key={item.id} />
+              ))}
+            </section>
           ))}
         </div>
       )}

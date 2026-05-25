@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 import { notFound } from "next/navigation";
 
+import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { prisma } from "@/lib/prisma";
 
@@ -110,14 +111,19 @@ export default async function BillPage({ params }: BillPageProps) {
             guestCount: order.guestCount,
             openedAtLabel,
             cashierName: order.waitedBy.fullName,
-            items: order.items.map((item) => ({
-              id: item.id,
-              name: item.menuItem.name,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice.toString(),
-              amount: item.amount.toString(),
-              notes: item.notes ?? "",
-            })),
+            items: order.items.map((item) => {
+              const parsedNotes = parseFBOrderItemNotes(item.notes);
+
+              return {
+                id: item.id,
+                name: item.menuItem.name,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice.toString(),
+                amount: item.amount.toString(),
+                notes: parsedNotes.notes,
+                guestNumber: parsedNotes.guestNumber ?? 1,
+              };
+            }),
           }}
           settings={{
             hotelName: settings.hotelName,

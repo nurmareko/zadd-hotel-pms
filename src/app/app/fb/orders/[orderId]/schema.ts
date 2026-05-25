@@ -13,6 +13,12 @@ export const CreateOrderSchema = z.object({
 export const AddItemToOrderSchema = z.object({
   orderId: z.coerce.number().int().positive("Order is required"),
   menuItemId: z.coerce.number().int().positive("Menu item is required"),
+  guestNumber: z.coerce
+    .number()
+    .int()
+    .min(1, "Guest number must be at least 1")
+    .max(99, "Guest number is too high")
+    .default(1),
   quantity: z.coerce
     .number()
     .int()
@@ -22,7 +28,7 @@ export const AddItemToOrderSchema = z.object({
   notes: z
     .string()
     .trim()
-    .max(255, "Notes must be 255 characters or fewer")
+    .max(235, "Notes must be 235 characters or fewer")
     .optional()
     .transform((value) => value || null),
 });
@@ -43,7 +49,7 @@ export const UpdateItemNotesSchema = OrderItemIdSchema.extend({
   notes: z
     .string()
     .trim()
-    .max(255, "Notes must be 255 characters or fewer")
+    .max(235, "Notes must be 235 characters or fewer")
     .optional()
     .transform((value) => value || null),
 });

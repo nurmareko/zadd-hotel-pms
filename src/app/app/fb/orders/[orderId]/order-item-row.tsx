@@ -22,6 +22,7 @@ export type OrderCartItem = {
   quantity: number;
   amount: string;
   notes: string;
+  guestNumber: number;
 };
 
 type OrderItemRowProps = {

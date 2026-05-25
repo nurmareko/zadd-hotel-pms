@@ -16,6 +16,7 @@ type MenuBrowseProps = {
   menuItems: MenuBrowseItem[];
   orderId: number;
   orderStatus: string;
+  guestCount: number;
 };
 
 const categoryTabs = ["Mains", "Beverage", "Desserts", "Breakfast", "All"];
@@ -24,10 +25,16 @@ export function MenuBrowse({
   menuItems,
   orderId,
   orderStatus,
+  guestCount,
 }: MenuBrowseProps) {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [activeGuest, setActiveGuest] = useState(1);
   const [query, setQuery] = useState("");
   const canEdit = orderStatus === "OPEN";
+  const guestNumbers = useMemo(
+    () => Array.from({ length: Math.max(guestCount, 1) }, (_, index) => index + 1),
+    [guestCount],
+  );
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -63,6 +70,29 @@ export function MenuBrowse({
         </div>
       </div>
       <div className="flex flex-wrap gap-3 border-b border-console-border px-3.5 py-3">
+        <div className="mr-1 flex items-center text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+          Tamu
+        </div>
+        {guestNumbers.map((guestNumber) => {
+          const active = activeGuest === guestNumber;
+
+          return (
+            <button
+              className={`h-7 border px-2 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+                active
+                  ? "border-console-ink bg-console-ink text-console-accent"
+                  : "border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg"
+              }`}
+              key={guestNumber}
+              onClick={() => setActiveGuest(guestNumber)}
+              type="button"
+            >
+              {guestNumber}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap gap-3 border-b border-console-border px-3.5 py-3">
         {categoryTabs.map((category) => {
           const active = activeCategory === category;
 
@@ -93,6 +123,7 @@ export function MenuBrowse({
               item={item}
               key={item.id}
               orderId={orderId}
+              guestNumber={activeGuest}
               disabled={!canEdit}
             />
           ))}
