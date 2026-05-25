@@ -42,7 +42,7 @@ const statusClasses: Record<
   {
     bgColor: string;
     textColor: string;
-    accent: string;
+    cueColor: string;
     hoverBg: string;
     cue: string;
     treatment: string;
@@ -50,67 +50,67 @@ const statusClasses: Record<
   }
 > = {
   VC: {
-    bgColor: "#F2F7EC",
-    textColor: "#35451F",
-    accent: "#639922",
-    hoverBg: "#E5F0D8",
+    bgColor: "#639922",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#639922",
     cue: "VC",
     treatment: "border-l-[3px]",
   },
   OC: {
-    bgColor: "#F2F1FF",
-    textColor: "#3D3973",
-    accent: "#7F77DD",
-    hoverBg: "#E6E3FF",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#7F77DD",
     cue: "OC",
     treatment: "border-l-[3px]",
   },
   CONFIRMED: {
-    bgColor: "#EEF7FF",
-    textColor: "#17466F",
-    accent: "#378ADD",
-    hoverBg: "#DCEFFF",
+    bgColor: "#378ADD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#378ADD",
     cue: "CNF",
     treatment: "border border-dashed",
   },
   CHECKED_IN: {
-    bgColor: "#F2F1FF",
-    textColor: "#3D3973",
-    accent: "#7F77DD",
-    hoverBg: "#E6E3FF",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#7F77DD",
     cue: "IN",
     treatment: "border-l-[3px]",
   },
   VD: {
-    bgColor: "#FFF1EC",
-    textColor: "#71321E",
-    accent: "#D85A30",
-    hoverBg: "#FFE2D7",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#D85A30",
     cue: "VD",
     treatment: "border-l-[3px]",
   },
   OD: {
-    bgColor: "#FFF1EC",
-    textColor: "#71321E",
-    accent: "#D85A30",
-    hoverBg: "#FFE2D7",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
+    hoverBg: "#D85A30",
     cue: "OD",
     treatment: "border-l-[3px]",
   },
   VCU: {
-    bgColor: "#FFF7E8",
-    textColor: "#744A0C",
-    accent: "#EF9F27",
-    hoverBg: "#FFECC2",
+    bgColor: "#EF9F27",
+    textColor: "#412402",
+    cueColor: "rgb(65 36 2 / 0.58)",
+    hoverBg: "#EF9F27",
     cue: "VCU",
     treatment: "border border-dotted",
     pattern: styles.vcuCell,
   },
   OOO: {
-    bgColor: "#F2F2EF",
-    textColor: "#42423F",
-    accent: "#888780",
-    hoverBg: "#E7E7E1",
+    bgColor: "#888780",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.78)",
+    hoverBg: "#888780",
     cue: "OOO",
     treatment: "border border-solid",
     pattern: styles.outOfOrderCell,
@@ -302,13 +302,17 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
                         data-reservation-id={cell.reservationId}
                         style={
                           {
-                            "--tape-cell-accent": classes.accent,
+                            "--tape-cell-cue": classes.cueColor,
                             "--tape-cell-hover-bg": classes.hoverBg,
                             backgroundColor: classes.bgColor,
-                            borderColor: classes.accent,
+                            borderColor: classes.cueColor,
                             color: classes.textColor,
                             height: "calc(100% - 4px)",
                             margin: 2,
+                            textShadow:
+                              classes.textColor === "#FFFFFF"
+                                ? "0 1px 1px rgb(0 0 0 / 0.35)"
+                                : "none",
                           } as CSSProperties
                         }
                       >

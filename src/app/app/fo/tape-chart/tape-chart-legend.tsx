@@ -9,50 +9,50 @@ const legendItems = [
   {
     code: "VC",
     label: "Vacant Clean",
-    bgColor: "#F2F7EC",
-    textColor: "#35451F",
-    color: "#639922",
+    bgColor: "#639922",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
     sample: "border-l-[3px]",
   },
   {
     code: "CNF",
     label: "Confirmed",
-    bgColor: "#EEF7FF",
-    textColor: "#17466F",
-    color: "#378ADD",
+    bgColor: "#378ADD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
     sample: "border border-dashed",
   },
   {
     code: "IN",
     label: "Checked In",
-    bgColor: "#F2F1FF",
-    textColor: "#3D3973",
-    color: "#7F77DD",
+    bgColor: "#7F77DD",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
     sample: "border-l-[3px]",
   },
   {
     code: "VD",
     label: "Vacant Dirty",
-    bgColor: "#FFF1EC",
-    textColor: "#71321E",
-    color: "#D85A30",
+    bgColor: "#D85A30",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.82)",
     sample: "border-l-[3px]",
   },
   {
     code: "VCU",
     label: "Unchecked",
-    bgColor: "#FFF7E8",
-    textColor: "#744A0C",
-    color: "#EF9F27",
+    bgColor: "#EF9F27",
+    textColor: "#412402",
+    cueColor: "rgb(65 36 2 / 0.58)",
     sample: "border border-dotted",
     pattern: styles.vcuCell,
   },
   {
     code: "OOO",
     label: "Out of Order",
-    bgColor: "#F2F2EF",
-    textColor: "#42423F",
-    color: "#888780",
+    bgColor: "#888780",
+    textColor: "#FFFFFF",
+    cueColor: "rgb(255 255 255 / 0.78)",
     sample: "border",
     pattern: styles.outOfOrderCell,
   },
@@ -72,7 +72,14 @@ export function TapeChartLegend({
             className={[
               "inline-flex h-5 items-center gap-1.5 border border-console-border-soft px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
             ].join(" ")}
-            style={{ backgroundColor: item.bgColor, color: item.textColor }}
+            style={{
+              backgroundColor: item.bgColor,
+              color: item.textColor,
+              textShadow:
+                item.textColor === "#FFFFFF"
+                  ? "0 1px 1px rgb(0 0 0 / 0.35)"
+                  : "none",
+            }}
           >
             <span
               className={[
@@ -82,7 +89,7 @@ export function TapeChartLegend({
               ].join(" ")}
               style={{
                 backgroundColor: item.bgColor,
-                borderColor: item.color,
+                borderColor: item.cueColor,
               }}
               aria-hidden="true"
             />
