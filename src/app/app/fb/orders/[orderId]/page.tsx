@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -83,6 +84,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           }))}
           orderId={order.id}
           orderStatus={order.status}
+          guestCount={order.guestCount}
         />
         <OrderCart
           order={{
@@ -95,16 +97,23 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             serviceCharge: computedTotals.serviceCharge.toString(),
             tax: computedTotals.tax.toString(),
             total: computedTotals.total.toString(),
-            items: order.items.map((item) => ({
-              id: item.id,
-              name: item.menuItem.isActive ? item.menuItem.name : "Item tidak tersedia",
-              category: item.menuItem.category,
-              isAvailable: item.menuItem.isActive,
-              unitPrice: item.unitPrice.toString(),
-              quantity: item.quantity,
-              amount: item.amount.toString(),
-              notes: item.notes ?? "",
-            })),
+            items: order.items.map((item) => {
+              const parsedNotes = parseFBOrderItemNotes(item.notes);
+
+              return {
+                id: item.id,
+                name: item.menuItem.isActive
+                  ? item.menuItem.name
+                  : "Item tidak tersedia",
+                category: item.menuItem.category,
+                isAvailable: item.menuItem.isActive,
+                unitPrice: item.unitPrice.toString(),
+                quantity: item.quantity,
+                amount: item.amount.toString(),
+                notes: parsedNotes.notes,
+                guestNumber: parsedNotes.guestNumber ?? 1,
+              };
+            }),
           }}
           settings={{
             serviceChargePercent: settings.serviceChargePercent.toString(),

@@ -14,6 +14,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import {
+  formatFBOrderItemNotes,
+  parseFBOrderItemNotes,
+} from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
@@ -137,7 +141,7 @@ async function ensureOpenOrderLocked(
 
   return tx.fBOrder.findUnique({
     where: { id: orderId },
-    select: { id: true, status: true, tableId: true },
+    select: { id: true, status: true, tableId: true, guestCount: true },
   });
 }
 
@@ -413,6 +417,13 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
       return { ok: false as const, error: "Only open orders can be edited" };
     }
 
+    if (parsed.data.guestNumber > order.guestCount) {
+      return {
+        ok: false as const,
+        error: "Guest number is outside this order's guest count",
+      };
+    }
+
     const menuItem = await tx.menuItem.findUnique({
       where: { id: parsed.data.menuItemId },
       select: { id: true, price: true, isActive: true, name: true },
@@ -422,11 +433,16 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
       return { ok: false as const, error: "Menu item is not available" };
     }
 
+    const notes = formatFBOrderItemNotes(
+      parsed.data.guestNumber,
+      parsed.data.notes,
+    );
+
     const existingItem = await tx.fBOrderItem.findFirst({
       where: {
         fbOrderId: order.id,
         menuItemId: menuItem.id,
-        notes: parsed.data.notes,
+        notes,
       },
       select: { id: true, quantity: true, unitPrice: true },
     });
@@ -449,7 +465,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
           quantity: parsed.data.quantity,
           unitPrice: menuItem.price,
           amount: menuItem.price.mul(parsed.data.quantity),
-          notes: parsed.data.notes,
+          notes,
         },
       });
     }
@@ -582,7 +598,7 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
   const result = await prisma.$transaction(async (tx) => {
     const item = await tx.fBOrderItem.findUnique({
       where: { id: parsed.data.orderItemId },
-      select: { id: true, fbOrderId: true },
+      select: { id: true, fbOrderId: true, notes: true },
     });
 
     if (!item) {
@@ -599,9 +615,16 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
       return { ok: false as const, error: "Only open orders can be edited" };
     }
 
+    const parsedNotes = parseFBOrderItemNotes(item.notes);
+
     await tx.fBOrderItem.update({
       where: { id: item.id },
-      data: { notes: parsed.data.notes },
+      data: {
+        notes: formatFBOrderItemNotes(
+          parsedNotes.guestNumber,
+          parsed.data.notes,
+        ),
+      },
     });
 
     return { ok: true as const };

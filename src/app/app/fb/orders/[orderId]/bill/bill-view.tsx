@@ -1,3 +1,4 @@
+import { fbOrderGuestLabel } from "@/lib/fb-order-guest";
 import { formatIDR } from "@/lib/format";
 
 type BillViewProps = {
@@ -14,6 +15,7 @@ type BillViewProps = {
       unitPrice: string;
       amount: string;
       notes: string;
+      guestNumber: number;
     }>;
   };
   settings: {
@@ -64,6 +66,18 @@ function SummaryRow({
 }
 
 export function BillView({ order, settings, totals }: BillViewProps) {
+  const itemsByGuest = Array.from(
+    order.items.reduce((groups, item) => {
+      const guestNumber = item.guestNumber || 1;
+      const currentItems = groups.get(guestNumber) ?? [];
+
+      currentItems.push(item);
+      groups.set(guestNumber, currentItems);
+
+      return groups;
+    }, new Map<number, typeof order.items>()),
+  ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
+
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
@@ -120,32 +134,42 @@ export function BillView({ order, settings, totals }: BillViewProps) {
                   </td>
                 </tr>
               ) : (
-                order.items.map((item) => (
-                  <tr
-                    className="border-b border-console-border-soft odd:bg-white even:bg-console-bg"
-                    key={item.id}
-                  >
-                    <td className="px-3 py-2 align-top">
-                      <div className="font-semibold text-console-ink">
-                        {item.name}
-                      </div>
-                      {item.notes ? (
-                        <div className="mt-1 max-w-[520px] whitespace-pre-wrap break-words text-[11px] italic leading-5 text-status-vd-fg">
-                          {item.notes}
+                itemsByGuest.flatMap(([guestNumber, items]) => [
+                  <tr key={`guest-${guestNumber}`}>
+                    <td
+                      className="border-b border-console-border-soft bg-console-bg px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                      colSpan={4}
+                    >
+                      {fbOrderGuestLabel(guestNumber)}
+                    </td>
+                  </tr>,
+                  ...items.map((item) => (
+                    <tr
+                      className="border-b border-console-border-soft odd:bg-white even:bg-console-bg"
+                      key={item.id}
+                    >
+                      <td className="px-3 py-2 align-top">
+                        <div className="font-semibold text-console-ink">
+                          {item.name}
                         </div>
-                      ) : null}
-                    </td>
-                    <td className="num px-3 py-2 text-right align-top text-slate-700">
-                      {item.quantity}
-                    </td>
-                    <td className="num px-3 py-2 text-right align-top text-slate-700">
-                      {formatIDR(item.unitPrice)}
-                    </td>
-                    <td className="num px-3 py-2 text-right align-top font-semibold text-console-ink">
-                      {formatIDR(item.amount)}
-                    </td>
-                  </tr>
-                ))
+                        {item.notes ? (
+                          <div className="mt-1 max-w-[520px] whitespace-pre-wrap break-words text-[11px] italic leading-5 text-status-vd-fg">
+                            {item.notes}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="num px-3 py-2 text-right align-top text-slate-700">
+                        {item.quantity}
+                      </td>
+                      <td className="num px-3 py-2 text-right align-top text-slate-700">
+                        {formatIDR(item.unitPrice)}
+                      </td>
+                      <td className="num px-3 py-2 text-right align-top font-semibold text-console-ink">
+                        {formatIDR(item.amount)}
+                      </td>
+                    </tr>
+                  )),
+                ])
               )}
             </tbody>
           </table>

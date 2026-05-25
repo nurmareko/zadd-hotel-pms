@@ -13,10 +13,16 @@ import type { MenuBrowseItem } from "./menu-browse";
 type MenuItemCardProps = {
   item: MenuBrowseItem;
   orderId: number;
+  guestNumber: number;
   disabled?: boolean;
 };
 
-export function MenuItemCard({ item, orderId, disabled }: MenuItemCardProps) {
+export function MenuItemCard({
+  item,
+  orderId,
+  guestNumber,
+  disabled,
+}: MenuItemCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -25,6 +31,7 @@ export function MenuItemCard({ item, orderId, disabled }: MenuItemCardProps) {
       const result = await addItemToOrder({
         orderId,
         menuItemId: item.id,
+        guestNumber,
         quantity: 1,
       });
 
@@ -60,7 +67,7 @@ export function MenuItemCard({ item, orderId, disabled }: MenuItemCardProps) {
           type="button"
         >
           <Plus aria-hidden="true" className="size-3.5" />
-          Add
+          Tamu {guestNumber}
         </button>
       </div>
     </article>

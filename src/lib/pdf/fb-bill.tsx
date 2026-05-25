@@ -9,6 +9,10 @@ import { PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
+import {
+  fbOrderGuestLabel,
+  parseFBOrderItemNotes,
+} from "@/lib/fb-order-guest";
 import { type FBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
 
@@ -151,6 +155,17 @@ const styles = StyleSheet.create({
     fontSize: 7,
     fontStyle: "italic",
   },
+  guestRow: {
+    backgroundColor: "#f8fafc",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    fontSize: 7,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    color: "#475569",
+  },
   right: {
     textAlign: "right",
   },
@@ -250,6 +265,21 @@ function SummaryRow({
 
 export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
   const tableNo = order.table?.number ?? order.tableNo ?? "-";
+  const itemsByGuest = Array.from(
+    order.items.reduce((groups, item) => {
+      const parsedNotes = parseFBOrderItemNotes(item.notes);
+      const guestNumber = parsedNotes.guestNumber ?? 1;
+      const currentItems = groups.get(guestNumber) ?? [];
+
+      currentItems.push({
+        ...item,
+        displayNotes: parsedNotes.notes,
+      });
+      groups.set(guestNumber, currentItems);
+
+      return groups;
+    }, new Map<number, Array<FBBillItem & { displayNotes: string }>>()),
+  ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
     <Document>
@@ -294,25 +324,33 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
                   </Text>
                 </View>
               ) : (
-                order.items.map((item) => (
-                  <View key={item.id} style={styles.tableRow}>
-                    <View style={[styles.itemCell, { width: 258 }]}>
-                      <Text>{item.menuItem.name}</Text>
-                      {item.notes ? (
-                        <Text style={styles.note}>{item.notes}</Text>
-                      ) : null}
+                itemsByGuest.flatMap(([guestNumber, items]) => [
+                  <Text
+                    key={`guest-${guestNumber}`}
+                    style={[styles.guestRow, { width: 472 }]}
+                  >
+                    {fbOrderGuestLabel(guestNumber)}
+                  </Text>,
+                  ...items.map((item) => (
+                    <View key={item.id} style={styles.tableRow}>
+                      <View style={[styles.itemCell, { width: 258 }]}>
+                        <Text>{item.menuItem.name}</Text>
+                        {item.displayNotes ? (
+                          <Text style={styles.note}>{item.displayNotes}</Text>
+                        ) : null}
+                      </View>
+                      <Text style={[styles.cell, styles.right, { width: 42 }]}>
+                        {qtyLabel(item.quantity)}
+                      </Text>
+                      <Text style={[styles.cell, styles.right, { width: 86 }]}>
+                        {formatIDR(item.unitPrice.toString())}
+                      </Text>
+                      <Text style={[styles.cell, styles.right, { width: 86 }]}>
+                        {formatIDR(item.amount.toString())}
+                      </Text>
                     </View>
-                    <Text style={[styles.cell, styles.right, { width: 42 }]}>
-                      {qtyLabel(item.quantity)}
-                    </Text>
-                    <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                      {formatIDR(item.unitPrice.toString())}
-                    </Text>
-                    <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                      {formatIDR(item.amount.toString())}
-                    </Text>
-                  </View>
-                ))
+                  )),
+                ])
               )}
             </View>
 
