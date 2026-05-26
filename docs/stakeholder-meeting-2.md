@@ -95,3 +95,9 @@ The chosen approach — finish the MVP, include only the small HK override if ti
 ## Expectation alignment (action item)
 
 Communicate to Pak Tito which items are in the defense MVP versus the Phase 2 roadmap, so expectations for the defense are set correctly and his requests are clearly acknowledged as planned future work.
+
+---
+
+## Implementation Note (2026-05-27)
+
+Current-state note against the intended spec above: the implemented Night Audit blocks duplicate audits per business date through the `night_audit.business_date` unique constraint, not a global date-lock yet. The ACC role can trigger it; manager-only triggering remains part of the in-progress ACC completion. The stored snapshot currently captures revenue and operational metrics; profit breakdown remains planned.

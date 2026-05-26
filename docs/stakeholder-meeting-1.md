@@ -141,3 +141,9 @@ operasional yang perlu dipertimbangkan.
 - **Lost and Found:** "Saat ada barang tertinggal, apakah pencatatan dilakukan oleh HK atau dialihkan ke FO untuk komunikasi dengan tamu? Apakah perlu di sistem PMS atau cukup di buku catatan?"
 
 *Dokumen ini akan diperbarui setelah meeting berikutnya dengan keputusan terhadap pertanyaan di Bagian C.*
+
+---
+
+## Implementation Note (2026-05-27)
+
+Sejak meeting ini, modul HK, FB, dan ACC sudah shipped pada level MVP. Capture jumlah tamu Adult/Child oleh HK yang dibahas di catatan ini kemudian dihapus dari scope implementasi. Dokumentasi proses bisnis dan activity diagram juga sudah dibuat: `docs/business_process_mvp.md` dan `docs/activity_diagram_mvp.md`.
