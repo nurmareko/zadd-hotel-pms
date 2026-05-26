@@ -36,27 +36,28 @@ import {
 export type ActionResult = { ok: true } | { ok: false; error: string };
 export type PaymentActionResult =
   | {
-      ok: true;
-      paymentMethod: PaymentMethod;
-      receiptOrderId: number;
-      paidTotal: string;
-      amountTendered?: string;
-      change?: string;
-      folioId?: number;
-      folioNo?: string;
-      alreadyClosed?: boolean;
-    }
+    ok: true;
+    paymentMethod: PaymentMethod;
+    receiptOrderId: number;
+    paidTotal: string;
+    amountTendered?: string;
+    change?: string;
+    folioId?: number;
+    folioNo?: string;
+    alreadyClosed?: boolean;
+    fullyPaid?: boolean;
+  }
   | { ok: false; error: string };
 
 export type ChargeLookupResult =
   | {
-      ok: true;
-      guestName: string;
-      roomNumber: string;
-      folioNo: string;
-      folioId: number;
-      reservationId: number;
-    }
+    ok: true;
+    guestName: string;
+    roomNumber: string;
+    folioNo: string;
+    folioId: number;
+    reservationId: number;
+  }
   | { ok: false; error: string };
 
 type OrderTotalDb = Pick<typeof prisma, "fBOrderItem" | "hotelSettings">;
@@ -68,7 +69,7 @@ type PaymentSelectionItem = {
   quantity: number;
 };
 
-class PaymentActionError extends Error {}
+class PaymentActionError extends Error { }
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid order data";
@@ -950,6 +951,7 @@ export async function payOrderDirect(
       receiptOrderId: order.id,
       paidTotal: "0",
       alreadyClosed: true,
+      fullyPaid: true,
     };
   }
 
@@ -1052,6 +1054,7 @@ export async function payOrderDirect(
           paidTotal: paidSelection.totals.total.toFixed(2),
           amountTendered: amountTendered?.toFixed(2),
           change: change?.toFixed(2),
+          fullyPaid: paidSelection.fullyPaid,
         };
       },
       {
@@ -1112,6 +1115,7 @@ export async function chargeOrderToRoom(
       paidTotal: "0",
       folioId: order.chargedFolioId ?? undefined,
       alreadyClosed: true,
+      fullyPaid: true,
     };
   }
 
@@ -1225,6 +1229,7 @@ export async function chargeOrderToRoom(
           paidTotal: paidSelection.totals.total.toFixed(2),
           folioId: roomLookup.folioId,
           folioNo: roomLookup.folioNo,
+          fullyPaid: paidSelection.fullyPaid,
         };
       },
       {

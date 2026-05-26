@@ -47,6 +47,7 @@ type PaymentSuccess = {
   amountTendered?: string;
   change?: string;
   folioNo?: string;
+  fullyPaid: boolean;
 };
 
 const methodOptions = [
@@ -243,6 +244,7 @@ export function PaymentForm({
         paidTotal: result.paidTotal,
         amountTendered: result.amountTendered,
         change: result.change,
+        fullyPaid: result.fullyPaid ?? true,
       };
 
       setSuccess(nextSuccess);
@@ -280,6 +282,7 @@ export function PaymentForm({
         receiptOrderId: result.receiptOrderId,
         paidTotal: result.paidTotal,
         folioNo: result.folioNo,
+        fullyPaid: result.fullyPaid ?? true,
       };
 
       setSuccess(nextSuccess);
@@ -349,6 +352,16 @@ export function PaymentForm({
             >
               Cetak Struk
             </button>
+            {!success.fullyPaid ? (
+              <button
+                className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                onClick={() => {
+                  window.location.href = `/app/fb/orders/${orderId}/payment`;
+                }}
+              >
+                Kembali ke Pembayaran
+              </button>
+            ) : null}
             <Link
               className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
               href="/app/fb"
@@ -489,11 +502,10 @@ export function PaymentForm({
 
             return (
               <button
-                className={`min-h-24 border p-3 text-left transition-colors ${
-                  selected
+                className={`min-h-24 border p-3 text-left transition-colors ${selected
                     ? "border-console-ink bg-console-ink text-console-accent"
                     : "border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg"
-                }`}
+                  }`}
                 key={option.value}
                 onClick={() => {
                   setMethod(option.value);
@@ -509,9 +521,8 @@ export function PaymentForm({
                   {option.label}
                 </div>
                 <div
-                  className={`mt-1 text-[11px] ${
-                    selected ? "text-slate-300" : "text-slate-500"
-                  }`}
+                  className={`mt-1 text-[11px] ${selected ? "text-slate-300" : "text-slate-500"
+                    }`}
                 >
                   {option.detail}
                 </div>
@@ -541,9 +552,8 @@ export function PaymentForm({
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500">Kembalian</span>
                   <span
-                    className={`num text-[16px] font-bold ${
-                      change < 0 ? "text-status-od-fg" : "text-console-ink"
-                    }`}
+                    className={`num text-[16px] font-bold ${change < 0 ? "text-status-od-fg" : "text-console-ink"
+                      }`}
                   >
                     {formatIDR(Math.max(change, 0))}
                   </span>
