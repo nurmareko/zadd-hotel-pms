@@ -2,7 +2,7 @@
 
 Cheat sheet for working on Hotel PMS. Keep this open in a tab.
 
-If you're new to the project, read [ONBOARDING.md](./ONBOARDING.md) first. This file is for "I forgot how to do X" lookups.
+If you're new to the project, read [onboarding.md](./onboarding.md) first. This file is for "I forgot how to do X" lookups.
 
 ---
 
@@ -20,7 +20,7 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 
 **One account = one role.** A user with role FO cannot access `/app/hk` — they get a 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
-To reset all data and re-seed: `npx prisma migrate reset` (asks for confirmation, drops everything, re-runs migrations + seed).
+To reset all data and re-seed: `npm run db:reset` (drops everything, re-runs migrations + seed).
 
 ---
 
@@ -47,7 +47,7 @@ You're coming from Laravel + XAMPP. Here's how concepts map:
 |----------------------------------|-------------------------------------|
 | `php artisan serve`              | `npm run dev`                       |
 | `php artisan migrate`            | `npx prisma migrate dev`            |
-| `php artisan migrate:fresh`      | `npx prisma migrate reset`          |
+| `php artisan migrate:fresh`      | `npm run db:reset`                  |
 | `php artisan db:seed`            | `npx prisma db seed`                |
 | `php artisan tinker`             | `npx prisma studio` (UI, not REPL)  |
 | `php artisan make:migration`     | edit `prisma/schema.prisma`, then `migrate dev` |
@@ -86,7 +86,7 @@ These are the genuinely different ones, not just renamed:
 
 **Forms don't post to a controller.** They call a server action — a regular async function in your codebase, marked `"use server"`. No URL, no controller, no JSON parsing. Looks like a function call, runs on the server.
 
-**No XAMPP, no local DB.** Neon is the dev DB, shared across the team. Don't run a local Postgres. Don't `prisma migrate reset` without asking — it nukes the shared DB.
+**No XAMPP, no local DB.** Neon is the dev DB, shared across the team. Don't run a local Postgres. Don't `npm run db:reset` without asking — it nukes the shared DB.
 
 **`.env` is for everyone, secrets are in Vercel.** Local `.env` is for you. Production secrets live in Vercel's dashboard. Pull production env into local with `vercel env pull .env`.
 
@@ -100,7 +100,7 @@ These are the genuinely different ones, not just renamed:
 src/
 ├── app/                      ← Next.js App Router (routes = folders)
 │   ├── (public)/login/       ← /login
-│   ├── (app)/                ← authenticated area
+│   ├── app/                  ← authenticated area
 │   │   ├── fo/               ← /app/fo/*  — Front Office
 │   │   ├── hk/               ← /app/hk/*  — Housekeeping
 │   │   ├── fb/               ← /app/fb/*  — F&B
@@ -108,7 +108,7 @@ src/
 │   │   ├── admin/            ← /app/admin/* — Admin
 │   │   ├── profile/          ← /app/profile
 │   │   ├── forbidden/        ← /app/forbidden (403)
-│   │   └── layout.tsx        ← NavShell wrapping all (app) pages
+│   │   └── layout.tsx        ← NavShell wrapping all app pages
 │   ├── api/auth/[...nextauth]/  ← NextAuth handlers (don't touch)
 │   ├── layout.tsx            ← root layout
 │   ├── page.tsx              ← / (redirects based on session)
@@ -134,7 +134,7 @@ AGENTS.md                     ← AI tool context
 ### Server component reading from DB
 
 ```typescript
-// src/app/(app)/fo/reservations/page.tsx
+// src/app/app/fo/reservations/page.tsx
 import { prisma } from "@/lib/prisma";
 
 export default async function ReservationsPage() {
@@ -155,7 +155,7 @@ export default async function ReservationsPage() {
 ### Server action (form submission)
 
 ```typescript
-// src/app/(app)/fo/reservations/actions.ts
+// src/app/app/fo/reservations/actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -181,7 +181,7 @@ export async function createReservation(formData: FormData) {
 ### Client component with form
 
 ```typescript
-// src/app/(app)/fo/reservations/new/ReservationForm.tsx
+// src/app/app/fo/reservations/new/ReservationForm.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -221,7 +221,7 @@ export default async function Page() {
 ### Adding a new page
 
 1. Decide its URL → `/app/fo/reservations/cancel/[id]` becomes folder structure
-2. Create `src/app/(app)/fo/reservations/cancel/[id]/page.tsx`
+2. Create `src/app/app/fo/reservations/cancel/[id]/page.tsx`
 3. Default export a function (server by default)
 4. Visit `localhost:3000/app/fo/reservations/cancel/123` — it's live
 

@@ -6,11 +6,11 @@ Welcome! This doc gets you from "I just joined" to "I can work on a feature" in 
 
 ## What we're building
 
-A Hotel Property Management System for the hospitality praktikum. Four operational roles (Front Office, Housekeeping, F&B, Accounting) plus Admin. MVP is 25 screens across 5 modules.
+A Hotel Property Management System for the hospitality praktikum. Four operational roles (Front Office, Housekeeping, F&B, Accounting) plus Admin. MVP is 27 screens across 5 modules.
 
 **Before coding anything, skim these:**
 - `docs/feature_list_mvp.md` — what we're building, per module
-- `docs/screen_inventory_mvp.md` — all 25 screens and what each does
+- `docs/screen_inventory_mvp.md` — all 27 screens and what each does
 
 Those two are the source of truth. When in doubt about scope, check them first.
 
@@ -66,7 +66,7 @@ cd hotel-pms
 # 2. Install dependencies
 npm install
 
-# 3. Get the .env.local file from the team lead
+# 3. Get the .env file from the team lead
 #    DM them for it. DO NOT commit this file.
 #    Place it at the project root (same folder as package.json).
 
@@ -84,7 +84,7 @@ Open http://localhost:3000 — you should see the login page (placeholder for no
 We all share one Neon dev database. This keeps setup simple but comes with rules:
 
 - **Don't edit `prisma/schema.prisma`** on your branch. Schema changes go through the team lead — this prevents conflicting migrations that break everyone's environment.
-- **Don't run destructive commands** without asking in the team chat first. That includes `npx prisma migrate reset`, `prisma db push --force-reset`, or manually dropping tables.
+- **Don't run destructive commands** without asking in the team chat first. That includes `npm run db:reset`, `prisma db push --force-reset`, or manually dropping tables.
 - Reading data, inserting test data through the app, seeding your own test rows → all fine.
 - If you accidentally trash data, ping the team — we can re-seed.
 
@@ -97,15 +97,15 @@ hotel-pms/
 ├── AGENTS.md                        ← Context for AI coding tools. READ THIS.
 ├── docs/
 │   ├── feature_list_mvp.md          ← Features per module
-│   ├── screen_inventory_mvp.md      ← All 25 screens
+│   ├── screen_inventory_mvp.md      ← All 27 screens
 │   ├── db_specification_mvp.md      ← Data model in prose
 │   ├── use_case_narrative_mvp.md    ← Use cases & actors
-│   └── ONBOARDING.md                ← This file
+│   └── onboarding.md                ← This file
 ├── prisma/
 │   └── schema.prisma                ← DB schema. Don't edit without approval.
 ├── src/app/                         ← Next.js App Router pages
 │   ├── (public)/                    ← Unauthenticated (login)
-│   ├── (app)/                       ← Authenticated app
+│   ├── app/                         ← Authenticated app
 │   │   ├── fo/                      ← Front Office
 │   │   ├── hk/                      ← Housekeeping
 │   │   ├── fb/                      ← Food & Beverage
@@ -165,9 +165,9 @@ Each person owns one operational module end-to-end:
 |---|---|---|---|---|
 | Person 1 | Front Office | `/app/fo/*` | 7 | `feature_list_mvp.md` §FO |
 | Person 2 | Housekeeping | `/app/hk/*` | 3 | `feature_list_mvp.md` §HK |
-| Person 3 | Food & Beverage | `/app/fb/*` | 4 | `feature_list_mvp.md` §FB |
+| Person 3 | Food & Beverage | `/app/fb/*` | 5 | `feature_list_mvp.md` §FB |
 | Person 4 | Accounting | `/app/acc/*` | 3 | `feature_list_mvp.md` §ACC |
-| Team lead | Admin, shared code, integration | `/app/admin/*`, `src/lib`, `src/components` | 5 + shared | — |
+| Team lead | Admin, shared code, integration | `/app/admin/*`, `src/lib`, `src/components` | 6 + shared | — |
 
 **What "owning" a module means:**
 - You build all screens in that route prefix
@@ -212,7 +212,7 @@ A few rules so we don't step on each other:
 
 **`npm install` fails** → check Node version: `node --version`. Needs 20+.
 
-**`npx prisma generate` fails** → `.env.local` is missing or has wrong values. Ask the team lead for a fresh copy.
+**`npx prisma generate` fails** → `.env` is missing or has wrong values. Ask the team lead for a fresh copy.
 
 **Dev server runs but every page 500s** → database isn't reachable. Test with:
 ```bash

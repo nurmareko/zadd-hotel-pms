@@ -58,6 +58,7 @@ Used for room status (RoomStatus enum), reservation status, payment status, foli
 | VC / paid / checked-in     | `#ecfdf5` (emerald-50) | `#047857` (emerald-700) | `#10b981` (emerald-500) |
 | OC / open / confirmed      | `#eff6ff` (blue-50)    | `#1d4ed8` (blue-700)    | `#3b82f6` (blue-500)    |
 | VD / unpaid                | `#fffbeb` (amber-50)   | `#d97706` (amber-600)   | `#f59e0b` (amber-500)   |
+| VCU                        | `#fefce8` (yellow-50)  | `#a16207` (yellow-700)  | `#eab308` (yellow-500)  |
 | OD / cancelled             | `#fef2f2` (red-50)     | `#dc2626` (red-600)     | `#ef4444` (red-500)     |
 | OOO / closed / checked-out | `#f1f5f9` (slate-100)  | `#475569` (slate-600)   | `#64748b` (slate-500)   |
 
@@ -67,6 +68,7 @@ Add to your CSS variable block:
 --emerald-50: #ecfdf5;  --emerald-500: #10b981;  --emerald-700: #047857;
 --blue-50:    #eff6ff;  --blue-500:    #3b82f6;  --blue-700:    #1d4ed8;
 --amber-50:   #fffbeb;  --amber-500:   #f59e0b;  --amber-600:   #d97706;
+--yellow-50:  #fefce8;  --yellow-500:  #eab308;  --yellow-700:  #a16207;
 --red-50:     #fef2f2;  --red-500:     #ef4444;  --red-600:     #dc2626;
 ```
 
@@ -223,13 +225,14 @@ Most visually complex screen in the app. Lock these conventions in for implement
 - **Sticky first column:** room number + type, white background, right border
 - **Sticky header row:** day-of-week (10px uppercase) above date (12px tabular num)
 - **Cell height:** 32px
+- **Tape Chart visual palette:** VC `#639922`, CNF `#378ADD`, IN `#7F77DD`, VD `#D85A30`, VCU `#EF9F27`, OOO `#888780`
 - **Cell content:** small inset div with `margin: 2px`:
-  - Status-colored background (e.g. `--emerald-50` for VC)
-  - Left border 3px in status accent color (e.g. `--emerald-500` for VC)
+  - Status-colored background from the Tape Chart visual palette
+  - Left border 3px in status color for normal room states; dashed/dotted treatment for CNF/VCU as implemented
   - Border-radius 0
   - Text: 11px, weight 500, status-colored or slate-700
   - Content: guest first name + last initial (e.g. "Andi P.") if occupied, status code if vacant
-- **Legend bar above grid:** all 5 status badges + room/day count on the right
+- **Legend bar above grid:** 6 room status badges (VC, OC, VD, OD, VCU, OOO) plus Tape Chart reservation states (CNF, IN) + room/day count on the right
 - **Container:** card with `padding: 0`, `overflow: hidden`, `max-height: 520px` with internal scroll
 - **Scroll behavior:** both horizontal and vertical, sticky cells stay anchored
 
@@ -267,6 +270,7 @@ Put tokens under `@layer base`:
     --emerald-50: #ecfdf5; --emerald-500: #10b981; --emerald-700: #047857;
     --blue-50: #eff6ff;    --blue-500: #3b82f6;    --blue-700: #1d4ed8;
     --amber-50: #fffbeb;   --amber-500: #f59e0b;   --amber-600: #d97706;
+    --yellow-50: #fefce8;  --yellow-500: #eab308;  --yellow-700: #a16207;
     --red-50: #fef2f2;     --red-500: #ef4444;     --red-600: #dc2626;
 
     /* console theme */
@@ -308,6 +312,7 @@ theme: {
         "vc-bg":  "var(--emerald-50)",  "vc-fg":  "var(--emerald-700)",  "vc-pip":  "var(--emerald-500)",
         "oc-bg":  "var(--blue-50)",     "oc-fg":  "var(--blue-700)",     "oc-pip":  "var(--blue-500)",
         "vd-bg":  "var(--amber-50)",    "vd-fg":  "var(--amber-600)",    "vd-pip":  "var(--amber-500)",
+        "vcu-bg": "var(--yellow-50)",   "vcu-fg": "var(--yellow-700)",   "vcu-pip": "var(--yellow-500)",
         "od-bg":  "var(--red-50)",      "od-fg":  "var(--red-600)",      "od-pip":  "var(--red-500)",
         "ooo-bg": "var(--slate-100)",   "ooo-fg": "var(--slate-600)",    "ooo-pip": "var(--slate-500)",
       },
