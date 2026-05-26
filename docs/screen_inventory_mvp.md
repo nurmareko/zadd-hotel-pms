@@ -1,6 +1,6 @@
 # Hotel PMS — MVP Screen Inventory
 
-Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 25 screens total across 4 operational modules + admin + shared.
+Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 27 screens total across 4 operational modules + admin + shared.
 
 ---
 
@@ -66,14 +66,15 @@ The application is built as a **single Next.js app** with four operational areas
 
 **Cut from original**: Activity Log UI (audit trail data still captured in `housekeeping_log` table).
 
-### 3.3 Food & Beverage (4 screens)
+### 3.3 Food & Beverage (5 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | FB-01 | Table Picker + Daily Summary | Page | Grid of tables with status + today's revenue snapshot |
+| FB-01A | New Order | Page | `/app/fb/orders/new`: select available table and guest count to create order |
 | FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
-| FB-04 | Payment | Page | Select method: cash or charge-to-room. For CTR, pick the in-house guest by room number. |
+| FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. For CTR, pick the in-house guest by room number. |
 
 **Cut from original**: Dashboard (merged into FB-01), Order History (tab inside FB-01), Print Bill modal (PDF button on FB-03).
 
@@ -87,7 +88,7 @@ The application is built as a **single Next.js app** with four operational areas
 
 **Cut from original**: Report Center, Revenue Distribution Report, Guest Segment Statistics, Guest List Report (all consolidated into AC-03), Manual Bill + List (use Folio line items), standalone Folio Payment page (handled in FO-06).
 
-### 3.5 Admin (5 screens)
+### 3.5 Admin (6 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
@@ -95,7 +96,8 @@ The application is built as a **single Next.js app** with four operational areas
 | AD-02 | Rooms & Room Types | Page | Combined: CRUD room types (with base rate inline) and rooms |
 | AD-03 | Articles | Page | CRUD charge codes |
 | AD-04 | F&B Menu | Page | CRUD menu items (single outlet) |
-| AD-05 | Hotel Settings | Page | Hotel info, tax %, service charge %, night-audit cutoff time |
+| AD-05 | F&B Tables | Page | `/app/admin/tables`: CRUD restaurant table master data |
+| AD-06 | Hotel Settings | Page | Hotel info, tax %, service charge %, night-audit cutoff time |
 
 **Cut from original**: Admin Dashboard (admins land directly on User Management), Role Management (5 roles hardcoded in seed), Rate Plans (rate inlined into RoomType), Outlets (single outlet hardcoded), Guest Segments.
 
@@ -108,10 +110,10 @@ The application is built as a **single Next.js app** with four operational areas
 | Global | 3 | 1 (Module Switcher) |
 | Front Office | 7 | 4 |
 | Housekeeping | 3 | 1 |
-| Food & Beverage | 4 | 3 |
+| Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
-| Admin | 5 | 4 |
-| **Total** | **25** | **20 cut** |
+| Admin | 6 | 4 |
+| **Total** | **27** | **20 cut** |
 
 Modal dialogs kept minimal: only 2 confirmation modals total (destructive actions: cancel reservation, void folio). Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-05, not a separate modal.
 
@@ -125,7 +127,7 @@ Five core business flows the app must support end-to-end:
 `FO-02 Tape Chart` → click empty cell → `FO-04 Reservation Form` → submit → `FO-05 Check-in` (assign room + GRC) → folio created → `FO-06 Guest Folio`.
 
 **Flow 2 — Charge F&B to Room**
-`FB-01 Table Picker` → `FB-02 Captain Order` → `FB-03 Bill Detail` → Pay → `FB-04 Payment`, choose "Charge to Room" → enter room number → line item posted to `FO-06 Guest Folio`.
+`FB-01 Table Picker` → `FB-01A New Order` → `FB-02 Captain Order` → `FB-03 Bill Detail` → Pay → `FB-04 Payment`, choose "Charge to Room" → enter room number → line item posted to `FO-06 Guest Folio`.
 
 **Flow 3 — Check-out**
 `FO-02 Tape Chart` (or `FO-06 Guest Folio`) → Check-out → `FO-07 Check-out` → zero-balance verification → payment if needed → PDF bill → room status auto-set to VD → visible in `HK-01`.
@@ -144,9 +146,9 @@ Build these seven before opening Stitch / Claude Design:
 
 | Component | Used in | Notes |
 |---|---|---|
-| DataTable | FO-03, FB-01 history tab, AD-01..04 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
+| DataTable | FO-03, FB-01 history tab, AD-01..05 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
 | FormShell | all forms | shadcn `Form` + `zod` |
-| StatusBadge | Tape Chart, HK dashboard, reservation status | Fixed palette: VC green, OC blue, VD yellow, OD red, OOO gray |
+| StatusBadge | Tape Chart, HK dashboard, reservation status | Fixed palette: VC `#639922`, CNF `#378ADD`, IN `#7F77DD`, VD `#D85A30`, VCU `#EF9F27`, OOO `#888780` |
 | Dialog | cancel/void confirmations | shadcn `Dialog`, reused |
 | PDFButton | bills, reports | Wrapper around a print-to-PDF route |
 | NavShell | every authenticated page | Sidebar desktop + bottom nav mobile |
@@ -159,11 +161,11 @@ Build these seven before opening Stitch / Claude Design:
 | Week | Focus | Deliverable |
 |---|---|---|
 | 1 | Setup: Next.js + Prisma + NextAuth + Tailwind + shadcn. Seed. Deploy to Vercel. | Login works, DB migrated, deployed |
-| 2 | Admin module (5 screens). Warm-up CRUD. | Master data manageable |
+| 2 | Admin module (6 screens). Warm-up CRUD. | Master data manageable |
 | 3 | FO: Tape Chart + Reservation List + Reservation Form | Can create reservations, grid renders |
 | 4 | FO: Check-in + Folio creation + Folio Detail (charges + payments) | Full FO spine working |
 | 5 | FO: Check-out + PDF bill. HK module (3 mobile screens). | Guest lifecycle complete, HK syncs to Tape Chart |
-| 6 | F&B: Table Picker + Captain Order + Bill Detail + Payment (cash + CTR) | F&B feeds folio |
+| 6 | F&B: Table Picker + New Order + Captain Order + Bill Detail + Payment (cash + card + transfer + CTR) | F&B feeds folio |
 | 7 | Accounting: Night Audit trigger + Night Report + PDF export | Day close works end-to-end |
 | 8 | **Buffer: bug fixes, seed data for demo, integration testing, docs update** | Presentable, stable, defended |
 
