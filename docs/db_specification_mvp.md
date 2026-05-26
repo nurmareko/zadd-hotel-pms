@@ -32,6 +32,7 @@ erDiagram
 
   FOLIO ||--o{ FOLIO_LINE_ITEM : "contains"
   FOLIO ||--o{ PAYMENT : "settled_by"
+  FOLIO ||--o{ FB_ORDER : "charged_by"
 
   ARTICLE ||--o{ FOLIO_LINE_ITEM : "charged_as"
 
@@ -44,10 +45,12 @@ erDiagram
   USER {
     int id PK
     varchar username UK
+    varchar email UK
     varchar password_hash
     varchar full_name
     boolean is_active
     timestamp created_at
+    timestamp updated_at
   }
   ROLE {
     int id PK
@@ -58,11 +61,13 @@ erDiagram
   USER_ROLE {
     int user_id PK, FK
     int role_id PK, FK
+    timestamp assigned_at
   }
   ROOM_TYPE {
     int id PK
     varchar code UK
     varchar name
+    text description
     int capacity
     decimal base_rate
   }
@@ -83,30 +88,45 @@ erDiagram
   HOTEL_SETTINGS {
     int id PK
     varchar hotel_name
+    text address
     decimal tax_percent
     decimal service_charge_percent
     varchar night_audit_time
+    varchar currency
   }
   GUEST {
     int id PK
     varchar full_name
     varchar id_number
     varchar phone
+    varchar email
+    text address
     varchar nationality
+    date birth_date
   }
   RESERVATION {
     int id PK
     varchar reservation_no UK
+    varchar type
+    varchar arrangement_type
+    varchar reservation_type
+    text comment
     int guest_id FK
     int room_type_id FK
     int room_id FK
     date arrival_date
     date departure_date
+    int adults
+    int children
     varchar status
-    decimal deposit
     decimal rate_amount
+    decimal deposit
+    text notes
     timestamp grc_filled_at
+    varchar purpose_of_visit
     int created_by_id FK
+    timestamp created_at
+    timestamp updated_at
   }
   FOLIO {
     int id PK
@@ -114,15 +134,18 @@ erDiagram
     int reservation_id FK, UK
     varchar status
     timestamp opened_at
+    timestamp closed_at
   }
   FOLIO_LINE_ITEM {
     int id PK
     int folio_id FK
     int article_id FK
     int fb_order_id FK
+    varchar description
     decimal quantity
     decimal unit_price
     decimal amount
+    int posted_by_id FK
     timestamp posted_at
   }
   MENU_ITEM {
@@ -131,6 +154,7 @@ erDiagram
     varchar name
     varchar category
     decimal price
+    boolean is_active
   }
   RESTAURANT_TABLE {
     int id PK
@@ -138,18 +162,26 @@ erDiagram
     int capacity
     varchar location
     varchar status
+    text notes
+    timestamp created_at
+    timestamp updated_at
   }
   FB_ORDER {
     int id PK
     varchar order_no UK
-    int table_id FK
     varchar table_no
+    int table_id FK
     varchar status
     int guest_count
     varchar payment_method
     int charged_folio_id FK
+    decimal subtotal
+    decimal service_charge
+    decimal tax
     decimal total
     int waited_by_id FK
+    timestamp opened_at
+    timestamp closed_at
   }
   FB_ORDER_ITEM {
     int id PK
@@ -158,16 +190,20 @@ erDiagram
     int quantity
     decimal unit_price
     decimal amount
+    varchar notes
   }
   HOUSEKEEPING_LOG {
     int id PK
     int room_id FK
     varchar old_status
     varchar new_status
+    text note
     int updated_by_id FK
     timestamp updated_at
     timestamp cleaning_started_at
     timestamp cleaning_completed_at
+    boolean linen_changed
+    boolean towel_changed
   }
   NIGHT_AUDIT {
     int id PK
@@ -175,13 +211,23 @@ erDiagram
     int run_by_id FK
     timestamp run_at
     varchar status
+    int total_rooms
+    int rooms_occupied
+    decimal occupancy_rate
+    decimal room_revenue
+    decimal fb_revenue
+    decimal other_revenue
     decimal total_revenue
-    json report_data
+    int check_in_count
+    int check_out_count
+    int in_house_count
+    timestamp created_at
   }
   PAYMENT {
     int id PK
     decimal amount
     varchar method
+    varchar reference
     int folio_id FK
     int fb_order_id FK
     int received_by_id FK
@@ -210,8 +256,8 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Front Office**
 
-8. Guest(*id*, full_name, id_number, phone, email, address, nationality)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, status, deposit, rate_amount, notes, grc_filled_at, grc_purpose_of_visit, created_at, updated_at)
+8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -236,12 +282,31 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 ---
 
+## Enum specifications
+
+| Enum | Values |
+|---|---|
+| RoomStatus | VC, OC, VD, OD, VCU, OOO |
+| ArticleType | ROOM, FB, SERVICE, TAX, MISC |
+| ReservationStatus | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
+| ReservationUsageType | REGULAR, WALK_IN |
+| ArrangementType | RO, RB, FBM |
+| ReservationType | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
+| FolioStatus | OPEN, CLOSED, VOIDED |
+| FBOrderStatus | OPEN, BILLED, CLOSED, VOIDED |
+| TableLocation | INDOOR, OUTDOOR, PRIVATE |
+| TableStatus | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
+| PaymentMethod | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
+| NightAuditStatus | COMPLETED |
+
+---
+
 ## Design decisions
 
 A few choices worth explaining:
 
 1. **Rate is inlined into RoomType.** In the MVP, each room type has a single fixed rate (`base_rate`). Dynamic rate plans with date validity and guest segmentation are deferred.
-2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at` and `grc_purpose_of_visit` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in.
+2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at` and `purpose_of_visit` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in.
 3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep the Tape Chart read fast. HousekeepingLog is the audit trail of every status change.
@@ -277,8 +342,8 @@ A few choices worth explaining:
 
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
-| user_id | INT | PRIMARY KEY, FOREIGN KEY → user(id) | User reference |
-| role_id | INT | PRIMARY KEY, FOREIGN KEY → role(id) | Role reference |
+| user_id | INT | PRIMARY KEY, FOREIGN KEY → user(id), ON DELETE CASCADE | User reference |
+| role_id | INT | PRIMARY KEY, FOREIGN KEY → role(id), ON DELETE CASCADE | Role reference |
 | assigned_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Role assignment time |
 
 ### `room_type`
@@ -299,8 +364,8 @@ A few choices worth explaining:
 | id | SERIAL | PRIMARY KEY | Unique room identifier |
 | number | VARCHAR(10) | UNIQUE, NOT NULL | Room number |
 | floor | INT | NOT NULL | Floor number |
-| room_type_id | INT | FOREIGN KEY → room_type(id) | Room type reference |
-| status | VARCHAR(10) | NOT NULL, DEFAULT 'VC' | Room status (VC, OC, VD, OD, VCU, OOO). VCU means Vacant Clean Unchecked, waiting for HK inspection. |
+| room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type reference |
+| status | RoomStatus | NOT NULL, DEFAULT 'VC' | Room status (VC, OC, VD, OD, VCU, OOO). VCU means Vacant Clean Unchecked, waiting for HK inspection. |
 
 ### `article`
 
@@ -309,7 +374,7 @@ A few choices worth explaining:
 | id | SERIAL | PRIMARY KEY | Unique article identifier |
 | code | VARCHAR(20) | UNIQUE, NOT NULL | Charge code |
 | name | VARCHAR(100) | NOT NULL | Charge name |
-| type | VARCHAR(20) | NOT NULL | Type (ROOM, FB, SERVICE, TAX, MISC) |
+| type | ArticleType | NOT NULL | Type (ROOM, FB, SERVICE, TAX, MISC) |
 | default_price | DECIMAL(12,2) | — | Default price (optional) |
 
 ### `hotel_settings`
@@ -335,6 +400,7 @@ A few choices worth explaining:
 | email | VARCHAR(100) | — | Email |
 | address | TEXT | — | Address |
 | nationality | VARCHAR(50) | — | Nationality |
+| birth_date | DATE | — | Guest birth date |
 
 ### `reservation`
 
@@ -342,22 +408,24 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique reservation identifier |
 | reservation_no | VARCHAR(20) | UNIQUE, NOT NULL | Reservation number |
-| type | VARCHAR(20) | NOT NULL, DEFAULT 'REGULAR' | Internal usage type: REGULAR, WALK_IN |
-| arrangement_type | VARCHAR(10) | NOT NULL, DEFAULT 'RO' | RO, RB, FBM |
-| reservation_type | VARCHAR(20) | NOT NULL, DEFAULT 'INDIVIDUAL' | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
+| type | ReservationUsageType | NOT NULL, DEFAULT 'REGULAR' | Internal usage type: REGULAR, WALK_IN |
+| arrangement_type | ArrangementType | NOT NULL, DEFAULT 'RO' | RO, RB, FBM |
+| reservation_type | ReservationType | NOT NULL, DEFAULT 'INDIVIDUAL' | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
 | comment | TEXT | — | Reservation comment for staff/manager context |
-| guest_id | INT | FOREIGN KEY → guest(id) | Booking guest |
-| room_type_id | INT | FOREIGN KEY → room_type(id) | Room type booked |
-| room_id | INT | FOREIGN KEY → room(id) | Physical room assigned at check-in |
+| guest_id | INT | NOT NULL, FOREIGN KEY → guest(id) | Booking guest |
+| room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type booked |
+| room_id | INT | FOREIGN KEY → room(id), ON DELETE SET NULL | Physical room assigned at check-in |
 | arrival_date | DATE | NOT NULL | Planned check-in date |
 | departure_date | DATE | NOT NULL | Planned check-out date |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
-| deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
+| adults | INT | NOT NULL, DEFAULT 1 | Adult guest count |
+| children | INT | NOT NULL, DEFAULT 0 | Child guest count |
+| status | ReservationStatus | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | rate_amount | DECIMAL(12,2) | NOT NULL | Rate snapshot at booking time |
+| deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
 | notes | TEXT | — | Reservation notes |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
-| grc_purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
-| created_by_id | INT | FOREIGN KEY → user(id) | Staff who created the reservation |
+| purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
+| created_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Staff who created the reservation |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
 
@@ -367,8 +435,8 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique folio identifier |
 | folio_no | VARCHAR(20) | UNIQUE, NOT NULL | Folio number |
-| reservation_id | INT | UNIQUE, FOREIGN KEY → reservation(id) | Associated reservation |
-| status | VARCHAR(10) | NOT NULL, DEFAULT 'OPEN' | OPEN, CLOSED, VOIDED |
+| reservation_id | INT | UNIQUE, NOT NULL, FOREIGN KEY → reservation(id) | Associated reservation |
+| status | FolioStatus | NOT NULL, DEFAULT 'OPEN' | OPEN, CLOSED, VOIDED |
 | opened_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Folio opened time |
 | closed_at | TIMESTAMP | — | Folio closed time |
 
@@ -377,14 +445,14 @@ A few choices worth explaining:
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique line item identifier |
-| folio_id | INT | FOREIGN KEY → folio(id) | Target folio |
-| article_id | INT | FOREIGN KEY → article(id) | Article (charge code) |
-| fb_order_id | INT | FOREIGN KEY → fb_order(id) | F&B order (if charge to room) |
+| folio_id | INT | NOT NULL, FOREIGN KEY → folio(id) | Target folio |
+| article_id | INT | NOT NULL, FOREIGN KEY → article(id) | Article (charge code) |
+| fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order (if charge to room) |
 | description | VARCHAR(255) | NOT NULL | Item description |
 | quantity | DECIMAL(8,2) | NOT NULL, DEFAULT 1 | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price |
 | amount | DECIMAL(12,2) | NOT NULL | Total (quantity × unit_price) |
-| posted_by_id | INT | FOREIGN KEY → user(id) | Posting staff |
+| posted_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Posting staff |
 | posted_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Posting time |
 
 ### `menu_item`
@@ -405,8 +473,8 @@ A few choices worth explaining:
 | id | SERIAL | PRIMARY KEY | Unique restaurant table identifier |
 | number | VARCHAR(10) | UNIQUE, NOT NULL | Table number/code (for example T1) |
 | capacity | INT | NOT NULL, DEFAULT 2 | Default seating capacity |
-| location | VARCHAR(20) | NOT NULL, DEFAULT 'INDOOR' | INDOOR, OUTDOOR, PRIVATE |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'AVAILABLE' | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
+| location | TableLocation | NOT NULL, DEFAULT 'INDOOR' | INDOOR, OUTDOOR, PRIVATE |
+| status | TableStatus | NOT NULL, DEFAULT 'AVAILABLE' | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
 | notes | TEXT | — | Operational notes |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
@@ -417,17 +485,17 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique order identifier |
 | order_no | VARCHAR(20) | UNIQUE, NOT NULL | Order number |
-| table_id | INT | FOREIGN KEY → restaurant_table(id) | Assigned restaurant table |
+| table_id | INT | FOREIGN KEY → restaurant_table(id), ON DELETE SET NULL | Assigned restaurant table |
 | table_no | VARCHAR(10) | — | Legacy/free-text table number |
 | guest_count | INT | NOT NULL, DEFAULT 1 | Guest count/pax |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'OPEN' | OPEN, BILLED, CLOSED, VOIDED |
-| payment_method | VARCHAR(20) | — | CASH, CHARGE_TO_ROOM (set at billing) |
-| charged_folio_id | INT | FOREIGN KEY → folio(id) | Target folio for charge-to-room |
+| status | FBOrderStatus | NOT NULL, DEFAULT 'OPEN' | OPEN, BILLED, CLOSED, VOIDED |
+| payment_method | PaymentMethod | — | CASH, TRANSFER, CARD, CHARGE_TO_ROOM (set at billing) |
+| charged_folio_id | INT | FOREIGN KEY → folio(id), ON DELETE SET NULL | Target folio for charge-to-room |
 | subtotal | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Subtotal before SC and tax |
 | service_charge | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Service charge |
 | tax | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Tax |
 | total | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Total payable |
-| waited_by_id | INT | FOREIGN KEY → user(id) | Serving waiter |
+| waited_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Serving waiter |
 | opened_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Order opened time |
 | closed_at | TIMESTAMP | — | Order closed time |
 
@@ -436,8 +504,8 @@ A few choices worth explaining:
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique item identifier |
-| fb_order_id | INT | FOREIGN KEY → fb_order(id) | Containing order |
-| menu_item_id | INT | FOREIGN KEY → menu_item(id) | Menu item ordered |
+| fb_order_id | INT | NOT NULL, FOREIGN KEY → fb_order(id), ON DELETE CASCADE | Containing order |
+| menu_item_id | INT | NOT NULL, FOREIGN KEY → menu_item(id) | Menu item ordered |
 | quantity | INT | NOT NULL | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price at order time |
 | amount | DECIMAL(12,2) | NOT NULL | Total |
@@ -448,11 +516,11 @@ A few choices worth explaining:
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique log identifier |
-| room_id | INT | FOREIGN KEY → room(id) | Updated room |
-| old_status | VARCHAR(10) | NOT NULL | Status before update |
-| new_status | VARCHAR(10) | NOT NULL | Status after update |
+| room_id | INT | NOT NULL, FOREIGN KEY → room(id) | Updated room |
+| old_status | RoomStatus | NOT NULL | Status before update |
+| new_status | RoomStatus | NOT NULL | Status after update |
 | note | TEXT | — | Staff note |
-| updated_by_id | INT | FOREIGN KEY → user(id) | HK staff who updated |
+| updated_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | HK staff who updated |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Update time |
 | cleaning_started_at | TIMESTAMP | — | Start time for a cleaning session log row |
 | cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
@@ -465,9 +533,9 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique night audit identifier |
 | business_date | DATE | UNIQUE, NOT NULL | Business date closed |
-| status | VARCHAR(20) | NOT NULL, DEFAULT COMPLETED | Audit status |
+| status | NightAuditStatus | NOT NULL, DEFAULT 'COMPLETED' | Audit status |
 | run_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Execution time |
-| run_by_id | INT | FOREIGN KEY → user(id) | Night auditor |
+| run_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Night auditor |
 | total_rooms | INT | NOT NULL | Rooms in inventory at audit time |
 | rooms_occupied | INT | NOT NULL | Occupied rooms at audit time |
 | occupancy_rate | DECIMAL(5,2) | NOT NULL | Occupancy rate (%) |
@@ -480,17 +548,19 @@ A few choices worth explaining:
 | in_house_count | INT | NOT NULL | In-house guest count snapshot |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
 
+> **ACC module in progress** — the night-audit data model may expand as the workflow is completed.
+
 ### `payment`
 
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique payment identifier |
 | amount | DECIMAL(12,2) | NOT NULL | Payment amount |
-| method | VARCHAR(20) | NOT NULL | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
+| method | PaymentMethod | NOT NULL | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
 | reference | VARCHAR(100) | — | Reference number (bank ref, card last 4) |
-| folio_id | INT | FOREIGN KEY → folio(id) | Folio paid (optional) |
-| fb_order_id | INT | FOREIGN KEY → fb_order(id) | F&B order paid (optional) |
-| received_by_id | INT | FOREIGN KEY → user(id) | Receiving staff |
+| folio_id | INT | FOREIGN KEY → folio(id), ON DELETE SET NULL | Folio paid (optional) |
+| fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order paid (optional) |
+| received_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Receiving staff |
 | received_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Payment time |
 
 > **Polymorphic constraint on Payment**: exactly one of `folio_id` or `fb_order_id` must be populated (`payment_exactly_one_owner_check`).
