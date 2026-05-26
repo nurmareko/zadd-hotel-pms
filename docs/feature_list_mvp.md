@@ -2,7 +2,7 @@
 
 What we're building in the MVP, grouped by module. Features deferred to later releases are listed at the end with rationale.
 
-Last updated: 2026-05-20.
+Last updated: 2026-05-26.
 
 ---
 
@@ -39,21 +39,21 @@ Mobile-first for staff moving through room corridors.
 
 ## Food & Beverage
 
-Planned point-of-sale operations for the hotel restaurant. Current app routes are placeholders; Admin F&B menu master data is shipped.
+Shipped point-of-sale operations for the hotel restaurant.
 
-- **Table picker** — grid of tables with current status. Entry point for creating orders.
-- **Captain Order** — quick entry form for the waiter: menu selection, quantity, kitchen notes.
-- **Bill processing** — automatic calculation of subtotal, service charge, and tax based on hotel settings.
-- **Payment** — supports cash and charge-to-room (posting the F&B total to the guest's folio), including target guest selection by room number.
+- **Floor plan + order list** — `/app/fb` shows table status, active orders, daily order list, and entry point for creating orders.
+- **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review.
+- **Bill processing** — `/app/fb/orders/[orderId]/bill` calculates subtotal, service charge, and tax based on hotel settings.
+- **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room (posting the F&B total to the guest's folio), including target guest selection by room number.
 - **Receipt printing** — F&B receipt is downloadable as PDF.
 
 ## Accounting
 
-Planned daily close and reporting. Current app routes are placeholders.
+In progress — screens shipped, full workflow being completed. The spec below keeps the intended daily-close workflow; advanced behaviors are planned/in-progress where noted.
 
-- **Accounting dashboard** — today's night audit status and unprocessed-posting indicator.
-- **Night Audit** — prerequisite checklist, daily-close execution, business-date advancement, and arrangement-driven posting to guest folios.
-- **Night Report** — consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
+- **Accounting dashboard** — `/app/acc` shows today's night audit status, running revenue snapshot, and audit history. Unprocessed-posting indicator is planned/in-progress.
+- **Night Audit** — `/app/acc/night-audit` includes prerequisite checklist and daily-close execution. Full workflow remains the target: business-date advancement/locking, open-F&B-order handling, audit-time cutoff enforcement, audit lifecycle states beyond COMPLETED, and arrangement-driven posting to guest folios are planned/in-progress.
+- **Night Report** — `/app/acc/reports/[auditId]` shows the consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
 
 ## Admin
 
@@ -63,6 +63,7 @@ Managed by the supervising lecturer. Master data only.
 - **Rooms & room types** — define room types (name, capacity, base rate) and register individual rooms.
 - **Articles (charge codes)** — list of charge codes used for folio line-item posting.
 - **F&B menu** — CRUD menu items and categories.
+- **F&B tables** — `/app/admin/tables` CRUD for restaurant table master data.
 - **Hotel settings** — hotel name, tax %, service charge %, night-audit cutoff time.
 
 ## Authentication & Profile
