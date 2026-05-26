@@ -4,6 +4,10 @@ import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import {
+  fbOrderGuestLabel,
+  parseFBOrderItemNotes,
+} from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -247,6 +251,23 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               orderId={order.id}
               orderNo={order.orderNo}
               total={totals.total.toString()}
+              items={order.items.map((item) => {
+                const parsedNotes = parseFBOrderItemNotes(item.notes);
+                const guestNumber = parsedNotes.guestNumber ?? 1;
+
+                return {
+                  id: item.id,
+                  name: item.menuItem.name,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice.toString(),
+                  notes: parsedNotes.notes || null,
+                  guestLabel: fbOrderGuestLabel(guestNumber),
+                };
+              })}
+              settings={{
+                serviceChargePercent: serviceChargePercent,
+                taxPercent: taxPercent,
+              }}
             />
           ) : null}
 

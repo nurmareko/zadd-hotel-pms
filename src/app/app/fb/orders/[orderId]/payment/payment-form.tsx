@@ -26,13 +26,28 @@ type PaymentFormProps = {
   orderId: number;
   orderNo: string;
   total: string;
+  items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    notes: string | null;
+    guestLabel: string;
+  }>;
+  settings: {
+    serviceChargePercent: string;
+    taxPercent: string;
+  };
 };
 
 type PaymentSuccess = {
   method: PaymentMethod;
+  receiptOrderId: number;
+  paidTotal: string;
   amountTendered?: string;
   change?: string;
   folioNo?: string;
+  fullyPaid: boolean;
 };
 
 const methodOptions = [
@@ -121,8 +136,43 @@ function ResultMessage({ result }: { result: ChargeLookupResult }) {
   );
 }
 
-export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
-  const totalNumber = Number(total);
+export function PaymentForm({
+  orderId,
+  orderNo,
+  total,
+  items,
+  settings,
+}: PaymentFormProps) {
+  const [selectedQuantities, setSelectedQuantities] = useState(() =>
+    Object.fromEntries(items.map((item) => [item.id, item.quantity])),
+  );
+  const selectedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          orderItemId: item.id,
+          quantity: selectedQuantities[item.id] ?? 0,
+        }))
+        .filter((item) => item.quantity > 0),
+    [items, selectedQuantities],
+  );
+  const selectedSubtotal = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        const quantity = selectedQuantities[item.id] ?? 0;
+
+        return sum + Number(item.unitPrice) * quantity;
+      }, 0),
+    [items, selectedQuantities],
+  );
+  const selectedServiceCharge =
+    selectedSubtotal * (Number(settings.serviceChargePercent) / 100);
+  const selectedTax =
+    (selectedSubtotal + selectedServiceCharge) *
+    (Number(settings.taxPercent) / 100);
+  const selectedTotal = selectedSubtotal + selectedServiceCharge + selectedTax;
+  const selectedTotalString = selectedTotal.toFixed(2);
+  const totalNumber = selectedTotal;
   const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [amountTendered, setAmountTendered] = useState("");
   const [reference, setReference] = useState("");
@@ -144,6 +194,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
     method !== PaymentMethod.CASH || tenderedNumber >= totalNumber;
   const canSubmitCharge =
     method !== PaymentMethod.CHARGE_TO_ROOM || lookupResult?.ok === true;
+  const hasSelection = selectedItems.length > 0 && selectedTotal > 0;
 
   useEffect(() => {
     if (method !== PaymentMethod.CHARGE_TO_ROOM) {
@@ -175,6 +226,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
       const result = await payOrderDirect({
         orderId,
         method,
+        selectedItems,
         amountTendered:
           method === PaymentMethod.CASH ? tenderedNumber : undefined,
         reference,
@@ -188,8 +240,11 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
 
       const nextSuccess = {
         method: result.paymentMethod,
+        receiptOrderId: result.receiptOrderId,
+        paidTotal: result.paidTotal,
         amountTendered: result.amountTendered,
         change: result.change,
+        fullyPaid: result.fullyPaid ?? true,
       };
 
       setSuccess(nextSuccess);
@@ -198,7 +253,11 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
           ? "Order sudah tertutup"
           : "Pembayaran selesai",
       );
-      downloadReceipt({ orderId, orderNo, ...nextSuccess });
+      downloadReceipt({
+        orderId: result.receiptOrderId,
+        orderNo,
+        ...nextSuccess,
+      });
     });
   }
 
@@ -209,6 +268,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
       const result = await chargeOrderToRoom({
         orderId,
         roomNumber,
+        selectedItems,
       });
 
       if (!result.ok) {
@@ -219,7 +279,10 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
 
       const nextSuccess = {
         method: result.paymentMethod,
+        receiptOrderId: result.receiptOrderId,
+        paidTotal: result.paidTotal,
         folioNo: result.folioNo,
+        fullyPaid: result.fullyPaid ?? true,
       };
 
       setSuccess(nextSuccess);
@@ -228,7 +291,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
           ? "Order sudah tertutup"
           : "Order dibebankan ke folio",
       );
-      downloadReceipt({ orderId, orderNo });
+      downloadReceipt({ orderId: result.receiptOrderId, orderNo });
     });
   }
 
@@ -244,7 +307,12 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
               Order ditutup
             </div>
             <div className="mt-1">
-              Metode: <span className="font-semibold">{methodLabel(success.method)}</span>
+              Metode:{" "}
+              <span className="font-semibold">{methodLabel(success.method)}</span>{" "}
+              - Total{" "}
+              <span className="num font-semibold">
+                {formatIDR(success.paidTotal)}
+              </span>
               {success.folioNo ? (
                 <>
                   {" "}
@@ -274,7 +342,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
               className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
               onClick={() =>
                 downloadReceipt({
-                  orderId,
+                  orderId: success.receiptOrderId,
                   orderNo,
                   amountTendered: success.amountTendered,
                   change: success.change,
@@ -284,6 +352,16 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
             >
               Cetak Struk
             </button>
+            {!success.fullyPaid ? (
+              <button
+                className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                onClick={() => {
+                  window.location.href = `/app/fb/orders/${orderId}/payment`;
+                }}
+              >
+                Kembali ke Pembayaran
+              </button>
+            ) : null}
             <Link
               className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
               href="/app/fb"
@@ -303,6 +381,120 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
       </div>
 
       <div className="grid gap-3 p-3.5">
+        <div className="border border-console-border bg-console-bg">
+          <div className="flex flex-col gap-2 border-b border-console-border bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
+                Item yang dibayar
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Pilih item dan quantity untuk struk tamu ini.
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="h-7 border border-console-border bg-white px-2 text-[10px] font-semibold uppercase tracking-[0.04em] hover:border-console-ink"
+                onClick={() =>
+                  setSelectedQuantities(
+                    Object.fromEntries(
+                      items.map((item) => [item.id, item.quantity]),
+                    ),
+                  )
+                }
+                type="button"
+              >
+                Semua
+              </button>
+              <button
+                className="h-7 border border-console-border bg-white px-2 text-[10px] font-semibold uppercase tracking-[0.04em] hover:border-console-ink"
+                onClick={() =>
+                  setSelectedQuantities(
+                    Object.fromEntries(items.map((item) => [item.id, 0])),
+                  )
+                }
+                type="button"
+              >
+                Kosongkan
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-2 p-3">
+            {items.map((item) => {
+              const quantity = selectedQuantities[item.id] ?? 0;
+
+              return (
+                <div
+                  className="grid gap-2 border border-console-border bg-white p-2 text-[12px] sm:grid-cols-[minmax(0,1fr)_90px_120px]"
+                  key={item.id}
+                >
+                  <div>
+                    <div className="font-semibold text-console-ink">
+                      {item.name}
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      {item.guestLabel} - Sisa {item.quantity} -{" "}
+                      {formatIDR(item.unitPrice)}
+                    </div>
+                    {item.notes ? (
+                      <div className="mt-1 text-[11px] italic text-status-vd-fg">
+                        {item.notes}
+                      </div>
+                    ) : null}
+                  </div>
+                  <Input
+                    className="h-8 rounded-none border-console-border bg-console-surface text-right text-[12px]"
+                    max={item.quantity}
+                    min={0}
+                    onChange={(event) => {
+                      const nextQuantity = Math.min(
+                        item.quantity,
+                        Math.max(0, Number(event.target.value || 0)),
+                      );
+
+                      setSelectedQuantities((current) => ({
+                        ...current,
+                        [item.id]: nextQuantity,
+                      }));
+                    }}
+                    type="number"
+                    value={quantity}
+                  />
+                  <div className="flex items-center justify-between gap-2 border border-console-border bg-console-bg px-2 text-[11px] sm:justify-end">
+                    <span className="text-slate-500 sm:hidden">Jumlah</span>
+                    <span className="num font-semibold text-console-ink">
+                      {formatIDR(Number(item.unitPrice) * quantity)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="grid gap-1 border-t border-console-border bg-white px-3 py-2 text-[12px] sm:grid-cols-4">
+            <div>
+              <span className="text-slate-500">Subtotal</span>{" "}
+              <span className="num font-semibold">
+                {formatIDR(selectedSubtotal)}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500">SC</span>{" "}
+              <span className="num font-semibold">
+                {formatIDR(selectedServiceCharge)}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-500">Pajak</span>{" "}
+              <span className="num font-semibold">{formatIDR(selectedTax)}</span>
+            </div>
+            <div className="sm:text-right">
+              <span className="text-slate-500">Total bayar</span>{" "}
+              <span className="num text-[14px] font-bold text-console-ink">
+                {formatIDR(selectedTotalString)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {methodOptions.map((option) => {
             const Icon = option.icon;
@@ -310,11 +502,10 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
 
             return (
               <button
-                className={`min-h-24 border p-3 text-left transition-colors ${
-                  selected
+                className={`min-h-24 border p-3 text-left transition-colors ${selected
                     ? "border-console-ink bg-console-ink text-console-accent"
                     : "border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg"
-                }`}
+                  }`}
                 key={option.value}
                 onClick={() => {
                   setMethod(option.value);
@@ -330,9 +521,8 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
                   {option.label}
                 </div>
                 <div
-                  className={`mt-1 text-[11px] ${
-                    selected ? "text-slate-300" : "text-slate-500"
-                  }`}
+                  className={`mt-1 text-[11px] ${selected ? "text-slate-300" : "text-slate-500"
+                    }`}
                 >
                   {option.detail}
                 </div>
@@ -352,7 +542,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
                   className={fieldClassName}
                   min={0}
                   onChange={(event) => setAmountTendered(event.target.value)}
-                  placeholder={total}
+                  placeholder={selectedTotalString}
                   step={0.01}
                   type="number"
                   value={amountTendered}
@@ -362,9 +552,8 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500">Kembalian</span>
                   <span
-                    className={`num text-[16px] font-bold ${
-                      change < 0 ? "text-status-od-fg" : "text-console-ink"
-                    }`}
+                    className={`num text-[16px] font-bold ${change < 0 ? "text-status-od-fg" : "text-console-ink"
+                      }`}
                   >
                     {formatIDR(Math.max(change, 0))}
                   </span>
@@ -451,6 +640,7 @@ export function PaymentForm({ orderId, orderNo, total }: PaymentFormProps) {
             className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:border-console-border disabled:bg-console-bg disabled:text-slate-400"
             disabled={
               isSubmitPending ||
+              !hasSelection ||
               !cashIsValid ||
               !canSubmitCharge ||
               (method === PaymentMethod.CASH && !amountTendered)

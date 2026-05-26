@@ -265,21 +265,72 @@ function SummaryRow({
 
 export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
   const tableNo = order.table?.number ?? order.tableNo ?? "-";
-  const itemsByGuest = Array.from(
-    order.items.reduce((groups, item) => {
-      const parsedNotes = parseFBOrderItemNotes(item.notes);
-      const guestNumber = parsedNotes.guestNumber ?? 1;
-      const currentItems = groups.get(guestNumber) ?? [];
+  const displayItems = order.items.map((item) => {
+    const parsedNotes = parseFBOrderItemNotes(item.notes);
 
-      currentItems.push({
-        ...item,
-        displayNotes: parsedNotes.notes,
-      });
-      groups.set(guestNumber, currentItems);
+    return {
+      ...item,
+      displayNotes: parsedNotes.notes,
+      guestNumber: parsedNotes.guestNumber ?? 1,
+    };
+  });
+  const itemsByGuest = Array.from(
+    displayItems.reduce((groups, item) => {
+      const currentItems = groups.get(item.guestNumber) ?? [];
+
+      currentItems.push(item);
+      groups.set(item.guestNumber, currentItems);
 
       return groups;
-    }, new Map<number, Array<FBBillItem & { displayNotes: string }>>()),
+    }, new Map<number, typeof displayItems>()),
   ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
+  const itemRows = receipt
+    ? displayItems.map((item) => (
+        <View key={item.id} style={styles.tableRow}>
+          <View style={[styles.itemCell, { width: 258 }]}>
+            <Text>{item.menuItem.name}</Text>
+            {item.displayNotes ? (
+              <Text style={styles.note}>{item.displayNotes}</Text>
+            ) : null}
+          </View>
+          <Text style={[styles.cell, styles.right, { width: 42 }]}>
+            {qtyLabel(item.quantity)}
+          </Text>
+          <Text style={[styles.cell, styles.right, { width: 86 }]}>
+            {formatIDR(item.unitPrice.toString())}
+          </Text>
+          <Text style={[styles.cell, styles.right, { width: 86 }]}>
+            {formatIDR(item.amount.toString())}
+          </Text>
+        </View>
+      ))
+    : itemsByGuest.flatMap(([guestNumber, items]) => [
+        <Text
+          key={`guest-${guestNumber}`}
+          style={[styles.guestRow, { width: 472 }]}
+        >
+          {fbOrderGuestLabel(guestNumber)}
+        </Text>,
+        ...items.map((item) => (
+          <View key={item.id} style={styles.tableRow}>
+            <View style={[styles.itemCell, { width: 258 }]}>
+              <Text>{item.menuItem.name}</Text>
+              {item.displayNotes ? (
+                <Text style={styles.note}>{item.displayNotes}</Text>
+              ) : null}
+            </View>
+            <Text style={[styles.cell, styles.right, { width: 42 }]}>
+              {qtyLabel(item.quantity)}
+            </Text>
+            <Text style={[styles.cell, styles.right, { width: 86 }]}>
+              {formatIDR(item.unitPrice.toString())}
+            </Text>
+            <Text style={[styles.cell, styles.right, { width: 86 }]}>
+              {formatIDR(item.amount.toString())}
+            </Text>
+          </View>
+        )),
+      ]);
 
   return (
     <Document>
@@ -324,33 +375,7 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
                   </Text>
                 </View>
               ) : (
-                itemsByGuest.flatMap(([guestNumber, items]) => [
-                  <Text
-                    key={`guest-${guestNumber}`}
-                    style={[styles.guestRow, { width: 472 }]}
-                  >
-                    {fbOrderGuestLabel(guestNumber)}
-                  </Text>,
-                  ...items.map((item) => (
-                    <View key={item.id} style={styles.tableRow}>
-                      <View style={[styles.itemCell, { width: 258 }]}>
-                        <Text>{item.menuItem.name}</Text>
-                        {item.displayNotes ? (
-                          <Text style={styles.note}>{item.displayNotes}</Text>
-                        ) : null}
-                      </View>
-                      <Text style={[styles.cell, styles.right, { width: 42 }]}>
-                        {qtyLabel(item.quantity)}
-                      </Text>
-                      <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                        {formatIDR(item.unitPrice.toString())}
-                      </Text>
-                      <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                        {formatIDR(item.amount.toString())}
-                      </Text>
-                    </View>
-                  )),
-                ])
+                itemRows
               )}
             </View>
 

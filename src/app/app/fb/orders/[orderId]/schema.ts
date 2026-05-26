@@ -74,12 +74,24 @@ export const directPaymentMethods = [
   PaymentMethod.TRANSFER,
 ] as const;
 
+const PaymentSelectionItemSchema = z.object({
+  orderItemId: z.coerce.number().int().positive("Order item is required"),
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(1, "Quantity must be at least 1")
+    .max(99, "Quantity is too high"),
+});
+
 export const PayOrderDirectSchema = z
   .object({
     orderId: z.coerce.number().int().positive("Order is required"),
     method: z.enum(directPaymentMethods),
     amountTendered: z.coerce.number().optional(),
     reference: OptionalPaymentReferenceSchema,
+    selectedItems: z
+      .array(PaymentSelectionItemSchema)
+      .min(1, "Pilih minimal satu item untuk dibayar"),
   })
   .superRefine((value, ctx) => {
     if (
@@ -101,6 +113,9 @@ export const ChargeOrderToRoomSchema = z.object({
     .trim()
     .min(1, "Nomor kamar harus diisi")
     .max(10, "Nomor kamar terlalu panjang"),
+  selectedItems: z
+    .array(PaymentSelectionItemSchema)
+    .min(1, "Pilih minimal satu item untuk dibayar"),
 });
 
 export const LookupRoomForChargeSchema = z.object({
