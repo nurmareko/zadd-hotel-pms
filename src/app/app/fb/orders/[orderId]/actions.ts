@@ -38,6 +38,8 @@ export type PaymentActionResult =
   | {
       ok: true;
       paymentMethod: PaymentMethod;
+      receiptOrderId: number;
+      paidTotal: string;
       amountTendered?: string;
       change?: string;
       folioId?: number;
@@ -60,6 +62,10 @@ export type ChargeLookupResult =
 type OrderTotalDb = Pick<typeof prisma, "fBOrderItem" | "hotelSettings">;
 type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
   $queryRaw?: Prisma.TransactionClient["$queryRaw"];
+};
+type PaymentSelectionItem = {
+  orderItemId: number;
+  quantity: number;
 };
 
 class PaymentActionError extends Error {}
@@ -161,6 +167,196 @@ async function computeOrderTotalForPayment(db: OrderTotalDb, orderId: number) {
   const totals = computeFBOrderTotals(items, settings);
 
   return { ok: true as const, totals };
+}
+
+function aggregatePaymentSelection(selectedItems: PaymentSelectionItem[]) {
+  const selectedQuantities = new Map<number, number>();
+
+  for (const item of selectedItems) {
+    selectedQuantities.set(
+      item.orderItemId,
+      (selectedQuantities.get(item.orderItemId) ?? 0) + item.quantity,
+    );
+  }
+
+  return selectedQuantities;
+}
+
+async function nextSplitOrderNo(tx: Prisma.TransactionClient, orderNo: string) {
+  const prefix = `${orderNo}-P`;
+  const count = await tx.fBOrder.count({
+    where: { orderNo: { startsWith: prefix } },
+  });
+
+  return `${prefix}${String(count + 1).padStart(2, "0")}`;
+}
+
+async function applyPaymentSelection(
+  tx: Prisma.TransactionClient,
+  order: {
+    id: number;
+    orderNo: string;
+    tableId: number | null;
+    tableNo: string | null;
+    guestCount: number;
+    waitedById: number;
+    openedAt: Date;
+  },
+  selectedItems: PaymentSelectionItem[],
+  paymentData: {
+    method: PaymentMethod;
+    chargedFolioId?: number | null;
+    closedAt: Date;
+  },
+) {
+  const settings = await tx.hotelSettings.findUnique({ where: { id: 1 } });
+
+  if (!settings) {
+    throw new PaymentActionError("Hotel settings not found");
+  }
+
+  const selectedQuantities = aggregatePaymentSelection(selectedItems);
+  const currentItems = await tx.fBOrderItem.findMany({
+    where: { fbOrderId: order.id },
+    orderBy: { id: "asc" },
+  });
+
+  if (currentItems.length === 0) {
+    throw new PaymentActionError("Order kosong, tidak bisa dibayar");
+  }
+
+  const selectedLines = currentItems.flatMap((item) => {
+    const selectedQuantity = selectedQuantities.get(item.id) ?? 0;
+
+    if (selectedQuantity === 0) {
+      return [];
+    }
+
+    if (selectedQuantity > item.quantity) {
+      throw new PaymentActionError(
+        "Quantity pembayaran melebihi quantity order",
+      );
+    }
+
+    return [
+      {
+        source: item,
+        quantity: selectedQuantity,
+        amount: item.unitPrice.mul(selectedQuantity),
+      },
+    ];
+  });
+
+  if (selectedLines.length === 0) {
+    throw new PaymentActionError("Pilih minimal satu item untuk dibayar");
+  }
+
+  const selectedIds = new Set(selectedLines.map((line) => line.source.id));
+
+  for (const orderItemId of selectedQuantities.keys()) {
+    if (!selectedIds.has(orderItemId)) {
+      throw new PaymentActionError("Item pembayaran tidak ditemukan");
+    }
+  }
+
+  const allItemsSelected = currentItems.every((item) => {
+    const selectedQuantity = selectedQuantities.get(item.id) ?? 0;
+
+    return selectedQuantity === item.quantity;
+  });
+  const selectedTotals = computeFBOrderTotals(selectedLines, settings);
+
+  if (allItemsSelected) {
+    await tx.fBOrder.update({
+      where: { id: order.id },
+      data: {
+        status: FBOrderStatus.CLOSED,
+        paymentMethod: paymentData.method,
+        chargedFolioId: paymentData.chargedFolioId ?? null,
+        subtotal: selectedTotals.subtotal,
+        serviceCharge: selectedTotals.serviceCharge,
+        tax: selectedTotals.tax,
+        total: selectedTotals.total,
+        closedAt: paymentData.closedAt,
+      },
+    });
+
+    return {
+      paidOrderId: order.id,
+      paidOrderNo: order.orderNo,
+      totals: selectedTotals,
+      fullyPaid: true,
+    };
+  }
+
+  const paidOrderNo = await nextSplitOrderNo(tx, order.orderNo);
+  const paidOrder = await tx.fBOrder.create({
+    data: {
+      orderNo: paidOrderNo,
+      tableNo: order.tableNo,
+      guestCount: order.guestCount,
+      waitedById: order.waitedById,
+      status: FBOrderStatus.CLOSED,
+      paymentMethod: paymentData.method,
+      chargedFolioId: paymentData.chargedFolioId ?? null,
+      subtotal: selectedTotals.subtotal,
+      serviceCharge: selectedTotals.serviceCharge,
+      tax: selectedTotals.tax,
+      total: selectedTotals.total,
+      openedAt: order.openedAt,
+      closedAt: paymentData.closedAt,
+      items: {
+        create: selectedLines.map((line) => ({
+          menuItemId: line.source.menuItemId,
+          quantity: line.quantity,
+          unitPrice: line.source.unitPrice,
+          amount: line.amount,
+          notes: line.source.notes,
+        })),
+      },
+    },
+    select: { id: true, orderNo: true },
+  });
+
+  for (const line of selectedLines) {
+    const remainingQuantity = line.source.quantity - line.quantity;
+
+    if (remainingQuantity === 0) {
+      await tx.fBOrderItem.delete({ where: { id: line.source.id } });
+    } else {
+      await tx.fBOrderItem.update({
+        where: { id: line.source.id },
+        data: {
+          quantity: remainingQuantity,
+          amount: line.source.unitPrice.mul(remainingQuantity),
+        },
+      });
+    }
+  }
+
+  const remainingComputed = await computeOrderTotalForPayment(tx, order.id);
+
+  if (!remainingComputed.ok) {
+    throw new PaymentActionError(remainingComputed.error);
+  }
+
+  await tx.fBOrder.update({
+    where: { id: order.id },
+    data: {
+      status: FBOrderStatus.BILLED,
+      subtotal: remainingComputed.totals.subtotal,
+      serviceCharge: remainingComputed.totals.serviceCharge,
+      tax: remainingComputed.totals.tax,
+      total: remainingComputed.totals.total,
+    },
+  });
+
+  return {
+    paidOrderId: paidOrder.id,
+    paidOrderNo: paidOrder.orderNo,
+    totals: selectedTotals,
+    fullyPaid: false,
+  };
 }
 
 async function freeOrderTable(
@@ -751,6 +947,8 @@ export async function payOrderDirect(
     return {
       ok: true,
       paymentMethod: order.paymentMethod ?? parsed.data.method,
+      receiptOrderId: order.id,
+      paidTotal: "0",
       alreadyClosed: true,
     };
   }
@@ -765,62 +963,77 @@ export async function payOrderDirect(
     };
   }
 
-  const computed = await computeOrderTotalForPayment(prisma, order.id);
-
-  if (!computed.ok) {
-    return computed;
-  }
-
-  const total = computed.totals.total;
   let amountTendered: Prisma.Decimal | undefined;
   let change: Prisma.Decimal | undefined;
 
   if (parsed.data.method === PaymentMethod.CASH) {
     amountTendered = new Prisma.Decimal(parsed.data.amountTendered ?? 0);
 
-    if (amountTendered.lt(total)) {
+    if (amountTendered.lte(0)) {
       return {
         ok: false,
         error: "Uang diterima kurang dari total tagihan",
       };
     }
-
-    change = amountTendered.minus(total);
   }
 
   const now = new Date();
-  const reference =
-    parsed.data.method === PaymentMethod.CASH && amountTendered && change
-      ? `CASH_TENDERED=${amountTendered.toFixed(2)};CHANGE=${change.toFixed(2)}`
-      : parsed.data.reference || null;
 
   try {
     const result = await prisma.$transaction(
       async (tx) => {
-        const updatedOrder = await tx.fBOrder.updateMany({
-          where: { id: order.id, status: FBOrderStatus.BILLED },
-          data: {
-            status: FBOrderStatus.CLOSED,
-            paymentMethod: parsed.data.method,
-            subtotal: computed.totals.subtotal,
-            serviceCharge: computed.totals.serviceCharge,
-            tax: computed.totals.tax,
-            total,
-            closedAt: now,
+        await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "fb_order" WHERE id = ${order.id} FOR UPDATE
+        `;
+
+        const lockedOrder = await tx.fBOrder.findUnique({
+          where: { id: order.id },
+          select: {
+            id: true,
+            orderNo: true,
+            status: true,
+            tableId: true,
+            tableNo: true,
+            guestCount: true,
+            waitedById: true,
+            openedAt: true,
           },
         });
 
-        if (updatedOrder.count === 0) {
+        if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
             "Status order berubah. Muat ulang halaman.",
           );
         }
 
+        const paidSelection = await applyPaymentSelection(
+          tx,
+          lockedOrder,
+          parsed.data.selectedItems,
+          {
+            method: parsed.data.method,
+            closedAt: now,
+          },
+        );
+
+        if (parsed.data.method === PaymentMethod.CASH && amountTendered) {
+          if (amountTendered.lt(paidSelection.totals.total)) {
+            throw new PaymentActionError("Uang diterima kurang dari total tagihan");
+          }
+
+          change = amountTendered.minus(paidSelection.totals.total);
+        }
+
+        const reference =
+          parsed.data.method === PaymentMethod.CASH && amountTendered && change
+            ? `CASH_TENDERED=${amountTendered.toFixed(2)};CHANGE=${change.toFixed(2)}`
+            : parsed.data.reference || null;
+
         await tx.payment.create({
           data: {
             folioId: null,
-            fbOrderId: order.id,
-            amount: total,
+            fbOrderId: paidSelection.paidOrderId,
+            amount: paidSelection.totals.total,
             method: parsed.data.method,
             reference,
             receivedById: userId,
@@ -828,11 +1041,15 @@ export async function payOrderDirect(
           },
         });
 
-        await freeOrderTable(tx, order.tableId);
+        if (paidSelection.fullyPaid) {
+          await freeOrderTable(tx, order.tableId);
+        }
 
         return {
           ok: true as const,
           paymentMethod: parsed.data.method,
+          receiptOrderId: paidSelection.paidOrderId,
+          paidTotal: paidSelection.totals.total.toFixed(2),
           amountTendered: amountTendered?.toFixed(2),
           change: change?.toFixed(2),
         };
@@ -845,6 +1062,7 @@ export async function payOrderDirect(
 
     if (result.ok) {
       revalidatePaymentPaths(parsed.data.orderId);
+      revalidatePaymentPaths(result.receiptOrderId);
     }
 
     return result;
@@ -876,9 +1094,7 @@ export async function chargeOrderToRoom(
     where: { id: parsed.data.orderId },
     select: {
       id: true,
-      orderNo: true,
       status: true,
-      tableId: true,
       paymentMethod: true,
       chargedFolioId: true,
     },
@@ -892,6 +1108,8 @@ export async function chargeOrderToRoom(
     return {
       ok: true,
       paymentMethod: order.paymentMethod ?? PaymentMethod.CHARGE_TO_ROOM,
+      receiptOrderId: order.id,
+      paidTotal: "0",
       folioId: order.chargedFolioId ?? undefined,
       alreadyClosed: true,
     };
@@ -911,12 +1129,6 @@ export async function chargeOrderToRoom(
 
   if (!roomLookup.ok) {
     return roomLookup;
-  }
-
-  const computed = await computeOrderTotalForPayment(prisma, order.id);
-
-  if (!computed.ok) {
-    return computed;
   }
 
   const article =
@@ -953,45 +1165,64 @@ export async function chargeOrderToRoom(
           throw new PaymentActionError("Folio tidak terbuka");
         }
 
-        const updatedOrder = await tx.fBOrder.updateMany({
-          where: { id: order.id, status: FBOrderStatus.BILLED },
-          data: {
-            status: FBOrderStatus.CLOSED,
-            paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
-            chargedFolioId: roomLookup.folioId,
-            subtotal: computed.totals.subtotal,
-            serviceCharge: computed.totals.serviceCharge,
-            tax: computed.totals.tax,
-            total: computed.totals.total,
-            closedAt: now,
+        await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "fb_order" WHERE id = ${order.id} FOR UPDATE
+        `;
+
+        const lockedOrder = await tx.fBOrder.findUnique({
+          where: { id: order.id },
+          select: {
+            id: true,
+            orderNo: true,
+            status: true,
+            tableId: true,
+            tableNo: true,
+            guestCount: true,
+            waitedById: true,
+            openedAt: true,
           },
         });
 
-        if (updatedOrder.count === 0) {
+        if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
             "Status order berubah. Muat ulang halaman.",
           );
         }
 
+        const paidSelection = await applyPaymentSelection(
+          tx,
+          lockedOrder,
+          parsed.data.selectedItems,
+          {
+            method: PaymentMethod.CHARGE_TO_ROOM,
+            chargedFolioId: roomLookup.folioId,
+            closedAt: now,
+          },
+        );
+
         await tx.folioLineItem.create({
           data: {
             folioId: roomLookup.folioId,
             articleId: article.id,
-            fbOrderId: order.id,
-            description: `F&B — ${order.orderNo}`,
+            fbOrderId: paidSelection.paidOrderId,
+            description: `F&B - ${paidSelection.paidOrderNo}`,
             quantity: new Prisma.Decimal(1),
-            unitPrice: computed.totals.total,
-            amount: computed.totals.total,
+            unitPrice: paidSelection.totals.total,
+            amount: paidSelection.totals.total,
             postedById: userId,
             postedAt: now,
           },
         });
 
-        await freeOrderTable(tx, order.tableId);
+        if (paidSelection.fullyPaid) {
+          await freeOrderTable(tx, lockedOrder.tableId);
+        }
 
         return {
           ok: true as const,
           paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+          receiptOrderId: paidSelection.paidOrderId,
+          paidTotal: paidSelection.totals.total.toFixed(2),
           folioId: roomLookup.folioId,
           folioNo: roomLookup.folioNo,
         };
@@ -1008,6 +1239,7 @@ export async function chargeOrderToRoom(
         result.folioId,
         roomLookup.reservationId,
       );
+      revalidatePaymentPaths(result.receiptOrderId);
     }
 
     return result;
