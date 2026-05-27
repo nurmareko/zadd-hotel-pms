@@ -240,6 +240,31 @@ Reference: open the design canvas in `docs/mockups/`.
 
 ---
 
+## F&B floor plan specifics (FB-01 / AD-05)
+
+The F&B floor plan and Admin layout editor use the shared constants in `src/lib/restaurant-table-layout.ts`.
+
+- **Canvas:** 900×560px, dashed console-border outline, `bg-console-bg`, wrapped in an overflow-auto container.
+- **Table tile:** 72×72px, absolute-positioned by `RestaurantTable.posX` / `posY`.
+- **Layout margin:** 20px.
+- **Layout gap:** 28px.
+- **Drag grid:** 20px increments in the Admin layout editor.
+- **Location tabs:** one tab per `TableLocation` value: INDOOR, OUTDOOR, PRIVATE.
+- **Legend:** shown above the floor canvas, one status badge per `TableStatus`.
+
+F&B floor tile colors are verified against `src/app/app/fb/table-card.tsx`:
+
+| TableStatus | Background | Text | Border | Notes |
+|---|---|---|---|---|
+| AVAILABLE | `#ecfdf5` (emerald-50) | `#022c22` (emerald-950) | `#047857` (emerald-700) | Hover `#d1fae5` (emerald-100) |
+| OCCUPIED | `#eff6ff` (blue-50) | `#172554` (blue-950) | `#1d4ed8` (blue-700) | Hover `#dbeafe` (blue-100) |
+| RESERVED | `#fffbeb` (amber-50) | `#451a03` (amber-950) | `#b45309` (amber-700) | Opens table-action popover |
+| OUT_OF_SERVICE | `#f1f5f9` (slate-100) | `#020617` (slate-950) | `#334155` (slate-700) | `opacity-80`, opens table-action popover |
+
+Status badges elsewhere in F&B use the shared status token palette from `src/app/app/fb/status-badge.tsx`.
+
+---
+
 ## Mobile (Housekeeping)
 
 HK module is mobile-first.

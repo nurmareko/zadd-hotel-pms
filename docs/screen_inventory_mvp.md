@@ -70,7 +70,7 @@ The application is built as a **single Next.js app** with four operational areas
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FB-01 | Table Picker + Daily Summary | Page | Grid of tables with status + today's revenue snapshot |
+| FB-01 | Table Picker + Daily Summary | Page | Per-location spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers |
 | FB-01A | New Order | Page | `/app/fb/orders/new`: select available table and guest count to create order |
 | FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
@@ -96,10 +96,12 @@ The application is built as a **single Next.js app** with four operational areas
 | AD-02 | Rooms & Room Types | Page | Combined: CRUD room types (with base rate inline) and rooms |
 | AD-03 | Articles | Page | CRUD charge codes |
 | AD-04 | F&B Menu | Page | CRUD menu items (single outlet) |
-| AD-05 | F&B Tables | Page | `/app/admin/tables`: CRUD restaurant table master data |
+| AD-05 | F&B Tables | Page | `/app/admin/tables`: CRUD restaurant table master data + Layout tab for drag-to-arrange floor positions per location |
 | AD-06 | Hotel Settings | Page | Hotel info, tax %, service charge %, night-audit cutoff time |
 
 **Cut from original**: Admin Dashboard (admins land directly on User Management), Role Management (5 roles hardcoded in seed), Rate Plans (rate inlined into RoomType), Outlets (single outlet hardcoded), Guest Segments.
+
+**AD-05 Layout tab:** spatial editor for restaurant table positions by Indoor/Outdoor/Private location, with drag-to-arrange tiles and auto-arrange.
 
 ---
 
