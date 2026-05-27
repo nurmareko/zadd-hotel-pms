@@ -11,13 +11,13 @@ Five actors interact with the system:
 
 ## Use cases by module
 
-The system has 14 primary use cases and 2 supporting use cases, grouped into five modules:
+The system has 18 primary use cases and 2 supporting use cases, grouped into five modules:
 
 - **Front Office** — guest lifecycle: reservation management, check-in, guest folio management, and check-out.
 - **Housekeeping** — mobile-first room status monitoring and updates.
-- **Food & Beverage** — captain orders, bill processing, and payment via cash, card, transfer, or charge-to-room.
+- **Food & Beverage** — captain orders, floor actions for reserved/out-of-service tables, bill processing, and payment via cash, card, transfer, or charge-to-room.
 - **Accounting** — night audit execution and consolidated night report generation from NightAudit snapshot fields.
-- **Admin** — master data, restaurant table management (`/app/admin/tables`), and user/role management.
+- **Admin** — master data, restaurant table management and floor-layout arrangement (`/app/admin/tables`), and user/role management.
 
 ## Actor → Use Case mapping
 
@@ -25,9 +25,9 @@ The system has 14 primary use cases and 2 supporting use cases, grouped into fiv
 |---|---|
 | Front Office staff | Manage Reservations; Process Check-in; Manage Guest Folio; Process Check-out |
 | Housekeeping staff | View Room Status; Update Room Status |
-| F&B staff | Create Captain Order; Process F&B Bill; Process F&B Payment |
+| F&B staff | Create Captain Order; Seat Reserved Party; Release Table Reservation; Restore OOS Table; Process F&B Bill; Process F&B Payment |
 | Accounting staff | Run Night Audit; Generate Night Report |
-| Administrator | Manage Master Data; Manage Restaurant Tables (`/app/admin/tables`); Manage Users & Roles |
+| Administrator | Manage Master Data; Manage Restaurant Tables (`/app/admin/tables`); Arrange Table Floor Layout; Manage Users & Roles |
 
 ## Use case relationships
 

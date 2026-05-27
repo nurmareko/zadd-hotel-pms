@@ -162,6 +162,8 @@ erDiagram
     int capacity
     varchar location
     varchar status
+    int pos_x
+    int pos_y
     text notes
     timestamp created_at
     timestamp updated_at
@@ -475,6 +477,8 @@ A few choices worth explaining:
 | capacity | INT | NOT NULL, DEFAULT 2 | Default seating capacity |
 | location | TableLocation | NOT NULL, DEFAULT 'INDOOR' | INDOOR, OUTDOOR, PRIVATE |
 | status | TableStatus | NOT NULL, DEFAULT 'AVAILABLE' | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
+| pos_x | INT | NOT NULL, DEFAULT 0 | Layout X coordinate (Prisma `posX`, mapped to `pos_x`) |
+| pos_y | INT | NOT NULL, DEFAULT 0 | Layout Y coordinate (Prisma `posY`, mapped to `pos_y`) |
 | notes | TEXT | — | Operational notes |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |

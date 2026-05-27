@@ -2,7 +2,7 @@
 
 What we're building in the MVP, grouped by module. Features deferred to later releases are listed at the end with rationale.
 
-Last updated: 2026-05-26.
+Last updated: 2026-05-27.
 
 ---
 
@@ -41,7 +41,7 @@ Mobile-first for staff moving through room corridors.
 
 Shipped point-of-sale operations for the hotel restaurant.
 
-- **Floor plan + order list** — `/app/fb` shows table status, active orders, daily order list, and entry point for creating orders.
+- **Floor plan + order list** — `/app/fb` shows a per-location spatial floor plan with Indoor/Outdoor/Private tabs derived from `TableLocation`, positioned table tiles colored by status, active orders, daily order list, and entry point for creating orders. RESERVED and OUT_OF_SERVICE tables expose status actions from the floor (seat guests → order, release reservation, set available) and display their note.
 - **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review.
 - **Bill processing** — `/app/fb/orders/[orderId]/bill` calculates subtotal, service charge, and tax based on hotel settings.
 - **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room (posting the F&B total to the guest's folio), including target guest selection by room number.
@@ -63,7 +63,7 @@ Managed by the supervising lecturer. Master data only.
 - **Rooms & room types** — define room types (name, capacity, base rate) and register individual rooms.
 - **Articles (charge codes)** — list of charge codes used for folio line-item posting.
 - **F&B menu** — CRUD menu items and categories.
-- **F&B tables** — `/app/admin/tables` CRUD for restaurant table master data.
+- **F&B tables** — `/app/admin/tables` CRUD for restaurant table master data plus a Layout tab for drag-to-arrange positioning per location, with auto-arrange.
 - **Hotel settings** — hotel name, tax %, service charge %, night-audit cutoff time.
 
 ## Authentication & Profile
