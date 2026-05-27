@@ -486,7 +486,10 @@ async function runCreateOrderTransaction(
         return { ok: false as const, error: "Table not found" };
       }
 
-      if (table.status !== TableStatus.AVAILABLE) {
+      if (
+        table.status !== TableStatus.AVAILABLE &&
+        table.status !== TableStatus.RESERVED
+      ) {
         return {
           ok: false as const,
           error: `Meja ${table.number} tidak tersedia untuk order baru.`,

@@ -61,7 +61,15 @@ export default async function FBLandingPage({
 
   const [tables, todayOrders, activeOrders] = await Promise.all([
     prisma.restaurantTable.findMany({
-      include: {
+      select: {
+        id: true,
+        number: true,
+        capacity: true,
+        location: true,
+        status: true,
+        posX: true,
+        posY: true,
+        notes: true,
         orders: {
           where: { status: FBOrderStatus.OPEN },
           include: { items: { select: { id: true } } },

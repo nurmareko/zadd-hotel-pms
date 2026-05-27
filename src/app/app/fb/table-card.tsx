@@ -3,6 +3,7 @@ import { differenceInMinutes } from "date-fns";
 import Link from "next/link";
 
 import { TableStatusBadge, tableStatusLabels } from "./status-badge";
+import { TableStatusPopover } from "./table-status-popover";
 
 export type TableCardOrder = {
   id: number;
@@ -56,6 +57,15 @@ function elapsedLabel(openedAt: Date) {
   }
 
   return `${Math.floor(minutes / 60)}j ${minutes % 60}m`;
+}
+
+function isManualFloorStatus(
+  status: TableStatus,
+): status is Extract<TableStatus, "RESERVED" | "OUT_OF_SERVICE"> {
+  return (
+    status === TableStatus.RESERVED ||
+    status === TableStatus.OUT_OF_SERVICE
+  );
 }
 
 export function TableCard({ table, variant = "card" }: TableCardProps) {
@@ -116,6 +126,20 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
   const content = variant === "floor" ? floorContent : cardContent;
 
   if (!href) {
+    if (variant === "floor" && isManualFloorStatus(table.status)) {
+      return (
+        <TableStatusPopover
+          className={className}
+          notes={table.notes}
+          status={table.status}
+          tableId={table.id}
+          tableNumber={table.number}
+        >
+          {content}
+        </TableStatusPopover>
+      );
+    }
+
     return <div className={className}>{content}</div>;
   }
 

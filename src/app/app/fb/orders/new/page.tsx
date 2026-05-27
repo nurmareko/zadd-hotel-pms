@@ -36,8 +36,11 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           where: { status: TableStatus.AVAILABLE },
           orderBy: [{ location: "asc" }, { number: "asc" }],
           select: { id: true, number: true, capacity: true },
-        }),
+      }),
   ]);
+  const canCreateOrder =
+    table?.status === TableStatus.AVAILABLE ||
+    table?.status === TableStatus.RESERVED;
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -64,7 +67,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
             {"// KONFIRMASI ORDER"}
           </div>
-          {table.status === TableStatus.AVAILABLE ? (
+          {canCreateOrder ? (
             <ConfirmForm
               table={{
                 id: table.id,
