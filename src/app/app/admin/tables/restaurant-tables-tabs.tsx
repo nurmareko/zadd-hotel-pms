@@ -14,10 +14,6 @@ type RestaurantTablesTabsProps = {
 };
 
 export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
-  const layoutKey = tables
-    .map((table) => `${table.id}:${table.posX}:${table.posY}:${table.capacity}`)
-    .join("|");
-
   return (
     <>
       <div className="mb-4">
@@ -49,7 +45,7 @@ export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
           <RestaurantTableList tables={tables} showHeading={false} />
         </TabsContent>
         <TabsContent value="layout">
-          <RestaurantTableLayoutEditor key={layoutKey} tables={tables} />
+          <RestaurantTableLayoutEditor tables={tables} />
         </TabsContent>
       </Tabs>
     </>

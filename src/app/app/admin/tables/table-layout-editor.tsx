@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLocation } from "@prisma/client";
 import { RotateCcw } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Rnd } from "react-rnd";
@@ -22,6 +23,7 @@ type LayoutTable = {
   id: number;
   number: string;
   capacity: number;
+  location: TableLocation;
   posX: number;
   posY: number;
 };
@@ -30,27 +32,44 @@ type TableLayoutEditorProps = {
   tables: LayoutTable[];
 };
 
+type PositionOverrides = Record<number, { posX: number; posY: number }>;
+
 const tableBoxClassName =
   "flex h-full w-full cursor-move select-none flex-col items-center justify-center border border-console-ink bg-console-surface text-console-ink shadow-[2px_2px_0_#111827] focus-within:outline-none";
+
+const locationTabs = Object.values(TableLocation);
+
+function locationLabel(location: TableLocation) {
+  return location.replaceAll("_", " ").toLowerCase();
+}
 
 export function RestaurantTableLayoutEditor({
   tables,
 }: TableLayoutEditorProps) {
-  const [layoutTables, setLayoutTables] = useState(tables);
+  const [positionOverrides, setPositionOverrides] = useState<PositionOverrides>(
+    {},
+  );
+  const [selectedLocation, setSelectedLocation] = useState<TableLocation>(
+    locationTabs[0],
+  );
   const [savingTableId, setSavingTableId] = useState<number | null>(null);
   const [isArranging, startArrangeTransition] = useTransition();
+  const layoutTables = tables.map((table) => ({
+    ...table,
+    ...positionOverrides[table.id],
+  }));
+  const selectedTables = layoutTables.filter(
+    (table) => table.location === selectedLocation,
+  );
 
   async function handleDragStop(table: LayoutTable, posX: number, posY: number) {
     const previousPosition = { posX: table.posX, posY: table.posY };
     const nextPosition = clampRestaurantTablePosition({ posX, posY });
 
-    setLayoutTables((currentTables) =>
-      currentTables.map((currentTable) =>
-        currentTable.id === table.id
-          ? { ...currentTable, ...nextPosition }
-          : currentTable,
-      ),
-    );
+    setPositionOverrides((currentOverrides) => ({
+      ...currentOverrides,
+      [table.id]: nextPosition,
+    }));
     setSavingTableId(table.id);
 
     const result = await updateRestaurantTablePosition({
@@ -64,35 +83,34 @@ export function RestaurantTableLayoutEditor({
       return;
     }
 
-    setLayoutTables((currentTables) =>
-      currentTables.map((currentTable) =>
-        currentTable.id === table.id
-          ? { ...currentTable, ...previousPosition }
-          : currentTable,
-      ),
-    );
+    setPositionOverrides((currentOverrides) => ({
+      ...currentOverrides,
+      [table.id]: previousPosition,
+    }));
     toast.error(result.error);
   }
 
   function handleAutoArrange() {
     startArrangeTransition(async () => {
-      const result = await autoArrangeRestaurantTables();
+      const result = await autoArrangeRestaurantTables({
+        location: selectedLocation,
+      });
 
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
 
-      setLayoutTables((currentTables) =>
-        currentTables.map((table) => {
-          const arrangedTable = result.tables.find(
-            (position) => position.id === table.id,
-          );
+      setPositionOverrides((currentOverrides) => {
+        const nextOverrides = { ...currentOverrides };
 
-          return arrangedTable ? { ...table, ...arrangedTable } : table;
-        }),
-      );
-      toast.success("Layout auto-arranged");
+        for (const table of result.tables) {
+          nextOverrides[table.id] = { posX: table.posX, posY: table.posY };
+        }
+
+        return nextOverrides;
+      });
+      toast.success("Location auto-arranged");
     });
   }
 
@@ -106,7 +124,7 @@ export function RestaurantTableLayoutEditor({
           <p className="mt-1 text-[11px] text-slate-500">
             <span className="num">{RESTAURANT_FLOOR_CANVAS_WIDTH}</span>x
             <span className="num">{RESTAURANT_FLOOR_CANVAS_HEIGHT}</span> px ·{" "}
-            <span className="num">{layoutTables.length}</span> meja
+            <span className="num">{selectedTables.length}</span> meja
           </p>
         </div>
         <Button
@@ -120,6 +138,27 @@ export function RestaurantTableLayoutEditor({
         </Button>
       </div>
 
+      <div className="border-b border-console-border px-3.5">
+        <div className="flex gap-5" role="tablist" aria-label="Table location">
+          {locationTabs.map((location) => (
+            <button
+              key={location}
+              type="button"
+              className={`border-b-2 px-0 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                selectedLocation === location
+                  ? "border-console-ink text-console-ink"
+                  : "border-transparent text-slate-500 hover:text-console-ink"
+              }`}
+              role="tab"
+              aria-selected={selectedLocation === location}
+              onClick={() => setSelectedLocation(location)}
+            >
+              {locationLabel(location)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="overflow-auto p-3.5">
         <div
           className="relative border border-dashed border-console-border bg-console-bg"
@@ -128,7 +167,13 @@ export function RestaurantTableLayoutEditor({
             height: RESTAURANT_FLOOR_CANVAS_HEIGHT,
           }}
         >
-          {layoutTables.map((table) => (
+          {selectedTables.length === 0 ? (
+            <div className="absolute left-4 top-4 border border-dashed border-console-border bg-console-surface px-3 py-2 text-[11px] text-slate-500">
+              No tables in this area.
+            </div>
+          ) : null}
+
+          {selectedTables.map((table) => (
             <Rnd
               key={table.id}
               bounds="parent"

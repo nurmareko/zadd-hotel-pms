@@ -12,6 +12,7 @@ import {
 import {
   RestaurantTableCreateSchema,
   RestaurantTableIdSchema,
+  RestaurantTableLocationSchema,
   RestaurantTablePositionSchema,
   RestaurantTableUpdateSchema,
 } from "./schema";
@@ -89,7 +90,9 @@ export async function createRestaurantTable(
       };
     }
 
-    const tableCount = await prisma.restaurantTable.count();
+    const tableCount = await prisma.restaurantTable.count({
+      where: { location: parsed.data.location },
+    });
 
     await prisma.restaurantTable.create({
       data: {
@@ -226,14 +229,23 @@ export async function updateRestaurantTablePosition(
   }
 }
 
-export async function autoArrangeRestaurantTables(): Promise<LayoutActionResult> {
+export async function autoArrangeRestaurantTables(
+  input: unknown,
+): Promise<LayoutActionResult> {
   if (!(await canManageRestaurantTables())) {
     return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = RestaurantTableLocationSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: "Lokasi tidak valid" };
   }
 
   try {
     const updatedTables = await prisma.$transaction(async (tx) => {
       const tables = await tx.restaurantTable.findMany({
+        where: { location: parsed.data.location },
         select: { id: true, number: true },
       });
       const sortedTables = tables.toSorted((first, second) =>
