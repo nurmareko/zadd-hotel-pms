@@ -2,7 +2,7 @@ import { TableLocation, TableStatus } from "@prisma/client";
 import { differenceInMinutes } from "date-fns";
 import Link from "next/link";
 
-import { TableStatusBadge } from "./status-badge";
+import { TableStatusBadge, tableStatusLabels } from "./status-badge";
 
 export type TableCardOrder = {
   id: number;
@@ -18,12 +18,15 @@ export type RestaurantTableCard = {
   capacity: number;
   location: TableLocation;
   status: TableStatus;
+  posX: number;
+  posY: number;
   notes: string | null;
   orders: TableCardOrder[];
 };
 
 type TableCardProps = {
   table: RestaurantTableCard;
+  variant?: "card" | "floor";
 };
 
 const statusCardStyles: Record<TableStatus, string> = {
@@ -37,6 +40,14 @@ const statusCardStyles: Record<TableStatus, string> = {
     "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg opacity-75",
 };
 
+export const floorTableStatusStyles: Record<TableStatus, string> = {
+  AVAILABLE:
+    "border-emerald-700 bg-emerald-50 text-emerald-950 hover:bg-emerald-100",
+  OCCUPIED: "border-blue-700 bg-blue-50 text-blue-950 hover:bg-blue-100",
+  RESERVED: "border-amber-700 bg-amber-50 text-amber-950",
+  OUT_OF_SERVICE: "border-slate-700 bg-slate-100 text-slate-950 opacity-80",
+};
+
 function elapsedLabel(openedAt: Date) {
   const minutes = Math.max(0, differenceInMinutes(new Date(), openedAt));
 
@@ -47,7 +58,7 @@ function elapsedLabel(openedAt: Date) {
   return `${Math.floor(minutes / 60)}j ${minutes % 60}m`;
 }
 
-export function TableCard({ table }: TableCardProps) {
+export function TableCard({ table, variant = "card" }: TableCardProps) {
   const activeOrder = table.orders[0] ?? null;
   const href =
     table.status === TableStatus.AVAILABLE
@@ -55,7 +66,7 @@ export function TableCard({ table }: TableCardProps) {
       : table.status === TableStatus.OCCUPIED && activeOrder
         ? `/app/fb/orders/${activeOrder.id}`
         : null;
-  const content = (
+  const cardContent = (
     <>
       <div className="flex items-start justify-between gap-2">
         <div className="text-[24px] font-bold leading-none tracking-normal">
@@ -86,7 +97,23 @@ export function TableCard({ table }: TableCardProps) {
       ) : null}
     </>
   );
-  const className = `block min-h-[126px] border border-l-4 p-3 text-left transition ${statusCardStyles[table.status]}`;
+  const floorContent = (
+    <div className="flex h-full w-full flex-col items-center justify-center text-center">
+      <span className="num text-[17px] font-bold leading-none">
+        {table.number}
+      </span>
+      <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em]">
+        {table.capacity} pax
+      </span>
+      <span className="mt-1 h-1.5 w-1.5 bg-current" aria-hidden="true" />
+      <span className="sr-only">{tableStatusLabels[table.status]}</span>
+    </div>
+  );
+  const className =
+    variant === "floor"
+      ? `block h-full w-full border-2 text-left shadow-[2px_2px_0_#111827] transition ${floorTableStatusStyles[table.status]}`
+      : `block min-h-[126px] border border-l-4 p-3 text-left transition ${statusCardStyles[table.status]}`;
+  const content = variant === "floor" ? floorContent : cardContent;
 
   if (!href) {
     return <div className={className}>{content}</div>;

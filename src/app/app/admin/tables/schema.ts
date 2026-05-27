@@ -60,6 +60,15 @@ export const RestaurantTableIdSchema = z.object({
   id: z.coerce.number().int().positive("Meja wajib dipilih"),
 });
 
+export const RestaurantTablePositionSchema = RestaurantTableIdSchema.extend({
+  posX: z.coerce.number().min(0, "Posisi X tidak valid"),
+  posY: z.coerce.number().min(0, "Posisi Y tidak valid"),
+});
+
+export const RestaurantTableLocationSchema = z.object({
+  location: z.enum(tableLocations, { error: "Pilih lokasi yang valid" }),
+});
+
 export type TableLocationValue = (typeof tableLocations)[number];
 export type TableStatusValue = (typeof tableStatuses)[number];
 export type RestaurantTableFormInput = z.input<

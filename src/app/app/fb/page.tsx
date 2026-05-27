@@ -1,4 +1,4 @@
-import { FBOrderStatus, TableStatus } from "@prisma/client";
+import { FBOrderStatus, TableLocation, TableStatus } from "@prisma/client";
 import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 
@@ -37,6 +37,10 @@ function isOrderStatus(value: string | undefined): value is FBOrderStatus {
   return Object.values(FBOrderStatus).includes(value as FBOrderStatus);
 }
 
+function isTableLocation(value: string | undefined): value is TableLocation {
+  return Object.values(TableLocation).includes(value as TableLocation);
+}
+
 export default async function FBLandingPage({
   searchParams,
 }: FBLandingPageProps) {
@@ -46,6 +50,10 @@ export default async function FBLandingPage({
   const selectedStatus = isOrderStatus(selectedStatusParam)
     ? selectedStatusParam
     : "";
+  const selectedLocationParam = firstParam(params.location);
+  const selectedLocation = isTableLocation(selectedLocationParam)
+    ? selectedLocationParam
+    : Object.values(TableLocation)[0];
   const selectedTableId = firstParam(params.tableId) ?? "";
   const now = new Date();
   const today = startOfDay(now);
@@ -193,7 +201,7 @@ export default async function FBLandingPage({
             tableOptions={tableOptions}
           />
         ) : (
-          <FloorPlan tables={tables} />
+          <FloorPlan selectedLocation={selectedLocation} tables={tables} />
         )}
       </div>
     </main>

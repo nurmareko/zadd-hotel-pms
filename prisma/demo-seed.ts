@@ -17,6 +17,7 @@ import { addDays, format, startOfDay, subHours, subMinutes } from "date-fns";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { dateOnlyBoundary } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
+import { getRestaurantTableGridPosition } from "@/lib/restaurant-table-layout";
 
 const roomTypes = [
   { code: "STD", name: "Standard", capacity: 2, baseRate: 550000 },
@@ -805,11 +806,13 @@ async function main() {
 
     console.log(`✓ seeded ${menuItems.length} menu items`);
 
-    for (const table of restaurantTables) {
+    for (const [index, table] of restaurantTables.entries()) {
+      const layoutPosition = getRestaurantTableGridPosition(index);
+
       await prisma.restaurantTable.upsert({
         where: { number: table.number },
-        create: table,
-        update: table,
+        create: { ...table, ...layoutPosition },
+        update: { ...table, ...layoutPosition },
       });
     }
 

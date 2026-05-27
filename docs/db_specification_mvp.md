@@ -264,7 +264,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Food & Beverage**
 
 12. MenuItem(*id*, code, name, category, price, is_active)
-13. RestaurantTable(*id*, number, capacity, location, status, notes, created_at, updated_at)
+13. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
 14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
 15. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 

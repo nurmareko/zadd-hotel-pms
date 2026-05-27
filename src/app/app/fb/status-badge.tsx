@@ -1,6 +1,6 @@
 import { FBOrderStatus, TableStatus } from "@prisma/client";
 
-const tableStatusStyles: Record<TableStatus, string> = {
+export const tableStatusStyles: Record<TableStatus, string> = {
   AVAILABLE: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
   OCCUPIED: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
   RESERVED: "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
@@ -14,7 +14,7 @@ const orderStatusStyles: Record<FBOrderStatus, string> = {
   VOIDED: "border-status-od-pip bg-status-od-bg text-status-od-fg",
 };
 
-const tableStatusLabels: Record<TableStatus, string> = {
+export const tableStatusLabels: Record<TableStatus, string> = {
   AVAILABLE: "Available",
   OCCUPIED: "Occupied",
   RESERVED: "Reserved",
