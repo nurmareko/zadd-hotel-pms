@@ -6,12 +6,20 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  clampRestaurantTablePosition,
+  getRestaurantTableGridPosition,
+} from "@/lib/restaurant-table-layout";
+import {
   RestaurantTableCreateSchema,
   RestaurantTableIdSchema,
+  RestaurantTablePositionSchema,
   RestaurantTableUpdateSchema,
 } from "./schema";
 
 type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
+type LayoutActionResult =
+  | { ok: true; tables: { id: number; posX: number; posY: number }[] }
+  | { ok: false; error: string };
 
 const TABLES_PATH = "/app/admin/tables";
 const FB_PATH = "/app/fb";
@@ -81,8 +89,13 @@ export async function createRestaurantTable(
       };
     }
 
+    const tableCount = await prisma.restaurantTable.count();
+
     await prisma.restaurantTable.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        ...getRestaurantTableGridPosition(tableCount),
+      },
     });
 
     revalidateTableScreens();
@@ -181,5 +194,73 @@ export async function deleteRestaurantTable(
     return { ok: true };
   } catch (error) {
     return prismaErrorResult(error);
+  }
+}
+
+export async function updateRestaurantTablePosition(
+  input: unknown,
+): Promise<ActionResult> {
+  if (!(await canManageRestaurantTables())) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = RestaurantTablePositionSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationFailure(parsed.error);
+  }
+
+  const position = clampRestaurantTablePosition(parsed.data);
+
+  try {
+    await prisma.restaurantTable.update({
+      where: { id: parsed.data.id },
+      data: position,
+    });
+
+    revalidateTableScreens();
+
+    return { ok: true };
+  } catch (error) {
+    return prismaErrorResult(error);
+  }
+}
+
+export async function autoArrangeRestaurantTables(): Promise<LayoutActionResult> {
+  if (!(await canManageRestaurantTables())) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  try {
+    const updatedTables = await prisma.$transaction(async (tx) => {
+      const tables = await tx.restaurantTable.findMany({
+        select: { id: true, number: true },
+      });
+      const sortedTables = tables.toSorted((first, second) =>
+        first.number.localeCompare(second.number, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      );
+      const tablePositions = sortedTables.map((table, index) => ({
+        id: table.id,
+        ...getRestaurantTableGridPosition(index),
+      }));
+
+      for (const table of tablePositions) {
+        await tx.restaurantTable.update({
+          where: { id: table.id },
+          data: { posX: table.posX, posY: table.posY },
+        });
+      }
+
+      return tablePositions;
+    });
+
+    revalidateTableScreens();
+
+    return { ok: true, tables: updatedTables };
+  } catch {
+    return { ok: false, error: "Terjadi kesalahan" };
   }
 }

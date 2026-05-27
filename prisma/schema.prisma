@@ -322,6 +322,8 @@ model RestaurantTable {
   capacity  Int           @default(2)
   location  TableLocation @default(INDOOR)
   status    TableStatus   @default(AVAILABLE)
+  posX      Int           @default(0) @map("pos_x")
+  posY      Int           @default(0) @map("pos_y")
   notes     String?       @db.Text
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")

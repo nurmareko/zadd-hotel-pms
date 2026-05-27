@@ -49,6 +49,7 @@ export type RestaurantTableRow = {
 
 type TableListProps = {
   tables: RestaurantTableRow[];
+  showHeading?: boolean;
 };
 
 const locationLabels: Record<TableLocation, string> = {
@@ -115,7 +116,10 @@ function KpiCard({
   );
 }
 
-export function RestaurantTableList({ tables }: TableListProps) {
+export function RestaurantTableList({
+  tables,
+  showHeading = true,
+}: TableListProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<RestaurantTableRow | null>(
     null,
@@ -170,18 +174,24 @@ export function RestaurantTableList({ tables }: TableListProps) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">&gt; </span>
-            Restaurant Tables
-          </h1>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">
-            Master meja untuk floor plan F&amp;B Hotel Restaurant.
-          </p>
+      {showHeading ? (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
+              <span className="text-console-accent">&gt; </span>
+              Restaurant Tables
+            </h1>
+            <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              Master meja untuk floor plan F&amp;B Hotel Restaurant.
+            </p>
+          </div>
+          <AddTableButton onClick={() => setCreateOpen(true)} />
         </div>
-        <AddTableButton onClick={() => setCreateOpen(true)} />
-      </div>
+      ) : (
+        <div className="mb-4 flex justify-end">
+          <AddTableButton onClick={() => setCreateOpen(true)} />
+        </div>
+      )}
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <KpiCard

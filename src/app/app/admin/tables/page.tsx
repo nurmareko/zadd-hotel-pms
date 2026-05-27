@@ -1,7 +1,7 @@
 import { FBOrderStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { RestaurantTableList } from "./table-list";
+import { RestaurantTablesTabs } from "./restaurant-tables-tabs";
 
 export default async function RestaurantTablesPage() {
   const tables = await prisma.restaurantTable.findMany({
@@ -12,6 +12,8 @@ export default async function RestaurantTablesPage() {
       capacity: true,
       location: true,
       status: true,
+      posX: true,
+      posY: true,
       notes: true,
       orders: {
         where: { status: FBOrderStatus.OPEN },
@@ -25,13 +27,15 @@ export default async function RestaurantTablesPage() {
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <RestaurantTableList
+      <RestaurantTablesTabs
         tables={tables.map((table) => ({
           id: table.id,
           number: table.number,
           capacity: table.capacity,
           location: table.location,
           status: table.status,
+          posX: table.posX,
+          posY: table.posY,
           notes: table.notes,
           openOrderCount: table.orders.length,
           totalOrderCount: table._count.orders,

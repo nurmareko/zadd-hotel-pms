@@ -1,5 +1,6 @@
 import { compare, hash } from "bcryptjs";
 
+import { getRestaurantTableGridPosition } from "../src/lib/restaurant-table-layout";
 import { prisma } from "../src/lib/prisma";
 
 const PASSWORD_COST = 10;
@@ -148,6 +149,25 @@ async function main() {
     console.log(
       `✓ seeded user role ${userToSeed.username} -> ${userToSeed.roleCode}`,
     );
+  }
+
+  const unpositionedTables = await prisma.restaurantTable.findMany({
+    where: { posX: 0, posY: 0 },
+    orderBy: { number: "asc" },
+    select: { id: true },
+  });
+
+  if (unpositionedTables.length > 0) {
+    await prisma.$transaction(
+      unpositionedTables.map((table, index) =>
+        prisma.restaurantTable.update({
+          where: { id: table.id },
+          data: getRestaurantTableGridPosition(index),
+        }),
+      ),
+    );
+
+    console.log(`✓ positioned ${unpositionedTables.length} restaurant tables`);
   }
 }
 
