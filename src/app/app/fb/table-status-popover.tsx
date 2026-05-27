@@ -43,6 +43,7 @@ export function TableStatusPopover({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isReserved = status === TableStatus.RESERVED;
+  const noteText = notes?.trim();
 
   useEffect(() => {
     if (!isOpen) {
@@ -115,7 +116,12 @@ export function TableStatusPopover({
           </div>
 
           {isReserved ? (
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
+              {noteText ? (
+                <p className="border border-console-accent/30 bg-slate-950 px-2.5 py-2 text-[11px] leading-4 text-slate-200">
+                  {noteText}
+                </p>
+              ) : null}
               <Link
                 className="inline-flex h-8 items-center border border-console-accent bg-console-accent px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:bg-white focus:outline-none focus:ring-2 focus:ring-white"
                 href={`/app/fb/orders/new?tableId=${tableId}`}
@@ -134,9 +140,11 @@ export function TableStatusPopover({
             </div>
           ) : (
             <div className="grid gap-2">
-              <p className="border border-console-accent/30 bg-slate-950 px-2.5 py-2 text-[11px] leading-4 text-slate-200">
-                {notes ?? "Out of service until staff marks this table available."}
-              </p>
+              {noteText ? (
+                <p className="border border-console-accent/30 bg-slate-950 px-2.5 py-2 text-[11px] leading-4 text-slate-200">
+                  {noteText}
+                </p>
+              ) : null}
               <button
                 className="inline-flex h-8 items-center border border-console-accent bg-console-accent px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:bg-white focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
                 disabled={isPending}
