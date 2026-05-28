@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -24,13 +24,23 @@ import {
 } from "lucide-react";
 
 import type { AppRole } from "@/auth";
+import { getCurrentNavBadges } from "@/app/app/nav-badge-actions";
 import { Button } from "@/components/ui/button";
+import type { NavBadge, NavBadgeMap } from "@/lib/nav-badge-types";
+
+type ActiveMatch = "exact" | "startsWith";
+
+type ActivePath = {
+  href: string;
+  match: ActiveMatch;
+};
 
 type NavLink = {
   label: string;
   href: string;
   icon: LucideIcon;
-  activeHref?: string;
+  activeMatch?: ActiveMatch;
+  activePaths?: ActivePath[];
 };
 
 type NavGroup = {
@@ -42,6 +52,7 @@ type MobileNavLink = NavLink & { activeHref?: string };
 
 type NavShellProps = {
   children: ReactNode;
+  initialNavBadges: NavBadgeMap;
   userRole: AppRole;
   userFullName: string;
 };
@@ -59,31 +70,81 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     {
       label: "Front Office",
       links: [
-        { label: "Dashboard", href: "/app/fo", icon: LayoutDashboard },
-        { label: "Tape Chart", href: "/app/fo/tape-chart", icon: CalendarDays },
-        { label: "Reservations", href: "/app/fo/reservations", icon: ClipboardList },
+        {
+          label: "Dashboard",
+          href: "/app/fo",
+          icon: LayoutDashboard,
+          activeMatch: "startsWith",
+          activePaths: [
+            { href: "/app/fo/check-in", match: "startsWith" },
+            { href: "/app/fo/check-out", match: "startsWith" },
+            { href: "/app/fo/folios", match: "startsWith" },
+          ],
+        },
+        {
+          label: "Tape Chart",
+          href: "/app/fo/tape-chart",
+          icon: CalendarDays,
+          activeMatch: "exact",
+        },
+        {
+          label: "Reservations",
+          href: "/app/fo/reservations",
+          icon: ClipboardList,
+          activeMatch: "startsWith",
+        },
       ],
     },
   ],
   HK: [
     {
       label: "Housekeeping",
-      links: [{ label: "Rooms", href: "/app/hk", icon: BedDouble }],
+      links: [
+        {
+          label: "Rooms",
+          href: "/app/hk",
+          icon: BedDouble,
+          activeMatch: "startsWith",
+        },
+      ],
     },
   ],
   FB: [
     {
       label: "Food & Beverage",
-      links: [{ label: "Tables", href: "/app/fb", icon: UtensilsCrossed }],
+      links: [
+        {
+          label: "Tables",
+          href: "/app/fb",
+          icon: UtensilsCrossed,
+          activeMatch: "startsWith",
+        },
+      ],
     },
   ],
   ACC: [
     {
       label: "Accounting",
       links: [
-        { label: "Dashboard", href: "/app/acc", icon: LayoutDashboard },
-        { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
-        { label: "Night Report", href: "/app/acc/night-report", icon: FileText, activeHref: "/app/acc/reports" },
+        {
+          label: "Dashboard",
+          href: "/app/acc",
+          icon: LayoutDashboard,
+          activeMatch: "exact",
+        },
+        {
+          label: "Night Audit",
+          href: "/app/acc/night-audit",
+          icon: Moon,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Night Report",
+          href: "/app/acc/night-report",
+          icon: FileText,
+          activeMatch: "exact",
+          activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
+        },
       ],
     },
   ],
@@ -104,7 +165,14 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
 
 const accountGroup: NavGroup = {
   label: "Account",
-  links: [{ label: "Profile", href: "/app/profile", icon: User }],
+  links: [
+    {
+      label: "Profile",
+      href: "/app/profile",
+      icon: User,
+      activeMatch: "startsWith",
+    },
+  ],
 };
 
 const mobileModuleLinks: Record<AppRole, MobileNavLink> = {
@@ -120,26 +188,84 @@ const mobileModuleLinks: Record<AppRole, MobileNavLink> = {
   },
 };
 
-function isActivePath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActivePath(pathname: string, href: string, match: ActiveMatch) {
+  return match === "exact"
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function getActivePaths(link: NavLink): ActivePath[] {
+  return [
+    { href: link.href, match: link.activeMatch ?? "startsWith" },
+    ...(link.activePaths ?? []),
+  ];
 }
 
 function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
   return [...groups.flatMap((group) => group.links)]
-    .sort((a, b) => b.href.length - a.href.length)
-    .find((link) =>
-      isActivePath(pathname, link.activeHref ?? link.href)
-    )?.href;
+    .flatMap((link) =>
+      getActivePaths(link).map((activePath) => ({ link, activePath })),
+    )
+    .filter(({ activePath }) =>
+      isActivePath(pathname, activePath.href, activePath.match),
+    )
+    .sort((a, b) => b.activePath.href.length - a.activePath.href.length)[0]
+    ?.link.href;
 }
 
-export function NavShell({ children, userRole, userFullName }: NavShellProps) {
+function NavBadgePill({ badge }: { badge: NavBadge }) {
+  return (
+    <span
+      aria-label={badge.label}
+      className={[
+        "ml-auto flex h-4 shrink-0 items-center border px-1 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] tabular-nums",
+        badge.tone === "pending"
+          ? "border-amber-500/50 bg-amber-500/10 text-amber-500"
+          : "border-console-accent/45 bg-console-accent/10 text-console-accent",
+      ].join(" ")}
+    >
+      {badge.value}
+    </span>
+  );
+}
+
+export function NavShell({
+  children,
+  initialNavBadges,
+  userRole,
+  userFullName,
+}: NavShellProps) {
   const pathname = usePathname();
+  const [navBadges, setNavBadges] = useState(initialNavBadges);
+  const lastPathnameRef = useRef(pathname);
+  const [, startTransition] = useTransition();
   const navGroups = [...navGroupsByRole[userRole], accountGroup];
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
   const mobileLinks: MobileNavLink[] = [
     mobileModuleLinks[userRole],
     { label: "Profile", href: "/app/profile", icon: User },
   ];
+
+  useEffect(() => {
+    if (lastPathnameRef.current === pathname) {
+      return;
+    }
+
+    lastPathnameRef.current = pathname;
+    let cancelled = false;
+
+    startTransition(() => {
+      void getCurrentNavBadges().then((badges) => {
+        if (!cancelled) {
+          setNavBadges(badges);
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, startTransition]);
 
   return (
     <div className="min-h-screen flex-1 bg-background text-foreground">
@@ -196,6 +322,7 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
                 {group.links.map((link) => {
                   const isActive = activeSidebarHref === link.href;
                   const Icon = link.icon;
+                  const badge = navBadges[link.href];
 
                   return (
                     <Link
@@ -205,12 +332,15 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
                       className={[
                         "flex items-center gap-2 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
                         isActive
-                          ? "text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
+                          ? "bg-white/[0.03] text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
                           : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
                       ].join(" ")}
                     >
-                      <Icon size={14} aria-hidden="true" />
-                      {link.label}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Icon size={14} aria-hidden="true" />
+                        <span className="truncate">{link.label}</span>
+                      </span>
+                      {badge ? <NavBadgePill badge={badge} /> : null}
                     </Link>
                   );
                 })}
@@ -266,7 +396,11 @@ export function NavShell({ children, userRole, userFullName }: NavShellProps) {
       <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-2 border-t border-border bg-background md:hidden">
         {mobileLinks.map((link) => {
           const Icon = link.icon;
-          const isActive = isActivePath(pathname, link.activeHref ?? link.href);
+          const isActive = isActivePath(
+            pathname,
+            link.activeHref ?? link.href,
+            "startsWith",
+          );
 
           return (
             <Link
