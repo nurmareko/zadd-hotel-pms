@@ -12,7 +12,12 @@ import {
   ROOM_LABEL_WIDTH,
   ROW_HEIGHT,
 } from "@/lib/tape-chart-layout";
-import type { TapeChartData, TapeChartRoomTypeData } from "@/lib/tape-chart-data";
+import type {
+  TapeChartData,
+  TapeChartReservationData,
+  TapeChartRoomData,
+  TapeChartRoomTypeData,
+} from "@/lib/tape-chart-data";
 
 import styles from "./tape-chart-v2.module.css";
 
@@ -35,6 +40,296 @@ type TapeChartV2Props = {
   rangeLabel: string;
 };
 
+const BAR_VERTICAL_MARGIN = 4;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const reservationBarColors = {
+  CONFIRMED: {
+    label: "Confirmed",
+    bgColor: "#f97316",
+    textColor: "#ffffff",
+  },
+  CHECKED_IN: {
+    label: "Checked-in",
+    bgColor: "#047857",
+    textColor: "#ffffff",
+  },
+  CHECKED_OUT: {
+    label: "Checked-out",
+    bgColor: "#64748b",
+    textColor: "#ffffff",
+  },
+  UNALLOCATED: {
+    label: "Unallocated",
+    bgColor: "#2563eb",
+    textColor: "#ffffff",
+  },
+} as const;
+
+const legendItems = [
+  reservationBarColors.CONFIRMED,
+  reservationBarColors.CHECKED_IN,
+  reservationBarColors.CHECKED_OUT,
+  reservationBarColors.UNALLOCATED,
+] as const;
+
+type AllocatedBarColorKey = Exclude<
+  keyof typeof reservationBarColors,
+  "UNALLOCATED"
+>;
+type BarColorKey = keyof typeof reservationBarColors;
+
+type UnallocatedLaneReservation = {
+  reservation: TapeChartReservationData;
+  laneIndex: number;
+};
+
+type VisibleLayoutRow =
+  | {
+      kind: "group";
+      roomType: TapeChartRoomTypeData;
+      isCollapsed: boolean;
+      y: number;
+      height: number;
+    }
+  | {
+      kind: "room";
+      roomType: TapeChartRoomTypeData;
+      room: TapeChartRoomData;
+      y: number;
+      height: number;
+    }
+  | {
+      kind: "unallocated";
+      roomType: TapeChartRoomTypeData;
+      lanes: UnallocatedLaneReservation[];
+      laneCount: number;
+      y: number;
+      height: number;
+    };
+
+type ReservationBar = {
+  key: string;
+  reservation: TapeChartReservationData;
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  colorKey: BarColorKey;
+  hasCheckoutNotch: boolean;
+};
+
+function isoDayValue(isoDate: string) {
+  const [year = 0, month = 1, day = 1] = isoDate.split("-").map(Number);
+
+  return Date.UTC(year, month - 1, day) / MS_PER_DAY;
+}
+
+function getDateIndex(isoDate: string, startIso: string) {
+  return isoDayValue(isoDate) - isoDayValue(startIso);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getAllocatedBarColorKey(
+  reservation: TapeChartReservationData,
+): AllocatedBarColorKey {
+  switch (reservation.status) {
+    case "CONFIRMED":
+      return "CONFIRMED";
+    case "CHECKED_IN":
+      return "CHECKED_IN";
+    case "CHECKED_OUT":
+      return "CHECKED_OUT";
+    default:
+      return "CHECKED_OUT";
+  }
+}
+
+function getReservationSpan(
+  reservation: TapeChartReservationData,
+  startIso: string,
+  dayCount: number,
+) {
+  const gridLeft = ROOM_LABEL_WIDTH;
+  const gridRight = ROOM_LABEL_WIDTH + dayCount * COLUMN_WIDTH;
+  const leftRaw =
+    ROOM_LABEL_WIDTH +
+    getDateIndex(reservation.checkInDate, startIso) * COLUMN_WIDTH +
+    COLUMN_WIDTH / 2;
+  const rightRaw =
+    ROOM_LABEL_WIDTH +
+    getDateIndex(reservation.checkOutDate, startIso) * COLUMN_WIDTH +
+    COLUMN_WIDTH / 2;
+  const left = clamp(leftRaw, gridLeft, gridRight);
+  const right = clamp(rightRaw, gridLeft, gridRight);
+
+  return {
+    left,
+    width: right - left,
+    hasCheckoutNotch: rightRaw <= gridRight && rightRaw > gridLeft,
+  };
+}
+
+function assignUnallocatedLanes(
+  reservations: TapeChartReservationData[],
+  startIso: string,
+) {
+  const laneEnds: number[] = [];
+
+  return [...reservations]
+    .sort((first, second) => {
+      const startDelta =
+        getDateIndex(first.checkInDate, startIso) -
+        getDateIndex(second.checkInDate, startIso);
+
+      if (startDelta !== 0) {
+        return startDelta;
+      }
+
+      const endDelta =
+        getDateIndex(first.checkOutDate, startIso) -
+        getDateIndex(second.checkOutDate, startIso);
+
+      return endDelta !== 0 ? endDelta : first.id - second.id;
+    })
+    .map((reservation) => {
+      const startIndex = getDateIndex(reservation.checkInDate, startIso);
+      const endIndex = getDateIndex(reservation.checkOutDate, startIso);
+      const existingLaneIndex = laneEnds.findIndex(
+        (laneEnd) => laneEnd <= startIndex,
+      );
+      const laneIndex =
+        existingLaneIndex === -1 ? laneEnds.length : existingLaneIndex;
+
+      laneEnds[laneIndex] = endIndex;
+
+      return { reservation, laneIndex };
+    });
+}
+
+function buildVisibleLayout(
+  roomTypes: TapeChartRoomTypeData[],
+  collapsedGroupIds: Set<number>,
+  startIso: string,
+) {
+  const rows: VisibleLayoutRow[] = [];
+  let y = DATE_HEADER_HEIGHT;
+
+  for (const roomType of roomTypes) {
+    const isCollapsed = collapsedGroupIds.has(roomType.id);
+
+    rows.push({
+      kind: "group",
+      roomType,
+      isCollapsed,
+      y,
+      height: GROUP_HEADER_HEIGHT,
+    });
+    y += GROUP_HEADER_HEIGHT;
+
+    if (isCollapsed) {
+      continue;
+    }
+
+    for (const room of roomType.rooms) {
+      rows.push({
+        kind: "room",
+        roomType,
+        room,
+        y,
+        height: ROW_HEIGHT,
+      });
+      y += ROW_HEIGHT;
+    }
+
+    const lanes = assignUnallocatedLanes(
+      roomType.unallocatedReservations,
+      startIso,
+    );
+    const laneCount =
+      lanes.reduce((count, lane) => Math.max(count, lane.laneIndex + 1), 0) ||
+      1;
+    const height = laneCount * ROW_HEIGHT;
+
+    rows.push({
+      kind: "unallocated",
+      roomType,
+      lanes,
+      laneCount,
+      y,
+      height,
+    });
+    y += height;
+  }
+
+  return { rows, height: y };
+}
+
+function buildReservationBars(
+  rows: VisibleLayoutRow[],
+  startIso: string,
+  dayCount: number,
+): ReservationBar[] {
+  const bars: ReservationBar[] = [];
+  const barHeight = ROW_HEIGHT - BAR_VERTICAL_MARGIN * 2;
+
+  for (const row of rows) {
+    if (row.kind === "room") {
+      for (const reservation of row.room.reservations) {
+        const span = getReservationSpan(reservation, startIso, dayCount);
+        const colorKey = getAllocatedBarColorKey(reservation);
+
+        if (span.width <= 0) {
+          continue;
+        }
+
+        bars.push({
+          key: `room-${row.room.id}-${reservation.id}`,
+          reservation,
+          label: reservationBarColors[colorKey].label,
+          left: span.left,
+          top: row.y + BAR_VERTICAL_MARGIN,
+          width: span.width,
+          height: barHeight,
+          colorKey,
+          hasCheckoutNotch: span.hasCheckoutNotch,
+        });
+      }
+    }
+
+    if (row.kind === "unallocated") {
+      for (const lane of row.lanes) {
+        const span = getReservationSpan(lane.reservation, startIso, dayCount);
+
+        if (span.width <= 0) {
+          continue;
+        }
+
+        bars.push({
+          key: `unallocated-${row.roomType.id}-${lane.reservation.id}`,
+          reservation: lane.reservation,
+          label: reservationBarColors.UNALLOCATED.label,
+          left: span.left,
+          top:
+            row.y +
+            lane.laneIndex * ROW_HEIGHT +
+            BAR_VERTICAL_MARGIN,
+          width: span.width,
+          height: barHeight,
+          colorKey: "UNALLOCATED",
+          hasCheckoutNotch: span.hasCheckoutNotch,
+        });
+      }
+    }
+  }
+
+  return bars;
+}
+
 function getCellClassName(day: TapeChartV2Day, todayIso: string, extra = "") {
   return [
     styles.gridCell,
@@ -44,19 +339,6 @@ function getCellClassName(day: TapeChartV2Day, todayIso: string, extra = "") {
   ]
     .filter(Boolean)
     .join(" ");
-}
-
-function getVisibleHeight(
-  roomTypes: TapeChartRoomTypeData[],
-  collapsedGroupIds: Set<number>,
-) {
-  return roomTypes.reduce((height, roomType) => {
-    if (collapsedGroupIds.has(roomType.id)) {
-      return height + GROUP_HEADER_HEIGHT;
-    }
-
-    return height + GROUP_HEADER_HEIGHT + (roomType.rooms.length + 1) * ROW_HEIGHT;
-  }, DATE_HEADER_HEIGHT);
 }
 
 function TapeChartNavButton({
@@ -78,6 +360,44 @@ function TapeChartNavButton({
     >
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </Link>
+  );
+}
+
+function TapeChartLegend({
+  roomCount,
+  dayCount,
+}: {
+  roomCount: number;
+  dayCount: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border border-console-border bg-console-surface px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-slate-500">
+      <div className="flex flex-wrap items-center gap-2">
+        <span>Legenda:</span>
+        {legendItems.map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex h-5 items-center gap-1.5 border border-console-border-soft px-1.5 font-semibold text-white"
+            style={{
+              backgroundColor: item.bgColor,
+              color: item.textColor,
+              textShadow: "0 1px 1px rgb(0 0 0 / 0.35)",
+            }}
+          >
+            <span
+              className={styles.legendSwatch}
+              style={{ backgroundColor: item.bgColor }}
+              aria-hidden="true"
+            />
+            {item.label}
+          </span>
+        ))}
+        <span className="text-slate-500">Greyed rows = Out of Order</span>
+      </div>
+      <span className="num text-[11px] text-slate-500">
+        {roomCount} rooms / {dayCount} days
+      </span>
+    </div>
   );
 }
 
@@ -147,9 +467,14 @@ export function TapeChartV2({
     0,
   );
   const gridWidth = ROOM_LABEL_WIDTH + days.length * COLUMN_WIDTH;
-  const gridHeight = useMemo(
-    () => getVisibleHeight(data.roomTypes, collapsedGroupIds),
-    [collapsedGroupIds, data.roomTypes],
+  const visibleLayout = useMemo(
+    () => buildVisibleLayout(data.roomTypes, collapsedGroupIds, data.startDate),
+    [collapsedGroupIds, data.roomTypes, data.startDate],
+  );
+  const reservationBars = useMemo(
+    () =>
+      buildReservationBars(visibleLayout.rows, data.startDate, data.dayCount),
+    [data.dayCount, data.startDate, visibleLayout.rows],
   );
   const layoutStyle = {
     "--column-width": `${COLUMN_WIDTH}px`,
@@ -182,7 +507,7 @@ export function TapeChartV2({
             Tape Chart V2
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Stage 2 grid skeleton / reservation bars pending Stage 3.
+            Stage 3 precision bars over the temporary tape chart grid.
           </p>
         </div>
 
@@ -220,12 +545,14 @@ export function TapeChartV2({
 
       <div className="flex flex-wrap items-center justify-between gap-2 border border-console-border bg-console-surface px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-slate-500">
         <span>
-          Grid / {roomCount} rooms / {data.dayCount} days
+          Grid / {roomCount} rooms / {data.dayCount} days / {reservationBars.length} bars
         </span>
         <span>
           {COLUMN_WIDTH}px cols / {ROW_HEIGHT}px rows / {ROOM_LABEL_WIDTH}px labels
         </span>
       </div>
+
+      <TapeChartLegend roomCount={roomCount} dayCount={data.dayCount} />
 
       <div className={styles.chartShell} style={layoutStyle}>
         {roomCount === 0 ? (
@@ -239,7 +566,7 @@ export function TapeChartV2({
           <div className={styles.scrollArea}>
             <div
               className={styles.grid}
-              style={{ width: gridWidth, height: gridHeight }}
+              style={{ width: gridWidth, height: visibleLayout.height }}
             >
               <div className={styles.headerRow}>
                 <div
@@ -274,100 +601,136 @@ export function TapeChartV2({
                 ))}
               </div>
 
-              {data.roomTypes.map((roomType) => {
-                const isCollapsed = collapsedGroupIds.has(roomType.id);
-
-                return (
-                  <div key={roomType.id}>
+              {visibleLayout.rows.map((row) => {
+                if (row.kind === "group") {
+                  return (
                     <GroupRow
-                      roomType={roomType}
+                      key={`group-${row.roomType.id}`}
+                      roomType={row.roomType}
                       days={days}
                       todayIso={todayIso}
-                      isCollapsed={isCollapsed}
-                      onToggle={() => toggleGroup(roomType.id)}
+                      isCollapsed={row.isCollapsed}
+                      onToggle={() => toggleGroup(row.roomType.id)}
                     />
-                    {isCollapsed
-                      ? null
-                      : roomType.rooms.map((room) => (
-                          <div
-                            key={room.id}
-                            className={`${styles.gridRow} ${styles.roomRow}`}
-                          >
-                            <div
-                              className={[
-                                styles.labelCell,
-                                styles.roomLabelCell,
-                                room.isOutOfOrder
-                                  ? styles.roomLabelCellOutOfOrder
-                                  : "",
-                                "flex items-center justify-between gap-2 border-b border-console-border-soft px-2.5",
-                              ]
-                                .filter(Boolean)
-                                .join(" ")}
-                            >
-                              <span className="flex min-w-0 items-center gap-2">
-                                <span className="num text-[12px] font-semibold text-console-ink">
-                                  {room.number}
-                                </span>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-slate-500">
-                                  L{room.floor}
-                                </span>
-                              </span>
-                              {room.isOutOfOrder ? (
-                                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-status-ooo-fg">
-                                  Out of Order
-                                </span>
-                              ) : (
-                                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                                  {room.status}
-                                </span>
-                              )}
-                            </div>
-                            {days.map((day) => (
-                              <div
-                                key={`${room.id}-${day.iso}`}
-                                className={getCellClassName(
-                                  day,
-                                  todayIso,
-                                  room.isOutOfOrder ? styles.outOfOrderCell : "",
-                                )}
-                                aria-label={`${room.number} ${day.iso}${
-                                  room.isOutOfOrder ? ": Out of Order" : ""
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        ))}
-                    {isCollapsed ? null : (
+                  );
+                }
+
+                if (row.kind === "room") {
+                  return (
+                    <div
+                      key={`room-${row.room.id}`}
+                      className={`${styles.gridRow} ${styles.roomRow}`}
+                    >
                       <div
-                        className={`${styles.gridRow} ${styles.unallocatedRow}`}
+                        className={[
+                          styles.labelCell,
+                          styles.roomLabelCell,
+                          row.room.isOutOfOrder
+                            ? styles.roomLabelCellOutOfOrder
+                            : "",
+                          "flex items-center justify-between gap-2 border-b border-console-border-soft px-2.5",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                       >
-                        <div
-                          className={`${styles.labelCell} ${styles.unallocatedLabelCell} flex items-center justify-between gap-2 border-b border-console-border-soft px-2.5`}
-                        >
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
-                            Unallocated
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="num text-[12px] font-semibold text-console-ink">
+                            {row.room.number}
                           </span>
-                          <span className="num text-[10px] text-slate-500">
-                            {roomType.unallocatedReservations.length}
+                          <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-slate-500">
+                            L{row.room.floor}
                           </span>
-                        </div>
-                        {days.map((day) => (
-                          <div
-                            key={`${roomType.id}-unallocated-${day.iso}`}
-                            className={getCellClassName(
-                              day,
-                              todayIso,
-                              styles.unallocatedCell,
-                            )}
-                            aria-hidden="true"
-                          />
-                        ))}
+                        </span>
+                        {row.room.isOutOfOrder ? (
+                          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-status-ooo-fg">
+                            Out of Order
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                            {row.room.status}
+                          </span>
+                        )}
                       </div>
-                    )}
+                      {days.map((day) => (
+                        <div
+                          key={`${row.room.id}-${day.iso}`}
+                          className={getCellClassName(
+                            day,
+                            todayIso,
+                            row.room.isOutOfOrder ? styles.outOfOrderCell : "",
+                          )}
+                          aria-label={`${row.room.number} ${day.iso}${
+                            row.room.isOutOfOrder ? ": Out of Order" : ""
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`unallocated-${row.roomType.id}`}
+                    className={`${styles.gridRow} ${styles.unallocatedRow}`}
+                    style={{ height: row.height }}
+                  >
+                    <div
+                      className={`${styles.labelCell} ${styles.unallocatedLabelCell} flex items-center justify-between gap-2 border-b border-console-border-soft px-2.5`}
+                    >
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+                        Unallocated
+                      </span>
+                      <span className="num text-[10px] text-slate-500">
+                        {row.roomType.unallocatedReservations.length}
+                        {row.laneCount > 1 ? ` / ${row.laneCount} lanes` : ""}
+                      </span>
+                    </div>
+                    {days.map((day) => (
+                      <div
+                        key={`${row.roomType.id}-unallocated-${day.iso}`}
+                        className={getCellClassName(
+                          day,
+                          todayIso,
+                          styles.unallocatedCell,
+                        )}
+                        aria-hidden="true"
+                      />
+                    ))}
                   </div>
                 );
               })}
+
+              <div className={styles.barLayer} aria-hidden={reservationBars.length === 0}>
+                {reservationBars.map((bar) => {
+                  const colors = reservationBarColors[bar.colorKey];
+
+                  return (
+                    <Link
+                      key={bar.key}
+                      href={`/app/fo/reservations/${bar.reservation.id}`}
+                      className={[
+                        styles.reservationBar,
+                        bar.hasCheckoutNotch ? styles.reservationBarNotched : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`}
+                      style={{
+                        left: bar.left,
+                        top: bar.top,
+                        width: bar.width,
+                        height: bar.height,
+                        backgroundColor: colors.bgColor,
+                        color: colors.textColor,
+                      }}
+                    >
+                      <span className={styles.reservationBarText}>
+                        {bar.reservation.guestName}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
