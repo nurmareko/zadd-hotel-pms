@@ -1,7 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -9,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { formatTimeID } from "@/lib/format";
 
 import { stopCleaning } from "./actions";
 import { CleaningTimer } from "./cleaning-timer";
@@ -61,7 +60,7 @@ export function ActiveCleaningPanel({
         <div className="text-[12px] text-slate-600">
           Dimulai{" "}
           <span className="font-semibold text-console-ink">
-            {format(startedAt, "HH:mm", { locale: indonesianLocale })}
+            {formatTimeID(startedAt)}
           </span>{" "}
           oleh {updatedByName}
         </div>

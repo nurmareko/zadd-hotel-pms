@@ -1,10 +1,9 @@
 import { FBOrderStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { notFound } from "next/navigation";
 
 import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
+import { formatDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { OrderStatusBadge } from "../../../status-badge";
@@ -81,9 +80,7 @@ export default async function BillPage({ params }: BillPageProps) {
 
   const totals = computeFBOrderTotals(order.items, settings);
   const tableNo = order.table?.number ?? order.tableNo ?? "-";
-  const openedAtLabel = format(order.openedAt, "dd MMM yyyy HH:mm", {
-    locale: indonesianLocale,
-  });
+  const openedAtLabel = formatDateTimeID(order.openedAt);
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">

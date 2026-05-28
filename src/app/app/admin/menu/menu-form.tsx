@@ -252,10 +252,10 @@ export function MenuForm({
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Saving..."
+              ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Buat Menu"}
+                : "Tambah Menu"}
           </Button>
         </div>
       </form>

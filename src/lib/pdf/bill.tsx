@@ -5,8 +5,6 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 
 import {
   billBalanceAmountLabel,
@@ -14,7 +12,13 @@ import {
   folioBalanceState,
   refundDueNote,
 } from "@/lib/folio-balance-display";
-import { formatIDR } from "@/lib/format";
+import {
+  formatDateID,
+  formatDateTimeID,
+  formatDecimalID,
+  formatIDR,
+  formatMonthDayID,
+} from "@/lib/format";
 import type { FolioTotals } from "@/lib/folio-totals";
 
 type StringableDecimal = {
@@ -182,17 +186,15 @@ const styles = StyleSheet.create({
 });
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatDateTimeID(date);
 }
 
 function qtyLabel(quantity: StringableDecimal) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 2,
-  }).format(Number(quantity));
+  return formatDecimalID(quantity.toString());
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -276,9 +278,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
                 folio.lineItems.map((lineItem) => (
                   <View key={lineItem.id} style={styles.tableRow}>
                     <Text style={[styles.cell, { width: 58 }]}>
-                      {format(lineItem.postedAt, "dd MMM", {
-                        locale: indonesianLocale,
-                      })}
+                      {formatMonthDayID(lineItem.postedAt)}
                     </Text>
                     <Text style={[styles.cell, { width: 206 }]}>
                       {lineItem.description || lineItem.article.name}

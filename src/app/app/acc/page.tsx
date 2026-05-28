@@ -1,10 +1,9 @@
 import { FBOrderStatus, ReservationStatus, RoomStatus } from "@prisma/client";
-import { addDays, format, startOfDay } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 
 import { todayDateOnly } from "@/lib/date-only";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { AuditHistory, type AuditHistoryRow } from "./audit-history";
@@ -14,7 +13,7 @@ import { TodaySnapshot, type TodaySnapshotData } from "./today-snapshot";
 export const dynamic = "force-dynamic";
 
 function businessDateLabel(date: Date) {
-  return format(date, "d MMMM yyyy", { locale: indonesianLocale });
+  return formatLongDateID(date);
 }
 
 function safePercent(numerator: number, denominator: number) {

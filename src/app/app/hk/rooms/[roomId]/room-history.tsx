@@ -1,9 +1,8 @@
 import type { HousekeepingLog, RoomStatus, User } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { History } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatCompactMonthDayTimeID } from "@/lib/format";
 
 type HistoryLog = HousekeepingLog & {
   updatedBy: Pick<User, "fullName">;
@@ -102,9 +101,7 @@ function HistoryRow({ log }: { log: HistoryLog }) {
   return (
     <div className="grid gap-1 border-t border-console-border-soft px-3.5 py-3 text-[12px] first:border-t-0 sm:grid-cols-[108px_110px_minmax(0,1fr)] sm:items-start">
       <div className="num text-[11px] text-slate-500">
-        {format(log.updatedAt, "d MMM, HH:mm", {
-          locale: indonesianLocale,
-        })}
+        {formatCompactMonthDayTimeID(log.updatedAt)}
       </div>
       <div className="truncate font-medium text-console-ink">
         {log.updatedBy.fullName}

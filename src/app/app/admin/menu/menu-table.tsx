@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -67,11 +68,11 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
     : "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg";
 
   return (
-    <span
-      className={`inline-flex h-5 items-center border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${className}`}
-    >
-      {isActive ? "Aktif" : "Nonaktif"}
-    </span>
+    <SharedStatusBadge
+      label={isActive ? "Aktif" : "Nonaktif"}
+      className={className}
+      showPip={false}
+    />
   );
 }
 
@@ -383,14 +384,14 @@ export function MenuTable({ items }: MenuTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

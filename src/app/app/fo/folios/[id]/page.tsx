@@ -1,11 +1,10 @@
 import { ArticleType, FolioStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
+import { formatCompactDateID, formatDayOfMonthID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { AddChargeDialog } from "./add-charge-dialog";
 import { FolioCharges } from "./folio-charges";
@@ -48,11 +47,9 @@ function ErrorState({
 }
 
 function stayRangeLabel(arrivalDate: Date, departureDate: Date) {
-  return `${format(arrivalDate, "d", {
-    locale: indonesianLocale,
-  })} → ${format(departureDate, "d MMM yyyy", {
-    locale: indonesianLocale,
-  })}`;
+  return `${formatDayOfMonthID(arrivalDate)} → ${formatCompactDateID(
+    departureDate,
+  )}`;
 }
 
 export default async function GuestFolioPage({

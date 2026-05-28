@@ -1,5 +1,7 @@
 import type { RoomStatus } from "@prisma/client";
 
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
+
 export type RoomStatusSummaryRow = {
   status: RoomStatus;
   label: string;
@@ -40,12 +42,11 @@ function StatusBadge({ status }: { status: RoomStatus }) {
   const classes = statusClassNames[status];
 
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${classes.badge}`}
-    >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 ${classes.pip}`} />
-      {status}
-    </span>
+    <SharedStatusBadge
+      label={status}
+      className={classes.badge}
+      pipClassName={classes.pip}
+    />
   );
 }
 

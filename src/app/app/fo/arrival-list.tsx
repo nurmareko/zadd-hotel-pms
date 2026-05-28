@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReservationStatus } from "@prisma/client";
 import { CalendarCheck } from "lucide-react";
 
+import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export type ArrivalListRow = {
@@ -25,21 +26,15 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   const isConfirmed = status === "CONFIRMED";
 
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${
+    <StatusBadge
+      label={isConfirmed ? "Confirmed" : "Checked In"}
+      className={
         isConfirmed
           ? "border-status-oc-pip bg-status-oc-bg text-status-oc-fg"
           : "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`h-1.5 w-1.5 ${
-          isConfirmed ? "bg-status-oc-pip" : "bg-status-vc-pip"
-        }`}
-      />
-      {isConfirmed ? "Confirmed" : "Checked In"}
-    </span>
+      }
+      pipClassName={isConfirmed ? "bg-status-oc-pip" : "bg-status-vc-pip"}
+    />
   );
 }
 

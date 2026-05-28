@@ -278,10 +278,10 @@ export function UserForm({
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Saving..."
+              ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Buat Pengguna"}
+                : "Tambah Pengguna"}
           </Button>
         </div>
       </form>

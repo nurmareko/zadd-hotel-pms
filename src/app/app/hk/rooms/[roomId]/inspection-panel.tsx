@@ -1,7 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -9,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { formatTimeID } from "@/lib/format";
 
 import { inspectRoom } from "./actions";
 
@@ -35,13 +34,9 @@ function cleaningSummary(
     return "Belum ada catatan pembersihan selesai untuk kamar ini.";
   }
 
-  return `Dibersihkan oleh ${latestCompletedCleaningLog.updatedByName} pada ${format(
+  return `Dibersihkan oleh ${latestCompletedCleaningLog.updatedByName} pada ${formatTimeID(
     latestCompletedCleaningLog.startedAt,
-    "HH:mm",
-    { locale: indonesianLocale },
-  )}, selesai ${format(latestCompletedCleaningLog.completedAt, "HH:mm", {
-    locale: indonesianLocale,
-  })} (${durationMinutes(
+  )}, selesai ${formatTimeID(latestCompletedCleaningLog.completedAt)} (${durationMinutes(
     latestCompletedCleaningLog.startedAt,
     latestCompletedCleaningLog.completedAt,
   )} menit)`;

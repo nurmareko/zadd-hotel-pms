@@ -1,11 +1,15 @@
 import { NightAuditStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { History } from "lucide-react";
 import Link from "next/link";
 
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatIDR } from "@/lib/format";
+import {
+  formatCompactDateID,
+  formatCompactDateTimeID,
+  formatFixedPercent,
+  formatIDR,
+} from "@/lib/format";
 
 export type AuditHistoryRow = {
   id: number;
@@ -24,10 +28,11 @@ type AuditHistoryProps = {
 
 function StatusBadge({ status }: { status: NightAuditStatus }) {
   return (
-    <span className="inline-flex h-5 items-center gap-1 border border-status-vc-pip bg-status-vc-bg px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-status-vc-fg">
-      <span className="h-1.5 w-1.5 bg-status-vc-pip" aria-hidden="true" />
-      {status}
-    </span>
+    <SharedStatusBadge
+      label={status}
+      className="border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
+      pipClassName="bg-status-vc-pip"
+    />
   );
 }
 
@@ -91,20 +96,16 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   key={row.id}
                 >
                   <td className="num px-3 py-[9px] font-semibold text-console-ink">
-                    {format(row.businessDate, "d MMM yyyy", {
-                      locale: indonesianLocale,
-                    })}
+                    {formatCompactDateID(row.businessDate)}
                   </td>
                   <td className="px-3 py-[9px]">
                     <StatusBadge status={row.status} />
                   </td>
                   <td className="num px-3 py-[9px] text-slate-700">
-                    {format(row.runAt, "d MMM yyyy HH:mm", {
-                      locale: indonesianLocale,
-                    })}
+                    {formatCompactDateTimeID(row.runAt)}
                   </td>
                   <td className="num px-3 py-[9px] text-right text-slate-700">
-                    {Number(row.occupancyRate).toFixed(2)}%
+                    {formatFixedPercent(row.occupancyRate)}
                   </td>
                   <td className="num px-3 py-[9px] text-right text-slate-700">
                     {formatIDR(row.roomRevenue)}

@@ -6,15 +6,13 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { PaymentMethod } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 
 import {
   fbOrderGuestLabel,
   parseFBOrderItemNotes,
 } from "@/lib/fb-order-guest";
 import { type FBOrderTotals } from "@/lib/fb-order-totals";
-import { formatIDR } from "@/lib/format";
+import { formatDateTimeID, formatDecimalID, formatIDR } from "@/lib/format";
 
 type StringableDecimal = {
   toString(): string;
@@ -198,19 +196,15 @@ const styles = StyleSheet.create({
 });
 
 function dateTimeLabel(date: Date) {
-  return format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatDateTimeID(date);
 }
 
 function qtyLabel(quantity: number) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 2,
-  }).format(quantity);
+  return formatDecimalID(quantity);
 }
 
 function percentLabel(percent: StringableDecimal) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 2,
-  }).format(Number(percent.toString()));
+  return formatDecimalID(percent.toString());
 }
 
 function hasPercent(percent: StringableDecimal) {

@@ -1,7 +1,6 @@
 import { ReservationStatus, RoomStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 
+import { formatWeekdayLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -153,9 +152,7 @@ export default async function HKDashboardPage() {
     .sort(([firstFloor], [secondFloor]) => firstFloor - secondFloor)
     .map(([floor, floorRooms]) => ({ floor, rooms: floorRooms }));
 
-  const dashboardDateLabel = format(now, "EEEE, d MMMM yyyy", {
-    locale: indonesianLocale,
-  });
+  const dashboardDateLabel = formatWeekdayLongDateID(now);
 
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">

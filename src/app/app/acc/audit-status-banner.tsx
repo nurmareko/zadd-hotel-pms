@@ -1,9 +1,8 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatCompactDateTimeID } from "@/lib/format";
 
 export type TodayAuditStatus = {
   id: number;
@@ -29,9 +28,7 @@ export function AuditStatusBanner({
               Night audit selesai
             </div>
             <p className="mt-1 text-[12px]">
-              {format(todayAudit.runAt, "d MMM yyyy HH:mm", {
-                locale: indonesianLocale,
-              })}{" "}
+              {formatCompactDateTimeID(todayAudit.runAt)}{" "}
               oleh {todayAudit.runByName}
             </p>
           </div>

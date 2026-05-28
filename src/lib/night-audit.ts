@@ -6,10 +6,10 @@ import {
   ReservationStatus,
   RoomStatus,
 } from "@prisma/client";
-import { addDays, format, startOfDay } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { addDays, startOfDay } from "date-fns";
 
 import { dateOnlyBoundary } from "@/lib/date-only";
+import { formatISODate, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export const NIGHT_AUDIT_POSTING_ARTICLE_CODES = [
@@ -140,7 +140,7 @@ export type NightAuditPlan = {
 };
 
 function businessDateLabel(date: Date) {
-  return format(date, "d MMMM yyyy", { locale: indonesianLocale });
+  return formatLongDateID(date);
 }
 
 function decimal(
@@ -354,7 +354,7 @@ export async function buildNightAuditPlan({
   const nextBusinessDate = addDays(businessDate, 1);
   const timestampStart = startOfDay(now);
   const timestampEnd = addDays(timestampStart, 1);
-  const postingLabel = format(dateOnlyBoundary(now), "yyyy-MM-dd");
+  const postingLabel = formatISODate(dateOnlyBoundary(now));
 
   const [
     existingAudit,

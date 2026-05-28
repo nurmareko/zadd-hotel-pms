@@ -1,11 +1,9 @@
 import { FBOrderStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { ClipboardList, SearchX } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatTimeID } from "@/lib/format";
 
 import { OrderStatusBadge } from "./status-badge";
 
@@ -174,7 +172,7 @@ export function OrderList({
                     <OrderStatusBadge status={order.status} />
                   </td>
                   <td className="num px-3 py-2 text-slate-700">
-                    {format(order.openedAt, "HH:mm", { locale: indonesianLocale })}
+                    {formatTimeID(order.openedAt)}
                   </td>
                   <td className="num px-3 py-2 text-right font-semibold text-console-ink">
                     {formatIDR(itemTotal(order))}

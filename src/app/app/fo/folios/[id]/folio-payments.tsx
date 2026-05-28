@@ -1,10 +1,9 @@
 import { PaymentMethod } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { WalletCards } from "lucide-react";
 
+import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatMonthDayTimeID } from "@/lib/format";
 
 type FolioPayment = {
   id: number;
@@ -31,17 +30,12 @@ const paymentClassNames: Record<PaymentMethod, string> = {
 };
 
 function receivedAtLabel(date: Date) {
-  return format(date, "dd MMM HH:mm", { locale: indonesianLocale });
+  return formatMonthDayTimeID(date);
 }
 
 function PaymentBadge({ method }: { method: PaymentMethod }) {
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${paymentClassNames[method]}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {method}
-    </span>
+    <StatusBadge label={method} className={paymentClassNames[method]} />
   );
 }
 

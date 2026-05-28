@@ -1,5 +1,5 @@
 import { fbOrderGuestLabel } from "@/lib/fb-order-guest";
-import { formatIDR } from "@/lib/format";
+import { formatDecimalID, formatIDR } from "@/lib/format";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ReceiptText } from "lucide-react";
 
@@ -39,9 +39,7 @@ function shouldShowPercentRow(percent: string) {
 }
 
 function percentLabel(percent: string) {
-  return new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 2,
-  }).format(Number(percent));
+  return formatDecimalID(percent);
 }
 
 function SummaryRow({

@@ -73,7 +73,7 @@ export function TapeChartControls({
         className="flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        Reservasi Baru
+        Tambah Reservasi
       </Link>
     </div>
   );

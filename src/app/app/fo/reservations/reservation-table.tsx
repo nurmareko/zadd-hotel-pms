@@ -1,11 +1,10 @@
 import type { ReservationStatus, ReservationType } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { ArrowDown, ArrowUp, CalendarX } from "lucide-react";
 import Link from "next/link";
 
+import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatIDR } from "@/lib/format";
+import { formatDateID, formatIDR } from "@/lib/format";
 
 type SortKey = "reservation_no" | "arrival" | "departure";
 type SortDirection = "asc" | "desc";
@@ -78,7 +77,7 @@ const reservationTypeLabels: Record<ReservationType, string> = {
 };
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function ariaSort(
@@ -96,12 +95,11 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   const classes = statusClassNames[status];
 
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${classes.badge}`}
-    >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 ${classes.pip}`} />
-      {classes.label}
-    </span>
+    <StatusBadge
+      label={classes.label}
+      className={classes.badge}
+      pipClassName={classes.pip}
+    />
   );
 }
 
@@ -331,7 +329,7 @@ export function ReservationTable({
                       className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
                       href="/app/fo/reservations/new"
                     >
-                      Buat Reservasi
+                      Tambah Reservasi
                     </Link>
                   }
                 />

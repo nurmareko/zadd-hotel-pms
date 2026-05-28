@@ -264,10 +264,10 @@ export function RoomForm({
             disabled={form.formState.isSubmitting || roomTypes.length === 0}
           >
             {form.formState.isSubmitting
-              ? "Saving..."
+              ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Buat Kamar"}
+                : "Tambah Kamar"}
           </Button>
         </div>
       </form>

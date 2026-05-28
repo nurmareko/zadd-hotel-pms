@@ -5,10 +5,13 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 
-import { formatIDR } from "@/lib/format";
+import {
+  formatDateID,
+  formatDateTimeID,
+  formatFixedPercent,
+  formatIDR,
+} from "@/lib/format";
 
 type StringableDecimal = {
   toString(): string;
@@ -140,15 +143,15 @@ const styles = StyleSheet.create({
 });
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatDateTimeID(date);
 }
 
 function percentLabel(value: StringableDecimal) {
-  return `${Number(value.toString()).toFixed(2)}%`;
+  return formatFixedPercent(value.toString());
 }
 
 function Field({ label, value }: { label: string; value: string }) {

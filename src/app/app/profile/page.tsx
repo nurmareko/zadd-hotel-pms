@@ -1,18 +1,17 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { formatLongDateID, formatLongDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { AccountCard } from "./account-card";
 import { PasswordForm } from "./password-form";
 
 function dateLabel(date: Date) {
-  return format(date, "d MMMM yyyy", { locale: indonesianLocale });
+  return formatLongDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "d MMMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatLongDateTimeID(date);
 }
 
 export default async function ProfilePage() {

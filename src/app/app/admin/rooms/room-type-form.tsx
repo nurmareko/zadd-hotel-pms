@@ -230,10 +230,10 @@ export function RoomTypeForm({
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Saving..."
+              ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Buat Tipe"}
+                : "Tambah Tipe"}
           </Button>
         </div>
       </form>

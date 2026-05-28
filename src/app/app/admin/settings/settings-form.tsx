@@ -328,7 +328,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
               className={primaryButtonClassName}
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? "Saving..." : "Simpan"}
+              {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
             </Button>
           </div>
         </aside>

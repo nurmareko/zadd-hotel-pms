@@ -294,10 +294,10 @@ export function RestaurantTableForm({
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Saving..."
+              ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Buat Meja"}
+                : "Tambah Meja"}
           </Button>
         </div>
       </form>
