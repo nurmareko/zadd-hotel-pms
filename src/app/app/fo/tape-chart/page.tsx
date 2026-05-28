@@ -131,7 +131,7 @@ function buildRows({
   const reservationsByRoomId = new Map<number, ReservationForGrid[]>();
 
   for (const reservation of reservations) {
-    if (!reservation.roomId) {
+    if (reservation.roomId === null) {
       continue;
     }
 

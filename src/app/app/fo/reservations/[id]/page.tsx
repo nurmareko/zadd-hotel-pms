@@ -62,7 +62,7 @@ export default async function ReservationDetailPage({
         status: true,
         roomTypeId: true,
       },
-      orderBy: { number: "asc" },
+      orderBy: [{ floor: "asc" }, { number: "asc" }],
     }),
     prisma.reservation.findMany({
       where: {
@@ -110,6 +110,19 @@ export default async function ReservationDetailPage({
     notes: reservation.notes ?? "",
     comment: reservation.comment ?? "",
   };
+  const allocatedActiveReservations = activeReservations.flatMap(
+    (activeReservation) =>
+      activeReservation.roomId === null
+        ? []
+        : [
+            {
+              id: activeReservation.id,
+              roomId: activeReservation.roomId,
+              arrivalDate: toDateInputValue(activeReservation.arrivalDate),
+              departureDate: toDateInputValue(activeReservation.departureDate),
+            },
+          ],
+  );
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -178,12 +191,7 @@ export default async function ReservationDetailPage({
             baseRate: roomType.baseRate.toString(),
           }))}
           rooms={rooms}
-          activeReservations={activeReservations.map((activeReservation) => ({
-            id: activeReservation.id,
-            roomId: activeReservation.roomId ?? 0,
-            arrivalDate: toDateInputValue(activeReservation.arrivalDate),
-            departureDate: toDateInputValue(activeReservation.departureDate),
-          }))}
+          activeReservations={allocatedActiveReservations}
           mode={formMode}
           reservationId={reservation.id}
           submitLabel="Simpan Perubahan"

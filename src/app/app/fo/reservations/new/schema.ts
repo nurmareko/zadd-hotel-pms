@@ -59,6 +59,18 @@ const OptionalEmailSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
+const OptionalRoomIdSchema = z.preprocess(
+  (value) =>
+    (typeof value === "string" && value.trim() === "") || value == null
+      ? null
+      : value,
+  z.coerce
+    .number("Room is invalid")
+    .int("Room is invalid")
+    .positive("Room is invalid")
+    .nullable(),
+);
+
 export type ReservationRoomTypeCapacity = {
   id: number;
   capacity: number;
@@ -96,10 +108,7 @@ const BaseCreateReservationSchema = z
       .number("Room type is required")
       .int("Room type is required")
       .positive("Room type is required"),
-    roomId: z.coerce
-      .number("Room is required")
-      .int("Room is required")
-      .positive("Room is required"),
+    roomId: OptionalRoomIdSchema,
     arrivalDate: DateInputSchema,
     departureDate: DateInputSchema,
     adults: z.coerce

@@ -72,7 +72,7 @@ export default async function NewReservationPage({
         status: true,
         roomTypeId: true,
       },
-      orderBy: { number: "asc" },
+      orderBy: [{ floor: "asc" }, { number: "asc" }],
     }),
     prisma.reservation.findMany({
       where: {
@@ -109,6 +109,19 @@ export default async function NewReservationPage({
     notes: "",
     comment: "",
   };
+  const allocatedActiveReservations = activeReservations.flatMap(
+    (reservation) =>
+      reservation.roomId === null
+        ? []
+        : [
+            {
+              id: reservation.id,
+              roomId: reservation.roomId,
+              arrivalDate: toDateInputValue(reservation.arrivalDate),
+              departureDate: toDateInputValue(reservation.departureDate),
+            },
+          ],
+  );
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -141,12 +154,7 @@ export default async function NewReservationPage({
             baseRate: roomType.baseRate.toString(),
           }))}
           rooms={rooms}
-          activeReservations={activeReservations.map((reservation) => ({
-            id: reservation.id,
-            roomId: reservation.roomId ?? 0,
-            arrivalDate: toDateInputValue(reservation.arrivalDate),
-            departureDate: toDateInputValue(reservation.departureDate),
-          }))}
+          activeReservations={allocatedActiveReservations}
           submitLabel="Simpan Reservasi"
         />
       </div>

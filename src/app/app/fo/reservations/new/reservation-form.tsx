@@ -499,7 +499,7 @@ export function ReservationForm({
                           disabled={isViewMode || !selectedRoomTypeId}
                           {...field}
                         >
-                          <option value="">Pilih kamar</option>
+                          <option value="">Belum dialokasikan</option>
                           {roomOptions.map((room) => (
                             <option
                               key={room.id}
@@ -729,7 +729,8 @@ export function ReservationForm({
                 </span>
               </div>
               <p className="mt-2 text-[11px] leading-4 text-slate-500">
-                Pilih kamar fisik untuk mengunci ketersediaan reservasi.
+                Reservasi dapat dibuat tanpa kamar fisik; kamar wajib dipilih
+                saat check-in.
               </p>
             </div>
           </section>

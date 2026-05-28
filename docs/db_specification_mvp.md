@@ -259,7 +259,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, *room_id\#*, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, created_at, updated_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -416,7 +416,7 @@ A few choices worth explaining:
 | comment | TEXT | — | Reservation comment for staff/manager context |
 | guest_id | INT | NOT NULL, FOREIGN KEY → guest(id) | Booking guest |
 | room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type booked |
-| room_id | INT | FOREIGN KEY → room(id), ON DELETE SET NULL | Physical room assigned at check-in |
+| room_id | INT | NULLABLE, FOREIGN KEY → room(id), ON DELETE SET NULL | Physical room assigned at check-in; NULL means unallocated reservation |
 | arrival_date | DATE | NOT NULL | Planned check-in date |
 | departure_date | DATE | NOT NULL | Planned check-out date |
 | adults | INT | NOT NULL, DEFAULT 1 | Adult guest count |
