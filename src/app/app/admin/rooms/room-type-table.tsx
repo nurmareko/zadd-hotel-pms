@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Tags } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 import { deleteRoomType } from "./actions";
 import type { RoomRow } from "./room-table";
@@ -95,12 +96,13 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         </div>
 
         {roomTypes.length === 0 ? (
-          <div className="m-3.5 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-bg p-6 text-center">
-            <p className="text-[12px] text-slate-500">Belum ada tipe kamar.</p>
-            <div className="mt-4">
-              <AddRoomTypeButton onClick={() => setCreateOpen(true)} />
-            </div>
-          </div>
+          <EmptyState
+            icon={Tags}
+            title="Belum ada tipe kamar"
+            description="Buat tipe kamar sebagai dasar tarif, kapasitas, dan inventory."
+            action={<AddRoomTypeButton onClick={() => setCreateOpen(true)} />}
+            className="m-3.5 min-h-56"
+          />
         ) : (
           <div className="grid gap-3 p-3.5 md:grid-cols-3">
             {roomTypes.map((roomType) => (
@@ -228,14 +230,14 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

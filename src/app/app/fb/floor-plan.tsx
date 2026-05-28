@@ -1,6 +1,8 @@
 import { TableLocation, TableStatus } from "@prisma/client";
+import { Table2 } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   RESTAURANT_FLOOR_CANVAS_HEIGHT,
   RESTAURANT_FLOOR_CANVAS_WIDTH,
@@ -39,7 +41,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
     .toSorted(byTableNumber);
 
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border px-3.5">
         <nav className="flex gap-5" aria-label="Table location">
           {locationTabs.map((location) => (
@@ -86,7 +88,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
         </div>
       </div>
 
-      <div className="overflow-auto p-3.5">
+      <div className="max-w-full overflow-auto p-3.5">
         <div
           className="relative border border-dashed border-console-border bg-console-bg"
           style={{
@@ -95,9 +97,12 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
           }}
         >
           {selectedTables.length === 0 ? (
-            <div className="absolute left-4 top-4 border border-dashed border-console-border bg-console-surface px-3 py-2 text-[11px] text-slate-500">
-              No tables in this area.
-            </div>
+            <EmptyState
+              icon={Table2}
+              title="Belum ada meja di area ini"
+              description="Pilih area lain atau tambahkan meja dari admin."
+              className="absolute left-4 top-4 min-h-0 items-start px-3 py-2 text-left"
+            />
           ) : null}
 
           {selectedTables.map((table) => {

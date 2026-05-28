@@ -1,5 +1,7 @@
 import { FBOrderStatus, TableStatus } from "@prisma/client";
 
+import { StatusBadge } from "@/components/status-badge";
+
 export const tableStatusStyles: Record<TableStatus, string> = {
   AVAILABLE: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
   OCCUPIED: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
@@ -29,20 +31,19 @@ const orderStatusLabels: Record<FBOrderStatus, string> = {
 };
 
 export function TableStatusBadge({ status }: { status: TableStatus }) {
-  return <StatusBadge className={tableStatusStyles[status]} label={tableStatusLabels[status]} />;
+  return (
+    <StatusBadge
+      className={tableStatusStyles[status]}
+      label={tableStatusLabels[status]}
+    />
+  );
 }
 
 export function OrderStatusBadge({ status }: { status: FBOrderStatus }) {
-  return <StatusBadge className={orderStatusStyles[status]} label={orderStatusLabels[status]} />;
-}
-
-function StatusBadge({ className, label }: { className: string; label: string }) {
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${className}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {label}
-    </span>
+    <StatusBadge
+      className={orderStatusStyles[status]}
+      label={orderStatusLabels[status]}
+    />
   );
 }

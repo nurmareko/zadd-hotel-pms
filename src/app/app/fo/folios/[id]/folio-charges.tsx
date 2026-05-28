@@ -1,8 +1,9 @@
 import { FolioStatus, type ArticleType } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { ReceiptText } from "lucide-react";
 
-import { formatIDR } from "@/lib/format";
+import { StatusBadge } from "@/components/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatIDR, formatMonthDayTimeID, formatDecimalID } from "@/lib/format";
 
 type FolioChargeLineItem = {
   id: number;
@@ -29,12 +30,8 @@ type FolioChargesProps = {
   lineItems: FolioChargeLineItem[];
 };
 
-const qtyFormatter = new Intl.NumberFormat("id-ID", {
-  maximumFractionDigits: 2,
-});
-
 function postedAtLabel(date: Date) {
-  return format(date, "dd MMM HH:mm", { locale: indonesianLocale });
+  return formatMonthDayTimeID(date);
 }
 
 function descriptionLabel(lineItem: FolioChargeLineItem) {
@@ -52,12 +49,7 @@ const statusClassNames: Record<FolioStatus, string> = {
 
 function FolioStatusBadge({ status }: { status: FolioStatus }) {
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${statusClassNames[status]}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {status}
-    </span>
+    <StatusBadge label={status} className={statusClassNames[status]} />
   );
 }
 
@@ -76,9 +68,12 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
       <div className="p-0">
 
         {lineItems.length === 0 ? (
-          <div className="m-3.5 border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
-            No charges posted yet.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Belum ada tagihan"
+            description="Line item folio akan muncul setelah charge diposting."
+            className="m-3.5"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full border-collapse text-[12px]">
@@ -120,7 +115,7 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
                       {descriptionLabel(lineItem)}
                     </td>
                     <td className="num whitespace-nowrap px-3 py-2.5 text-right">
-                      {qtyFormatter.format(Number(lineItem.quantity))}
+                      {formatDecimalID(lineItem.quantity.toString())}
                     </td>
                     <td className="num whitespace-nowrap px-3 py-2.5 text-right">
                       {formatIDR(lineItem.unitPrice.toString())}

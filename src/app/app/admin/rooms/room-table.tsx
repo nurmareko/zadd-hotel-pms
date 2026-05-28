@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { BedDouble, Plus, Search, SearchX } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -85,11 +86,11 @@ function AddRoomButton({
 
 function StatusBadge({ status }: { status: RoomStatus }) {
   return (
-    <Badge
-      className={`h-5 rounded-none border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${statusClassNames[status]}`}
-    >
-      {status}
-    </Badge>
+    <SharedStatusBadge
+      label={status}
+      className={statusClassNames[status]}
+      showPip={false}
+    />
   );
 }
 
@@ -165,15 +166,22 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         </div>
 
         {rooms.length === 0 ? (
-          <div className="m-3.5 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-bg p-6 text-center">
-            <p className="text-[12px] text-slate-500">Belum ada kamar.</p>
-            <div className="mt-4">
+          <EmptyState
+            icon={BedDouble}
+            title="Belum ada kamar"
+            description={
+              hasRoomTypes
+                ? "Tambahkan kamar fisik untuk inventory hotel."
+                : "Buat tipe kamar terlebih dahulu sebelum menambahkan kamar."
+            }
+            action={
               <AddRoomButton
                 disabled={!hasRoomTypes}
                 onClick={() => setCreateOpen(true)}
               />
-            </div>
-          </div>
+            }
+            className="m-3.5 min-h-56"
+          />
         ) : (
           <div className="overflow-auto">
             <Table className="min-w-[760px] border-collapse text-[12px]">
@@ -235,9 +243,13 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada kamar yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada kamar"
+                        description="Tidak ada kamar yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -314,14 +326,14 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

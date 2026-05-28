@@ -4,8 +4,10 @@ import {
   ReservationStatus,
   ReservationType,
 } from "@prisma/client";
-import { differenceInCalendarDays, format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { differenceInCalendarDays } from "date-fns";
+
+import { StatusBadge } from "@/components/status-badge";
+import { formatDateID } from "@/lib/format";
 
 type FolioHeaderProps = {
   folio: {
@@ -70,7 +72,7 @@ const arrangementLabels: Record<ArrangementType, string> = {
 };
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -84,23 +86,16 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 function FolioStatusBadge({ status }: { status: FolioStatus }) {
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${statusClassNames[status]}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {status}
-    </span>
+    <StatusBadge label={status} className={statusClassNames[status]} />
   );
 }
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${reservationStatusClassNames[status]}`}
-    >
-      <span className="h-1.5 w-1.5 bg-current" aria-hidden="true" />
-      {status.replace("_", " ")}
-    </span>
+    <StatusBadge
+      label={status.replace("_", " ")}
+      className={reservationStatusClassNames[status]}
+    />
   );
 }
 

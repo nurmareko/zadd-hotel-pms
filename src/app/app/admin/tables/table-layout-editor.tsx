@@ -1,12 +1,13 @@
 "use client";
 
 import { TableLocation } from "@prisma/client";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Table2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Rnd } from "react-rnd";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   RESTAURANT_FLOOR_CANVAS_HEIGHT,
   RESTAURANT_FLOOR_CANVAS_WIDTH,
@@ -168,9 +169,12 @@ export function RestaurantTableLayoutEditor({
           }}
         >
           {selectedTables.length === 0 ? (
-            <div className="absolute left-4 top-4 border border-dashed border-console-border bg-console-surface px-3 py-2 text-[11px] text-slate-500">
-              No tables in this area.
-            </div>
+            <EmptyState
+              icon={Table2}
+              title="Belum ada meja di area ini"
+              description="Pindahkan atau tambahkan meja untuk mengatur layout area ini."
+              className="absolute left-4 top-4 min-h-0 items-start px-3 py-2 text-left"
+            />
           ) : null}
 
           {selectedTables.map((table) => (

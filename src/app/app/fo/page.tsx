@@ -2,15 +2,13 @@ import { ReservationStatus, RoomStatus } from "@prisma/client";
 import {
   addDays,
   differenceInCalendarDays,
-  format,
   startOfDay,
 } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 
 // Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
 // Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
 import { todayDateOnly } from "@/lib/date-only";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatTimeID, formatWeekdayLongDateID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
 
@@ -38,7 +36,7 @@ function guestShortName(fullName: string) {
 }
 
 function activityTimeLabel(date: Date) {
-  return format(date, "HH:mm", { locale: indonesianLocale });
+  return formatTimeID(date);
 }
 
 function todayReservationsHref(status: ReservationStatus) {
@@ -313,9 +311,7 @@ export default async function FODashboardPage() {
   const arrivalsHref = todayReservationsHref(ReservationStatus.CONFIRMED);
   const departuresHref = todayReservationsHref(ReservationStatus.CHECKED_IN);
 
-  const dashboardDateLabel = format(timestampToday, "EEEE, d MMMM yyyy", {
-    locale: indonesianLocale,
-  });
+  const dashboardDateLabel = formatWeekdayLongDateID(timestampToday);
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">

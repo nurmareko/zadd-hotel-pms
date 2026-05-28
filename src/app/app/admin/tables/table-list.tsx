@@ -1,7 +1,7 @@
 "use client";
 
 import { TableLocation, TableStatus } from "@prisma/client";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, SearchX, Table2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -86,11 +87,11 @@ function AddTableButton({ onClick }: { onClick: () => void }) {
 
 function StatusBadge({ status }: { status: TableStatus }) {
   return (
-    <Badge
-      className={`h-5 rounded-none border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${statusClassNames[status]}`}
-    >
-      {statusLabels[status]}
-    </Badge>
+    <SharedStatusBadge
+      label={statusLabels[status]}
+      className={statusClassNames[status]}
+      showPip={false}
+    />
   );
 }
 
@@ -212,12 +213,13 @@ export function RestaurantTableList({
       </div>
 
       {tables.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
-          <p className="text-[12px] text-slate-500">Belum ada meja.</p>
-          <div className="mt-4">
-            <AddTableButton onClick={() => setCreateOpen(true)} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Table2}
+          title="Belum ada meja"
+          description="Tambahkan meja restoran untuk floor plan dan order F&B."
+          action={<AddTableButton onClick={() => setCreateOpen(true)} />}
+          className="mt-8 min-h-56 bg-console-surface"
+        />
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
@@ -326,9 +328,13 @@ export function RestaurantTableList({
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada meja yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada meja"
+                        description="Tidak ada meja yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -410,14 +416,14 @@ export function RestaurantTableList({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

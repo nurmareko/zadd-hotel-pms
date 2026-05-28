@@ -1,11 +1,11 @@
 import { ReservationStatus, RoomStatus, type Room } from "@prisma/client";
-import { addDays, differenceInCalendarDays, format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { CheckInForm } from "./check-in-form";
 
@@ -21,7 +21,7 @@ type CheckInPageProps = {
 };
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function ErrorState({

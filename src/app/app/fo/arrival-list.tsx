@@ -1,5 +1,9 @@
 import Link from "next/link";
 import type { ReservationStatus } from "@prisma/client";
+import { CalendarCheck } from "lucide-react";
+
+import { StatusBadge } from "@/components/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type ArrivalListRow = {
   id: number;
@@ -22,21 +26,15 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   const isConfirmed = status === "CONFIRMED";
 
   return (
-    <span
-      className={`inline-flex h-5 items-center gap-1.5 border px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${
+    <StatusBadge
+      label={isConfirmed ? "Confirmed" : "Checked In"}
+      className={
         isConfirmed
           ? "border-status-oc-pip bg-status-oc-bg text-status-oc-fg"
           : "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`h-1.5 w-1.5 ${
-          isConfirmed ? "bg-status-oc-pip" : "bg-status-vc-pip"
-        }`}
-      />
-      {isConfirmed ? "Confirmed" : "Checked In"}
-    </span>
+      }
+      pipClassName={isConfirmed ? "bg-status-oc-pip" : "bg-status-vc-pip"}
+    />
   );
 }
 
@@ -47,7 +45,7 @@ export function ArrivalList({
   allHref,
 }: ArrivalListProps) {
   return (
-    <section className="border border-console-border bg-console-surface p-0">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface p-0">
       <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
           Expected Arrivals · Hari Ini
@@ -57,8 +55,8 @@ export function ArrivalList({
         </span>
       </div>
 
-      <div className="overflow-auto">
-        <table className="w-full border-collapse text-[12px]">
+      <div className="max-w-full overflow-auto">
+        <table className="w-full min-w-[454px] border-collapse text-[12px]">
           <colgroup>
             <col className="w-[24%]" />
             <col className="w-[15%]" />
@@ -127,11 +125,12 @@ export function ArrivalList({
               ))
             ) : (
               <tr>
-                <td
-                  className="px-3.5 py-8 text-center text-[12px] text-slate-500"
-                  colSpan={6}
-                >
-                  Tidak ada kedatangan hari ini. :)
+                <td className="px-3.5 py-3.5" colSpan={6}>
+                  <EmptyState
+                    icon={CalendarCheck}
+                    title="Tidak ada kedatangan hari ini"
+                    description="Reservasi confirmed untuk tanggal bisnis ini akan muncul di antrean check-in."
+                  />
                 </td>
               </tr>
             )}

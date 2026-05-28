@@ -1,9 +1,15 @@
 import { NightAuditStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { History } from "lucide-react";
 import Link from "next/link";
 
-import { formatIDR } from "@/lib/format";
+import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  formatCompactDateID,
+  formatCompactDateTimeID,
+  formatFixedPercent,
+  formatIDR,
+} from "@/lib/format";
 
 export type AuditHistoryRow = {
   id: number;
@@ -22,26 +28,38 @@ type AuditHistoryProps = {
 
 function StatusBadge({ status }: { status: NightAuditStatus }) {
   return (
-    <span className="inline-flex h-5 items-center gap-1 border border-status-vc-pip bg-status-vc-bg px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-status-vc-fg">
-      <span className="h-1.5 w-1.5 bg-status-vc-pip" aria-hidden="true" />
-      {status}
-    </span>
+    <SharedStatusBadge
+      label={status}
+      className="border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
+      pipClassName="bg-status-vc-pip"
+    />
   );
 }
 
 export function AuditHistory({ rows }: AuditHistoryProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
         {"// RIWAYAT AUDIT"}
       </div>
 
       {rows.length === 0 ? (
-        <div className="p-8 text-center text-[12px] text-slate-500">
-          Belum ada riwayat night audit.
-        </div>
+        <EmptyState
+          icon={History}
+          title="Belum ada riwayat night audit"
+          description="Audit yang sudah dijalankan akan tersimpan sebagai riwayat dan laporan."
+          action={
+            <Link
+              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              href="/app/acc/night-audit"
+            >
+              Jalankan Night Audit
+            </Link>
+          }
+          className="m-3.5"
+        />
       ) : (
-        <div className="overflow-auto">
+        <div className="max-w-full overflow-auto">
           <table className="w-full min-w-[980px] border-collapse text-[12px]">
             <thead>
               <tr>
@@ -78,20 +96,16 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   key={row.id}
                 >
                   <td className="num px-3 py-[9px] font-semibold text-console-ink">
-                    {format(row.businessDate, "d MMM yyyy", {
-                      locale: indonesianLocale,
-                    })}
+                    {formatCompactDateID(row.businessDate)}
                   </td>
                   <td className="px-3 py-[9px]">
                     <StatusBadge status={row.status} />
                   </td>
                   <td className="num px-3 py-[9px] text-slate-700">
-                    {format(row.runAt, "d MMM yyyy HH:mm", {
-                      locale: indonesianLocale,
-                    })}
+                    {formatCompactDateTimeID(row.runAt)}
                   </td>
                   <td className="num px-3 py-[9px] text-right text-slate-700">
-                    {Number(row.occupancyRate).toFixed(2)}%
+                    {formatFixedPercent(row.occupancyRate)}
                   </td>
                   <td className="num px-3 py-[9px] text-right text-slate-700">
                     {formatIDR(row.roomRevenue)}

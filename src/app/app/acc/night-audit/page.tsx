@@ -1,10 +1,8 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { formatIDR } from "@/lib/format";
+import { formatCompactDateTimeID, formatIDR } from "@/lib/format";
 import { buildNightAuditPlan } from "@/lib/night-audit";
 
 import { PreRunSummary } from "./pre-run-summary";
@@ -31,9 +29,7 @@ function CompletedState({
           </div>
           <p className="mt-1 leading-5">
             Business date {businessDateLabel} dikunci pada{" "}
-            {format(audit.runAt, "d MMM yyyy HH:mm", {
-              locale: indonesianLocale,
-            })}{" "}
+            {formatCompactDateTimeID(audit.runAt)}{" "}
             oleh {audit.runByName}.
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">

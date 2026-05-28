@@ -1,4 +1,7 @@
+import { LogOut } from "lucide-react";
 import Link from "next/link";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type DepartureListRow = {
   id: number;
@@ -38,7 +41,7 @@ export function DepartureList({
   allHref,
 }: DepartureListProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
           Departures · Hari Ini
@@ -48,7 +51,7 @@ export function DepartureList({
         </span>
       </div>
 
-      <div className="overflow-auto">
+      <div className="max-w-full overflow-auto">
         <table className="w-full min-w-[360px] border-collapse text-[12px]">
           <thead>
             <tr>
@@ -98,11 +101,12 @@ export function DepartureList({
           ))
         ) : (
           <tr>
-            <td
-              className="px-3.5 py-8 text-center text-[12px] text-slate-500"
-              colSpan={4}
-            >
-              Tidak ada keberangkatan hari ini. :)
+            <td className="px-3.5 py-3.5" colSpan={4}>
+              <EmptyState
+                icon={LogOut}
+                title="Tidak ada keberangkatan hari ini"
+                description="Folio tamu yang dijadwalkan check-out akan muncul di antrean ini."
+              />
             </td>
           </tr>
         )}

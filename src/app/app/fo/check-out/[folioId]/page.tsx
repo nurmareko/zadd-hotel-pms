@@ -3,8 +3,6 @@ import {
   ReservationStatus,
   type ArticleType,
 } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { AlertTriangle, Check, CheckCircle2, Download, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,7 +15,7 @@ import {
   folioBalanceState,
   refundDueNote,
 } from "@/lib/folio-balance-display";
-import { formatIDR } from "@/lib/format";
+import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
 import { CompleteCheckoutForm, FinalPaymentForm } from "./checkout-forms";
@@ -67,11 +65,11 @@ type PreviewSettings = {
 };
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatDateTimeID(date);
 }
 
 function descriptionLabel(lineItem: ChargeLineItem) {

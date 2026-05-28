@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { RoomStatus } from "@prisma/client";
 
+import { StatusBadge } from "@/components/status-badge";
+
 export type RoomStatusGridRoom = {
   id: number;
   number: string;
@@ -54,12 +56,12 @@ export function StatusPill({ status }: { status: RoomStatus }) {
   const classes = statusClassNames[status];
 
   return (
-    <span
-      className={`inline-flex h-6 items-center gap-1.5 border px-2 text-[10px] font-semibold uppercase tracking-[0.06em] ${classes.badge}`}
-    >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 ${classes.pip}`} />
-      {status}
-    </span>
+    <StatusBadge
+      label={status}
+      className={classes.badge}
+      pipClassName={classes.pip}
+      size="md"
+    />
   );
 }
 

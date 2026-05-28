@@ -1,9 +1,8 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { formatCompactDateTimeID, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { ReportActions } from "./report-actions";
@@ -26,11 +25,11 @@ function parseAuditId(value: string) {
 }
 
 function businessDateLabel(date: Date) {
-  return format(date, "d MMMM yyyy", { locale: indonesianLocale });
+  return formatLongDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "d MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatCompactDateTimeID(date);
 }
 
 export default async function NightAuditReportPage({

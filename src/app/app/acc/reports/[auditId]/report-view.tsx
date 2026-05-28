@@ -1,7 +1,9 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
-
-import { formatIDR } from "@/lib/format";
+import {
+  formatCompactDateTimeID,
+  formatFixedPercent,
+  formatIDR,
+  formatLongDateID,
+} from "@/lib/format";
 
 type StringableDecimal = {
   toString(): string;
@@ -35,15 +37,15 @@ type ReportViewProps = {
 };
 
 function dateLabel(date: Date) {
-  return format(date, "d MMMM yyyy", { locale: indonesianLocale });
+  return formatLongDateID(date);
 }
 
 function dateTimeLabel(date: Date) {
-  return format(date, "d MMM yyyy HH:mm", { locale: indonesianLocale });
+  return formatCompactDateTimeID(date);
 }
 
 function percentLabel(value: StringableDecimal) {
-  return `${Number(value.toString()).toFixed(2)}%`;
+  return formatFixedPercent(value.toString());
 }
 
 function SnapshotRow({

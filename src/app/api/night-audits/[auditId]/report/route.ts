@@ -1,7 +1,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import { format } from "date-fns";
 
 import { auth } from "@/auth";
+import { formatISODate } from "@/lib/format";
 import { NightReport } from "@/lib/pdf/night-report";
 import { prisma } from "@/lib/prisma";
 
@@ -47,7 +47,7 @@ export async function GET(
 
   const reportDocument = NightReport({ audit, settings });
   const buffer = await renderToBuffer(reportDocument);
-  const businessDate = format(audit.businessDate, "yyyy-MM-dd");
+  const businessDate = formatISODate(audit.businessDate);
 
   return new Response(new Uint8Array(buffer), {
     headers: {

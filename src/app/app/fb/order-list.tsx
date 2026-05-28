@@ -1,9 +1,9 @@
 import { FBOrderStatus } from "@prisma/client";
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { ClipboardList, SearchX } from "lucide-react";
 import Link from "next/link";
 
-import { formatIDR } from "@/lib/format";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatIDR, formatTimeID } from "@/lib/format";
 
 import { OrderStatusBadge } from "./status-badge";
 
@@ -112,13 +112,19 @@ export function OrderList({
       </form>
 
       {orders.length === 0 ? (
-        <div className="p-8 text-center text-[12px] text-slate-500">
-          Belum ada order hari ini. Klik meja di tab Floor Plan untuk mulai.
-        </div>
+        <EmptyState
+          icon={ClipboardList}
+          title="Belum ada order hari ini"
+          description="Mulai order dari meja available di tab Floor Plan."
+          className="m-3.5"
+        />
       ) : filteredOrders.length === 0 ? (
-        <div className="p-8 text-center text-[12px] text-slate-500">
-          Tidak ada order yang cocok dengan filter.
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title="Tidak ada order"
+          description="Tidak ada order yang cocok dengan filter."
+          className="m-3.5"
+        />
       ) : (
         <div className="overflow-auto">
           <table className="min-w-[920px] w-full border-collapse text-[12px]">
@@ -166,7 +172,7 @@ export function OrderList({
                     <OrderStatusBadge status={order.status} />
                   </td>
                   <td className="num px-3 py-2 text-slate-700">
-                    {format(order.openedAt, "HH:mm", { locale: indonesianLocale })}
+                    {formatTimeID(order.openedAt)}
                   </td>
                   <td className="num px-3 py-2 text-right font-semibold text-console-ink">
                     {formatIDR(itemTotal(order))}

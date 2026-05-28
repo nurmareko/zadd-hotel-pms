@@ -1,15 +1,19 @@
 import {
   addDays,
-  format,
   formatISO,
   isValid,
   parseISO,
   startOfDay,
 } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import { ReservationStatus, type RoomStatus } from "@prisma/client";
 
 import { dateOnlyBoundary } from "@/lib/date-only";
+import {
+  formatDateID,
+  formatDayOfMonthID,
+  formatISODate,
+  formatMonthDayID,
+} from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { TapeChartGrid, type TapeChartRow } from "./tape-chart-grid";
@@ -82,9 +86,9 @@ function buildDays(today: Date) {
     return {
       date: day,
       display: {
-        iso: format(day, "yyyy-MM-dd"),
+        iso: formatISODate(day),
         dayOfWeek: DAY_LABELS[day.getDay()],
-        dayNumber: format(day, "d"),
+        dayNumber: formatDayOfMonthID(day),
       },
     };
   });
@@ -225,16 +229,8 @@ export default async function FoTapeChartPage({
   const displayDays = days.map((day) => day.display);
   const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
   const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
-  const rangeStart = format(visibleStartDate, "dd MMM", {
-    locale: indonesianLocale,
-  });
-  const rangeEnd = format(
-    addDays(visibleStartDate, DAY_COUNT - 1),
-    "dd MMM yyyy",
-    {
-      locale: indonesianLocale,
-    },
-  );
+  const rangeStart = formatMonthDayID(visibleStartDate);
+  const rangeEnd = formatDateID(addDays(visibleStartDate, DAY_COUNT - 1));
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">

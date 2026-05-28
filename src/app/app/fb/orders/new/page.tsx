@@ -1,6 +1,8 @@
 import { FBOrderStatus, TableStatus } from "@prisma/client";
+import { Table2 } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
 import { ConfirmForm } from "./confirm-form";
@@ -101,9 +103,12 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             {"// PILIH MEJA AVAILABLE"}
           </div>
           {availableTables.length === 0 ? (
-            <div className="p-6 text-[12px] text-slate-500">
-              Tidak ada meja available saat ini.
-            </div>
+            <EmptyState
+              icon={Table2}
+              title="Tidak ada meja available"
+              description="Semua meja sedang terpakai, reserved, atau tidak tersedia untuk order baru."
+              className="m-3.5"
+            />
           ) : (
             <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
               {availableTables.map((availableTable) => (

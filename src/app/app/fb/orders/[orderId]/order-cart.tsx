@@ -1,5 +1,8 @@
 "use client";
 
+import { ShoppingCart } from "lucide-react";
+
+import { EmptyState } from "@/components/ui/empty-state";
 import { fbOrderGuestLabel } from "@/lib/fb-order-guest";
 import { formatIDR } from "@/lib/format";
 
@@ -57,9 +60,12 @@ export function OrderCart({ order, settings }: OrderCartProps) {
       </div>
 
       {order.items.length === 0 ? (
-        <div className="p-6 text-center text-[12px] text-slate-500">
-          Keranjang kosong. Pilih menu dari kolom kiri.
-        </div>
+        <EmptyState
+          icon={ShoppingCart}
+          title="Keranjang masih kosong"
+          description="Pilih menu dari kolom kiri untuk menambahkan item order."
+          className="m-3.5"
+        />
       ) : (
         <div>
           {itemsByGuest.map(([guestNumber, guestItems]) => (

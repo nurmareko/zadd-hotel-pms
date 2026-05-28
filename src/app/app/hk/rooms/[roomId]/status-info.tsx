@@ -1,6 +1,6 @@
-import { format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
 import type { RoomStatus } from "@prisma/client";
+
+import { formatCompactDateID } from "@/lib/format";
 
 const statusDescriptions: Record<RoomStatus, string> = {
   VC: "VC - Vacant Clean, siap dijual",
@@ -33,7 +33,7 @@ function relativeDurationLabel(from: Date | null, to = new Date()) {
 }
 
 function dateLabel(date: Date) {
-  return format(date, "d MMM yyyy", { locale: indonesianLocale });
+  return formatCompactDateID(date);
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {

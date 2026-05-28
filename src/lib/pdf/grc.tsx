@@ -5,10 +5,9 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { differenceInCalendarDays, format } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { differenceInCalendarDays } from "date-fns";
 
-import { formatIDR } from "@/lib/format";
+import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
 
 type StringableDecimal = {
   toString(): string;
@@ -143,13 +142,11 @@ const styles = StyleSheet.create({
 });
 
 function dateLabel(date: Date) {
-  return format(date, "dd MMM yyyy", { locale: indonesianLocale });
+  return formatDateID(date);
 }
 
 function dateTimeLabel(date: Date | null) {
-  return date
-    ? format(date, "dd MMM yyyy HH:mm", { locale: indonesianLocale })
-    : "Tanggal: ______________________";
+  return date ? formatDateTimeID(date) : "Tanggal: ______________________";
 }
 
 function Field({ label, value }: { label: string; value: string }) {
