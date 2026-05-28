@@ -82,7 +82,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       links: [
         { label: "Dashboard", href: "/app/acc", icon: LayoutDashboard },
         { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
-        { label: "Night Report", href: "/app/acc/night-report", icon: FileText },
+        { label: "Night Report", href: "/app/acc/reports", icon: FileText }, // fixed href -astrid
       ],
     },
   ],
