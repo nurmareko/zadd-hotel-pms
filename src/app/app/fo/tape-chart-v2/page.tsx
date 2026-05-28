@@ -1,0 +1,77 @@
+import { addDays, isValid, parseISO } from "date-fns";
+
+import { dateOnlyBoundary } from "@/lib/date-only";
+import { formatDateID, formatISODate, formatMonthDayID } from "@/lib/format";
+import { getTapeChartData } from "@/lib/tape-chart-data";
+
+import { TapeChartV2, type TapeChartV2Day } from "./tape-chart-v2";
+
+export const dynamic = "force-dynamic";
+
+const DAY_COUNT = 14;
+const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+type FoTapeChartV2PageProps = {
+  searchParams: Promise<{ startDate?: string | string[] }>;
+};
+
+function parseStartDate(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+    return dateOnlyBoundary(new Date());
+  }
+
+  const parsed = parseISO(candidate);
+
+  return isValid(parsed)
+    ? dateOnlyBoundary(parsed)
+    : dateOnlyBoundary(new Date());
+}
+
+function getDateHref(startDate: Date) {
+  return `/app/fo/tape-chart-v2?startDate=${formatISODate(startDate)}`;
+}
+
+function buildDays(startDate: Date): TapeChartV2Day[] {
+  return Array.from({ length: DAY_COUNT }, (_, index) => {
+    const date = addDays(startDate, index);
+
+    return {
+      iso: formatISODate(date),
+      dayOfWeek: DAY_LABELS[date.getDay()],
+      dayNumber: date.getDate().toString(),
+      monthLabel: formatMonthDayID(date).replace(/^\d+\s*/, ""),
+      isWeekend: date.getDay() === 0 || date.getDay() === 6,
+    };
+  });
+}
+
+export default async function FoTapeChartV2Page({
+  searchParams,
+}: FoTapeChartV2PageProps) {
+  const { startDate } = await searchParams;
+  const visibleStartDate = parseStartDate(startDate);
+  const chartData = await getTapeChartData(visibleStartDate, DAY_COUNT);
+  const days = buildDays(visibleStartDate);
+  const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
+  const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
+  const todayDate = dateOnlyBoundary(new Date());
+
+  return (
+    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+      <TapeChartV2
+        data={chartData}
+        days={days}
+        todayIso={formatISODate(todayDate)}
+        previousHref={getDateHref(previousStartDate)}
+        nextHref={getDateHref(nextStartDate)}
+        todayHref="/app/fo/tape-chart-v2"
+        newReservationHref="/app/fo/reservations/new"
+        rangeLabel={`${formatMonthDayID(visibleStartDate)} - ${formatDateID(
+          addDays(visibleStartDate, DAY_COUNT - 1),
+        )}`}
+      />
+    </main>
+  );
+}
