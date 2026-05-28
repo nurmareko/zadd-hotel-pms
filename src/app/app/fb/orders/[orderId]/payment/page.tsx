@@ -1,9 +1,11 @@
 import { FBOrderStatus, PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { CircleSlash } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   fbOrderGuestLabel,
   parseFBOrderItemNotes,
@@ -283,10 +285,12 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
           ) : null}
 
           {order.status === FBOrderStatus.VOIDED ? (
-            <section className="border border-console-border bg-console-surface p-3.5 text-[12px] text-slate-600">
-              Tidak ada aksi pembayaran. Gunakan daftar order untuk kembali ke
-              area F&amp;B.
-            </section>
+            <EmptyState
+              icon={CircleSlash}
+              title="Tidak ada aksi pembayaran"
+              description="Order voided tidak memiliki aksi pembayaran. Gunakan daftar order untuk kembali ke area F&B."
+              className="bg-console-surface"
+            />
           ) : null}
         </div>
 

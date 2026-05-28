@@ -1,8 +1,9 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, SearchX, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { MenuItemCard } from "./menu-item-card";
 
 export type MenuBrowseItem = {
@@ -113,9 +114,16 @@ export function MenuBrowse({
         })}
       </div>
       {filteredItems.length === 0 ? (
-        <div className="p-8 text-center text-[12px] text-slate-500">
-          Tidak ada menu yang cocok.
-        </div>
+        <EmptyState
+          icon={menuItems.length === 0 ? Utensils : SearchX}
+          title={menuItems.length === 0 ? "Belum ada menu" : "Tidak ada menu"}
+          description={
+            menuItems.length === 0
+              ? "Menu aktif akan muncul di sini setelah dibuat oleh admin."
+              : "Tidak ada menu yang cocok dengan filter atau pencarian."
+          }
+          className="m-3.5"
+        />
       ) : (
         <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 2xl:grid-cols-3">
           {filteredItems.map((item) => (

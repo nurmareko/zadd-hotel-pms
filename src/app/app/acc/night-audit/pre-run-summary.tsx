@@ -1,5 +1,7 @@
 import { ArrangementType } from "@prisma/client";
+import { BedDouble } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 import type { NightAuditPlan } from "@/lib/night-audit";
 
@@ -113,11 +115,12 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                 <tbody>
                   {plan.reservations.length === 0 ? (
                     <tr>
-                      <td
-                        className="px-3 py-8 text-center text-slate-500"
-                        colSpan={6}
-                      >
-                        Tidak ada reservasi CHECKED_IN untuk business date ini.
+                      <td className="px-3 py-3" colSpan={6}>
+                        <EmptyState
+                          icon={BedDouble}
+                          title="Tidak ada tamu in-house"
+                          description="Tidak ada reservasi CHECKED_IN untuk business date ini."
+                        />
                       </td>
                     </tr>
                   ) : (

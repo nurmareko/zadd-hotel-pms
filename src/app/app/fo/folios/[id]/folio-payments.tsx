@@ -1,7 +1,9 @@
 import { PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { WalletCards } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 
 type FolioPayment = {
@@ -54,9 +56,12 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
       </div>
 
       {payments.length === 0 ? (
-        <div className="m-3.5 border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
-          No payments recorded yet.
-        </div>
+        <EmptyState
+          icon={WalletCards}
+          title="Belum ada pembayaran"
+          description="Pembayaran folio akan tercatat di sini setelah diterima."
+          className="m-3.5"
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-[640px] w-full border-collapse text-[12px]">

@@ -1,8 +1,11 @@
 "use client";
 
+import { BedDouble } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, KeyboardEvent } from "react";
 import type { RoomStatus } from "@prisma/client";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 import styles from "./tape-chart-grid.module.css";
 
@@ -194,6 +197,14 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
       className="border border-console-border bg-console-surface"
       style={{ maxHeight: 520, overflow: "hidden", padding: 0 }}
     >
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={BedDouble}
+          title="Belum ada kamar di tape chart"
+          description="Tambahkan master kamar terlebih dahulu agar grid okupansi dapat ditampilkan."
+          className="m-3.5 min-h-72"
+        />
+      ) : (
       <div style={{ maxHeight: 520, overflow: "auto" }}>
         <table
           className="w-full border-separate border-spacing-0 text-[12px]"
@@ -333,6 +344,7 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

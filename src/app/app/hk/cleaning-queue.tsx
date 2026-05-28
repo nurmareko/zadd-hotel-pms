@@ -1,9 +1,11 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { RoomStatus } from "@prisma/client";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   RoomStatusGrid,
   StatusPill,
@@ -139,9 +141,15 @@ function CleaningQueue({
       </div>
 
       {rows.length === 0 ? (
-        <div className="border border-console-border bg-console-surface p-4 text-[12px] text-slate-500">
-          Tidak ada kamar yang perlu pembersihan.
-        </div>
+        <EmptyState
+          icon={Sparkles}
+          title="Tidak ada kamar yang perlu pembersihan"
+          description={
+            activeFilter === "ALL"
+              ? "Semua kamar bersih atau tidak memerlukan aksi housekeeping saat ini."
+              : "Tidak ada kamar pada status ini untuk antrean pembersihan."
+          }
+        />
       ) : (
         <div className="space-y-2">
           {rows.slice(0, 10).map((row) => (

@@ -1,7 +1,9 @@
 import { FolioStatus, type ArticleType } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { ReceiptText } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 
 type FolioChargeLineItem = {
@@ -76,9 +78,12 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
       <div className="p-0">
 
         {lineItems.length === 0 ? (
-          <div className="m-3.5 border border-dashed border-console-border bg-console-bg px-3 py-8 text-center text-[12px] text-slate-500">
-            No charges posted yet.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Belum ada tagihan"
+            description="Line item folio akan muncul setelah charge diposting."
+            className="m-3.5"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full border-collapse text-[12px]">

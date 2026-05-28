@@ -1,5 +1,7 @@
 import { fbOrderGuestLabel } from "@/lib/fb-order-guest";
 import { formatIDR } from "@/lib/format";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ReceiptText } from "lucide-react";
 
 type BillViewProps = {
   order: {
@@ -126,11 +128,12 @@ export function BillView({ order, settings, totals }: BillViewProps) {
             <tbody>
               {order.items.length === 0 ? (
                 <tr>
-                  <td
-                    className="border-b border-console-border-soft px-3 py-6 text-center text-slate-500"
-                    colSpan={4}
-                  >
-                    Order kosong, tidak bisa ditagih.
+                  <td className="border-b border-console-border-soft px-3 py-3" colSpan={4}>
+                    <EmptyState
+                      icon={ReceiptText}
+                      title="Order masih kosong"
+                      description="Tambahkan item terlebih dahulu sebelum bill dikonfirmasi."
+                    />
                   </td>
                 </tr>
               ) : (

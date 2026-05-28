@@ -1,9 +1,10 @@
 import type { ReservationStatus, ReservationType } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarX } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 
 type SortKey = "reservation_no" | "arrival" | "departure";
@@ -320,11 +321,20 @@ export function ReservationTable({
             })
           ) : (
             <tr>
-              <td
-                className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
-                colSpan={9}
-              >
-                Tidak ada reservasi yang cocok dengan filter Anda.
+              <td className="border-b border-console-border-soft px-3 py-3" colSpan={9}>
+                <EmptyState
+                  icon={CalendarX}
+                  title="Tidak ada reservasi"
+                  description="Tidak ada reservasi yang cocok dengan filter Anda."
+                  action={
+                    <Link
+                      className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                      href="/app/fo/reservations/new"
+                    >
+                      Buat Reservasi
+                    </Link>
+                  }
+                />
               </td>
             </tr>
           )}

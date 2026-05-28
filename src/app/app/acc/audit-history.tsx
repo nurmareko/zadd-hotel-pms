@@ -1,8 +1,10 @@
 import { NightAuditStatus } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { History } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 
 export type AuditHistoryRow = {
@@ -37,9 +39,20 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
       </div>
 
       {rows.length === 0 ? (
-        <div className="p-8 text-center text-[12px] text-slate-500">
-          Belum ada riwayat night audit.
-        </div>
+        <EmptyState
+          icon={History}
+          title="Belum ada riwayat night audit"
+          description="Audit yang sudah dijalankan akan tersimpan sebagai riwayat dan laporan."
+          action={
+            <Link
+              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              href="/app/acc/night-audit"
+            >
+              Jalankan Night Audit
+            </Link>
+          }
+          className="m-3.5"
+        />
       ) : (
         <div className="overflow-auto">
           <table className="w-full min-w-[980px] border-collapse text-[12px]">

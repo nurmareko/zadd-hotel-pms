@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ReservationStatus } from "@prisma/client";
+import { CalendarCheck } from "lucide-react";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type ArrivalListRow = {
   id: number;
@@ -127,11 +130,12 @@ export function ArrivalList({
               ))
             ) : (
               <tr>
-                <td
-                  className="px-3.5 py-8 text-center text-[12px] text-slate-500"
-                  colSpan={6}
-                >
-                  Tidak ada kedatangan hari ini. :)
+                <td className="px-3.5 py-3.5" colSpan={6}>
+                  <EmptyState
+                    icon={CalendarCheck}
+                    title="Tidak ada kedatangan hari ini"
+                    description="Reservasi confirmed untuk tanggal bisnis ini akan muncul di antrean check-in."
+                  />
                 </td>
               </tr>
             )}

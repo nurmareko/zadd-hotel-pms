@@ -1,7 +1,7 @@
 "use client";
 
 import { TableLocation, TableStatus } from "@prisma/client";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, SearchX, Table2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -212,12 +213,13 @@ export function RestaurantTableList({
       </div>
 
       {tables.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
-          <p className="text-[12px] text-slate-500">Belum ada meja.</p>
-          <div className="mt-4">
-            <AddTableButton onClick={() => setCreateOpen(true)} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Table2}
+          title="Belum ada meja"
+          description="Tambahkan meja restoran untuk floor plan dan order F&B."
+          action={<AddTableButton onClick={() => setCreateOpen(true)} />}
+          className="mt-8 min-h-56 bg-console-surface"
+        />
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
@@ -326,9 +328,13 @@ export function RestaurantTableList({
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada meja yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada meja"
+                        description="Tidak ada meja yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

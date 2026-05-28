@@ -1,4 +1,7 @@
+import { LogOut } from "lucide-react";
 import Link from "next/link";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type DepartureListRow = {
   id: number;
@@ -98,11 +101,12 @@ export function DepartureList({
           ))
         ) : (
           <tr>
-            <td
-              className="px-3.5 py-8 text-center text-[12px] text-slate-500"
-              colSpan={4}
-            >
-              Tidak ada keberangkatan hari ini. :)
+            <td className="px-3.5 py-3.5" colSpan={4}>
+              <EmptyState
+                icon={LogOut}
+                title="Tidak ada keberangkatan hari ini"
+                description="Folio tamu yang dijadwalkan check-out akan muncul di antrean ini."
+              />
             </td>
           </tr>
         )}

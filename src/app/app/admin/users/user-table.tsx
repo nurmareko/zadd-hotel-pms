@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Plus,
+  Search,
+  SearchX,
+  Users,
+} from "lucide-react";
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -234,12 +243,13 @@ export function UserTable({ users }: UserTableProps) {
       </div>
 
       {users.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
-          <p className="text-[12px] text-slate-500">Belum ada pengguna.</p>
-          <div className="mt-4">
-            <AddUserButton onClick={() => setCreateOpen(true)} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Belum ada pengguna"
+          description="Tambahkan akun untuk role operasional dan admin."
+          action={<AddUserButton onClick={() => setCreateOpen(true)} />}
+          className="mt-8 min-h-56 bg-console-surface"
+        />
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
@@ -370,9 +380,13 @@ export function UserTable({ users }: UserTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada pengguna yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada pengguna"
+                        description="Tidak ada pengguna yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

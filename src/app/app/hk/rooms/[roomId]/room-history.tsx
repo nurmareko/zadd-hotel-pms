@@ -1,6 +1,9 @@
 import type { HousekeepingLog, RoomStatus, User } from "@prisma/client";
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { History } from "lucide-react";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 type HistoryLog = HousekeepingLog & {
   updatedBy: Pick<User, "fullName">;
@@ -76,9 +79,12 @@ export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
       </div>
 
       {logs.length === 0 ? (
-        <div className="p-3.5 text-[12px] text-slate-500">
-          Belum ada riwayat untuk kamar ini.
-        </div>
+        <EmptyState
+          icon={History}
+          title="Belum ada riwayat kamar"
+          description="Perubahan status dan aktivitas pembersihan kamar akan muncul di sini."
+          className="m-3.5"
+        />
       ) : (
         <div className="max-h-[420px] overflow-y-auto">
           {logs.map((log) => (

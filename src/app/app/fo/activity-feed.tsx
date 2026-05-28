@@ -1,4 +1,7 @@
+import { Activity } from "lucide-react";
 import Link from "next/link";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type ActivityFeedRow = {
   id: string;
@@ -44,9 +47,12 @@ export function ActivityFeed({ rows }: ActivityFeedProps) {
             </div>
           ))
         ) : (
-          <div className="px-3.5 py-8 text-center text-[12px] text-slate-500">
-            Belum ada aktivitas hari ini.
-          </div>
+          <EmptyState
+            icon={Activity}
+            title="Belum ada aktivitas hari ini"
+            description="Aktivitas check-in, check-out, dan pembayaran akan muncul di sini."
+            className="m-3.5"
+          />
         )}
       </div>
     </section>

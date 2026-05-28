@@ -1,6 +1,9 @@
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
+import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
+
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type TodayAuditStatus = {
   id: number;
@@ -44,23 +47,21 @@ export function AuditStatusBanner({
   }
 
   return (
-    <section className="border border-status-vd-pip bg-status-vd-bg p-3.5 text-status-vd-fg">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]">
-            Night audit pending
-          </div>
-          <p className="mt-1 text-[12px]">
-            Night audit untuk {businessDateLabel} belum dijalankan.
-          </p>
-        </div>
+    <section className="border border-console-border bg-console-surface p-3.5">
+      <EmptyState
+        icon={ClipboardCheck}
+        title="Night audit belum dijalankan"
+        description={`Night audit untuk ${businessDateLabel} belum dijalankan.`}
+        action={
         <Link
           className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           href="/app/acc/night-audit"
         >
           Jalankan Night Audit
         </Link>
-      </div>
+        }
+        className="min-h-0 border-0 bg-console-bg py-4"
+      />
     </section>
   );
 }

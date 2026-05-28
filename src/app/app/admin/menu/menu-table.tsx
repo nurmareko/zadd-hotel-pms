@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, SearchX, Utensils } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -191,12 +192,13 @@ export function MenuTable({ items }: MenuTableProps) {
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
-          <p className="text-[12px] text-slate-500">Belum ada menu item.</p>
-          <div className="mt-4">
-            <AddMenuItemButton onClick={() => setCreateOpen(true)} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Utensils}
+          title="Belum ada menu"
+          description="Tambahkan item menu agar F&B dapat membuat order."
+          action={<AddMenuItemButton onClick={() => setCreateOpen(true)} />}
+          className="mt-8 min-h-56 bg-console-surface"
+        />
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
@@ -294,9 +296,13 @@ export function MenuTable({ items }: MenuTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada menu yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada menu"
+                        description="Tidak ada menu yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}

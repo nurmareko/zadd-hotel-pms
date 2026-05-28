@@ -1,7 +1,7 @@
 "use client";
 
 import { ArticleType } from "@prisma/client";
-import { Plus, Search } from "lucide-react";
+import { Newspaper, Plus, Search, SearchX } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -136,12 +137,13 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       </div>
 
       {articles.length === 0 ? (
-        <div className="mt-8 flex min-h-56 flex-col items-center justify-center border border-dashed border-console-border bg-console-surface p-6 text-center">
-          <p className="text-[12px] text-slate-500">Belum ada article.</p>
-          <div className="mt-4">
-            <AddArticleButton onClick={() => setCreateOpen(true)} />
-          </div>
-        </div>
+        <EmptyState
+          icon={Newspaper}
+          title="Belum ada article"
+          description="Tambahkan charge code untuk posting folio dan billing."
+          action={<AddArticleButton onClick={() => setCreateOpen(true)} />}
+          className="mt-8 min-h-56 bg-console-surface"
+        />
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
@@ -226,9 +228,13 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="border-b border-console-border-soft px-3 py-10 text-center text-[12px] text-slate-500"
+                      className="border-b border-console-border-soft px-3 py-3"
                     >
-                      Tidak ada article yang cocok dengan filter.
+                      <EmptyState
+                        icon={SearchX}
+                        title="Tidak ada article"
+                        description="Tidak ada article yang cocok dengan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : null}
