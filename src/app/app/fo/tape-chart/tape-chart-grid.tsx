@@ -194,7 +194,7 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
 
   return (
     <div
-      className="border border-console-border bg-console-surface"
+      className="min-w-0 max-w-full border border-console-border bg-console-surface"
       style={{ maxHeight: 520, overflow: "hidden", padding: 0 }}
     >
       {rows.length === 0 ? (
@@ -205,7 +205,7 @@ export function TapeChartGrid({ days, rows }: TapeChartGridProps) {
           className="m-3.5 min-h-72"
         />
       ) : (
-      <div style={{ maxHeight: 520, overflow: "auto" }}>
+      <div style={{ maxHeight: 520, maxWidth: "100%", overflow: "auto" }}>
         <table
           className="w-full border-separate border-spacing-0 text-[12px]"
           style={{ minWidth: tableMinWidth, tableLayout: "fixed" }}

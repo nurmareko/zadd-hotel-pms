@@ -41,7 +41,7 @@ export function DepartureList({
   allHref,
 }: DepartureListProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
           Departures · Hari Ini
@@ -51,7 +51,7 @@ export function DepartureList({
         </span>
       </div>
 
-      <div className="overflow-auto">
+      <div className="max-w-full overflow-auto">
         <table className="w-full min-w-[360px] border-collapse text-[12px]">
           <thead>
             <tr>

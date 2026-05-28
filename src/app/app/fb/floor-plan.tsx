@@ -41,7 +41,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
     .toSorted(byTableNumber);
 
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border px-3.5">
         <nav className="flex gap-5" aria-label="Table location">
           {locationTabs.map((location) => (
@@ -88,7 +88,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
         </div>
       </div>
 
-      <div className="overflow-auto p-3.5">
+      <div className="max-w-full overflow-auto p-3.5">
         <div
           className="relative border border-dashed border-console-border bg-console-bg"
           style={{

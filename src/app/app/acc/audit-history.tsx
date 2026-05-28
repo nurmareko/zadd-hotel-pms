@@ -33,7 +33,7 @@ function StatusBadge({ status }: { status: NightAuditStatus }) {
 
 export function AuditHistory({ rows }: AuditHistoryProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
         {"// RIWAYAT AUDIT"}
       </div>
@@ -54,7 +54,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
           className="m-3.5"
         />
       ) : (
-        <div className="overflow-auto">
+        <div className="max-w-full overflow-auto">
           <table className="w-full min-w-[980px] border-collapse text-[12px]">
             <thead>
               <tr>

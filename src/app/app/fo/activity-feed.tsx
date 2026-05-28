@@ -18,7 +18,7 @@ type ActivityFeedProps = {
 
 export function ActivityFeed({ rows }: ActivityFeedProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-surface px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
           Aktivitas Terakhir

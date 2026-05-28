@@ -50,7 +50,7 @@ export function ArrivalList({
   allHref,
 }: ArrivalListProps) {
   return (
-    <section className="border border-console-border bg-console-surface p-0">
+    <section className="min-w-0 max-w-full border border-console-border bg-console-surface p-0">
       <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
           Expected Arrivals · Hari Ini
@@ -60,8 +60,8 @@ export function ArrivalList({
         </span>
       </div>
 
-      <div className="overflow-auto">
-        <table className="w-full border-collapse text-[12px]">
+      <div className="max-w-full overflow-auto">
+        <table className="w-full min-w-[454px] border-collapse text-[12px]">
           <colgroup>
             <col className="w-[24%]" />
             <col className="w-[15%]" />
