@@ -30,6 +30,7 @@ type NavLink = {
   label: string;
   href: string;
   icon: LucideIcon;
+  activeHref?: string;
 };
 
 type NavGroup = {
@@ -82,7 +83,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       links: [
         { label: "Dashboard", href: "/app/acc", icon: LayoutDashboard },
         { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
-        { label: "Night Report", href: "/app/acc/reports", icon: FileText }, // fixed href -astrid
+        { label: "Night Report", href: "/app/acc/night-report", icon: FileText, activeHref: "/app/acc/reports" },
       ],
     },
   ],
@@ -126,7 +127,9 @@ function isActivePath(pathname: string, href: string) {
 function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
   return [...groups.flatMap((group) => group.links)]
     .sort((a, b) => b.href.length - a.href.length)
-    .find((link) => isActivePath(pathname, link.href))?.href;
+    .find((link) =>
+      isActivePath(pathname, link.activeHref ?? link.href)
+    )?.href;
 }
 
 export function NavShell({ children, userRole, userFullName }: NavShellProps) {
