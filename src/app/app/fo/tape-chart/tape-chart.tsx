@@ -27,9 +27,9 @@ import type {
   TapeChartRoomTypeData,
 } from "@/lib/tape-chart-data";
 
-import styles from "./tape-chart-v2.module.css";
+import styles from "./tape-chart.module.css";
 
-export type TapeChartV2Day = {
+export type TapeChartDay = {
   iso: string;
   dayOfWeek: string;
   dayNumber: string;
@@ -37,9 +37,9 @@ export type TapeChartV2Day = {
   isWeekend: boolean;
 };
 
-type TapeChartV2Props = {
+type TapeChartProps = {
   data: TapeChartData;
-  days: TapeChartV2Day[];
+  days: TapeChartDay[];
   todayIso: string;
   previousHref: string;
   nextHref: string;
@@ -338,7 +338,7 @@ function buildReservationBars(
   return bars;
 }
 
-function getCellClassName(day: TapeChartV2Day, todayIso: string, extra = "") {
+function getCellClassName(day: TapeChartDay, todayIso: string, extra = "") {
   return [
     styles.gridCell,
     day.isWeekend ? styles.weekendCell : "",
@@ -347,6 +347,22 @@ function getCellClassName(day: TapeChartV2Day, todayIso: string, extra = "") {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function getNewReservationHref(params: {
+  dayIso: string;
+  roomId?: number;
+  roomTypeId?: number;
+}) {
+  const searchParams = new URLSearchParams({ arrival: params.dayIso });
+
+  if (typeof params.roomId === "number") {
+    searchParams.set("roomId", String(params.roomId));
+  } else if (typeof params.roomTypeId === "number") {
+    searchParams.set("roomTypeId", String(params.roomTypeId));
+  }
+
+  return `/app/fo/reservations/new?${searchParams.toString()}`;
 }
 
 function TapeChartNavButton({
@@ -417,7 +433,7 @@ function GroupRow({
   onToggle,
 }: {
   roomType: TapeChartRoomTypeData;
-  days: TapeChartV2Day[];
+  days: TapeChartDay[];
   todayIso: string;
   isCollapsed: boolean;
   onToggle: () => void;
@@ -457,7 +473,7 @@ function GroupRow({
   );
 }
 
-export function TapeChartV2({
+export function TapeChart({
   data,
   days,
   todayIso,
@@ -466,7 +482,7 @@ export function TapeChartV2({
   todayHref,
   newReservationHref,
   rangeLabel,
-}: TapeChartV2Props) {
+}: TapeChartProps) {
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(
     () => new Set(),
   );
@@ -512,11 +528,8 @@ export function TapeChartV2({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Tape Chart V2
+            Tape Chart
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
-            Stage 3 precision bars over the temporary tape chart grid.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -549,15 +562,6 @@ export function TapeChartV2({
             Reservasi
           </Link>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border border-console-border bg-console-surface px-3 py-2 text-[10px] uppercase tracking-[0.08em] text-slate-500">
-        <span>
-          Grid / {roomCount} rooms / {data.dayCount} days / {reservationBars.length} bars
-        </span>
-        <span>
-          {COLUMN_WIDTH}px cols / {ROW_HEIGHT}px rows / {ROOM_LABEL_WIDTH}px labels
-        </span>
       </div>
 
       <TapeChartLegend roomCount={roomCount} dayCount={data.dayCount} />
@@ -665,17 +669,31 @@ export function TapeChartV2({
                         )}
                       </div>
                       {days.map((day) => (
-                        <div
-                          key={`${row.room.id}-${day.iso}`}
-                          className={getCellClassName(
-                            day,
-                            todayIso,
-                            row.room.isOutOfOrder ? styles.outOfOrderCell : "",
-                          )}
-                          aria-label={`${row.room.number} ${day.iso}${
-                            row.room.isOutOfOrder ? ": Out of Order" : ""
-                          }`}
-                        />
+                        row.room.isOutOfOrder ? (
+                          <div
+                            key={`${row.room.id}-${day.iso}`}
+                            className={getCellClassName(
+                              day,
+                              todayIso,
+                              styles.outOfOrderCell,
+                            )}
+                            aria-label={`${row.room.number} ${day.iso}: Out of Order`}
+                          />
+                        ) : (
+                          <Link
+                            key={`${row.room.id}-${day.iso}`}
+                            href={getNewReservationHref({
+                              roomId: row.room.id,
+                              dayIso: day.iso,
+                            })}
+                            className={getCellClassName(
+                              day,
+                              todayIso,
+                              styles.bookableCell,
+                            )}
+                            aria-label={`Buat reservasi kamar ${row.room.number} untuk ${day.iso}`}
+                          />
+                        )
                       ))}
                     </div>
                   );
@@ -699,14 +717,18 @@ export function TapeChartV2({
                       </span>
                     </div>
                     {days.map((day) => (
-                      <div
+                      <Link
                         key={`${row.roomType.id}-unallocated-${day.iso}`}
+                        href={getNewReservationHref({
+                          roomTypeId: row.roomType.id,
+                          dayIso: day.iso,
+                        })}
                         className={getCellClassName(
                           day,
                           todayIso,
-                          styles.unallocatedCell,
+                          `${styles.unallocatedCell} ${styles.bookableCell}`,
                         )}
-                        aria-hidden="true"
+                        aria-label={`Buat reservasi ${row.roomType.name} tanpa alokasi kamar untuk ${day.iso}`}
                       />
                     ))}
                   </div>

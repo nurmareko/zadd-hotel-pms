@@ -99,6 +99,21 @@
   background: var(--console-surface);
 }
 
+.bookableCell {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.bookableCell:hover {
+  background: #eef2f7;
+}
+
+.bookableCell:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--console-ink);
+  outline-offset: -2px;
+}
+
 .weekendCell {
   background: #f8fafc;
 }
@@ -125,6 +140,18 @@
       rgb(15 23 42 / 0.035) 8px
     ),
     var(--console-surface);
+}
+
+.unallocatedCell.bookableCell:hover {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 7px,
+      rgb(15 23 42 / 0.045) 7px,
+      rgb(15 23 42 / 0.045) 8px
+    ),
+    #eef2f7;
 }
 
 .outOfOrderCell {

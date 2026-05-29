@@ -10,8 +10,10 @@ export const dynamic = "force-dynamic";
 
 type NewReservationPageProps = {
   searchParams: Promise<{
+    roomTypeId?: string | string[];
     roomId?: string | string[];
     arrival?: string | string[];
+    departure?: string | string[];
   }>;
 };
 
@@ -42,6 +44,16 @@ function parseDateParam(value: string | undefined) {
   return parsed;
 }
 
+function parsePositiveIntParam(value: string | undefined) {
+  if (!value || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function toDateInputValue(date: Date) {
   return formatISO(date, { representation: "date" });
 }
@@ -50,9 +62,13 @@ export default async function NewReservationPage({
   searchParams,
 }: NewReservationPageProps) {
   const params = await searchParams;
-  const requestedRoomId = Number(firstParam(params.roomId));
+  const requestedRoomId = parsePositiveIntParam(firstParam(params.roomId));
+  const requestedRoomTypeId = parsePositiveIntParam(
+    firstParam(params.roomTypeId),
+  );
   const arrivalDate = parseDateParam(firstParam(params.arrival)) ?? new Date();
-  const departureDate = addDays(arrivalDate, 1);
+  const departureDate =
+    parseDateParam(firstParam(params.departure)) ?? addDays(arrivalDate, 1);
   const [roomTypes, rooms, activeReservations] = await Promise.all([
     prisma.roomType.findMany({
       select: {
@@ -87,9 +103,15 @@ export default async function NewReservationPage({
       },
     }),
   ]);
-  const requestedRoom = Number.isInteger(requestedRoomId)
+  const requestedRoom = requestedRoomId
     ? rooms.find((room) => room.id === requestedRoomId)
     : undefined;
+  const requestedRoomType = requestedRoomTypeId
+    ? roomTypes.find((roomType) => roomType.id === requestedRoomTypeId)
+    : undefined;
+  const defaultRoomTypeId = requestedRoom
+    ? requestedRoom.roomTypeId
+    : requestedRoomType?.id;
   const defaultValues: CreateReservationInput = {
     fullName: "",
     idNumber: "",
@@ -97,7 +119,7 @@ export default async function NewReservationPage({
     email: "",
     address: "",
     nationality: "Indonesia",
-    roomTypeId: requestedRoom ? String(requestedRoom.roomTypeId) : "",
+    roomTypeId: defaultRoomTypeId ? String(defaultRoomTypeId) : "",
     roomId: requestedRoom ? String(requestedRoom.id) : "",
     arrivalDate: toDateInputValue(arrivalDate),
     departureDate: toDateInputValue(departureDate),
