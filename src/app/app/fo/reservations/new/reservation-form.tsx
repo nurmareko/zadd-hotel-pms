@@ -2,7 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type FieldPath,
+  type Resolver,
+} from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -258,6 +263,15 @@ export function ReservationForm({
 
     if (!result.ok) {
       const message = resultErrorMessage(result.error);
+
+      if (result.field) {
+        form.setError(
+          result.field as FieldPath<CreateReservationInput>,
+          { type: "server", message },
+          { shouldFocus: true },
+        );
+      }
+
       setActionError(message);
       toast.error(message);
     }

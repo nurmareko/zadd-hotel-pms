@@ -11,7 +11,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { dateOnlyBoundary } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
   createReservationSchema,
   type CreateReservationValues,
@@ -19,7 +21,10 @@ import {
   reservationCapacityError,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ReservationActionField = "roomTypeId" | "roomId";
+type ActionResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: ReservationActionField };
 
 const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
@@ -80,6 +85,13 @@ type ReservationRoomAssignment = {
     status: RoomStatus;
   } | null;
 };
+
+function sameDateOnly(left: Date, right: Date) {
+  return (
+    formatISO(dateOnlyBoundary(left), { representation: "date" }) ===
+    formatISO(dateOnlyBoundary(right), { representation: "date" })
+  );
+}
 
 async function validateReservationRoomAssignment(
   tx: Prisma.TransactionClient,
@@ -185,6 +197,18 @@ async function runCreateReservationTransaction(
       }
 
       const { roomType, room } = validatedAssignment.assignment;
+      const validatedCapacity = await validateRoomTypeCapacity(
+        {
+          roomTypeId: input.roomTypeId,
+          arrival: input.arrivalDate,
+          departure: input.departureDate,
+        },
+        tx,
+      );
+
+      if (!validatedCapacity.ok) {
+        return validatedCapacity;
+      }
 
       const now = new Date();
       const reservationPrefix = `RSV-${format(now, "yyMMdd")}-`;
@@ -250,6 +274,9 @@ async function runUpdateReservationTransaction(
         select: {
           id: true,
           guestId: true,
+          roomTypeId: true,
+          arrivalDate: true,
+          departureDate: true,
           status: true,
         },
       });
@@ -279,6 +306,26 @@ async function runUpdateReservationTransaction(
       }
 
       const { roomType, room } = validatedAssignment.assignment;
+      const stayChanged =
+        existingReservation.roomTypeId !== input.roomTypeId ||
+        !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
+        !sameDateOnly(existingReservation.departureDate, input.departureDate);
+
+      if (stayChanged) {
+        const validatedCapacity = await validateRoomTypeCapacity(
+          {
+            roomTypeId: input.roomTypeId,
+            arrival: input.arrivalDate,
+            departure: input.departureDate,
+            excludeReservationId: reservationId,
+          },
+          tx,
+        );
+
+        if (!validatedCapacity.ok) {
+          return validatedCapacity;
+        }
+      }
 
       await tx.guest.update({
         where: { id: existingReservation.guestId },
