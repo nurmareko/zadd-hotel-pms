@@ -594,17 +594,18 @@ export function TapeChartV2({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span className="text-[9px] font-semibold uppercase text-slate-300">
-                      {day.dayOfWeek}
+                    <span
+                      className={
+                        day.iso === todayIso
+                          ? styles.todayLabel
+                          : "text-[9px] font-semibold uppercase text-slate-300"
+                      }
+                    >
+                      {day.iso === todayIso ? "Today" : day.dayOfWeek}
                     </span>
                     <span className="num text-[15px] font-bold leading-tight text-white">
                       {day.dayNumber} {day.monthLabel}
                     </span>
-                    {day.iso === todayIso ? (
-                      <span className={styles.todayLabel}>
-                        Today
-                      </span>
-                    ) : null}
                   </div>
                 ))}
               </div>

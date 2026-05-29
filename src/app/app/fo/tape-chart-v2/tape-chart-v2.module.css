@@ -140,13 +140,10 @@
 }
 
 .todayLabel {
-  margin-top: 1px;
-  border: 1px solid rgb(0 212 170 / 0.7);
-  padding: 0 3px;
-  color: var(--console-accent);
+  color: #fb923c;
   font-size: 9px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1;
   text-transform: uppercase;
 }
 
@@ -169,6 +166,12 @@
   .scrollArea {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
     scroll-padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (width >= 768px) {
+  .scrollArea {
+    max-height: 656px;
   }
 }
 
