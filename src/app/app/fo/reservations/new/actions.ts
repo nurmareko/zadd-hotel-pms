@@ -11,7 +11,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { dateOnlyBoundary } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
   createReservationSchema,
   type CreateReservationValues,
@@ -19,7 +21,10 @@ import {
   reservationCapacityError,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ReservationActionField = "roomTypeId" | "roomId";
+type ActionResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: ReservationActionField };
 
 const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
@@ -44,13 +49,128 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-async function selectedRoomLabel(roomId: number) {
+async function selectedRoomLabel(roomId: number | null) {
+  if (roomId === null) {
+    return "unallocated reservation";
+  }
+
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     select: { number: true },
   });
 
   return room?.number ?? String(roomId);
+}
+
+async function reservationConflictMessage(roomId: number | null) {
+  if (roomId === null) {
+    return "Reservation changed while saving. Try again.";
+  }
+
+  return `Room ${await selectedRoomLabel(
+    roomId,
+  )} is no longer available for those dates.`;
+}
+
+type ReservationRoomAssignment = {
+  roomType: {
+    id: number;
+    baseRate: Prisma.Decimal;
+    capacity: number;
+  };
+  room: {
+    id: number;
+    number: string;
+    roomTypeId: number;
+    status: RoomStatus;
+  } | null;
+};
+
+function sameDateOnly(left: Date, right: Date) {
+  return (
+    formatISO(dateOnlyBoundary(left), { representation: "date" }) ===
+    formatISO(dateOnlyBoundary(right), { representation: "date" })
+  );
+}
+
+async function validateReservationRoomAssignment(
+  tx: Prisma.TransactionClient,
+  input: CreateReservationValues | EditReservationValues,
+  reservationId?: number,
+): Promise<
+  | { ok: true; assignment: ReservationRoomAssignment }
+  | { ok: false; error: string }
+> {
+  const roomType = await tx.roomType.findUnique({
+    where: { id: input.roomTypeId },
+    select: {
+      id: true,
+      baseRate: true,
+      capacity: true,
+    },
+  });
+
+  if (!roomType) {
+    return { ok: false, error: "Room type is invalid for this booking" };
+  }
+
+  const totalGuests = input.adults + input.children;
+
+  if (totalGuests > roomType.capacity) {
+    return {
+      ok: false,
+      error: reservationCapacityError(totalGuests, roomType.capacity),
+    };
+  }
+
+  if (input.roomId === null) {
+    return { ok: true, assignment: { roomType, room: null } };
+  }
+
+  await tx.$queryRaw<Array<{ id: number }>>`
+    SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE
+  `;
+
+  const room = await tx.room.findUnique({
+    where: { id: input.roomId },
+    select: {
+      id: true,
+      number: true,
+      roomTypeId: true,
+      status: true,
+    },
+  });
+
+  if (!room || room.roomTypeId !== input.roomTypeId) {
+    return { ok: false, error: "Room is invalid for this booking" };
+  }
+
+  if (room.status === RoomStatus.OOO) {
+    return {
+      ok: false,
+      error: `Room ${room.number} is out of order. Choose another.`,
+    };
+  }
+
+  const overlappingReservation = await tx.reservation.findFirst({
+    where: {
+      ...(reservationId ? { id: { not: reservationId } } : {}),
+      roomId: room.id,
+      status: { in: ACTIVE_RESERVATION_STATUSES },
+      arrivalDate: { lt: input.departureDate },
+      departureDate: { gt: input.arrivalDate },
+    },
+    select: { id: true },
+  });
+
+  if (overlappingReservation) {
+    return {
+      ok: false,
+      error: `Room ${room.number} is no longer available for those dates.`,
+    };
+  }
+
+  return { ok: true, assignment: { roomType, room } };
 }
 
 async function currentReservationSchema() {
@@ -67,61 +187,27 @@ async function runCreateReservationTransaction(
 ) {
   return prisma.$transaction(
     async (tx) => {
-      await tx.$queryRaw<Array<{ id: number }>>`
-        SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE
-      `;
+      const validatedAssignment = await validateReservationRoomAssignment(
+        tx,
+        input,
+      );
 
-      const room = await tx.room.findUnique({
-        where: { id: input.roomId },
-        select: {
-          id: true,
-          number: true,
-          roomTypeId: true,
-          status: true,
-          roomType: {
-            select: {
-              baseRate: true,
-              capacity: true,
-            },
-          },
+      if (!validatedAssignment.ok) {
+        return validatedAssignment;
+      }
+
+      const { roomType, room } = validatedAssignment.assignment;
+      const validatedCapacity = await validateRoomTypeCapacity(
+        {
+          roomTypeId: input.roomTypeId,
+          arrival: input.arrivalDate,
+          departure: input.departureDate,
         },
-      });
+        tx,
+      );
 
-      if (!room || room.roomTypeId !== input.roomTypeId) {
-        return { ok: false as const, error: "Room is invalid for this booking" };
-      }
-
-      if (room.status === RoomStatus.OOO) {
-        return {
-          ok: false as const,
-          error: `Room ${room.number} is out of order. Choose another.`,
-        };
-      }
-
-      const totalGuests = input.adults + input.children;
-
-      if (totalGuests > room.roomType.capacity) {
-        return {
-          ok: false as const,
-          error: reservationCapacityError(totalGuests, room.roomType.capacity),
-        };
-      }
-
-      const overlappingReservation = await tx.reservation.findFirst({
-        where: {
-          roomId: room.id,
-          status: { in: ACTIVE_RESERVATION_STATUSES },
-          arrivalDate: { lt: input.departureDate },
-          departureDate: { gt: input.arrivalDate },
-        },
-        select: { id: true },
-      });
-
-      if (overlappingReservation) {
-        return {
-          ok: false as const,
-          error: `Room ${room.number} is no longer available for those dates.`,
-        };
+      if (!validatedCapacity.ok) {
+        return validatedCapacity;
       }
 
       const now = new Date();
@@ -154,13 +240,13 @@ async function runCreateReservationTransaction(
           comment: input.comment,
           guestId: guest.id,
           roomTypeId: input.roomTypeId,
-          roomId: room.id,
+          roomId: room?.id ?? null,
           arrivalDate: input.arrivalDate,
           departureDate: input.departureDate,
           adults: input.adults,
           children: input.children,
           status: ReservationStatus.CONFIRMED,
-          rateAmount: room.roomType.baseRate,
+          rateAmount: roomType.baseRate,
           deposit: input.deposit,
           notes: input.notes,
           createdById: userId,
@@ -188,6 +274,10 @@ async function runUpdateReservationTransaction(
         select: {
           id: true,
           guestId: true,
+          roomTypeId: true,
+          arrivalDate: true,
+          departureDate: true,
+          status: true,
         },
       });
 
@@ -195,62 +285,46 @@ async function runUpdateReservationTransaction(
         return { ok: false as const, error: "Reservation not found" };
       }
 
-      await tx.$queryRaw<Array<{ id: number }>>`
-        SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE
-      `;
+      if (
+        input.roomId === null &&
+        existingReservation.status !== ReservationStatus.CONFIRMED
+      ) {
+        return {
+          ok: false as const,
+          error: "Room is required after check-in",
+        };
+      }
 
-      const room = await tx.room.findUnique({
-        where: { id: input.roomId },
-        select: {
-          id: true,
-          number: true,
-          roomTypeId: true,
-          status: true,
-          roomType: {
-            select: {
-              baseRate: true,
-              capacity: true,
-            },
+      const validatedAssignment = await validateReservationRoomAssignment(
+        tx,
+        input,
+        reservationId,
+      );
+
+      if (!validatedAssignment.ok) {
+        return validatedAssignment;
+      }
+
+      const { roomType, room } = validatedAssignment.assignment;
+      const stayChanged =
+        existingReservation.roomTypeId !== input.roomTypeId ||
+        !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
+        !sameDateOnly(existingReservation.departureDate, input.departureDate);
+
+      if (stayChanged) {
+        const validatedCapacity = await validateRoomTypeCapacity(
+          {
+            roomTypeId: input.roomTypeId,
+            arrival: input.arrivalDate,
+            departure: input.departureDate,
+            excludeReservationId: reservationId,
           },
-        },
-      });
+          tx,
+        );
 
-      if (!room || room.roomTypeId !== input.roomTypeId) {
-        return { ok: false as const, error: "Room is invalid for this booking" };
-      }
-
-      if (room.status === RoomStatus.OOO) {
-        return {
-          ok: false as const,
-          error: `Room ${room.number} is out of order. Choose another.`,
-        };
-      }
-
-      const totalGuests = input.adults + input.children;
-
-      if (totalGuests > room.roomType.capacity) {
-        return {
-          ok: false as const,
-          error: reservationCapacityError(totalGuests, room.roomType.capacity),
-        };
-      }
-
-      const overlappingReservation = await tx.reservation.findFirst({
-        where: {
-          id: { not: reservationId },
-          roomId: room.id,
-          status: { in: ACTIVE_RESERVATION_STATUSES },
-          arrivalDate: { lt: input.departureDate },
-          departureDate: { gt: input.arrivalDate },
-        },
-        select: { id: true },
-      });
-
-      if (overlappingReservation) {
-        return {
-          ok: false as const,
-          error: `Room ${room.number} is no longer available for those dates.`,
-        };
+        if (!validatedCapacity.ok) {
+          return validatedCapacity;
+        }
       }
 
       await tx.guest.update({
@@ -269,12 +343,12 @@ async function runUpdateReservationTransaction(
         where: { id: reservationId },
         data: {
           roomTypeId: input.roomTypeId,
-          roomId: room.id,
+          roomId: room?.id ?? null,
           arrivalDate: input.arrivalDate,
           departureDate: input.departureDate,
           adults: input.adults,
           children: input.children,
-          rateAmount: room.roomType.baseRate,
+          rateAmount: roomType.baseRate,
           deposit: input.deposit,
           notes: input.notes,
           arrangementType: input.arrangementType,
@@ -325,9 +399,7 @@ export async function createReservation(
       if (retriedAfterConflict || isSerializationConflict(error)) {
         return {
           ok: false,
-          error: `Room ${await selectedRoomLabel(
-            parsed.data.roomId,
-          )} is no longer available for those dates.`,
+          error: await reservationConflictMessage(parsed.data.roomId),
         };
       }
 
@@ -379,9 +451,7 @@ export async function updateReservation(
     if (isSerializationConflict(error)) {
       return {
         ok: false,
-        error: `Room ${await selectedRoomLabel(
-          parsed.data.roomId,
-        )} is no longer available for those dates.`,
+        error: await reservationConflictMessage(parsed.data.roomId),
       };
     }
 

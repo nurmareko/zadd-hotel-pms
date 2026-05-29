@@ -1,0 +1,282 @@
+.chartShell {
+  border: 1px solid var(--console-border);
+  background: var(--console-surface);
+}
+
+.scrollArea {
+  max-height: 560px;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.grid {
+  position: relative;
+  background: var(--console-surface);
+}
+
+.headerRow,
+.gridRow {
+  display: flex;
+  width: 100%;
+}
+
+.headerRow {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--date-header-height);
+}
+
+.labelCell {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  flex: 0 0 var(--room-label-width);
+  width: var(--room-label-width);
+  border-right: 1px solid var(--console-border);
+}
+
+.headerLabelCell {
+  z-index: 50;
+  border-bottom: 1px solid var(--console-border);
+  background: var(--console-ink);
+  color: var(--console-accent);
+}
+
+.dateHeaderCell {
+  flex: 0 0 var(--column-width);
+  width: var(--column-width);
+  border-right: 1px solid rgb(255 255 255 / 0.12);
+  border-bottom: 1px solid var(--console-border);
+  background: var(--console-ink);
+  color: var(--console-accent);
+}
+
+.dateHeaderWeekend {
+  background: #111827;
+}
+
+.dateHeaderToday {
+  box-shadow: inset 0 -2px 0 var(--console-accent);
+}
+
+.groupRow {
+  height: var(--group-header-height);
+}
+
+.roomRow,
+.unallocatedRow {
+  height: var(--row-height);
+}
+
+.groupLabelCell {
+  background: var(--slate-100);
+}
+
+.roomLabelCell,
+.unallocatedLabelCell {
+  background: var(--console-surface);
+}
+
+.roomLabelCellOutOfOrder {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 7px,
+      rgb(71 85 105 / 0.16) 7px,
+      rgb(71 85 105 / 0.16) 9px
+    ),
+    #cbd5e1;
+  color: var(--slate-800);
+}
+
+.gridCell {
+  flex: 0 0 var(--column-width);
+  width: var(--column-width);
+  border-right: 1px solid var(--console-border-soft);
+  border-bottom: 1px solid var(--console-border-soft);
+  background: var(--console-surface);
+}
+
+.bookableCell {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.bookableCell:hover {
+  background: #eef2f7;
+}
+
+.bookableCell:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--console-ink);
+  outline-offset: -2px;
+}
+
+.weekendCell {
+  background: #f8fafc;
+}
+
+.todayCell {
+  background: #ecfdf5;
+  box-shadow:
+    inset 1px 0 0 rgb(0 212 170 / 0.55),
+    inset -1px 0 0 rgb(0 212 170 / 0.55);
+}
+
+.groupCell {
+  background: var(--slate-100);
+  border-bottom-color: var(--console-border);
+}
+
+.unallocatedCell {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 7px,
+      rgb(15 23 42 / 0.035) 7px,
+      rgb(15 23 42 / 0.035) 8px
+    ),
+    var(--console-surface);
+}
+
+.unallocatedCell.bookableCell:hover {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 7px,
+      rgb(15 23 42 / 0.045) 7px,
+      rgb(15 23 42 / 0.045) 8px
+    ),
+    #eef2f7;
+}
+
+.outOfOrderCell {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 7px,
+      rgb(51 65 85 / 0.22) 7px,
+      rgb(51 65 85 / 0.22) 9px
+    ),
+    #cbd5e1;
+}
+
+.todayLabel {
+  color: #00d4aa;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.outOfOrderBadge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgb(51 65 85 / 0.55);
+  background: var(--slate-800);
+  padding: 2px 4px;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (width < 768px) {
+  .scrollArea {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (width >= 768px) {
+  .scrollArea {
+    max-height: 656px;
+  }
+}
+
+.barLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.reservationBar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 0.24);
+  border-radius: 0;
+  padding: 0 14px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 1px 1px rgb(15 23 42 / 0.12);
+  pointer-events: auto;
+}
+
+.reservationBar:hover {
+  filter: brightness(0.94);
+  outline: 1px solid rgb(10 14 26 / 0.46);
+  outline-offset: 0;
+}
+
+.reservationBar:focus-visible {
+  outline: 2px solid var(--console-ink);
+  outline-offset: 1px;
+}
+
+.reservationBarNotched::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid #7f1d1d;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.reservationBarText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendSwatch {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 10px;
+  border: 1px solid rgb(0 0 0 / 0.24);
+}
+
+.legendSwatch::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-right: 6px solid #7f1d1d;
+  content: "";
+  transform: translateY(-50%);
+}

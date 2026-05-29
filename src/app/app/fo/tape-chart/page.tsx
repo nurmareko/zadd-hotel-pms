@@ -1,185 +1,54 @@
-import {
-  addDays,
-  formatISO,
-  isValid,
-  parseISO,
-  startOfDay,
-} from "date-fns";
-import { ReservationStatus, type RoomStatus } from "@prisma/client";
+import { addDays, isValid, parseISO } from "date-fns";
 
 import { dateOnlyBoundary } from "@/lib/date-only";
-import {
-  formatDateID,
-  formatDayOfMonthID,
-  formatISODate,
-  formatMonthDayID,
-} from "@/lib/format";
-import { prisma } from "@/lib/prisma";
+import { formatDateID, formatISODate, formatMonthDayID } from "@/lib/format";
+import { getTapeChartData } from "@/lib/tape-chart-data";
 
-import { TapeChartGrid, type TapeChartRow } from "./tape-chart-grid";
-import { TapeChartLegend } from "./tape-chart-legend";
-import { TapeChartControls } from "./tape-chart-controls";
+import { TapeChart, type TapeChartDay } from "./tape-chart";
 
 export const dynamic = "force-dynamic";
 
 const DAY_COUNT = 14;
+const DEFAULT_PAST_DAY_COUNT = 2;
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-
-type TapeChartDay = {
-  iso: string;
-  dayOfWeek: string;
-  dayNumber: string;
-};
-
-type ReservationForGrid = {
-  id: number;
-  roomId: number | null;
-  arrivalDate: Date;
-  departureDate: Date;
-  guest: {
-    fullName: string;
-  };
-  folio: {
-    id: number;
-  } | null;
-};
 
 type FoTapeChartPageProps = {
   searchParams: Promise<{ startDate?: string | string[] }>;
 };
 
-function getGuestLabel(fullName: string) {
-  const [firstName, ...remainingNames] = fullName.trim().split(/\s+/);
-  const lastName = remainingNames.at(-1);
-
-  if (!firstName) {
-    return "Guest";
-  }
-
-  return lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName;
-}
-
-function overlapsStay(reservation: ReservationForGrid, day: Date) {
-  const dayTime = startOfDay(day).getTime();
-  const arrivalTime = startOfDay(reservation.arrivalDate).getTime();
-  const departureTime = startOfDay(reservation.departureDate).getTime();
-
-  return arrivalTime <= dayTime && departureTime > dayTime;
-}
-
-function getIdleRoomStatus(status: RoomStatus) {
-  if (status === "OC") {
-    return "VC";
-  }
-
-  if (status === "OD") {
-    return "VD";
-  }
-
-  return status;
-}
-
-function buildDays(today: Date) {
-  return Array.from({ length: DAY_COUNT }, (_, index) => {
-    const day = addDays(today, index);
-
-    return {
-      date: day,
-      display: {
-        iso: formatISODate(day),
-        dayOfWeek: DAY_LABELS[day.getDay()],
-        dayNumber: formatDayOfMonthID(day),
-      },
-    };
-  });
-}
-
 function parseStartDate(value: string | string[] | undefined) {
   const candidate = Array.isArray(value) ? value[0] : value;
+  const defaultStartDate = getDefaultStartDate();
 
   if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
-    return startOfDay(new Date());
+    return defaultStartDate;
   }
 
   const parsed = parseISO(candidate);
 
-  return isValid(parsed) ? startOfDay(parsed) : startOfDay(new Date());
+  return isValid(parsed)
+    ? dateOnlyBoundary(parsed)
+    : defaultStartDate;
+}
+
+function getDefaultStartDate() {
+  return addDays(dateOnlyBoundary(new Date()), -DEFAULT_PAST_DAY_COUNT);
 }
 
 function getDateHref(startDate: Date) {
-  return `/app/fo/tape-chart?startDate=${formatISO(startDate, {
-    representation: "date",
-  })}`;
+  return `/app/fo/tape-chart?startDate=${formatISODate(startDate)}`;
 }
 
-function buildRows({
-  rooms,
-  reservations,
-  days,
-}: {
-  rooms: Array<{
-    id: number;
-    number: string;
-    status: RoomStatus;
-    roomType: {
-      code: string;
-    };
-  }>;
-  reservations: ReservationForGrid[];
-  days: Array<{ date: Date; display: TapeChartDay }>;
-}): TapeChartRow[] {
-  const reservationsByRoomId = new Map<number, ReservationForGrid[]>();
-
-  for (const reservation of reservations) {
-    if (!reservation.roomId) {
-      continue;
-    }
-
-    const existing = reservationsByRoomId.get(reservation.roomId) ?? [];
-    existing.push(reservation);
-    reservationsByRoomId.set(reservation.roomId, existing);
-  }
-
-  return rooms.map((room) => {
-    const roomReservations = reservationsByRoomId.get(room.id) ?? [];
+function buildDays(startDate: Date): TapeChartDay[] {
+  return Array.from({ length: DAY_COUNT }, (_, index) => {
+    const date = addDays(startDate, index);
 
     return {
-      roomId: room.id,
-      roomNumber: room.number,
-      roomTypeLabel: room.roomType.code,
-      cells: days.map(({ date, display }) => {
-        const reservation = roomReservations.find((candidate) =>
-          overlapsStay(candidate, date),
-        );
-
-        if (!reservation) {
-          return {
-            dayIso: display.iso,
-            status: getIdleRoomStatus(room.status),
-            guestLabel: undefined,
-            reservationId: undefined,
-            folioId: undefined,
-            isFirstDayOfStay: false,
-            isLastDayOfStay: false,
-          };
-        }
-
-        const arrivalTime = startOfDay(reservation.arrivalDate).getTime();
-        const lastNightTime = startOfDay(
-          addDays(reservation.departureDate, -1),
-        ).getTime();
-        const dayTime = startOfDay(date).getTime();
-
-        return {
-          dayIso: display.iso,
-          status: "OC" as const,
-          guestLabel: getGuestLabel(reservation.guest.fullName),
-          reservationId: reservation.id,
-          folioId: reservation.folio?.id,
-          isFirstDayOfStay: dayTime === arrivalTime,
-          isLastDayOfStay: dayTime === lastNightTime,
-        };
-      }),
+      iso: formatISODate(date),
+      dayOfWeek: DAY_LABELS[date.getDay()],
+      dayNumber: date.getDate().toString(),
+      monthLabel: formatMonthDayID(date).replace(/^\d+\s*/, ""),
+      isWeekend: date.getDay() === 0 || date.getDay() === 6,
     };
   });
 }
@@ -189,74 +58,27 @@ export default async function FoTapeChartPage({
 }: FoTapeChartPageProps) {
   const { startDate } = await searchParams;
   const visibleStartDate = parseStartDate(startDate);
+  const chartData = await getTapeChartData(visibleStartDate, DAY_COUNT);
   const days = buildDays(visibleStartDate);
-  const gridStartDate = dateOnlyBoundary(visibleStartDate);
-  const gridEndDate = addDays(gridStartDate, DAY_COUNT);
-
-  const [rooms, reservations] = await Promise.all([
-    prisma.room.findMany({
-      include: { roomType: true },
-      orderBy: { number: "asc" },
-    }),
-    prisma.reservation.findMany({
-      where: {
-        AND: [
-          { arrivalDate: { lt: gridEndDate } },
-          { departureDate: { gt: gridStartDate } },
-          {
-            status: {
-              in: [
-                ReservationStatus.CHECKED_IN,
-                ReservationStatus.CONFIRMED,
-              ],
-            },
-          },
-        ],
-      },
-      include: {
-        guest: {
-          select: { fullName: true },
-        },
-        folio: {
-          select: { id: true },
-        },
-      },
-      orderBy: [{ arrivalDate: "asc" }, { departureDate: "asc" }],
-    }),
-  ]);
-
-  const rows = buildRows({ rooms, reservations, days });
-  const displayDays = days.map((day) => day.display);
   const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
   const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
-  const rangeStart = formatMonthDayID(visibleStartDate);
-  const rangeEnd = formatDateID(addDays(visibleStartDate, DAY_COUNT - 1));
+  const todayDate = dateOnlyBoundary(new Date());
+  const todayStartDate = getDefaultStartDate();
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Tape Chart
-          </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
-            Klik sel kosong untuk membuat reservasi · Klik sel terisi untuk
-            membuka folio.
-          </p>
-        </div>
-
-        <TapeChartControls
-          previousHref={getDateHref(previousStartDate)}
-          nextHref={getDateHref(nextStartDate)}
-          todayHref="/app/fo/tape-chart"
-          newReservationHref="/app/fo/reservations/new"
-          rangeLabel={`${rangeStart} – ${rangeEnd}`}
-        />
-      </div>
-
-      <TapeChartLegend roomCount={rooms.length} dayCount={displayDays.length} />
-      <TapeChartGrid days={displayDays} rows={rows} />
+      <TapeChart
+        data={chartData}
+        days={days}
+        todayIso={formatISODate(todayDate)}
+        previousHref={getDateHref(previousStartDate)}
+        nextHref={getDateHref(nextStartDate)}
+        todayHref={getDateHref(todayStartDate)}
+        newReservationHref="/app/fo/reservations/new"
+        rangeLabel={`${formatMonthDayID(visibleStartDate)} - ${formatDateID(
+          addDays(visibleStartDate, DAY_COUNT - 1),
+        )}`}
+      />
     </main>
   );
 }

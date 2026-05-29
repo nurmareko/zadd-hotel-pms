@@ -2,7 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type FieldPath,
+  type Resolver,
+} from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -258,6 +263,15 @@ export function ReservationForm({
 
     if (!result.ok) {
       const message = resultErrorMessage(result.error);
+
+      if (result.field) {
+        form.setError(
+          result.field as FieldPath<CreateReservationInput>,
+          { type: "server", message },
+          { shouldFocus: true },
+        );
+      }
+
       setActionError(message);
       toast.error(message);
     }
@@ -499,7 +513,7 @@ export function ReservationForm({
                           disabled={isViewMode || !selectedRoomTypeId}
                           {...field}
                         >
-                          <option value="">Pilih kamar</option>
+                          <option value="">Belum dialokasikan</option>
                           {roomOptions.map((room) => (
                             <option
                               key={room.id}
@@ -729,7 +743,8 @@ export function ReservationForm({
                 </span>
               </div>
               <p className="mt-2 text-[11px] leading-4 text-slate-500">
-                Pilih kamar fisik untuk mengunci ketersediaan reservasi.
+                Reservasi dapat dibuat tanpa kamar fisik; kamar wajib dipilih
+                saat check-in.
               </p>
             </div>
           </section>
