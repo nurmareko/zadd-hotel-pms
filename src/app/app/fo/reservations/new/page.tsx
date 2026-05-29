@@ -1,5 +1,4 @@
 import { addDays, formatISO } from "date-fns";
-import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 
@@ -147,25 +146,14 @@ export default async function NewReservationPage({
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Reservasi Baru
-          </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
-            Isi data tamu dan periode menginap untuk membuat reservasi.
-          </p>
-        </div>
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-          <Link
-            href="/app/fo/reservations"
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-          >
-            Batal
-          </Link>
-        </div>
+      <div className="mb-4">
+        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
+          <span className="text-console-accent">▸ </span>
+          Reservasi Baru
+        </h1>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Isi data tamu dan periode menginap untuk membuat reservasi.
+        </p>
       </div>
 
       <div className="max-w-6xl">
