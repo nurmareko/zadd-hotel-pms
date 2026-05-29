@@ -1,6 +1,14 @@
 "use client";
 
-import { BedDouble, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus } from "lucide-react";
+import {
+  BedDouble,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Plus,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, type CSSProperties } from "react";
 
@@ -429,8 +437,8 @@ function GroupRow({
         >
           <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
           <span className="min-w-0">
-            <span className="block truncate text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
-              {roomType.code} / {roomType.name}
+            <span className="block truncate text-[11px] font-bold text-console-ink">
+              {roomType.name}
             </span>
             <span className="block text-[10px] text-slate-500">
               {roomCount} rooms{oooCount ? ` / ${oooCount} OOO` : ""}
@@ -586,14 +594,14 @@ export function TapeChartV2({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">
+                    <span className="text-[9px] font-semibold uppercase text-slate-300">
                       {day.dayOfWeek}
                     </span>
-                    <span className="num text-[12px] font-semibold text-white">
+                    <span className="num text-[15px] font-bold leading-tight text-white">
                       {day.dayNumber} {day.monthLabel}
                     </span>
                     {day.iso === todayIso ? (
-                      <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-console-accent">
+                      <span className={styles.todayLabel}>
                         Today
                       </span>
                     ) : null}
@@ -642,7 +650,11 @@ export function TapeChartV2({
                           </span>
                         </span>
                         {row.room.isOutOfOrder ? (
-                          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-status-ooo-fg">
+                          <span
+                            className={styles.outOfOrderBadge}
+                            aria-label="Out of Order"
+                          >
+                            <Wrench className="h-3 w-3" aria-hidden="true" />
                             Out of Order
                           </span>
                         ) : (

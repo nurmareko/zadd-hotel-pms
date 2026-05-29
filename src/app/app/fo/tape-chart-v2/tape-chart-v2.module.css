@@ -79,8 +79,16 @@
 }
 
 .roomLabelCellOutOfOrder {
-  background: var(--status-ooo-bg);
-  color: var(--status-ooo-fg);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 7px,
+      rgb(71 85 105 / 0.16) 7px,
+      rgb(71 85 105 / 0.16) 9px
+    ),
+    #cbd5e1;
+  color: var(--slate-800);
 }
 
 .gridCell {
@@ -124,11 +132,44 @@
     repeating-linear-gradient(
       135deg,
       transparent 0,
-      transparent 6px,
-      rgb(71 85 105 / 0.12) 6px,
-      rgb(71 85 105 / 0.12) 8px
+      transparent 7px,
+      rgb(51 65 85 / 0.22) 7px,
+      rgb(51 65 85 / 0.22) 9px
     ),
-    var(--status-ooo-bg);
+    #cbd5e1;
+}
+
+.todayLabel {
+  margin-top: 1px;
+  border: 1px solid rgb(0 212 170 / 0.7);
+  padding: 0 3px;
+  color: var(--console-accent);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.outOfOrderBadge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgb(51 65 85 / 0.55);
+  background: var(--slate-800);
+  padding: 2px 4px;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (width < 768px) {
+  .scrollArea {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
 }
 
 .barLayer {

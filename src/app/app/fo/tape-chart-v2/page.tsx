@@ -9,6 +9,7 @@ import { TapeChartV2, type TapeChartV2Day } from "./tape-chart-v2";
 export const dynamic = "force-dynamic";
 
 const DAY_COUNT = 14;
+const DEFAULT_PAST_DAY_COUNT = 2;
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 type FoTapeChartV2PageProps = {
@@ -17,16 +18,21 @@ type FoTapeChartV2PageProps = {
 
 function parseStartDate(value: string | string[] | undefined) {
   const candidate = Array.isArray(value) ? value[0] : value;
+  const defaultStartDate = getDefaultStartDate();
 
   if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
-    return dateOnlyBoundary(new Date());
+    return defaultStartDate;
   }
 
   const parsed = parseISO(candidate);
 
   return isValid(parsed)
     ? dateOnlyBoundary(parsed)
-    : dateOnlyBoundary(new Date());
+    : defaultStartDate;
+}
+
+function getDefaultStartDate() {
+  return addDays(dateOnlyBoundary(new Date()), -DEFAULT_PAST_DAY_COUNT);
 }
 
 function getDateHref(startDate: Date) {
@@ -57,6 +63,7 @@ export default async function FoTapeChartV2Page({
   const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
   const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
   const todayDate = dateOnlyBoundary(new Date());
+  const todayStartDate = getDefaultStartDate();
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -66,7 +73,7 @@ export default async function FoTapeChartV2Page({
         todayIso={formatISODate(todayDate)}
         previousHref={getDateHref(previousStartDate)}
         nextHref={getDateHref(nextStartDate)}
-        todayHref="/app/fo/tape-chart-v2"
+        todayHref={getDateHref(todayStartDate)}
         newReservationHref="/app/fo/reservations/new"
         rangeLabel={`${formatMonthDayID(visibleStartDate)} - ${formatDateID(
           addDays(visibleStartDate, DAY_COUNT - 1),
