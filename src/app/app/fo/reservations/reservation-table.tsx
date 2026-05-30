@@ -170,7 +170,7 @@ function GroupRows({ group }: { group: ReservationGroup }) {
         <th
           colSpan={COLUMN_COUNT}
           scope="colgroup"
-          className="border-y border-console-border bg-status-ooo-bg px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
+          className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
         >
           {formatDateWithWeekday(group.arrivalDate)}
           <span className="ml-2 font-medium normal-case tracking-normal text-slate-500">
