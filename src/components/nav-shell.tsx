@@ -86,7 +86,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "exact",
         },
         {
-          label: "Reservations",
+          label: "Reservasi",
           href: "/app/fo/reservations",
           icon: ClipboardList,
           activeMatch: "startsWith",
@@ -99,7 +99,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Housekeeping",
       links: [
         {
-          label: "Rooms",
+          label: "Kamar",
           href: "/app/hk",
           icon: BedDouble,
           activeMatch: "startsWith",
@@ -112,7 +112,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Food & Beverage",
       links: [
         {
-          label: "Tables",
+          label: "Meja",
           href: "/app/fb",
           icon: UtensilsCrossed,
           activeMatch: "startsWith",
@@ -150,22 +150,22 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     {
       label: "Admin",
       links: [
-        { label: "Users", href: "/app/admin/users", icon: Users },
-        { label: "Rooms", href: "/app/admin/rooms", icon: BedDouble },
-        { label: "Articles", href: "/app/admin/articles", icon: Tag },
-        { label: "Tables", href: "/app/admin/tables", icon: Table2 },
+        { label: "Pengguna", href: "/app/admin/users", icon: Users },
+        { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+        { label: "Artikel", href: "/app/admin/articles", icon: Tag },
+        { label: "Meja", href: "/app/admin/tables", icon: Table2 },
         { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },
-        { label: "Settings", href: "/app/admin/settings", icon: Settings },
+        { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
       ],
     },
   ],
 };
 
 const accountGroup: NavGroup = {
-  label: "Account",
+  label: "Akun",
   links: [
     {
-      label: "Profile",
+      label: "Profil",
       href: "/app/profile",
       icon: User,
       activeMatch: "startsWith",
@@ -377,7 +377,7 @@ export function NavShell({
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
             <LogOut size={14} aria-hidden="true" />
-            Sign out
+            Keluar
           </Button>
         </div>
       </aside>
@@ -407,7 +407,7 @@ export function NavShell({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Sign out"
+          aria-label="Keluar"
           onClick={() => void signOut({ redirectTo: "/login" })}
         >
           <LogOut aria-hidden="true" />

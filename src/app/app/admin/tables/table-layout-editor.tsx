@@ -111,7 +111,7 @@ export function RestaurantTableLayoutEditor({
 
         return nextOverrides;
       });
-      toast.success("Location auto-arranged");
+      toast.success("Lokasi tersusun otomatis");
     });
   }
 
@@ -140,7 +140,7 @@ export function RestaurantTableLayoutEditor({
       </div>
 
       <div className="border-b border-console-border px-3.5">
-        <div className="flex gap-5" role="tablist" aria-label="Table location">
+        <div className="flex gap-5" role="tablist" aria-label="Lokasi meja">
           {locationTabs.map((location) => (
             <button
               key={location}

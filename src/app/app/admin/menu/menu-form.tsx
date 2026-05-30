@@ -99,7 +99,7 @@ export function MenuForm({
       : await createMenuItem(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Menu item updated" : "Menu item created");
+      toast.success(isEditing ? "Menu diperbarui" : "Menu dibuat");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -224,7 +224,7 @@ export function MenuForm({
                   <FormControl>
                     <Input
                       className={`${inputClassName} mt-2`}
-                      placeholder="Custom category"
+                      placeholder="Kategori khusus"
                       value={field.value}
                       onBlur={field.onBlur}
                       onChange={field.onChange}

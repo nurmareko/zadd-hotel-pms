@@ -123,7 +123,7 @@ export function RestaurantTableForm({
       : await createRestaurantTable(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Table updated" : "Table created");
+      toast.success(isEditing ? "Meja diperbarui" : "Meja dibuat");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -268,7 +268,7 @@ export function RestaurantTableForm({
               <FormLabel className={labelClassName}>Catatan</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Optional table notes"
+                  placeholder="Catatan meja (opsional)"
                   {...field}
                   value={field.value ?? ""}
                   className={textareaClassName}

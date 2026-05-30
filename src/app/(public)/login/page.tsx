@@ -38,7 +38,7 @@ export default async function LoginPage() {
             {"// Operations Workspace"}
           </p>
           <h1 className="text-[28px] font-bold uppercase leading-tight tracking-[0.04em]">
-            Property Management System
+            Hotel Property Management System
           </h1>
           <p className="mt-4 text-[12px] leading-6 text-slate-400">
             Operational workspace untuk Front Office, Housekeeping, F&amp;B,
@@ -107,7 +107,7 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
           ZADD PMS
         </div>
         <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-          Property Management System
+          Hotel Property Management System
         </div>
       </div>
     </div>

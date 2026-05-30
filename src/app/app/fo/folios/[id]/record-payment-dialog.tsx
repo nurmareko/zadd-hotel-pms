@@ -120,7 +120,7 @@ export function RecordPaymentDialog({
       return;
     }
 
-    toast.success("Payment recorded");
+    toast.success("Pembayaran tercatat");
     resetAndClose(false);
     router.refresh();
   }
@@ -158,7 +158,7 @@ export function RecordPaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>Jumlah</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -179,11 +179,11 @@ export function RecordPaymentDialog({
                 name="method"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Method</FormLabel>
+                    <FormLabel>Metode</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="h-8 w-full rounded-none border-console-border bg-console-surface text-[12px]">
-                          <SelectValue placeholder="Pilih method" />
+                          <SelectValue placeholder="Pilih metode" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent

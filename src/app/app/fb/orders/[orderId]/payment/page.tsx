@@ -316,7 +316,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
             />
             <div className="mt-3 border border-console-border bg-console-bg px-3 py-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">Amount due</span>
+                <span className="text-slate-500">Jumlah tagihan</span>
                 <span className="num font-bold text-console-ink">
                   {formatIDR(totals.total.toString())}
                 </span>

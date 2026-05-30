@@ -33,7 +33,7 @@ export function MenuItemActions({
       const result = await toggleMenuItemActive(item.id);
 
       if (result.ok) {
-        toast.success("Menu item status updated");
+        toast.success("Status menu diperbarui");
         return;
       }
 

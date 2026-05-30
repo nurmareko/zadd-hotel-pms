@@ -50,19 +50,19 @@ function CompletedState({
 
         <aside className="border border-status-vc-pip bg-white p-3 text-[12px] text-console-ink">
           <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">Room revenue</span>
+            <span className="text-slate-500">Pendapatan Kamar</span>
             <span className="num font-semibold">{formatIDR(audit.roomRevenue)}</span>
           </div>
           <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">F&B revenue</span>
+            <span className="text-slate-500">Pendapatan F&B</span>
             <span className="num font-semibold">{formatIDR(audit.fbRevenue)}</span>
           </div>
           <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">Other revenue</span>
+            <span className="text-slate-500">Pendapatan Lainnya</span>
             <span className="num font-semibold">{formatIDR(audit.otherRevenue)}</span>
           </div>
           <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
-            <span>Total revenue</span>
+            <span>Total Pendapatan</span>
             <span className="num">{formatIDR(audit.totalRevenue)}</span>
           </div>
         </aside>

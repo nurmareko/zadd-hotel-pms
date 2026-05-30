@@ -183,7 +183,7 @@ export function UserTable({ users }: UserTableProps) {
       const result = await deleteUser(deletingUser.id);
 
       if (result.ok) {
-        toast.success("User deleted");
+        toast.success("Pengguna dihapus");
         setDeletingUser(null);
         return;
       }
@@ -206,7 +206,7 @@ export function UserTable({ users }: UserTableProps) {
       });
 
       if (result.ok) {
-        toast.success("Password reset");
+        toast.success("Password direset");
         setResettingUser(null);
         setNewPassword("");
         return;
@@ -305,7 +305,7 @@ export function UserTable({ users }: UserTableProps) {
                       type="button"
                       className="flex h-5 items-center gap-1.5 uppercase tracking-[0.08em] text-console-accent hover:text-white"
                       onClick={toggleNameSort}
-                      aria-label="Sort users by name"
+                      aria-label="Urutkan pengguna berdasarkan nama"
                     >
                       Nama
                       {nameSort === "asc" ? (
@@ -471,7 +471,7 @@ export function UserTable({ users }: UserTableProps) {
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder="Minimal 6 karakter"
                 className="h-8 rounded-none border-console-border bg-console-surface text-[12px]"
               />
             </div>
@@ -509,8 +509,8 @@ export function UserTable({ users }: UserTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus pengguna?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes {deletingUser?.username ?? "this user"} from the
-              system. This action cannot be undone.
+              Menghapus {deletingUser?.username ?? "pengguna ini"} dari
+              sistem. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

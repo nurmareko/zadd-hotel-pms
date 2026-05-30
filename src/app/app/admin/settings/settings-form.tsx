@@ -117,7 +117,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
     const result = await updateHotelSettings(values);
 
     if (result.ok) {
-      toast.success("Settings updated");
+      toast.success("Pengaturan diperbarui");
       form.reset({
         ...values,
         address: values.address ?? "",

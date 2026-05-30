@@ -17,11 +17,11 @@ import { PaymentSchema } from "../../folios/[id]/schema";
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 const CompleteCheckoutSchema = z.object({
-  folioId: z.coerce.number().int().positive("Folio is required"),
+  folioId: z.coerce.number().int().positive("Folio wajib dipilih"),
   confirmed: z.preprocess(
     (value) => value === "on" || value === "true" || value === true,
     z.literal(true, {
-      error: "Confirmation is required before check-out",
+      error: "Konfirmasi wajib dicentang sebelum check-out",
     }),
   ),
 });

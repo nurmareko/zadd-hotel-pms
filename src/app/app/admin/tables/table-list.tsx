@@ -164,7 +164,7 @@ export function RestaurantTableList({
       const result = await deleteRestaurantTable(deletingTable.id);
 
       if (result.ok) {
-        toast.success("Table deleted");
+        toast.success("Meja dihapus");
         setDeletingTable(null);
         return;
       }
@@ -411,8 +411,8 @@ export function RestaurantTableList({
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus meja?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes table {deletingTable?.number ?? ""} from the F&amp;B
-              floor plan. Tables with order history cannot be deleted.
+              Menghapus meja {deletingTable?.number ?? ""} dari floor plan
+              F&amp;B. Meja dengan riwayat order tidak dapat dihapus.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

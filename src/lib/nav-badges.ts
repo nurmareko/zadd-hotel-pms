@@ -23,7 +23,7 @@ export async function getRoleNavBadges(role: AppRole): Promise<NavBadgeMap> {
   return {
     "/app/acc/night-audit": {
       value: "!",
-      label: "today's night audit is pending",
+      label: "Night Audit hari ini belum dijalankan",
     },
   };
 }
