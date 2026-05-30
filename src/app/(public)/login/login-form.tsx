@@ -65,6 +65,12 @@ export function LoginForm() {
     router.refresh();
   }
 
+  function fillDemoAccount(account: (typeof demoAccounts)[number]) {
+    setError(null);
+    form.setValue("username", account.username, { shouldValidate: true });
+    form.setValue("password", account.password, { shouldValidate: true });
+  }
+
   return (
     <Form {...form}>
       <form
@@ -147,49 +153,35 @@ export function LoginForm() {
           )}
         </Button>
 
-        <details className="group border-t border-console-border-soft pt-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700 marker:hidden">
-            <span>Akun Demo</span>
-            <span className="text-console-ink group-open:hidden">+</span>
-            <span className="hidden text-console-ink group-open:inline">-</span>
-          </summary>
-
-          <div className="mt-3 overflow-x-auto border border-console-border">
-            <table className="w-full border-collapse text-left text-[11px]">
-              <thead className="bg-console-ink text-console-accent">
-                <tr>
-                  <th className="px-2.5 py-2 font-semibold uppercase tracking-[0.08em]">
-                    User
-                  </th>
-                  <th className="px-2.5 py-2 font-semibold uppercase tracking-[0.08em]">
-                    Pass
-                  </th>
-                  <th className="px-2.5 py-2 font-semibold uppercase tracking-[0.08em]">
-                    Role
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {demoAccounts.map((account) => (
-                  <tr
-                    key={account.username}
-                    className="border-t border-console-border-soft even:bg-console-bg"
-                  >
-                    <td className="px-2.5 py-2 font-medium text-console-ink">
-                      {account.username}
-                    </td>
-                    <td className="px-2.5 py-2 text-slate-600">
-                      {account.password}
-                    </td>
-                    <td className="px-2.5 py-2 text-slate-600">
-                      {account.role}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="border-t border-console-border-soft pt-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700">
+              Akun Demo
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.06em] text-slate-400">
+              Klik untuk isi
+            </p>
           </div>
-        </details>
+
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {demoAccounts.map((account) => (
+              <button
+                key={account.username}
+                type="button"
+                onClick={() => fillDemoAccount(account)}
+                disabled={isSubmitting}
+                className="flex items-center justify-between gap-2 border border-console-border bg-console-surface px-2.5 py-2 text-left transition-colors hover:border-console-accent hover:bg-console-bg focus-visible:border-console-accent focus-visible:outline-none disabled:opacity-60"
+              >
+                <span className="truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink">
+                  {account.role}
+                </span>
+                <span className="shrink-0 text-[10px] tracking-[0.04em] text-slate-500">
+                  {account.username}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </form>
     </Form>
   );

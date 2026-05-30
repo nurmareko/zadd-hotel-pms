@@ -219,12 +219,7 @@ function NavBadgePill({ badge }: { badge: NavBadge }) {
   return (
     <span
       aria-label={badge.label}
-      className={[
-        "ml-auto flex h-4 shrink-0 items-center border px-1 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] tabular-nums",
-        badge.tone === "pending"
-          ? "border-amber-500/50 bg-amber-500/10 text-amber-500"
-          : "border-console-accent/45 bg-console-accent/10 text-console-accent",
-      ].join(" ")}
+      className="ml-auto flex h-4 min-w-4 shrink-0 items-center justify-center border border-amber-500/50 bg-amber-500/10 px-1 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-amber-500"
     >
       {badge.value}
     </span>
