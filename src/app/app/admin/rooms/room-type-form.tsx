@@ -92,7 +92,7 @@ export function RoomTypeForm({
       : await createRoomType(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Room type updated" : "Room type created");
+      toast.success(isEditing ? "Tipe kamar diperbarui" : "Tipe kamar dibuat");
       form.reset(emptyValues);
       onSaved();
       return;

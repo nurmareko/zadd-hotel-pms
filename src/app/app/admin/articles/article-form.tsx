@@ -104,7 +104,7 @@ export function ArticleForm({
       : await createArticle(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Article updated" : "Article created");
+      toast.success(isEditing ? "Artikel diperbarui" : "Artikel dibuat");
       form.reset(emptyValues);
       onSaved();
       return;

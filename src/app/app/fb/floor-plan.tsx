@@ -43,7 +43,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
   return (
     <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
       <div className="border-b border-console-border px-3.5">
-        <nav className="flex gap-5" aria-label="Table location">
+        <nav className="flex gap-5" aria-label="Lokasi meja">
           {locationTabs.map((location) => (
             <Link
               key={location}
@@ -75,7 +75,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
             <span className="num">{selectedTables.length}</span> meja
           </p>
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="Table status legend">
+        <div className="flex flex-wrap gap-2" aria-label="Legenda status meja">
           {statusLegendItems.map((status) => (
             <div
               key={status}

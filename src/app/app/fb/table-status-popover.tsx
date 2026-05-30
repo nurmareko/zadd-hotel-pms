@@ -76,7 +76,7 @@ export function TableStatusPopover({
         return;
       }
 
-      toast.success(isReserved ? "Reservation released" : "Table available");
+      toast.success(isReserved ? "Reservasi dilepas" : "Meja tersedia");
       setIsOpen(false);
       router.refresh();
     });
@@ -96,7 +96,7 @@ export function TableStatusPopover({
         aria-controls={panelId}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        aria-label={`${tableNumber} ${isReserved ? "reserved" : "out of service"} actions`}
+        aria-label={`Aksi meja ${tableNumber} ${isReserved ? "dipesan" : "tidak tersedia"}`}
         className={className}
         onClick={() => setIsOpen((current) => !current)}
         type="button"
@@ -106,13 +106,13 @@ export function TableStatusPopover({
 
       {isOpen ? (
         <div
-          aria-label={`${tableNumber} table actions`}
+          aria-label={`Aksi meja ${tableNumber}`}
           className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 border border-console-border bg-console-ink p-2 text-console-accent shadow-[3px_3px_0_#00d4aa]"
           id={panelId}
           role="dialog"
         >
           <div className="mb-2 border-b border-console-accent/30 pb-1.5 text-[10px] font-bold uppercase tracking-[0.08em]">
-            {isReserved ? "Reserved table" : "Out of service"}
+            {isReserved ? "Meja Dipesan" : "Tidak Tersedia"}
           </div>
 
           {isReserved ? (
@@ -127,7 +127,7 @@ export function TableStatusPopover({
                 href={`/app/fb/orders/new?tableId=${tableId}`}
                 ref={seatGuestsRef}
               >
-                Seat guests
+                Dudukkan Tamu
               </Link>
               <button
                 className="inline-flex h-8 items-center border border-console-accent/60 bg-console-ink px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:border-console-accent hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
@@ -135,7 +135,7 @@ export function TableStatusPopover({
                 onClick={handleSetAvailable}
                 type="button"
               >
-                {isPending ? "Releasing..." : "Release reservation"}
+                {isPending ? "Memproses..." : "Lepas Reservasi"}
               </button>
             </div>
           ) : (
@@ -152,7 +152,7 @@ export function TableStatusPopover({
                 ref={setAvailableRef}
                 type="button"
               >
-                {isPending ? "Setting..." : "Set available"}
+                {isPending ? "Memproses..." : "Jadikan Tersedia"}
               </button>
             </div>
           )}

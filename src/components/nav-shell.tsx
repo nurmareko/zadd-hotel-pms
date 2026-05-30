@@ -6,14 +6,12 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   BedDouble,
-  Calculator,
   CalendarDays,
   ClipboardList,
-  ConciergeBell,
   FileText,
   LayoutDashboard,
   LogOut,
-  Menu,
+  MoreHorizontal,
   Moon,
   Settings,
   Tag,
@@ -49,8 +47,6 @@ type NavGroup = {
   label: string;
   links: NavLink[];
 };
-
-type MobileNavLink = NavLink & { activeHref?: string };
 
 type NavShellProps = {
   children: ReactNode;
@@ -90,7 +86,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "exact",
         },
         {
-          label: "Reservations",
+          label: "Reservasi",
           href: "/app/fo/reservations",
           icon: ClipboardList,
           activeMatch: "startsWith",
@@ -103,7 +99,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Housekeeping",
       links: [
         {
-          label: "Rooms",
+          label: "Kamar",
           href: "/app/hk",
           icon: BedDouble,
           activeMatch: "startsWith",
@@ -116,7 +112,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Food & Beverage",
       links: [
         {
-          label: "Tables",
+          label: "Meja",
           href: "/app/fb",
           icon: UtensilsCrossed,
           activeMatch: "startsWith",
@@ -154,22 +150,22 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     {
       label: "Admin",
       links: [
-        { label: "Users", href: "/app/admin/users", icon: Users },
-        { label: "Rooms", href: "/app/admin/rooms", icon: BedDouble },
-        { label: "Articles", href: "/app/admin/articles", icon: Tag },
-        { label: "Tables", href: "/app/admin/tables", icon: Table2 },
+        { label: "Pengguna", href: "/app/admin/users", icon: Users },
+        { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+        { label: "Artikel", href: "/app/admin/articles", icon: Tag },
+        { label: "Meja", href: "/app/admin/tables", icon: Table2 },
         { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },
-        { label: "Settings", href: "/app/admin/settings", icon: Settings },
+        { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
       ],
     },
   ],
 };
 
 const accountGroup: NavGroup = {
-  label: "Account",
+  label: "Akun",
   links: [
     {
-      label: "Profile",
+      label: "Profil",
       href: "/app/profile",
       icon: User,
       activeMatch: "startsWith",
@@ -177,18 +173,10 @@ const accountGroup: NavGroup = {
   ],
 };
 
-const mobileModuleLinks: Record<AppRole, MobileNavLink> = {
-  FO: { label: "FO", href: "/app/fo", icon: ConciergeBell },
-  HK: { label: "HK", href: "/app/hk", icon: BedDouble },
-  FB: { label: "FB", href: "/app/fb", icon: UtensilsCrossed },
-  ACC: { label: "ACC", href: "/app/acc", icon: Calculator },
-  ADMIN: {
-    label: "Admin",
-    href: "/app/admin/users",
-    activeHref: "/app/admin",
-    icon: Settings,
-  },
-};
+// Mobile bottom tab bar shows at most this many slots. When a role has more
+// destinations than fit, the last slot becomes "Lainnya" (More), which opens a
+// bottom sheet with the overflow routes.
+const MAX_MOBILE_TABS = 5;
 
 function isActivePath(pathname: string, href: string, match: ActiveMatch) {
   return match === "exact"
@@ -219,12 +207,20 @@ function NavBadgePill({ badge }: { badge: NavBadge }) {
   return (
     <span
       aria-label={badge.label}
-      className={[
-        "ml-auto flex h-4 shrink-0 items-center border px-1 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] tabular-nums",
-        badge.tone === "pending"
-          ? "border-amber-500/50 bg-amber-500/10 text-amber-500"
-          : "border-console-accent/45 bg-console-accent/10 text-console-accent",
-      ].join(" ")}
+      className="ml-auto flex h-4 min-w-4 shrink-0 items-center justify-center border border-amber-500/50 bg-amber-500/10 px-1 text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-amber-500"
+    >
+      {badge.value}
+    </span>
+  );
+}
+
+// Badge anchored to a bottom-tab icon (icons are stacked above their label, so
+// the sidebar's inline NavBadgePill does not fit here).
+function TabBadgeDot({ badge }: { badge: NavBadge }) {
+  return (
+    <span
+      aria-label={badge.label}
+      className="absolute -right-2 -top-1 flex h-3.5 min-w-3.5 items-center justify-center border border-amber-500/50 bg-amber-500/15 px-0.5 text-[8px] font-semibold uppercase leading-none text-amber-500"
     >
       {badge.value}
     </span>
@@ -239,15 +235,27 @@ export function NavShell({
 }: NavShellProps) {
   const pathname = usePathname();
   const [navBadges, setNavBadges] = useState(initialNavBadges);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const lastPathnameRef = useRef(pathname);
   const [, startTransition] = useTransition();
   const navGroups = [...navGroupsByRole[userRole], accountGroup];
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
-  const mobileLinks: MobileNavLink[] = [
-    mobileModuleLinks[userRole],
-    { label: "Profile", href: "/app/profile", icon: User },
-  ];
+
+  // One mobile nav: a role-scoped bottom tab bar built from the same link set
+  // (and the same longest-match active logic) as the desktop sidebar. Overflow
+  // beyond MAX_MOBILE_TABS collapses into a "Lainnya" sheet.
+  const mobileLinks = navGroups.flatMap((group) => group.links);
+  const hasMoreTab = mobileLinks.length > MAX_MOBILE_TABS;
+  const tabLinks = hasMoreTab
+    ? mobileLinks.slice(0, MAX_MOBILE_TABS - 1)
+    : mobileLinks;
+  const moreLinks = hasMoreTab ? mobileLinks.slice(MAX_MOBILE_TABS - 1) : [];
+  const moreBadge = moreLinks
+    .map((link) => navBadges[link.href])
+    .find((badge): badge is NavBadge => Boolean(badge));
+  const isMoreActive = moreLinks.some(
+    (link) => activeSidebarHref === link.href,
+  );
 
   useEffect(() => {
     if (lastPathnameRef.current === pathname) {
@@ -369,23 +377,25 @@ export function NavShell({
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
             <LogOut size={14} aria-hidden="true" />
-            Sign out
+            Keluar
           </Button>
         </div>
       </aside>
 
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Open navigation"
-            aria-expanded={mobileNavOpen}
-            onClick={() => setMobileNavOpen(true)}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className="flex shrink-0 items-center justify-center text-console-accent"
+            style={{
+              width: 26,
+              height: 26,
+              border: "1px solid #00d4aa",
+              fontSize: 12,
+              fontWeight: 700,
+            }}
           >
-            <Menu aria-hidden="true" />
-          </Button>
+            Z
+          </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{userFullName}</p>
             <p className="text-xs font-medium text-muted-foreground">
@@ -397,134 +407,81 @@ export function NavShell({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Sign out"
+          aria-label="Keluar"
           onClick={() => void signOut({ redirectTo: "/login" })}
         >
           <LogOut aria-hidden="true" />
         </Button>
       </div>
 
-      {mobileNavOpen ? (
+      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] md:ml-[240px] md:pb-0">
+        {children}
+      </div>
+
+      {moreOpen ? (
         <div className="fixed inset-0 z-30 md:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
-            aria-label="Close navigation"
-            onClick={() => setMobileNavOpen(false)}
+            aria-label="Tutup menu"
+            onClick={() => setMoreOpen(false)}
           />
-          <aside className="relative flex h-full w-[min(320px,86vw)] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 shadow-xl">
-            <div
-              className="mb-5 flex items-center justify-between gap-3 pb-4"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className="flex shrink-0 items-center justify-center text-console-accent"
-                  style={{
-                    width: 28,
-                    height: 28,
-                    border: "1px solid #00d4aa",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  Z
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-[11px] font-bold uppercase tracking-[0.08em] text-white">
-                    ZADD PMS
-                  </div>
-                  <div className="truncate text-[9px] uppercase tracking-[0.04em] text-slate-400">
-                    {roleModuleNames[userRole]}
-                  </div>
-                </div>
-              </div>
+          <div className="absolute inset-x-0 bottom-0 border-t border-sidebar-border bg-sidebar px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4b5563]">
+                Lainnya
+              </h2>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Close navigation"
+                aria-label="Tutup menu"
                 className="shrink-0 text-sidebar-foreground hover:bg-white/[0.03] hover:text-console-accent"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={() => setMoreOpen(false)}
               >
                 <X aria-hidden="true" />
               </Button>
             </div>
+            <div className="space-y-0.5">
+              {moreLinks.map((link) => {
+                const isActive = activeSidebarHref === link.href;
+                const Icon = link.icon;
+                const badge = navBadges[link.href];
 
-            <nav className="flex-1 space-y-6 overflow-y-auto">
-              {navGroups.map((group) => (
-                <section key={group.label}>
-                  <h2 className="mb-2 px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4b5563]">
-                    {group.label}
-                  </h2>
-                  <div className="space-y-0.5">
-                    {group.links.map((link) => {
-                      const isActive = activeSidebarHref === link.href;
-                      const Icon = link.icon;
-                      const badge = navBadges[link.href];
-
-                      return (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          aria-current={isActive ? "page" : undefined}
-                          onClick={() => setMobileNavOpen(false)}
-                          className={[
-                            "flex items-center gap-2 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
-                            isActive
-                              ? "bg-white/[0.03] text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
-                              : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
-                          ].join(" ")}
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <Icon size={14} aria-hidden="true" />
-                            <span className="truncate">{link.label}</span>
-                          </span>
-                          {badge ? <NavBadgePill badge={badge} /> : null}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
-            </nav>
-
-            <div
-              className="pt-4"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-            >
-              <p className="truncate px-3 text-sm font-medium text-white">
-                {userFullName}
-              </p>
-              <p className="mt-1 px-3 text-xs font-medium text-sidebar-foreground">
-                {userRole}
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-3 w-full justify-start gap-2 text-[12px] uppercase tracking-[0.04em] text-sidebar-foreground hover:bg-transparent hover:text-console-accent"
-                onClick={() => void signOut({ redirectTo: "/login" })}
-              >
-                <LogOut size={14} aria-hidden="true" />
-                Sign out
-              </Button>
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => setMoreOpen(false)}
+                    className={[
+                      "flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
+                      isActive
+                        ? "bg-white/[0.03] text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
+                        : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
+                    ].join(" ")}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon size={16} aria-hidden="true" />
+                      <span className="truncate">{link.label}</span>
+                    </span>
+                    {badge ? <NavBadgePill badge={badge} /> : null}
+                  </Link>
+                );
+              })}
             </div>
-          </aside>
+          </div>
         </div>
       ) : null}
 
-      <div className="min-h-screen min-w-0 max-w-full pb-20 md:ml-[240px] md:pb-0">
-        {children}
-      </div>
-
-      <nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-2 border-t border-border bg-background md:hidden">
-        {mobileLinks.map((link) => {
+      <nav
+        aria-label="Navigasi mobile"
+        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {tabLinks.map((link) => {
           const Icon = link.icon;
-          const isActive = isActivePath(
-            pathname,
-            link.activeHref ?? link.href,
-            "startsWith",
-          );
+          const isActive = activeSidebarHref === link.href;
+          const badge = navBadges[link.href];
 
           return (
             <Link
@@ -532,17 +489,41 @@ export function NavShell({
               href={link.href}
               aria-current={isActive ? "page" : undefined}
               className={[
-                "flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-xs font-medium transition-colors",
+                "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium uppercase tracking-[0.04em] transition-colors",
                 isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  ? "text-console-accent shadow-[inset_0_2px_0_#00d4aa]"
+                  : "text-muted-foreground hover:text-console-accent",
               ].join(" ")}
             >
-              <Icon className="size-5" aria-hidden="true" />
-              <span>{link.label}</span>
+              <span className="relative">
+                <Icon className="size-5" aria-hidden="true" />
+                {badge ? <TabBadgeDot badge={badge} /> : null}
+              </span>
+              <span className="max-w-full truncate">{link.label}</span>
             </Link>
           );
         })}
+
+        {hasMoreTab ? (
+          <button
+            type="button"
+            aria-label="Menu lainnya"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen(true)}
+            className={[
+              "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium uppercase tracking-[0.04em] transition-colors",
+              isMoreActive || moreOpen
+                ? "text-console-accent shadow-[inset_0_2px_0_#00d4aa]"
+                : "text-muted-foreground hover:text-console-accent",
+            ].join(" ")}
+          >
+            <span className="relative">
+              <MoreHorizontal className="size-5" aria-hidden="true" />
+              {moreBadge ? <TabBadgeDot badge={moreBadge} /> : null}
+            </span>
+            <span className="max-w-full truncate">Lainnya</span>
+          </button>
+        ) : null}
       </nav>
     </div>
   );

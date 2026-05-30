@@ -235,7 +235,7 @@ export function CompleteCheckoutForm({
             className="mt-0.5 h-4 w-4 rounded-none border-console-border"
           />
           <span>
-            <span className="block font-medium">Generate PDF bill</span>
+            <span className="block font-medium">Buat PDF tagihan</span>
             <span className="block text-[11px] text-slate-500">
               File tersedia setelah konfirmasi.
             </span>

@@ -121,7 +121,7 @@ export function RoomForm({
       : await createRoom(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Room updated" : "Room created");
+      toast.success(isEditing ? "Kamar diperbarui" : "Kamar dibuat");
       form.reset(blankValues);
       onSaved();
       return;

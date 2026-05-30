@@ -107,7 +107,7 @@ export function UserForm({
       : await createUser(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "User updated" : "User created");
+      toast.success(isEditing ? "Pengguna diperbarui" : "Pengguna dibuat");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -234,7 +234,7 @@ export function UserForm({
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Minimum 8 characters"
+                      placeholder="Minimal 8 karakter"
                       {...field}
                       value={field.value ?? ""}
                       className={`${inputClassName} pr-9`}

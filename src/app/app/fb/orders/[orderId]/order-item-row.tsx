@@ -150,7 +150,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
         onBlur={saveNotes}
         onChange={(event) => setNotes(event.target.value)}
         onKeyDown={handleNoteKeyDown}
-        placeholder="Add note"
+        placeholder="Tambah catatan"
         value={notes}
       />
     </div>

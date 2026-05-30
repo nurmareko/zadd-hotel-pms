@@ -141,13 +141,13 @@ export function ReportView({ audit, settings }: ReportViewProps) {
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Run at</span>
+              <span className="text-slate-500">Dijalankan</span>
               <span className="num font-semibold">
                 {dateTimeLabel(audit.runAt)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">Run by</span>
+              <span className="text-slate-500">Oleh</span>
               <span className="font-semibold">{audit.runBy.fullName}</span>
             </div>
           </div>

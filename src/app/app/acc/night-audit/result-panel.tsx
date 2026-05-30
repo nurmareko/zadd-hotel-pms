@@ -71,11 +71,11 @@ export function ResultPanel({ summary }: ResultPanelProps) {
         </div>
 
         <aside className="border border-status-vc-pip bg-white p-3 text-[12px]">
-          <SummaryRow label="Room revenue" value={formatIDR(summary.roomRevenue)} />
-          <SummaryRow label="F&B revenue" value={formatIDR(summary.fbRevenue)} />
-          <SummaryRow label="Other revenue" value={formatIDR(summary.otherRevenue)} />
+          <SummaryRow label="Pendapatan Kamar" value={formatIDR(summary.roomRevenue)} />
+          <SummaryRow label="Pendapatan F&B" value={formatIDR(summary.fbRevenue)} />
+          <SummaryRow label="Pendapatan Lainnya" value={formatIDR(summary.otherRevenue)} />
           <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
-            <span>Total revenue</span>
+            <span>Total Pendapatan</span>
             <span className="num">{formatIDR(summary.totalRevenue)}</span>
           </div>
           <div className="mt-2 border-t border-console-border-soft pt-2 text-[11px] leading-5 text-slate-500">

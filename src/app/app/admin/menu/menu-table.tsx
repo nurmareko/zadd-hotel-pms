@@ -148,7 +148,7 @@ export function MenuTable({ items }: MenuTableProps) {
       const result = await deleteMenuItem(deletingItem.id);
 
       if (result.ok) {
-        toast.success("Menu item deleted");
+        toast.success("Menu dihapus");
         setDeletingItem(null);
         return;
       }
@@ -379,8 +379,8 @@ export function MenuTable({ items }: MenuTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus menu?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes {deletingItem?.name ?? "this menu item"} from the
-              F&amp;B menu. This action cannot be undone.
+              Menghapus {deletingItem?.name ?? "menu ini"} dari menu
+              F&amp;B. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

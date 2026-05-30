@@ -165,7 +165,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
             />
             <MetricRow label="Line items" value={String(plan.lineItemCount)} />
             <MetricRow
-              label="Room revenue"
+              label="Pendapatan Kamar"
               value={formatIDR(plan.roomRevenue)}
             />
             <MetricRow
@@ -181,7 +181,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
               value={formatIDR(plan.otherRevenue)}
             />
             <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
-              <span>Total revenue</span>
+              <span>Total Pendapatan</span>
               <span className="num">{formatIDR(plan.totalRevenue)}</span>
             </div>
           </aside>

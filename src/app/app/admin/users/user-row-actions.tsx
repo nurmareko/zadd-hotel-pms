@@ -35,7 +35,7 @@ export function UserRowActions({
       const result = await toggleUserActive(user.id);
 
       if (result.ok) {
-        toast.success("User status updated");
+        toast.success("Status pengguna diperbarui");
         return;
       }
 

@@ -21,7 +21,7 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
     const reason = window.prompt("Alasan membatalkan order?");
 
     if (!reason?.trim()) {
-      toast.error("Void reason is required");
+      toast.error("Alasan pembatalan wajib diisi");
       return;
     }
 

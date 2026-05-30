@@ -72,7 +72,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       const result = await deleteRoomType(deletingRoomType.id);
 
       if (result.ok) {
-        toast.success("Room type deleted");
+        toast.success("Tipe kamar dihapus");
         setDeletingRoomType(null);
         return;
       }
@@ -225,8 +225,8 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus tipe kamar?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes {deletingRoomType?.name ?? "this room type"} from
-              the master data. This action cannot be undone.
+              Menghapus {deletingRoomType?.name ?? "tipe kamar ini"} dari master
+              data. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

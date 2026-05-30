@@ -125,7 +125,7 @@ export function AddChargeDialog({
       return;
     }
 
-    toast.success("Charge posted");
+    toast.success("Biaya dicatat");
     resetAndClose(false);
     router.refresh();
   }
@@ -163,7 +163,7 @@ export function AddChargeDialog({
                 name="articleId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Article</FormLabel>
+                    <FormLabel>Artikel</FormLabel>
                     <FormControl>
                       <select
                         className={selectClassName}
@@ -184,7 +184,7 @@ export function AddChargeDialog({
                           );
                         }}
                       >
-                        <option value="">Pilih article</option>
+                        <option value="">Pilih artikel</option>
                         {articles.map((article) => (
                           <option key={article.id} value={String(article.id)}>
                             {article.code} - {article.name}
@@ -202,7 +202,7 @@ export function AddChargeDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Deskripsi</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Opsional"
@@ -221,7 +221,7 @@ export function AddChargeDialog({
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Qty</FormLabel>
+                      <FormLabel>Jumlah</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -241,7 +241,7 @@ export function AddChargeDialog({
                   name="unitPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Unit Price</FormLabel>
+                      <FormLabel>Harga Satuan</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

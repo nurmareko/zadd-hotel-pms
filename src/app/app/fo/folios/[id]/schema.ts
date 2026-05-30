@@ -3,24 +3,24 @@ import { z } from "zod";
 
 const OptionalDescriptionSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim() : value),
-  z.string().max(255, "Description must be 255 characters or fewer").optional(),
+  z.string().max(255, "Deskripsi maksimal 255 karakter").optional(),
 );
 
 const OptionalReferenceSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim() : value),
-  z.string().max(100, "Reference must be 100 characters or fewer").optional(),
+  z.string().max(100, "Referensi maksimal 100 karakter").optional(),
 );
 
 export const PostChargeSchema = z.object({
-  folioId: z.coerce.number().int().positive("Folio is required"),
-  articleId: z.coerce.number().int().positive("Article is required"),
+  folioId: z.coerce.number().int().positive("Folio wajib dipilih"),
+  articleId: z.coerce.number().int().positive("Artikel wajib dipilih"),
   description: OptionalDescriptionSchema,
   quantity: z.coerce
-    .number("Quantity must be a number")
-    .min(0.01, "Quantity must be at least 0.01"),
+    .number("Jumlah harus berupa angka")
+    .min(0.01, "Jumlah minimal 0.01"),
   unitPrice: z.coerce
-    .number("Unit price must be a number")
-    .min(0, "Unit price must be at least 0"),
+    .number("Harga satuan harus berupa angka")
+    .min(0, "Harga satuan minimal 0"),
 });
 
 export const paymentMethods = [
@@ -31,10 +31,10 @@ export const paymentMethods = [
 
 export const PaymentSchema = z
   .object({
-    folioId: z.coerce.number().int().positive("Folio is required"),
+    folioId: z.coerce.number().int().positive("Folio wajib dipilih"),
     amount: z.coerce
-      .number("Amount must be a number")
-      .positive("Amount must be greater than 0"),
+      .number("Jumlah harus berupa angka")
+      .positive("Jumlah harus lebih dari 0"),
     method: z.enum(paymentMethods),
     reference: OptionalReferenceSchema,
   })
@@ -43,7 +43,7 @@ export const PaymentSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["reference"],
-        message: "Reference is required for transfer payments",
+        message: "Referensi wajib diisi untuk pembayaran transfer",
       });
     }
   });

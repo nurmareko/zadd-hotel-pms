@@ -4,35 +4,35 @@ export const MenuItemCreateSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Code is required")
-    .max(20, "Code must be 20 characters or fewer")
+    .min(1, "Kode wajib diisi")
+    .max(20, "Kode maksimal 20 karakter")
     .regex(
       /^[A-Za-z0-9_-]+$/,
-      "Code may only contain letters, numbers, underscores, and hyphens",
+      "Kode hanya boleh huruf, angka, garis bawah, dan tanda hubung",
     )
     .transform((value) => value.toUpperCase()),
   name: z
     .string()
     .trim()
-    .min(1, "Name is required")
-    .max(100, "Name must be 100 characters or fewer"),
+    .min(1, "Nama wajib diisi")
+    .max(100, "Nama maksimal 100 karakter"),
   category: z
     .string()
     .trim()
-    .min(1, "Category is required")
-    .max(50, "Category must be 50 characters or fewer"),
+    .min(1, "Kategori wajib diisi")
+    .max(50, "Kategori maksimal 50 karakter"),
   price: z.coerce
-    .number("Price is required")
-    .int("Price must be a whole number")
-    .positive("Price must be greater than 0"),
+    .number("Harga wajib diisi")
+    .int("Harga harus bilangan bulat")
+    .positive("Harga harus lebih dari 0"),
 });
 
 export const MenuItemUpdateSchema = MenuItemCreateSchema.extend({
-  id: z.coerce.number().int().positive("Menu item is required"),
+  id: z.coerce.number().int().positive("Item menu wajib dipilih"),
 });
 
 export const MenuItemIdSchema = z.object({
-  id: z.coerce.number().int().positive("Menu item is required"),
+  id: z.coerce.number().int().positive("Item menu wajib dipilih"),
 });
 
 export type MenuItemFormInput = z.input<typeof MenuItemCreateSchema>;

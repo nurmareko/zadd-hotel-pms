@@ -132,7 +132,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
       const result = await deleteRoom(deletingRoom.id);
 
       if (result.ok) {
-        toast.success("Room deleted");
+        toast.success("Kamar dihapus");
         setDeletingRoom(null);
         return;
       }
@@ -321,8 +321,8 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus kamar?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes room {deletingRoom?.number ?? ""} from room
-              inventory. This action cannot be undone.
+              Menghapus kamar {deletingRoom?.number ?? ""} dari inventaris
+              kamar. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

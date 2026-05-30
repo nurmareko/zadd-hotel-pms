@@ -196,7 +196,7 @@ export function TabStripSkeleton({
 }) {
   return (
     <div className={cn("border-b border-console-border", className)}>
-      <nav className="flex gap-5" aria-label="Loading tabs">
+      <nav className="flex gap-5" aria-label="Memuat tab">
         {Array.from({ length: count }).map((_, index) => (
           <Skeleton
             key={index}

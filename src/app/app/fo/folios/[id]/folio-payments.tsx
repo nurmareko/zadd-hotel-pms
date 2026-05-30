@@ -43,7 +43,7 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
   return (
     <section className="min-w-0 border border-console-border bg-console-surface">
       <div className="flex items-center justify-between gap-3 bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        <h2>Payments</h2>
+        <h2>Pembayaran</h2>
         <span className="num text-[10px] text-slate-400">
           {payments.length} pembayaran
         </span>

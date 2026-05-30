@@ -112,7 +112,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       const result = await deleteArticle(deletingArticle.id);
 
       if (result.ok) {
-        toast.success("Article deleted");
+        toast.success("Artikel dihapus");
         setDeletingArticle(null);
         return;
       }
@@ -307,10 +307,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       >
         <AlertDialogContent className="rounded-none border-console-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus article?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus artikel?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes {deletingArticle?.name ?? "this article"} from
-              charge code master data. This action cannot be undone.
+              Menghapus {deletingArticle?.name ?? "artikel ini"} dari master
+              data kode biaya. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
