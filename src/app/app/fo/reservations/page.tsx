@@ -1,31 +1,33 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
-import { addDays, formatISO } from "date-fns";
+import { addDays, differenceInCalendarDays, formatISO } from "date-fns";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { todayDateOnly } from "@/lib/date-only";
+import { computeFolioTotals } from "@/lib/folio-totals";
+import { roundedFolioBalance } from "@/lib/folio-balance-display";
+import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { ReservationFilters } from "./reservation-filters";
-import { ReservationTable } from "./reservation-table";
+import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_WINDOW_DAYS = 14;
-const SORT_KEYS = ["reservation_no", "arrival", "departure"] as const;
-const SORT_DIRECTIONS = ["asc", "desc"] as const;
+const DEFAULT_WINDOW_DAYS = 30;
 
-type SortKey = (typeof SORT_KEYS)[number];
-type SortDirection = (typeof SORT_DIRECTIONS)[number];
+// Default scope: reservations that are still operationally relevant.
+const ACTIVE_STATUSES: ReservationStatus[] = [
+  ReservationStatus.CONFIRMED,
+  ReservationStatus.CHECKED_IN,
+  ReservationStatus.CHECKED_OUT,
+];
 
 type SearchParams = {
   q?: string;
   status?: string;
-  type?: string;
   from?: string;
   to?: string;
-  sort?: SortKey;
-  dir?: SortDirection;
 };
 
 function parseDateParam(value: string | undefined, today: Date) {
@@ -59,16 +61,6 @@ function toDateInputValue(date: Date) {
   return formatISO(date, { representation: "date" });
 }
 
-function parseSort(value: string | undefined): SortKey {
-  return SORT_KEYS.some((key) => key === value) ? (value as SortKey) : "arrival";
-}
-
-function parseDirection(value: string | undefined): SortDirection {
-  return SORT_DIRECTIONS.some((direction) => direction === value)
-    ? (value as SortDirection)
-    : "desc";
-}
-
 function parseStatus(value: string | undefined) {
   if (!value) {
     return undefined;
@@ -77,21 +69,6 @@ function parseStatus(value: string | undefined) {
   return Object.values(ReservationStatus).some((status) => status === value)
     ? (value as ReservationStatus)
     : undefined;
-}
-
-function buildOrderBy(
-  sort: SortKey,
-  dir: SortDirection,
-): Prisma.ReservationOrderByWithRelationInput[] {
-  if (sort === "reservation_no") {
-    return [{ reservationNo: dir }, { id: "desc" }];
-  }
-
-  if (sort === "departure") {
-    return [{ departureDate: dir }, { id: "desc" }];
-  }
-
-  return [{ arrivalDate: dir }, { id: "desc" }];
 }
 
 export default async function ReservationListPage({
@@ -104,13 +81,10 @@ export default async function ReservationListPage({
   const defaultToDate = addDays(today, DEFAULT_WINDOW_DAYS);
   const q = params.q?.trim() ?? "";
   const status = parseStatus(params.status);
-  const roomType = params.type?.trim() ?? "";
   const fromDate =
     params.from === undefined ? today : parseDateParam(params.from, today);
   const toDate =
     params.to === undefined ? defaultToDate : parseDateParam(params.to, today);
-  const sort = parseSort(params.sort);
-  const dir = parseDirection(params.dir);
 
   const where: Prisma.ReservationWhereInput = {};
 
@@ -133,13 +107,8 @@ export default async function ReservationListPage({
     ];
   }
 
-  if (status) {
-    where.status = status;
-  }
-
-  if (roomType) {
-    where.roomType = { name: roomType };
-  }
+  // Specific status narrows to one; default keeps the active set.
+  where.status = status ? status : { in: ACTIVE_STATUSES };
 
   if (fromDate || toDate) {
     where.arrivalDate = {
@@ -149,30 +118,81 @@ export default async function ReservationListPage({
   }
 
   // MVP: no pagination. Add when result sets exceed ~500.
-  const [roomTypes, reservations, resultCount] = await Promise.all([
-    prisma.roomType.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+  const [reservations, settings] = await Promise.all([
     prisma.reservation.findMany({
       where,
       include: {
         guest: { select: { fullName: true } },
-        roomType: { select: { name: true } },
+        room: { select: { number: true } },
+        folio: {
+          include: {
+            lineItems: { include: { article: true } },
+            payments: true,
+          },
+        },
       },
-      orderBy: buildOrderBy(sort, dir),
+      // Within the list arrival is primary; guest name breaks ties inside a day.
+      orderBy: [{ arrivalDate: "asc" }, { guest: { fullName: "asc" } }],
     }),
-    prisma.reservation.count({ where }),
+    prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
+
+  // Group by arrival (check-in) date, ascending. Reservations already arrive
+  // sorted by arrival then guest name, so groups stay in order as we build them.
+  const groups: ReservationGroup[] = [];
+  let currentGroup: ReservationGroup | undefined;
+
+  for (const reservation of reservations) {
+    const nights = Math.max(
+      1,
+      differenceInCalendarDays(
+        reservation.departureDate,
+        reservation.arrivalDate,
+      ),
+    );
+    const total = Number(reservation.rateAmount) * nights;
+    const outstanding = reservation.folio
+      ? roundedFolioBalance(
+          computeFolioTotals(
+            reservation.folio.lineItems,
+            reservation.folio.payments,
+            settings,
+          ).balance,
+        )
+      : null;
+
+    const dateKey = formatISODate(reservation.arrivalDate);
+
+    if (!currentGroup || currentGroup.dateKey !== dateKey) {
+      currentGroup = {
+        dateKey,
+        arrivalDate: reservation.arrivalDate,
+        rows: [],
+      };
+      groups.push(currentGroup);
+    }
+
+    currentGroup.rows.push({
+      id: reservation.id,
+      reservationNo: reservation.reservationNo,
+      guestName: reservation.guest.fullName,
+      arrivalDate: reservation.arrivalDate,
+      departureDate: reservation.departureDate,
+      createdAt: reservation.createdAt,
+      adults: reservation.adults,
+      children: reservation.children,
+      roomNumber: reservation.room?.number ?? null,
+      status: reservation.status,
+      total,
+      outstanding,
+    });
+  }
 
   const filters = {
     q,
     status: status ?? ("" as const),
-    type: roomType,
     from: fromDate ? toDateInputValue(fromDate) : "",
     to: toDate ? toDateInputValue(toDate) : "",
-    sort,
-    dir,
   };
 
   return (
@@ -184,7 +204,7 @@ export default async function ReservationListPage({
             Daftar Reservasi
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Semua reservasi aktif dan historis.
+            Dikelompokkan menurut tanggal check-in.
           </p>
         </div>
 
@@ -200,10 +220,9 @@ export default async function ReservationListPage({
       <section className="border border-console-border bg-console-surface">
         <ReservationFilters
           filters={filters}
-          resultCount={resultCount}
-          roomTypes={roomTypes}
+          resultCount={reservations.length}
         />
-        <ReservationTable reservations={reservations} filters={filters} />
+        <ReservationTable groups={groups} />
       </section>
     </main>
   );

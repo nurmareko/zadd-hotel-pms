@@ -14,8 +14,8 @@ export default function Loading() {
       />
 
       <section className="border border-console-border bg-console-surface">
-        <FilterBarSkeleton fields={4} />
-        <TableSkeleton rows={8} cols={9} minWidth="1020px" />
+        <FilterBarSkeleton fields={3} />
+        <TableSkeleton rows={8} cols={10} minWidth="1100px" />
       </section>
     </main>
   );

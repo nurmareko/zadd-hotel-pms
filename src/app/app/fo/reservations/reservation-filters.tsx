@@ -5,17 +5,10 @@ type ReservationFiltersProps = {
   filters: {
     q: string;
     status: ReservationStatus | "";
-    type: string;
     from: string;
     to: string;
-    sort: "reservation_no" | "arrival" | "departure";
-    dir: "asc" | "desc";
   };
   resultCount: number;
-  roomTypes: Array<{
-    id: number;
-    name: string;
-  }>;
 };
 
 const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
@@ -25,10 +18,12 @@ const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
+const fieldClass =
+  "h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]";
+
 export function ReservationFilters({
   filters,
   resultCount,
-  roomTypes,
 }: ReservationFiltersProps) {
   return (
     <form
@@ -36,9 +31,6 @@ export function ReservationFilters({
       method="get"
       className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-console-border bg-console-surface p-3.5"
     >
-      <input type="hidden" name="sort" value={filters.sort} />
-      <input type="hidden" name="dir" value={filters.dir} />
-
       <div className="relative w-full sm:w-[280px]">
         <Search
           aria-hidden="true"
@@ -56,9 +48,9 @@ export function ReservationFilters({
       <select
         name="status"
         defaultValue={filters.status}
-        className="h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)] sm:w-[140px]"
+        className={`${fieldClass} sm:w-[150px]`}
       >
-        <option value="">Semua Status</option>
+        <option value="">Aktif</option>
         {statusOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -66,31 +58,20 @@ export function ReservationFilters({
         ))}
       </select>
 
-      <select
-        name="type"
-        defaultValue={filters.type}
-        className="h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)] sm:w-[140px]"
-      >
-        <option value="">Semua Tipe</option>
-        {roomTypes.map((roomType) => (
-          <option key={roomType.id} value={roomType.name}>
-            {roomType.name}
-          </option>
-        ))}
-      </select>
-
       <input
         type="date"
         name="from"
+        aria-label="Tanggal mulai"
         defaultValue={filters.from}
-        className="h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)] sm:w-[140px]"
+        className={`${fieldClass} sm:w-[140px]`}
       />
       <span className="hidden text-slate-400 sm:inline">-</span>
       <input
         type="date"
         name="to"
+        aria-label="Tanggal akhir"
         defaultValue={filters.to}
-        className="h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)] sm:w-[140px]"
+        className={`${fieldClass} sm:w-[140px]`}
       />
 
       <button
