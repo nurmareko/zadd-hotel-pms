@@ -8,6 +8,7 @@ import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
+import { CancelReservationDialog } from "./cancel-reservation-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,9 @@ export default async function ReservationDetailPage({
     dateOnlyBoundary(reservation.arrivalDate) <= today;
   const canPrintGrc =
     formMode === "view" && reservation.status !== ReservationStatus.CANCELLED;
+  const canCancel =
+    formMode === "view" &&
+    reservation.status === ReservationStatus.CONFIRMED;
   const defaultValues: CreateReservationInput = {
     fullName: reservation.guest.fullName,
     idNumber: reservation.guest.idNumber ?? "",
@@ -171,6 +175,12 @@ export default async function ReservationDetailPage({
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Cetak GRC
             </a>
+          ) : null}
+          {canCancel ? (
+            <CancelReservationDialog
+              reservationId={reservation.id}
+              reservationNo={reservation.reservationNo}
+            />
           ) : null}
           {canCheckIn ? (
             <Link

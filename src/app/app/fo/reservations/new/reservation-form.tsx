@@ -1,6 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { addDays, formatISO, parseISO } from "date-fns";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useForm,
@@ -87,6 +89,16 @@ const arrangementHints: Partial<Record<string, string>> = {
   RB: "Termasuk: Breakfast",
   FBM: "Termasuk: Breakfast, Coffee Break, Lunch, Dinner",
 };
+
+function dayAfter(dateValue: string) {
+  const parsed = parseISO(dateValue);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return formatISO(addDays(parsed, 1), { representation: "date" });
+}
 
 function nightsBetween(arrivalDate: string, departureDate: string) {
   const arrival = new Date(`${arrivalDate}T00:00:00Z`);
@@ -196,6 +208,7 @@ export function ReservationForm({
     (roomType) => roomType.id === selectedRoomTypeId,
   );
   const nights = nightsBetween(arrivalDate, departureDate);
+  const minDeparture = arrivalDate ? dayAfter(arrivalDate) : undefined;
   const rateAmount = selectedRoomType ? Number(selectedRoomType.baseRate) : 0;
   const depositAmount = Number(depositValue || 0);
 
@@ -439,6 +452,30 @@ export function ReservationForm({
                           className={fieldClassName}
                           readOnly={isViewMode}
                           {...field}
+                          onChange={(event) => {
+                            const nextArrival = event.target.value;
+                            field.onChange(nextArrival);
+
+                            if (isViewMode || !nextArrival) {
+                              return;
+                            }
+
+                            const currentDeparture =
+                              form.getValues("departureDate");
+
+                            if (
+                              !currentDeparture ||
+                              currentDeparture <= nextArrival
+                            ) {
+                              const bumped = dayAfter(nextArrival);
+
+                              if (bumped) {
+                                form.setValue("departureDate", bumped, {
+                                  shouldValidate: true,
+                                });
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -457,6 +494,7 @@ export function ReservationForm({
                           type="date"
                           className={fieldClassName}
                           readOnly={isViewMode}
+                          min={minDeparture}
                           {...field}
                         />
                       </FormControl>
@@ -750,13 +788,21 @@ export function ReservationForm({
           </section>
 
           {!isViewMode ? (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-8 rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
-            >
-              {isSubmitting ? "Menyimpan..." : submitLabel}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex h-8 items-center justify-center rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
+              >
+                {isSubmitting ? "Menyimpan..." : submitLabel}
+              </button>
+              <Link
+                href="/app/fo/reservations"
+                className="inline-flex h-8 items-center justify-center rounded-none border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              >
+                Batal
+              </Link>
+            </div>
           ) : null}
         </aside>
       </form>

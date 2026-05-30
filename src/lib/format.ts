@@ -67,6 +67,11 @@ export function formatWeekdayLongDateID(date: Date) {
   return format(date, "EEEE, d MMMM yyyy", { locale: indonesianLocale });
 }
 
+// Weekday + zero-padded day, e.g. "Kamis, 07 Agustus 2025".
+export function formatDateWithWeekday(date: Date) {
+  return format(date, "EEEE, dd MMMM yyyy", { locale: indonesianLocale });
+}
+
 export function formatDayOfMonthID(date: Date) {
   return format(date, "d", { locale: indonesianLocale });
 }

@@ -16,7 +16,6 @@ import { ActivityFeed, type ActivityFeedRow } from "./activity-feed";
 import { ArrivalList, type ArrivalListRow } from "./arrival-list";
 import { DepartureList, type DepartureListRow } from "./departure-list";
 import { KpiCard } from "./kpi-card";
-import { RoomStatusCard, type RoomStatusSummaryRow } from "./room-status-card";
 
 export const revalidate = 60;
 
@@ -230,38 +229,6 @@ export default async function FODashboardPage() {
     availableCount === 0 && rooms.length > 0
       ? "0 kamar tersedia (semua OOO)"
       : `${ocCount} dari ${availableCount} kamar terisi`;
-  const roomStatusRows: RoomStatusSummaryRow[] = [
-    {
-      status: RoomStatus.VC,
-      label: "Vacant Clean",
-      count: rooms.filter((room) => room.status === RoomStatus.VC).length,
-    },
-    {
-      status: RoomStatus.OC,
-      label: "Occupied",
-      count: ocCount,
-    },
-    {
-      status: RoomStatus.VD,
-      label: "Vacant Dirty",
-      count: rooms.filter((room) => room.status === RoomStatus.VD).length,
-    },
-    {
-      status: RoomStatus.OD,
-      label: "Occ. Dirty",
-      count: rooms.filter((room) => room.status === RoomStatus.OD).length,
-    },
-    {
-      status: RoomStatus.VCU,
-      label: "Unchecked",
-      count: rooms.filter((room) => room.status === RoomStatus.VCU).length,
-    },
-    {
-      status: RoomStatus.OOO,
-      label: "OOO",
-      count: rooms.filter((room) => room.status === RoomStatus.OOO).length,
-    },
-  ];
 
   const arrivalRows: ArrivalListRow[] = arrivalsToday.map((reservation) => ({
     id: reservation.id,
@@ -357,15 +324,12 @@ export default async function FODashboardPage() {
           limit={LIST_LIMIT}
           allHref={arrivalsHref}
         />
-        <div className="flex min-w-0 flex-col gap-3">
-          <DepartureList
-            rows={departureRows}
-            totalCount={departuresToday.length}
-            limit={LIST_LIMIT}
-            allHref={departuresHref}
-          />
-          <RoomStatusCard rows={roomStatusRows} />
-        </div>
+        <DepartureList
+          rows={departureRows}
+          totalCount={departuresToday.length}
+          limit={LIST_LIMIT}
+          allHref={departuresHref}
+        />
       </div>
 
       <div className="mt-4">

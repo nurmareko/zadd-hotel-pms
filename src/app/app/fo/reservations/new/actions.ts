@@ -422,6 +422,96 @@ export async function createReservation(
   redirect(`/app/fo/reservations?from=${arrival}&to=${arrival}`);
 }
 
+export async function cancelReservation(
+  reservationId: number,
+): Promise<ActionResult> {
+  const session = await auth();
+
+  // Cancel is permitted for FO (who own the screen) and ADMIN.
+  if (session?.user.role !== "FO" && session?.user.role !== "ADMIN") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  if (!Number.isInteger(reservationId) || reservationId <= 0) {
+    return { ok: false, error: "Invalid reservation" };
+  }
+
+  let result: { ok: true } | { ok: false; error: string };
+
+  try {
+    result = await prisma.$transaction(
+      async (tx) => {
+        const reservation = await tx.reservation.findUnique({
+          where: { id: reservationId },
+          select: {
+            id: true,
+            status: true,
+            folio: { select: { id: true } },
+          },
+        });
+
+        if (!reservation) {
+          return { ok: false as const, error: "Reservasi tidak ditemukan" };
+        }
+
+        // Re-verify server-side; never trust the client's view of status.
+        if (reservation.status !== ReservationStatus.CONFIRMED) {
+          return {
+            ok: false as const,
+            error: "Hanya reservasi berstatus CONFIRMED yang bisa dibatalkan.",
+          };
+        }
+
+        // A CONFIRMED reservation should have no folio (created at check-in).
+        // If one somehow exists, do NOT cancel and do NOT delete it.
+        if (reservation.folio) {
+          return {
+            ok: false as const,
+            error:
+              "Reservasi ini sudah memiliki folio. Pembatalan dibatalkan; periksa folio terlebih dahulu.",
+          };
+        }
+
+        const updated = await tx.reservation.updateMany({
+          where: { id: reservationId, status: ReservationStatus.CONFIRMED },
+          data: { status: ReservationStatus.CANCELLED },
+        });
+
+        if (updated.count === 0) {
+          return {
+            ok: false as const,
+            error: "Status reservasi berubah saat membatalkan. Coba lagi.",
+          };
+        }
+
+        return { ok: true as const };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+  } catch (error) {
+    if (isSerializationConflict(error)) {
+      return {
+        ok: false,
+        error: "Status reservasi berubah saat membatalkan. Coba lagi.",
+      };
+    }
+
+    return { ok: false, error: "Something went wrong cancelling reservation" };
+  }
+
+  if (!result.ok) {
+    return result;
+  }
+
+  revalidatePath("/app/fo/reservations");
+  revalidatePath(`/app/fo/reservations/${reservationId}`);
+  revalidatePath("/app/fo/tape-chart");
+  return { ok: true };
+}
+
 export async function updateReservation(
   reservationId: number,
   input: unknown,
