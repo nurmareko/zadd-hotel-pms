@@ -124,6 +124,8 @@ erDiagram
     text notes
     timestamp grc_filled_at
     varchar purpose_of_visit
+    text signature_data_url
+    timestamp signed_at
     int created_by_id FK
     timestamp created_at
     timestamp updated_at
@@ -259,7 +261,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, created_at, updated_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -308,7 +310,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 A few choices worth explaining:
 
 1. **Rate is inlined into RoomType.** In the MVP, each room type has a single fixed rate (`base_rate`). Dynamic rate plans with date validity and guest segmentation are deferred.
-2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at` and `purpose_of_visit` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in.
+2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
 3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep the Tape Chart read fast. HousekeepingLog is the audit trail of every status change.
@@ -427,6 +429,8 @@ A few choices worth explaining:
 | notes | TEXT | — | Reservation notes |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
 | purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
+| signature_data_url | TEXT | — | Guest signature as a PNG data URL captured during check-in |
+| signed_at | TIMESTAMP | — | Guest signature capture time |
 | created_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Staff who created the reservation |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |

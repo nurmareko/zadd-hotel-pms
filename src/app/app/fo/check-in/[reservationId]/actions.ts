@@ -208,6 +208,8 @@ async function runCheckInTransaction(
           roomId: room.id,
           grcFilledAt: now,
           purposeOfVisit: input.grcPurposeOfVisit,
+          signatureDataUrl: input.signatureDataUrl,
+          signedAt: now,
           deposit: input.depositAmount,
         },
       });
