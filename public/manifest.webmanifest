@@ -1,7 +1,7 @@
 {
-  "name": "Hotel PMS — Housekeeping",
+  "name": "ZADD PMS",
   "short_name": "PMS HK",
-  "description": "Hotel PMS housekeeping app for status updates on the move",
+  "description": "ZADD Hotel Property Management System",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
