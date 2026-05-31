@@ -10,6 +10,9 @@ const monospaceStack = [
 const config = {
   theme: {
     extend: {
+      screens: {
+        desktop: { raw: "(min-width: 768px) and (pointer: fine)" },
+      },
       colors: {
         console: {
           bg: "var(--console-bg)",

@@ -293,7 +293,7 @@ export function NavShell({
 
   return (
     <div className="min-h-screen flex-1 bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-[240px] flex-col border-r border-border bg-sidebar px-4 py-5 md:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-[240px] flex-col border-r border-border bg-sidebar px-4 py-5 desktop:flex">
         {/* Brand header */}
         <div
           className="mb-5 flex items-center gap-2.5 pb-4"
@@ -395,7 +395,7 @@ export function NavShell({
         </div>
       </aside>
 
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 md:hidden">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 desktop:hidden">
         <div className="flex min-w-0 items-center gap-2.5">
           <div
             className="flex shrink-0 items-center justify-center text-console-accent"
@@ -427,12 +427,12 @@ export function NavShell({
         </Button>
       </div>
 
-      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] md:ml-[240px] md:pb-0">
+      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] desktop:ml-[240px] desktop:pb-0">
         {children}
       </div>
 
       {moreOpen ? (
-        <div className="fixed inset-0 z-30 md:hidden">
+        <div className="fixed inset-0 z-30 desktop:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
@@ -489,7 +489,7 @@ export function NavShell({
 
       <nav
         aria-label="Navigasi mobile"
-        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)] desktop:hidden"
       >
         {tabLinks.map((link) => {
           const Icon = link.icon;
