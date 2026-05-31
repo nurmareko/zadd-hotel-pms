@@ -1,8 +1,7 @@
 import { FBOrderStatus, ReservationStatus, RoomStatus } from "@prisma/client";
-import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 
-import { todayDateOnly } from "@/lib/date-only";
+import { hotelTodayTimestampRange, todayDateOnly } from "@/lib/date-only";
 import { formatIDR, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -25,8 +24,8 @@ function safePercent(numerator: number, denominator: number) {
 }
 
 export default async function AccountingDashboardPage() {
-  const timestampToday = startOfDay(new Date());
-  const timestampTomorrow = addDays(timestampToday, 1);
+  const { start: timestampStart, end: timestampEnd } =
+    hotelTodayTimestampRange();
   const { today: dateOnlyToday, tomorrow: dateOnlyTomorrow } = todayDateOnly();
 
   const [
@@ -65,7 +64,7 @@ export default async function AccountingDashboardPage() {
     }),
     prisma.folioLineItem.aggregate({
       where: {
-        postedAt: { gte: timestampToday, lt: timestampTomorrow },
+        postedAt: { gte: timestampStart, lt: timestampEnd },
         fbOrderId: null,
       },
       _sum: { amount: true },
@@ -73,7 +72,7 @@ export default async function AccountingDashboardPage() {
     prisma.fBOrder.aggregate({
       where: {
         status: FBOrderStatus.CLOSED,
-        closedAt: { gte: timestampToday, lt: timestampTomorrow },
+        closedAt: { gte: timestampStart, lt: timestampEnd },
       },
       _sum: { total: true },
     }),

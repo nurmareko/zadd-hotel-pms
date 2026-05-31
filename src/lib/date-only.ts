@@ -30,6 +30,60 @@ export function hotelTodayDateOnly(now: Date = new Date()): Date {
 }
 
 /**
+ * Offset (in ms) of the hotel timezone relative to UTC at the given instant
+ * (zone − UTC; +7h for WIB). Derived via Intl rather than hardcoded so it stays
+ * correct if the zone definition ever changes; Asia/Jakarta has no DST today.
+ */
+function hotelOffsetMs(at: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: HOTEL_TIME_ZONE,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(at);
+
+  const get = (type: string) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const wallClockAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+
+  return wallClockAsUtc - at.getTime();
+}
+
+/**
+ * UTC timestamps bounding the hotel's current WIB day, as a half-open window
+ * [start, end) for filtering timestamp columns (createdAt, receivedAt, …).
+ *
+ * `start` is WIB midnight today expressed in UTC. Asia/Jakarta is a fixed UTC+7
+ * with no DST, so the day is exactly 24h. Example: at 00:30 WIB on June 1
+ * (= 2026-05-31T17:30:00Z) `start` is 2026-05-31T17:00:00Z and `end` is
+ * 2026-06-01T17:00:00Z — so a 00:30 record falls in June 1's window, not May 31's,
+ * and a 23:30 May 31 WIB record (= 16:30Z) stays in May 31's window.
+ */
+export function hotelTodayTimestampRange(now: Date = new Date()): {
+  start: Date;
+  end: Date;
+} {
+  const offsetMs = hotelOffsetMs(now);
+  const start = new Date(
+    new Date(`${hotelTodayISO(now)}T00:00:00.000Z`).getTime() - offsetMs,
+  );
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+
+  return { start, end };
+}
+
+/**
  * Convert a local Date to a UTC-midnight Date representing the same calendar date.
  * Use this for queries against Prisma @db.Date columns to avoid timezone drift.
  *

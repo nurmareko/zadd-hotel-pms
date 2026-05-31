@@ -1,13 +1,14 @@
 import { ReservationStatus, RoomStatus } from "@prisma/client";
-import {
-  addDays,
-  differenceInCalendarDays,
-  startOfDay,
-} from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
-// Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
-// Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
-import { todayDateOnly } from "@/lib/date-only";
+// Prisma @db.Date filters use todayDateOnly (UTC midnight). Timestamp filters
+// (createdAt, receivedAt, etc.) use hotelTodayTimestampRange — the WIB day
+// boundaries expressed in UTC — so both resolve "today" in the hotel timezone.
+import {
+  hotelTodayDateOnly,
+  hotelTodayTimestampRange,
+  todayDateOnly,
+} from "@/lib/date-only";
 import { formatIDR, formatTimeID, formatWeekdayLongDateID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
@@ -157,8 +158,8 @@ async function getActivityRows(today: Date, tomorrow: Date) {
 }
 
 export default async function FODashboardPage() {
-  const timestampToday = startOfDay(new Date());
-  const timestampTomorrow = addDays(timestampToday, 1);
+  const { start: timestampStart, end: timestampEnd } =
+    hotelTodayTimestampRange();
   const { today: dateOnlyToday, tomorrow: dateOnlyTomorrow } = todayDateOnly();
 
   const [
@@ -215,7 +216,7 @@ export default async function FODashboardPage() {
     }),
     prisma.room.findMany({ select: { status: true } }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
-    getActivityRows(timestampToday, timestampTomorrow),
+    getActivityRows(timestampStart, timestampEnd),
   ]);
 
   const nonOutOfOrderRooms = rooms.filter(
@@ -278,7 +279,7 @@ export default async function FODashboardPage() {
   const arrivalsHref = todayReservationsHref(ReservationStatus.CONFIRMED);
   const departuresHref = todayReservationsHref(ReservationStatus.CHECKED_IN);
 
-  const dashboardDateLabel = formatWeekdayLongDateID(timestampToday);
+  const dashboardDateLabel = formatWeekdayLongDateID(hotelTodayDateOnly());
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
