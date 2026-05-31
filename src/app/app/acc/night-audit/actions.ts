@@ -39,7 +39,7 @@ async function canRunNightAudit() {
 function revalidateNightAuditPaths(folioIds: number[], reservationIds: number[]) {
   revalidatePath("/app/acc");
   revalidatePath("/app/acc/night-audit");
-  revalidatePath("/app/fo");
+  revalidatePath("/app/fo/dashboard");
   revalidatePath("/app/fo/tape-chart");
   revalidatePath("/app/fo/reservations");
   revalidatePath("/app/fo/folios/[id]", "page");
