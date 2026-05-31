@@ -3,7 +3,7 @@
 //
 // Changes vs full design (24 tables → 18 tables):
 // - Rate inlined into RoomType (one fixed base rate per type)
-// - GuestRegistrationCard inlined into Reservation (grc_filled_at, purpose_of_visit)
+// - GuestRegistrationCard inlined into Reservation (GRC metadata + signature)
 // - Segment removed (no segment reporting)
 // - MasterBill removed (no group billing)
 // - ManualBill + ManualBillItem removed (walk-ins use Reservation.type = WALK_IN + Folio)
@@ -247,8 +247,10 @@ model Reservation {
   notes           String?              @db.Text
 
   // GRC fields (inlined from GuestRegistrationCard entity)
-  grcFilledAt    DateTime? @map("grc_filled_at")
-  purposeOfVisit String?   @map("purpose_of_visit") @db.VarChar(100)
+  grcFilledAt      DateTime? @map("grc_filled_at")
+  purposeOfVisit   String?   @map("purpose_of_visit") @db.VarChar(100)
+  signatureDataUrl String?   @map("signature_data_url") @db.Text
+  signedAt         DateTime? @map("signed_at")
 
   createdById Int      @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")

@@ -29,6 +29,7 @@ import {
   type CheckInDepositMethod,
   type PurposeOfVisitValue,
 } from "./schema";
+import { SignaturePadField } from "./signature-pad-field";
 
 type RoomOption = {
   id: number;
@@ -48,6 +49,7 @@ type CheckInFormValues = {
   guestNationality: string;
   purposeOfVisit: PurposeOfVisitValue;
   purposeOfVisitOther: string;
+  signatureDataUrl: string;
   arrivalConfirmation: boolean;
   depositAmount: string;
   depositMethod: CheckInDepositMethod | "";
@@ -147,6 +149,7 @@ export function CheckInForm({
       guestNationality: guest.nationality ?? "",
       purposeOfVisit: "Bisnis",
       purposeOfVisitOther: "",
+      signatureDataUrl: "",
       arrivalConfirmation: false,
       depositAmount: Number(existingDeposit) > 0 ? existingDeposit : "",
       depositMethod: "",
@@ -215,6 +218,7 @@ export function CheckInForm({
     formData.set("guestNationality", values.guestNationality ?? "");
     formData.set("purposeOfVisit", values.purposeOfVisit);
     formData.set("purposeOfVisitOther", values.purposeOfVisitOther ?? "");
+    formData.set("signatureDataUrl", values.signatureDataUrl);
     formData.set("arrivalConfirmation", String(values.arrivalConfirmation));
     formData.set("depositAmount", values.depositAmount ?? "");
     formData.set("depositMethod", values.depositMethod ?? "");
@@ -486,6 +490,25 @@ export function CheckInForm({
                   )}
                 />
               ) : null}
+
+              <div className="md:col-span-2">
+                <FormField
+                  control={form.control}
+                  name="signatureDataUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tanda Tangan Tamu</FormLabel>
+                      <FormControl>
+                        <SignaturePadField
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="md:col-span-2">
                 <FormField

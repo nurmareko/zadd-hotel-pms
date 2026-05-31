@@ -14,7 +14,11 @@ import {
 } from "./schema";
 
 const HK_ROOM_PATH_PREFIX = "/app/hk/rooms";
-const SYNC_PATHS = ["/app/hk", "/app/fo/tape-chart", "/app/fo"] as const;
+const SYNC_PATHS = [
+  "/app/hk",
+  "/app/fo/tape-chart",
+  "/app/fo/dashboard",
+] as const;
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Input tidak valid";

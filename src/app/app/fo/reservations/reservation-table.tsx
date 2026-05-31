@@ -6,6 +6,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateID, formatDateWithWeekday, formatIDR } from "@/lib/format";
 
+import { ClickableReservationRow } from "./clickable-reservation-row";
+
 export type ReservationRow = {
   id: number;
   reservationNo: string;
@@ -182,23 +184,20 @@ function GroupRows({ group }: { group: ReservationGroup }) {
         const href = `/app/fo/reservations/${row.id}`;
 
         return (
-          <tr
-            key={row.id}
-            className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
-          >
+          <ClickableReservationRow key={row.id} href={href}>
             <td className="border-b border-console-border-soft px-3 py-[9px]">
               <ReservationStatusBadge status={row.status} />
             </td>
             <td className="border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
-              {row.guestName}
-            </td>
-            <td className="border-b border-console-border-soft px-3 py-[9px]">
               <Link
                 href={href}
-                className="num font-semibold text-console-accent hover:text-console-ink hover:underline"
+                className="hover:text-console-accent hover:underline"
               >
-                {row.reservationNo}
+                {row.guestName}
               </Link>
+            </td>
+            <td className="num border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
+              {row.reservationNo}
             </td>
             <td className="num border-b border-console-border-soft px-3 py-[9px] text-slate-600">
               {occupantsLabel(row.adults, row.children)}
@@ -233,7 +232,7 @@ function GroupRows({ group }: { group: ReservationGroup }) {
                 formatIDR(row.outstanding)
               )}
             </td>
-          </tr>
+          </ClickableReservationRow>
         );
       })}
     </>

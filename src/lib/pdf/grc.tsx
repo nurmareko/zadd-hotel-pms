@@ -1,5 +1,6 @@
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -28,6 +29,8 @@ type GrcProps = {
     children: number;
     purposeOfVisit: string | null;
     grcFilledAt: Date | null;
+    signatureDataUrl: string | null;
+    signedAt: Date | null;
     createdBy: {
       fullName: string;
     };
@@ -129,10 +132,20 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   signature: {
-    marginTop: 34,
+    marginTop: 12,
     marginLeft: "auto",
     width: 180,
     textAlign: "center",
+  },
+  signatureImageArea: {
+    height: 48,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  signatureImage: {
+    maxHeight: 44,
+    maxWidth: 176,
+    objectFit: "contain",
   },
   signatureLine: {
     borderTopWidth: 1,
@@ -247,11 +260,22 @@ export function Grc({
               value={dateTimeLabel(reservation.grcFilledAt)}
             />
             <Field label="Filled By" value={reservation.createdBy.fullName} />
+            <Field label="Signed At" value={dateTimeLabel(reservation.signedAt)} />
           </View>
         </View>
 
         <View style={styles.signature}>
-          <Text style={styles.signatureLine}>Tanda tangan tamu</Text>
+          <View style={styles.signatureImageArea}>
+            {reservation.signatureDataUrl ? (
+              // @react-pdf/renderer Image is not an HTML img and has no alt prop.
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image
+                src={reservation.signatureDataUrl}
+                style={styles.signatureImage}
+              />
+            ) : null}
+          </View>
+          <Text style={styles.signatureLine}>Tanda Tangan Tamu</Text>
         </View>
       </Page>
     </Document>

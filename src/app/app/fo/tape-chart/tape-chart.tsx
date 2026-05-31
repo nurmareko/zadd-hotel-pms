@@ -528,7 +528,7 @@ export function TapeChart({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Tape Chart
+            Kalender
           </h1>
         </div>
 

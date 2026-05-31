@@ -68,18 +68,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Front Office",
       links: [
         {
-          label: "Dashboard",
-          href: "/app/fo",
-          icon: LayoutDashboard,
-          activeMatch: "startsWith",
-          activePaths: [
-            { href: "/app/fo/check-in", match: "startsWith" },
-            { href: "/app/fo/check-out", match: "startsWith" },
-            { href: "/app/fo/folios", match: "startsWith" },
-          ],
-        },
-        {
-          label: "Tape Chart",
+          label: "Kalender",
           href: "/app/fo/tape-chart",
           icon: CalendarDays,
           activeMatch: "exact",
@@ -89,6 +78,17 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           href: "/app/fo/reservations",
           icon: ClipboardList,
           activeMatch: "startsWith",
+        },
+        {
+          label: "Dashboard",
+          href: "/app/fo/dashboard",
+          icon: LayoutDashboard,
+          activeMatch: "exact",
+          activePaths: [
+            { href: "/app/fo/check-in", match: "startsWith" },
+            { href: "/app/fo/check-out", match: "startsWith" },
+            { href: "/app/fo/folios", match: "startsWith" },
+          ],
         },
       ],
     },

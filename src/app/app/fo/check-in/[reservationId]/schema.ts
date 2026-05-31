@@ -59,6 +59,15 @@ const MoneySchema = z.preprocess(
     .min(0, "Jumlah deposit tidak boleh negatif"),
 );
 
+const SignatureDataUrlSchema = z
+  .string()
+  .min(1, "Tanda tangan tamu wajib diisi")
+  .max(2_000_000, "Ukuran tanda tangan terlalu besar. Hapus lalu coba lagi.")
+  .regex(
+    /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/,
+    "Format tanda tangan tidak valid. Hapus lalu coba lagi.",
+  );
+
 export const CheckInSchema = z
   .object({
     reservationId: z.coerce
@@ -83,6 +92,7 @@ export const CheckInSchema = z
       error: "Pilih tujuan kunjungan",
     }),
     purposeOfVisitOther: TextOrEmptySchema,
+    signatureDataUrl: SignatureDataUrlSchema,
     arrivalConfirmation: BooleanConfirmationSchema,
     depositAmount: MoneySchema,
     depositMethod: z
