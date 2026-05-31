@@ -50,6 +50,11 @@ export default async function HKDashboardPage() {
       include: {
         roomType: true,
         housekeepingLogs: { orderBy: { updatedAt: "desc" }, take: 1 },
+        reservations: {
+          where: { status: ReservationStatus.CHECKED_IN },
+          select: { id: true },
+          take: 1,
+        },
       },
       orderBy: { number: "asc" },
     }),
@@ -142,6 +147,7 @@ export default async function HKDashboardPage() {
       id: room.id,
       number: room.number,
       status: room.status,
+      isOccupied: room.reservations.length > 0,
       lastActivityLabel: relativeDurationLabel(lastActivity, now, true),
       href: roomDetailHref(room.id),
     });

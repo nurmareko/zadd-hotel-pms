@@ -1,10 +1,10 @@
 "use server";
 
 import { Prisma, RoomStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
 import {
   InspectRoomSchema,
@@ -13,29 +13,18 @@ import {
   type ActionResult,
 } from "./schema";
 
-const HK_ROOM_PATH_PREFIX = "/app/hk/rooms";
-const SYNC_PATHS = [
-  "/app/hk",
-  "/app/fo/tape-chart",
-  "/app/fo/dashboard",
-] as const;
-
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Input tidak valid";
 }
 
 function revalidateRoomPaths(roomId: number) {
-  revalidatePath(`${HK_ROOM_PATH_PREFIX}/${roomId}`);
-
-  for (const path of SYNC_PATHS) {
-    revalidatePath(path);
-  }
+  revalidateRoomStatusViews({ roomId });
 }
 
 async function requireHKUser() {
   const session = await auth();
 
-  if (session?.user.role !== "HK") {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
     return null;
   }
 
@@ -197,10 +186,13 @@ export async function stopCleaning(formData: FormData): Promise<ActionResult> {
 
         const now = new Date();
 
+        const nextStatus =
+          room.status === RoomStatus.OD ? RoomStatus.OC : RoomStatus.VCU;
+
         await tx.housekeepingLog.update({
           where: { id: activeLog.id },
           data: {
-            newStatus: RoomStatus.VCU,
+            newStatus: nextStatus,
             cleaningCompletedAt: now,
             updatedById: userId,
             updatedAt: now,
@@ -212,7 +204,7 @@ export async function stopCleaning(formData: FormData): Promise<ActionResult> {
 
         await tx.room.update({
           where: { id: roomId },
-          data: { status: RoomStatus.VCU },
+          data: { status: nextStatus },
         });
 
         return { ok: true as const };

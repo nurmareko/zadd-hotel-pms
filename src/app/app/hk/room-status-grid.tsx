@@ -2,11 +2,13 @@ import Link from "next/link";
 import type { RoomStatus } from "@prisma/client";
 
 import { StatusBadge } from "@/components/status-badge";
+import { RoomStatusControl } from "./room-status-control";
 
 export type RoomStatusGridRoom = {
   id: number;
   number: string;
   status: RoomStatus;
+  isOccupied: boolean;
   lastActivityLabel: string;
   href: string;
 };
@@ -78,21 +80,29 @@ export function RoomStatusGrid({ floors }: { floors: RoomStatusGridFloor[] }) {
               const classes = statusClassNames[room.status];
 
               return (
-                <Link
+                <article
                   key={room.id}
-                  href={room.href}
                   className={`min-h-[92px] border border-console-border bg-console-surface p-2.5 transition-colors ${classes.card}`}
                 >
-                  <div className="num text-[18px] font-bold leading-none text-console-ink">
-                    {room.number}
-                  </div>
-                  <div className="mt-2">
-                    <StatusPill status={room.status} />
-                  </div>
-                  <div className="mt-2 text-[10px] leading-snug text-slate-500">
-                    {room.lastActivityLabel}
-                  </div>
-                </Link>
+                  <Link href={room.href} className="block">
+                    <div className="num text-[18px] font-bold leading-none text-console-ink">
+                      {room.number}
+                    </div>
+                    <div className="mt-2">
+                      <StatusPill status={room.status} />
+                    </div>
+                    <div className="mt-2 text-[10px] leading-snug text-slate-500">
+                      {room.lastActivityLabel}
+                    </div>
+                  </Link>
+                  <RoomStatusControl
+                    key={`${room.status}-${room.isOccupied}`}
+                    roomId={room.id}
+                    roomNumber={room.number}
+                    status={room.status}
+                    isOccupied={room.isOccupied}
+                  />
+                </article>
               );
             })}
           </div>
