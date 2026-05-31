@@ -248,7 +248,7 @@
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-right: 7px solid #7f1d1d;
+  border-right: 7px solid rgb(255 255 255 / 0.88);
   content: "";
   transform: translateY(-50%);
 }
@@ -276,7 +276,7 @@
   height: 0;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
-  border-right: 6px solid #7f1d1d;
+  border-right: 6px solid rgb(255 255 255 / 0.88);
   content: "";
   transform: translateY(-50%);
 }
