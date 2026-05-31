@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 
 import type { AppRole } from "@/auth";
-import { getCurrentNavBadges } from "@/app/app/nav-badge-actions";
 import { Button } from "@/components/ui/button";
 import type { NavBadge, NavBadgeMap } from "@/lib/nav-badge-types";
 
@@ -203,6 +202,16 @@ function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
     ?.link.href;
 }
 
+async function fetchCurrentNavBadges(): Promise<NavBadgeMap> {
+  const response = await fetch("/api/nav-badges", { cache: "no-store" });
+
+  if (!response.ok) {
+    return {};
+  }
+
+  return response.json() as Promise<NavBadgeMap>;
+}
+
 function NavBadgePill({ badge }: { badge: NavBadge }) {
   return (
     <span
@@ -266,11 +275,15 @@ export function NavShell({
     let cancelled = false;
 
     startTransition(() => {
-      void getCurrentNavBadges().then((badges) => {
-        if (!cancelled) {
-          setNavBadges(badges);
-        }
-      });
+      void fetchCurrentNavBadges()
+        .then((badges) => {
+          if (!cancelled) {
+            setNavBadges(badges);
+          }
+        })
+        .catch(() => {
+          // Keep the last known badges if the refresh request fails.
+        });
     });
 
     return () => {
