@@ -4,6 +4,7 @@ import { CalendarCheck } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 
 export type ArrivalListRow = {
   id: number;
@@ -23,17 +24,17 @@ type ArrivalListProps = {
 };
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
-  const isConfirmed = status === "CONFIRMED";
+  const label = status.replaceAll("_", " ");
+
+  if (hasSharedReservationStatusColor(status)) {
+    return <StatusBadge label={label} reservationStatus={status} />;
+  }
 
   return (
     <StatusBadge
-      label={isConfirmed ? "Confirmed" : "Checked In"}
-      className={
-        isConfirmed
-          ? "border-status-oc-pip bg-status-oc-bg text-status-oc-fg"
-          : "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-      }
-      pipClassName={isConfirmed ? "bg-status-oc-pip" : "bg-status-vc-pip"}
+      label={label}
+      className="border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
+      pipClassName="bg-status-vc-pip"
     />
   );
 }

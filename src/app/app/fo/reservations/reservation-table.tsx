@@ -5,6 +5,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateID, formatDateWithWeekday, formatIDR } from "@/lib/format";
+import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 
 import { ClickableReservationRow } from "./clickable-reservation-row";
 
@@ -36,45 +37,29 @@ type ReservationTableProps = {
 
 const COLUMN_COUNT = 10;
 
-const statusClassNames: Record<
-  ReservationStatus,
-  { label: string; badge: string; pip: string }
-> = {
-  CONFIRMED: {
-    label: "Confirmed",
-    badge: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
-    pip: "bg-status-oc-pip",
-  },
-  CHECKED_IN: {
-    label: "Checked In",
-    badge: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
-    pip: "bg-status-vc-pip",
-  },
-  CHECKED_OUT: {
-    label: "Checked Out",
-    badge: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
-    pip: "bg-status-ooo-pip",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
-    pip: "bg-status-od-pip",
-  },
-  NO_SHOW: {
-    label: "No Show",
-    badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
-    pip: "bg-status-od-pip",
-  },
+const statusLabels: Record<ReservationStatus, string> = {
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No Show",
+};
+
+const noShowClassNames = {
+  badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
+  pip: "bg-status-od-pip",
 };
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
-  const classes = statusClassNames[status];
+  if (hasSharedReservationStatusColor(status)) {
+    return <StatusBadge label={statusLabels[status]} reservationStatus={status} />;
+  }
 
   return (
     <StatusBadge
-      label={classes.label}
-      className={classes.badge}
-      pipClassName={classes.pip}
+      label={statusLabels[status]}
+      className={noShowClassNames.badge}
+      pipClassName={noShowClassNames.pip}
     />
   );
 }

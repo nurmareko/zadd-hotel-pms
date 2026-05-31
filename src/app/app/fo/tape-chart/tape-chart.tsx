@@ -20,6 +20,7 @@ import {
   ROOM_LABEL_WIDTH,
   ROW_HEIGHT,
 } from "@/lib/tape-chart-layout";
+import { reservationStatusColors } from "@/lib/reservation-status-colors";
 import type {
   TapeChartData,
   TapeChartReservationData,
@@ -54,18 +55,18 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const reservationBarColors = {
   CONFIRMED: {
     label: "Confirmed",
-    bgColor: "#f97316",
-    textColor: "#ffffff",
+    bgColor: reservationStatusColors.CONFIRMED.backgroundColor,
+    textColor: reservationStatusColors.CONFIRMED.foregroundColor,
   },
   CHECKED_IN: {
     label: "Checked-in",
-    bgColor: "#047857",
-    textColor: "#ffffff",
+    bgColor: reservationStatusColors.CHECKED_IN.backgroundColor,
+    textColor: reservationStatusColors.CHECKED_IN.foregroundColor,
   },
   CHECKED_OUT: {
     label: "Checked-out",
-    bgColor: "#64748b",
-    textColor: "#ffffff",
+    bgColor: reservationStatusColors.CHECKED_OUT.backgroundColor,
+    textColor: reservationStatusColors.CHECKED_OUT.foregroundColor,
   },
   UNALLOCATED: {
     label: "Unallocated",

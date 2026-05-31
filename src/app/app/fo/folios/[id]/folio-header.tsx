@@ -8,6 +8,7 @@ import { differenceInCalendarDays } from "date-fns";
 
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateID } from "@/lib/format";
+import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 
 type FolioHeaderProps = {
   folio: {
@@ -44,19 +45,6 @@ const statusClassNames: Record<FolioStatus, string> = {
   [FolioStatus.VOIDED]: "bg-status-od-bg text-status-od-fg border-status-od-pip",
 };
 
-const reservationStatusClassNames: Record<ReservationStatus, string> = {
-  [ReservationStatus.CONFIRMED]:
-    "bg-status-oc-bg text-status-oc-fg border-status-oc-pip",
-  [ReservationStatus.CHECKED_IN]:
-    "bg-status-vc-bg text-status-vc-fg border-status-vc-pip",
-  [ReservationStatus.CHECKED_OUT]:
-    "bg-status-ooo-bg text-status-ooo-fg border-status-ooo-pip",
-  [ReservationStatus.CANCELLED]:
-    "bg-status-od-bg text-status-od-fg border-status-od-pip",
-  [ReservationStatus.NO_SHOW]:
-    "bg-status-vd-bg text-status-vd-fg border-status-vd-pip",
-};
-
 const reservationTypeLabels: Record<ReservationType, string> = {
   [ReservationType.INDIVIDUAL]: "Individual",
   [ReservationType.COMPANY]: "Company",
@@ -91,10 +79,19 @@ function FolioStatusBadge({ status }: { status: FolioStatus }) {
 }
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
+  if (hasSharedReservationStatusColor(status)) {
+    return (
+      <StatusBadge
+        label={status.replaceAll("_", " ")}
+        reservationStatus={status}
+      />
+    );
+  }
+
   return (
     <StatusBadge
-      label={status.replace("_", " ")}
-      className={reservationStatusClassNames[status]}
+      label={status.replaceAll("_", " ")}
+      className="bg-status-vd-bg text-status-vd-fg border-status-vd-pip"
     />
   );
 }
