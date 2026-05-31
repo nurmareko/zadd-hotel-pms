@@ -109,7 +109,7 @@ flowchart TD
     C --> F[Front Office:<br/>Manual charges<br/>e.g. laundry, minibar]
     C --> G[Accounting:<br/>Night audit posts<br/>room charge per night]
 
-    D --> H[Room status:<br/>OC → OD → VC]
+    D --> H[Room status:<br/>OC → OD → OC]
     E --> I{Payment method?}
     I -->|Cash| J[F&B order: paid directly]
     I -->|Charge to Room| K[Line item posted<br/>to guest folio]
@@ -201,14 +201,16 @@ flowchart TD
 
     C --> F[HK staff starts<br/>cleaning timer]
     F --> G[Cleaning in progress]
-    G --> H[HK staff stops timer,<br/>marks VCU]
-    H --> I[Room status:<br/>Vacant Clean Unchecked]
+    G --> H{Occupied stay?}
+    H -->|Yes| P[Room flips to OC]
+    H -->|No| I[Room status:<br/>Vacant Clean Unchecked]
     I --> J[Supervisor inspects]
     J --> K{Pass<br/>inspection?}
     K -->|Yes| L[Room flips to VC]
     K -->|No| M[Returns to VD<br/>for re-cleaning]
     M --> C
 
+    P --> Q([Room remains occupied])
     L --> N([Available for booking])
     D --> N
     E --> O([Closed for maintenance])
@@ -222,7 +224,7 @@ flowchart TD
 
 **Mobile-first:** HK staff operates from phones or tablets while walking the corridors. Every status update syncs immediately to the FO Tape Chart so receptionists see the live picture.
 
-**Inspection step:** the VCU intermediate state separates "I cleaned this" from "I verified this is ready." This catches sloppy cleaning before a guest checks in to a room that's only partially clean.
+**Inspection step:** for vacant rooms, the VCU intermediate state separates "I cleaned this" from "I verified this is ready." Occupied rooms return from OD to OC after mid-stay cleaning because they remain assigned to the in-house guest.
 
 **Audit trail:** every status change creates a `housekeeping_log` row capturing who, when, and the from→to transition. Useful for accountability and turnover analysis.
 

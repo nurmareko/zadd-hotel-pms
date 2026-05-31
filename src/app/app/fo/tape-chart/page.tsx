@@ -1,6 +1,6 @@
 import { addDays, isValid, parseISO } from "date-fns";
 
-import { dateOnlyBoundary } from "@/lib/date-only";
+import { dateOnlyBoundary, hotelTodayDateOnly, hotelTodayISO } from "@/lib/date-only";
 import { formatDateID, formatISODate, formatMonthDayID } from "@/lib/format";
 import { getTapeChartData } from "@/lib/tape-chart-data";
 
@@ -32,7 +32,9 @@ function parseStartDate(value: string | string[] | undefined) {
 }
 
 function getDefaultStartDate() {
-  return addDays(dateOnlyBoundary(new Date()), -DEFAULT_PAST_DAY_COUNT);
+  // Anchor the default window on the hotel timezone "today" so TODAY lands at
+  // column index DEFAULT_PAST_DAY_COUNT (2) instead of the UTC server date.
+  return addDays(hotelTodayDateOnly(), -DEFAULT_PAST_DAY_COUNT);
 }
 
 function getDateHref(startDate: Date) {
@@ -62,7 +64,7 @@ export default async function FoTapeChartPage({
   const days = buildDays(visibleStartDate);
   const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
   const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
-  const todayDate = dateOnlyBoundary(new Date());
+  const todayIso = hotelTodayISO();
   const todayStartDate = getDefaultStartDate();
 
   return (
@@ -70,7 +72,7 @@ export default async function FoTapeChartPage({
       <TapeChart
         data={chartData}
         days={days}
-        todayIso={formatISODate(todayDate)}
+        todayIso={todayIso}
         previousHref={getDateHref(previousStartDate)}
         nextHref={getDateHref(nextStartDate)}
         todayHref={getDateHref(todayStartDate)}

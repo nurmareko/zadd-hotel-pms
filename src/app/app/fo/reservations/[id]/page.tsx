@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
+import { RequestCleaningButton } from "./request-cleaning-button";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function ReservationDetailPage({
       where: { id: reservationId },
       include: {
         guest: true,
-        room: { select: { number: true } },
+        room: { select: { number: true, status: true } },
         roomType: { select: { name: true } },
       },
     }),
@@ -95,6 +96,9 @@ export default async function ReservationDetailPage({
   const canCancel =
     formMode === "view" &&
     reservation.status === ReservationStatus.CONFIRMED;
+  const canRequestCleaning =
+    formMode === "view" &&
+    reservation.status === ReservationStatus.CHECKED_IN;
   const defaultValues: CreateReservationInput = {
     fullName: reservation.guest.fullName,
     idNumber: reservation.guest.idNumber ?? "",
@@ -180,6 +184,12 @@ export default async function ReservationDetailPage({
             <CancelReservationDialog
               reservationId={reservation.id}
               reservationNo={reservation.reservationNo}
+            />
+          ) : null}
+          {canRequestCleaning ? (
+            <RequestCleaningButton
+              reservationId={reservation.id}
+              roomStatus={reservation.room?.status ?? null}
             />
           ) : null}
           {canCheckIn ? (

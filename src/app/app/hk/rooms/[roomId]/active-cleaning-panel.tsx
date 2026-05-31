@@ -42,7 +42,7 @@ export function ActiveCleaningPanel({
         return;
       }
 
-      toast.success("Pembersihan selesai, menunggu inspeksi");
+      toast.success("Pembersihan selesai");
       router.refresh();
     });
   }
