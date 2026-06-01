@@ -6,9 +6,9 @@ import {
   ReservationStatus,
   RoomStatus,
 } from "@prisma/client";
-import { addDays, startOfDay } from "date-fns";
+import { addDays } from "date-fns";
 
-import { dateOnlyBoundary } from "@/lib/date-only";
+import { dateOnlyBoundary, hotelTodayTimestampRange } from "@/lib/date-only";
 import { formatISODate, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -352,8 +352,10 @@ export async function buildNightAuditPlan({
 }): Promise<NightAuditPlan> {
   const businessDate = dateOnlyBoundary(now);
   const nextBusinessDate = addDays(businessDate, 1);
-  const timestampStart = startOfDay(now);
-  const timestampEnd = addDays(timestampStart, 1);
+  // Snapshot windows follow the live WIB calendar day. The audit business date
+  // above is deliberately separate and must retain its own advancement logic.
+  const { start: timestampStart, end: timestampEnd } =
+    hotelTodayTimestampRange(now);
   const postingLabel = formatISODate(dateOnlyBoundary(now));
 
   const [
