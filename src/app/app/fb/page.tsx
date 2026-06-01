@@ -1,7 +1,7 @@
 import { FBOrderStatus, TableLocation, TableStatus } from "@prisma/client";
-import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 
+import { hotelTodayTimestampRange } from "@/lib/date-only";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -56,8 +56,7 @@ export default async function FBLandingPage({
     : Object.values(TableLocation)[0];
   const selectedTableId = firstParam(params.tableId) ?? "";
   const now = new Date();
-  const today = startOfDay(now);
-  const tomorrow = addDays(today, 1);
+  const { start: today, end: tomorrow } = hotelTodayTimestampRange(now);
 
   const [tables, todayOrders, activeOrders] = await Promise.all([
     prisma.restaurantTable.findMany({
