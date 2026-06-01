@@ -20,7 +20,7 @@ Reference mockups: `docs/mockups/`. When in doubt, open the mockup.
 
 ## Color tokens
 
-Define once in `src/app/globals.css`, reference everywhere — including Tailwind's `theme.extend.colors`.
+Define once in `src/app/globals.css`, reference everywhere. Tailwind 4 utilities are bridged through the `@theme inline` block in that file.
 
 ### Slate base
 
@@ -133,23 +133,22 @@ Apply as actual values. Do not introduce new spacing tokens without updating thi
 
 ### Sidebar
 
-- Width: 220px desktop, 56px collapsed
+- Width: 240px desktop, fixed; not collapsible
 - Background: `--console-ink` (`#0a0e1a`)
 - Default text: `#6b7280`
 - Hover/active text: `--console-accent` (`#00d4aa`)
 - Active link: transparent background + left indicator `box-shadow: inset 2px 0 0 #00d4aa`
 - Group labels: 9px, uppercase, tracking-[0.12em], color `#4b5563`
 - Nav items: 12px, uppercase, tracking-[0.04em]
-- **No icons in nav** for desktop console theme — text-only is the convention. (Mobile bottom nav still uses Lucide icons for HK module.)
+- Desktop nav items include Lucide icons (14px) before the label.
 
 **Brand mark:** square outlined neon `[Z]` or similar — see mockup. Top-left of sidebar.
 
 ### Top bar
 
-- Height ~48px, white background
-- Bottom border: `1px solid #d1d5db`
-- Breadcrumbs left, business-date pill + user avatar right
-- Business-date pill: white, `#d1d5db` border, square corners, 10px uppercase, neon dot indicator
+- Mobile/coarse-pointer shell only; desktop identity and logout live in the fixed sidebar.
+- Sticky white background with `1px solid #d1d5db` bottom border.
+- Neon `[Z]` brand mark plus account identity and role on the left; logout icon action on the right.
 
 ### Page header
 
@@ -221,19 +220,16 @@ All buttons: 11px, uppercase, tracking-[0.04em], weight 600, border-radius 0, he
 
 Most visually complex screen in the app. Lock these conventions in for implementation:
 
-- **Grid:** room rows × date columns
-- **Sticky first column:** room number + type, white background, right border
-- **Sticky header row:** day-of-week (10px uppercase) above date (12px tabular num)
-- **Cell height:** 32px
-- **Tape Chart visual palette:** VC `#639922`, CNF `#378ADD`, IN `#7F77DD`, VD `#D85A30`, VCU `#EF9F27`, OOO `#888780`
-- **Cell content:** small inset div with `margin: 2px`:
-  - Status-colored background from the Tape Chart visual palette
-  - Left border 3px in status color for normal room states; dashed/dotted treatment for CNF/VCU as implemented
-  - Border-radius 0
-  - Text: 11px, weight 500, status-colored or slate-700
-  - Content: guest first name + last initial (e.g. "Andi P.") if occupied, status code if vacant
-- **Legend bar above grid:** 6 room status badges (VC, OC, VD, OD, VCU, OOO) plus Tape Chart reservation states (CNF, IN) + room/day count on the right
-- **Container:** card with `padding: 0`, `overflow: hidden`, `max-height: 520px` with internal scroll
+- **Grid skeleton:** room-type-grouped rows × date columns. Each collapsible room-type header shows room count and OOO count, followed by physical-room rows and an `Unallocated` row.
+- **Sticky first column:** 192px wide; room rows show room number, floor, and current room status. OOO rows use a grey striped treatment and are not bookable.
+- **Sticky header row:** 44px high; day-of-week (or `Today`) above date. Date columns are 80px wide.
+- **Row heights:** room rows are 32px; room-type group headers are 36px. The unallocated row uses one 32px lane minimum and grows by 32px for overlapping reservations.
+- **Reservation bars:** absolute-positioned overlays spanning arrival to departure boundaries, centered on date columns. Bars are 24px high (`32px` row minus `4px` vertical margin on each side), square-cornered, and show the guest name with ellipsis overflow.
+- **Reservation bar palette:** confirmed orange `#f97316`, checked-in emerald `#047857`, checked-out slate `#64748b`, unallocated blue `#2563eb`.
+- **Checkout marker:** when the departure boundary is visible in the current window, add a centered inward-facing white notch on the bar's right edge: `border-top: 5px solid transparent`, `border-bottom: 5px solid transparent`, and `border-right: 7px solid rgb(255 255 255 / 0.88)`. Do not show a notch when the bar is clipped because checkout falls outside the visible window.
+- **Empty cells:** physical-room and unallocated-lane cells are links to create a reservation with room or room-type and arrival date prefilled. OOO cells remain non-interactive.
+- **Legend bar above grid:** four reservation bars (Confirmed, Checked-in, Checked-out, Unallocated), the checkout-notch swatch, `Greyed rows = Out of Order`, and room/day count on the right.
+- **Container:** bordered card with `padding: 0`, internal horizontal and vertical scroll, `max-height: 560px` below 768px and `656px` from 768px upward.
 - **Scroll behavior:** both horizontal and vertical, sticky cells stay anchored
 
 Reference: open the design canvas in `docs/mockups/`.
@@ -265,12 +261,13 @@ Status badges elsewhere in F&B use the shared status token palette from `src/app
 
 ---
 
-## Mobile (Housekeeping)
+## Mobile and coarse-pointer navigation
 
-HK module is mobile-first.
+HK screens remain mobile-first, but the responsive navigation applies to every module. The desktop sidebar appears only at `min-width: 768px` with a fine pointer; coarse-pointer tablets keep the mobile UI.
 
-- Top bar: white, `1px solid #d1d5db` bottom, hotel name 13px uppercase tracking-[0.04em]
-- Bottom nav: white background, top border, icon-and-label cells
+- Top bar: white, `1px solid #d1d5db` bottom, account identity and logout action
+- Bottom nav: one role-scoped white tab bar across all modules, with top border and icon-and-label cells
+- Overflow: show at most 5 slots; the final slot becomes `Lainnya` when additional destinations need a bottom-sheet menu
 - Cards stack vertically with 12px gap
 - Tap targets minimum 44×44px
 - Status pills slightly larger here (24px tall vs 20px desktop) for thumb readability
@@ -281,9 +278,24 @@ HK module is mobile-first.
 
 ### `src/app/globals.css`
 
-Put tokens under `@layer base`:
+Define raw tokens under `@layer base`, then expose Tailwind 4 utility aliases through `@theme inline`:
 
 ```css
+@theme inline {
+  --color-console-bg: var(--console-bg);
+  --color-console-surface: var(--console-surface);
+  --color-console-ink: var(--console-ink);
+  --color-console-accent: var(--console-accent);
+  --color-console-border: var(--console-border);
+  --color-console-border-soft: var(--console-border-soft);
+  --color-status-vc-bg: var(--emerald-50);
+  --color-status-vc-fg: var(--emerald-700);
+  --color-status-vc-pip: var(--emerald-500);
+  /* ...etc, all shared status aliases... */
+  --font-sans: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
 @layer base {
   :root {
     /* slate */
@@ -319,28 +331,13 @@ Put tokens under `@layer base`:
 
 ### `tailwind.config.ts`
 
-Extend so `bg-console-ink`, `text-console-accent`, etc. work:
+Keep the custom `desktop` breakpoint pointer-aware. Color utilities such as `bg-console-ink` and `text-status-vc-fg` are exposed by `@theme inline` in `globals.css`. Existing compatibility extensions remain in this config, but add new Tailwind 4 token aliases to `globals.css` first.
 
 ```ts
 theme: {
   extend: {
-    colors: {
-      console: {
-        bg: "var(--console-bg)",
-        surface: "var(--console-surface)",
-        ink: "var(--console-ink)",
-        accent: "var(--console-accent)",
-        border: "var(--console-border)",
-        "border-soft": "var(--console-border-soft)",
-      },
-      status: {
-        "vc-bg":  "var(--emerald-50)",  "vc-fg":  "var(--emerald-700)",  "vc-pip":  "var(--emerald-500)",
-        "oc-bg":  "var(--blue-50)",     "oc-fg":  "var(--blue-700)",     "oc-pip":  "var(--blue-500)",
-        "vd-bg":  "var(--amber-50)",    "vd-fg":  "var(--amber-600)",    "vd-pip":  "var(--amber-500)",
-        "vcu-bg": "var(--yellow-50)",   "vcu-fg": "var(--yellow-700)",   "vcu-pip": "var(--yellow-500)",
-        "od-bg":  "var(--red-50)",      "od-fg":  "var(--red-600)",      "od-pip":  "var(--red-500)",
-        "ooo-bg": "var(--slate-100)",   "ooo-fg": "var(--slate-600)",    "ooo-pip": "var(--slate-500)",
-      },
+    screens: {
+      desktop: { raw: "(min-width: 768px) and (pointer: fine)" },
     },
     fontFamily: {
       sans: ['ui-monospace', '"JetBrains Mono"', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
@@ -354,7 +351,7 @@ theme: {
 
 ### Existing screens
 
-The Admin module (already shipped) will need a styling pass to match this language. **Do not retrofit while mid-FO-module work.** Schedule a dedicated "console-theme migration" session after FO is in flight.
+Existing screens consume the shared Console tokens and utility aliases. When adding a visual pattern, extend the shared token set rather than introducing a screen-local palette without documenting it.
 
 ---
 
@@ -370,5 +367,5 @@ The Admin module (already shipped) will need a styling pass to match this langua
 ## When to update this doc
 
 - A new screen introduces a visual pattern not listed here → document it here, don't reinvent in the next screen
-- A token value changes → update here AND in `globals.css`/`tailwind.config.ts` simultaneously
+- A token value changes → update here AND in `globals.css`; update `tailwind.config.ts` too when the change affects its breakpoint or compatibility extensions
 - A teammate proposes a deviation → discuss in team chat, decide once, document the decision
