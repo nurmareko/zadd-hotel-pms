@@ -12,16 +12,16 @@ Diagrams use Mermaid flowchart syntax with subgraphs representing actor lanes (a
 
 **Use case:** UC-FO-01 Kelola Reservasi (Create)
 **Actors:** Front Office staff (Receptionist), System
-**Trigger:** Guest inquiry, walk-in, or Tape Chart empty-cell click
+**Trigger:** Guest inquiry, walk-in, or Kalender empty-cell click
 
 ```mermaid
 flowchart TD
     Start([Receptionist receives inquiry])
 
     subgraph R[Receptionist]
-        R1[Open Reservation Form]
+        R1{Opened from empty<br/>Kalender cell?}
         R2[Enter guest information<br/>name, ID, phone, email]
-        R3[Enter stay details<br/>dates, room type, arrangement]
+        R3[Enter stay details<br/>dates, room type, arrangement,<br/>optional physical room]
         R4[Adjust rate amount if needed]
         R5[Set reservation type<br/>Individual/Company/etc.]
         R6[Submit form]
@@ -29,50 +29,118 @@ flowchart TD
     end
 
     subgraph S[System]
+        S0[Prefill room or room type<br/>and stay dates]
         S1[Validate input via Zod schema]
         S2{Validation pass?}
-        S3[Check room availability<br/>for date range]
-        S4{Any overlapping<br/>active reservation?}
-        S5[Begin transaction]
-        S6[Generate reservation_no<br/>RSV-DDMM-NNNN]
-        S7[Create Guest record]
-        S8[Create Reservation record<br/>status: CONFIRMED]
-        S9[Commit transaction]
-        S10[Revalidate Tape Chart<br/>and List views]
-        S11[Show validation errors]
-        S12[Show conflict error]
+        S3[Begin Serializable transaction]
+        S4{Guest count within<br/>RoomType.capacity?}
+        S5[Check room-type inventory capacity<br/>for date range, including<br/>unallocated reservations]
+        S6{Physical-room inventory<br/>still available?}
+        S7{Physical room allocated?}
+        S8[Check assigned-room overlap<br/>inside transaction]
+        S9{Assigned room still free?}
+        S10[Generate reservation_no<br/>RSV-yyMMdd-NNNN]
+        S11[Create Guest record]
+        S12[Create Reservation record<br/>status: CONFIRMED<br/>roomId may be NULL]
+        S13[Commit transaction]
+        S14[Revalidate Kalender<br/>and List views]
+        S15[Show validation or<br/>capacity error]
+        S16[Show availability conflict]
     end
 
-    End([Reservation visible<br/>on Tape Chart])
+    End([Reservation visible<br/>on Kalender])
 
-    Start --> R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> S1
+    Start --> R1
+    R1 -->|Yes| S0 --> R2
+    R1 -->|No| R2
+    R2 --> R3 --> R4 --> R5 --> R6 --> S1
     S1 --> S2
-    S2 -->|No| S11 --> R3
+    S2 -->|No| S15 --> R3
     S2 -->|Yes| S3 --> S4
-    S4 -->|Yes| S12 --> R3
-    S4 -->|No| S5 --> S6 --> S7 --> S8 --> S9 --> S10 --> R7 --> End
+    S4 -->|No| S15
+    S4 -->|Yes| S5 --> S6
+    S6 -->|No| S16 --> R3
+    S6 -->|Yes| S7
+    S7 -->|No| S10
+    S7 -->|Yes| S8 --> S9
+    S9 -->|No| S16
+    S9 -->|Yes| S10
+    S10 --> S11 --> S12 --> S13 --> S14 --> R7 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style S2 fill:#fffbeb
     style S4 fill:#fffbeb
-    style S5 fill:#eff6ff
-    style S9 fill:#eff6ff
-    style S11 fill:#fef2f2
-    style S12 fill:#fef2f2
+    style S6 fill:#fffbeb
+    style S7 fill:#fffbeb
+    style S9 fill:#fffbeb
+    style S3 fill:#eff6ff
+    style S13 fill:#eff6ff
+    style S15 fill:#fef2f2
+    style S16 fill:#fef2f2
 ```
 
 **Key logic:**
 
-- **Two validation gates:** Zod (form-level: required fields, formats) and overlap check (data-level: business rule). Both must pass before transaction begins.
-- **Atomic creation:** Guest and Reservation are created in a single Prisma transaction. Reservation cannot exist without an associated Guest, so partial writes are prevented at the DB level.
-- **Reservation number generation:** the `RSV-DDMM-NNNN` format uses today's date plus a sequential counter for the day. Counter is computed inside the transaction to prevent race conditions if two reservations are created simultaneously.
+- **Optional allocation:** a reservation may be saved with `roomId = NULL`. If creation starts from an empty Kalender cell, room or room-type and date inputs are prefilled; the receptionist can still leave the physical room unallocated.
+- **Two capacity meanings:** `RoomType.capacity` limits guests per room. Overbooking prevention uses inventory capacity: the number of physical rooms registered for the selected room type. Active unallocated reservations consume that inventory too.
+- **Defensive checks inside the transaction:** inventory capacity and any assigned-room overlap are checked again inside the Serializable transaction before Guest and Reservation rows are created.
+- **Reservation number generation:** the `RSV-yyMMdd-NNNN` format uses the hotel date plus a sequential counter for the day. The counter is computed inside the transaction to prevent race conditions if two reservations are created simultaneously.
 
 ---
 
-## 2. Process Check-in
+## 2. Cancel Confirmed Reservation
 
-**Use case:** UC-FO-02 Proses Check-in
+**Use case:** UC-FO-02 Batalkan Reservasi
+**Actors:** Front Office staff (Receptionist), System
+**Trigger:** Receptionist cancels a reservation from its detail screen
+**Precondition:** Reservation status is CONFIRMED and no folio exists
+
+```mermaid
+flowchart TD
+    Start([Receptionist opens<br/>reservation detail])
+
+    subgraph R[Receptionist]
+        R1[Click Cancel Reservation]
+        R2[Review confirmation dialog]
+        R3[Confirm cancellation]
+    end
+
+    subgraph S[System]
+        S1[Begin transaction]
+        S2[Re-verify status CONFIRMED<br/>and folio does not exist]
+        S3{Still cancellable?}
+        S4[Update Reservation:<br/>status CANCELLED]
+        S5[Commit transaction]
+        S6[Revalidate Kalender,<br/>active list, and detail]
+        S7[Show cancellation error]
+    end
+
+    End([Inventory capacity released;<br/>reservation leaves active views])
+
+    Start --> R1 --> R2 --> R3 --> S1 --> S2 --> S3
+    S3 -->|No| S7
+    S3 -->|Yes| S4 --> S5 --> S6 --> End
+
+    style Start fill:#ecfdf5
+    style End fill:#ecfdf5
+    style S3 fill:#fffbeb
+    style S1 fill:#eff6ff
+    style S5 fill:#eff6ff
+    style S7 fill:#fef2f2
+```
+
+**Key logic:**
+
+- **Restricted transition:** only `CONFIRMED → CANCELLED` is allowed. Checked-in and checked-out stays cannot use this flow.
+- **Capacity release:** cancelled reservations no longer count toward room-type inventory capacity and are omitted from the default active Kalender and reservation-list views.
+- **Transactional guard:** status and folio absence are re-checked inside the transaction to handle concurrent operations safely.
+
+---
+
+## 3. Process Check-in
+
+**Use case:** UC-FO-03 Proses Check-in
 **Actors:** Front Office staff (Receptionist), Guest, System
 **Trigger:** Guest arrives at the hotel on or after the reservation's arrival date
 **Precondition:** Reservation status is CONFIRMED, arrival date ≤ today
@@ -83,31 +151,30 @@ flowchart TD
 
     subgraph G[Guest]
         G1[Present identification]
-        G2[Sign printed GRC]
+        G2[Sign GRC on screen]
     end
 
     subgraph R[Receptionist]
         R1[Look up reservation]
-        R2[Print GRC for signature]
-        R3[Hand GRC to guest]
-        R4[Confirm/update<br/>guest details on screen]
-        R5{Room pre-assigned?}
-        R6[Confirm or change<br/>assigned room]
-        R7[Pick available room<br/>of booked type]
-        R8[Set purpose of visit]
-        R9[Optionally record deposit]
-        R10[Tick confirmation checkbox]
-        R11[Click Complete Check-In]
+        R2[Confirm/update<br/>guest details on screen]
+        R3{Room pre-assigned?}
+        R4[Confirm or change<br/>assigned room]
+        R5[Pick available room<br/>of booked type]
+        R6[Set purpose of visit]
+        R7[Present signature pad]
+        R8[Optionally record deposit]
+        R9[Tick confirmation checkbox]
+        R10[Click Complete Check-In]
     end
 
     subgraph S[System]
-        S1[Re-verify reservation<br/>is still CONFIRMED]
-        S2{Status valid?}
-        S3[Re-check room overlap<br/>defensive inside transaction]
-        S4{Room still available?}
-        S5[Begin transaction]
+        S1[Begin transaction]
+        S2[Re-verify reservation<br/>is still CONFIRMED]
+        S3{Status valid?}
+        S4[Re-check room overlap<br/>defensive inside transaction]
+        S5{Room still available?}
         S6[Update Guest record]
-        S7[Update Reservation:<br/>status CHECKED_IN,<br/>roomId set, GRC filled]
+        S7[Update Reservation:<br/>status CHECKED_IN, roomId set,<br/>signatureDataUrl + signedAt saved]
         S8[Create Folio:<br/>status OPEN, folioNo generated]
         S9[Update Room: status OC]
         S10{Deposit recorded?}
@@ -121,27 +188,26 @@ flowchart TD
     End([Folio screen open])
 
     Start --> G1 --> R1
-    R1 --> R2 --> R3 --> G2 --> R4
-    R4 --> R5
-    R5 -->|Yes| R6 --> R8
-    R5 -->|No| R7 --> R8
-    R8 --> R9 --> R10 --> R11 --> S1
-    S1 --> S2
-    S2 -->|No| S14
-    S2 -->|Yes| S3 --> S4
-    S4 -->|No| S15
-    S4 -->|Yes| S5 --> S6 --> S7 --> S8 --> S9 --> S10
+    R1 --> R2 --> R3
+    R3 -->|Yes| R4 --> R6
+    R3 -->|No| R5 --> R6
+    R6 --> R7 --> G2 --> R8 --> R9 --> R10 --> S1
+    S1 --> S2 --> S3
+    S3 -->|No| S14
+    S3 -->|Yes| S4 --> S5
+    S5 -->|No| S15
+    S5 -->|Yes| S6 --> S7 --> S8 --> S9 --> S10
     S10 -->|Yes| S11 --> S12
     S10 -->|No| S12
     S12 --> S13 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
-    style R5 fill:#fffbeb
-    style S2 fill:#fffbeb
-    style S4 fill:#fffbeb
+    style R3 fill:#fffbeb
+    style S3 fill:#fffbeb
+    style S5 fill:#fffbeb
     style S10 fill:#fffbeb
-    style S5 fill:#eff6ff
+    style S1 fill:#eff6ff
     style S12 fill:#eff6ff
     style S14 fill:#fef2f2
     style S15 fill:#fef2f2
@@ -149,14 +215,14 @@ flowchart TD
 
 **Key logic:**
 
-- **GRC printed before check-in completion:** the receptionist prints the GRC first so the guest can physically sign. The form is then completed in the system based on what the guest filled in by hand.
+- **Required digital GRC signature:** the guest signs on screen before submission. The transaction saves `signatureDataUrl` and `signedAt` with the check-in update, and the GRC PDF embeds the captured signature.
 - **Defensive re-verification:** the system re-checks status and room availability inside the transaction. The window between form-open and form-submit could let another receptionist book the same room, so the final check happens during commit.
 - **Conditional payment creation:** the transaction creates a Payment record only if `depositAmount > 0`. The optional deposit doesn't fork the transaction structurally — it adds one more operation inside the same atomic block.
 - **Four state changes in one commit:** Guest update, Reservation update, Folio creation, Room update (and optional Payment) all succeed together or roll back together. This is the strongest data integrity guarantee in the system.
 
 ---
 
-## 3. Process F&B Order
+## 4. Process F&B Order
 
 **Use case:** UC-FB-01 Create Captain Order, UC-FB-02 Process F&B Bill, UC-FB-03 Proses Pembayaran F&B
 **Actors:** F&B staff (Waiter), System
@@ -285,7 +351,7 @@ flowchart TD
 
 ---
 
-## 4. Process Check-out (with «include» Verify Zero-Balance)
+## 5. Process Check-out (with «include» Verify Zero-Balance)
 
 **Use case:** UC-FO-04 Proses Check-out with «include» Verifikasi Zero-Balance
 **Actors:** Front Office staff (Receptionist), Guest, System
@@ -363,26 +429,28 @@ flowchart TD
 
 ---
 
-## 5. Update Room Status
+## 6. Update Room Status
 
-**Use case:** UC-HK-02 Update Status Kamar with VCU inspection workflow
-**Actors:** Housekeeping staff, Housekeeping supervisor (same person in MVP, future role), System
-**Trigger:** HK staff finishes cleaning a room, OR receives notification that room needs cleaning
-**Note:** The VCU intermediate state described here is a forward-looking design. MVP shipping initially uses VD → VC directly; VCU inspection is added in a subsequent HK module update.
+**Use case:** UC-HK-02 Update Status Kamar with cleaning timer and VCU inspection workflow
+**Actors:** Front Office staff, Housekeeping staff, Housekeeping supervisor (same person in MVP, future role), System
+**Trigger:** HK sees a vacant dirty room after check-out, or FO requests cleaning for an in-house room
 
 ```mermaid
 flowchart TD
-    Start([Room needs cleaning<br/>status: VD or OD])
+    Start([Room needs cleaning])
+
+    subgraph FO[Front Office Staff]
+        FO1{In-house guest<br/>requests cleaning?}
+        FO2[Open reservation detail<br/>and request cleaning]
+    end
 
     subgraph HK[Housekeeping Staff]
         HK1[Open HK Dashboard<br/>on mobile]
         HK2[Tap the dirty room]
-        HK3[Tap Update Status]
-        HK4[Tap Start Cleaning timer]
-        HK5[Clean the room]
-        HK6[Tap Stop Cleaning timer]
-        HK7[Tap Mark Vacant Clean Unchecked]
-        HK8[Add optional note]
+        HK3[Tap Start Cleaning timer]
+        HK4[Clean the room]
+        HK5[Tap Stop Cleaning timer]
+        HK6[Add optional note and<br/>linen/towel flags]
     end
 
     subgraph HS[HK Supervisor]
@@ -394,43 +462,59 @@ flowchart TD
     end
 
     subgraph S[System]
+        S0[Update Room status:<br/>OC → OD]
         S1[Record cleaning_started_at<br/>on new housekeeping_log row]
         S2[Record cleaning_completed_at<br/>on the log row]
-        S3[Update Room status: VCU]
-        S4[Sync Tape Chart for FO]
-        S5[Update Room status: VC]
-        S6[Update Room status: VD]
-        S7[Append new housekeeping_log row<br/>for inspection event]
+        S3{Room occupied?}
+        S4[Update Room status:<br/>OD → OC]
+        S5[Update Room status:<br/>VD → VCU]
+        S6[Sync Kalender and FO views]
+        S7[Update Room status:<br/>VCU → VC]
+        S8[Update Room status:<br/>VCU → VD]
+        S9[Append new housekeeping_log row<br/>for inspection event]
     end
 
     End1([Room available for booking])
     End2([Room needs re-cleaning])
+    End3([Occupied room clean;<br/>guest remains in-house])
 
-    Start --> HK1 --> HK2 --> HK3 --> HK4 --> S1 --> HK5 --> HK6 --> S2 --> HK7 --> HK8 --> S3 --> S4 --> HS1
+    Start --> FO1
+    FO1 -->|Yes| FO2 --> S0 --> HK1
+    FO1 -->|No, vacant VD| HK1
+    HK1 --> HK2 --> HK3 --> S1 --> HK4 --> HK5 --> HK6 --> S2 --> S3
+    S3 -->|Yes| S4 --> S6 --> End3
+    S3 -->|No| S5 --> S6 --> HS1
     HS1 --> HS2 --> HS3
-    HS3 -->|Yes| HS4 --> S5 --> S7 --> End1
-    HS3 -->|No| HS5 --> S6 --> S7 --> End2
+    HS3 -->|Yes| HS4 --> S7 --> S9 --> End1
+    HS3 -->|No| HS5 --> S8 --> S9 --> End2
     End2 -.->|Returns to cleaning queue| HK1
 
     style Start fill:#ecfdf5
     style End1 fill:#ecfdf5
+    style End3 fill:#ecfdf5
     style End2 fill:#fffbeb
+    style FO1 fill:#fffbeb
+    style S3 fill:#fffbeb
     style HS3 fill:#fffbeb
-    style S3 fill:#eff6ff
+    style S0 fill:#eff6ff
+    style S4 fill:#eff6ff
     style S5 fill:#eff6ff
-    style S6 fill:#fef2f2
+    style S7 fill:#eff6ff
+    style S8 fill:#fef2f2
 ```
 
 **Key logic:**
 
 - **Timer pair:** `cleaning_started_at` and `cleaning_completed_at` are stored on the same housekeeping_log row. Duration is derived (end - start), not stored separately. This allows for "in-progress" detection: rows with non-null start and null end mean cleaning is currently happening.
+- **Occupied-room loop:** FO can request cleaning from an in-house reservation detail, changing the room from `OC → OD`. When HK stops cleaning an occupied room, the room returns directly to `OC`.
+- **Vacant-room inspection:** stopping cleaning for a vacant dirty room changes `VD → VCU`. Inspection then approves `VCU → VC` or rejects `VCU → VD`.
 - **Single role enforcement in MVP:** the HK staff and HK supervisor are the same user role in MVP (any HK user can clean and inspect). In a future revision with proper role hierarchy, the inspect action would be gated to a supervisor sub-role.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
-- **Tape Chart sync:** every status change triggers Tape Chart re-render. The FO receptionist sees room status updates in near-real-time without manual refresh.
+- **Kalender sync:** every status change revalidates Front Office views. The FO receptionist sees room status updates without maintaining a separate room-status widget on Dashboard.
 
 ---
 
-## 6. Run Night Audit
+## 7. Run Night Audit
 
 **Use case:** UC-AC-01 Jalankan Night Audit
 **Actors:** Accounting staff (Night Auditor), System
@@ -533,4 +617,4 @@ This document covers the use cases with non-trivial decision logic or multi-acto
 | UC-AD-01 Manage Master Data | CRUD operations; covered by use case narrative |
 | UC-AD-02 Manage Users & Roles | CRUD operations; covered by use case narrative |
 
-The six diagrams above capture the operationally-interesting flows. Read in sequence with the business process document for a complete picture of how the system behaves.
+The seven diagrams above capture the operationally-interesting flows. Read in sequence with the business process document for a complete picture of how the system behaves.

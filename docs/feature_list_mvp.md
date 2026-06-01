@@ -2,7 +2,7 @@
 
 What we're building in the MVP, grouped by module. Features deferred to later releases are listed at the end with rationale.
 
-Last updated: 2026-05-27.
+Last updated: 2026-06-01.
 
 ---
 
@@ -10,15 +10,18 @@ Last updated: 2026-05-27.
 
 Supports the guest lifecycle from booking to final payment.
 
-- **Front Office dashboard** — KPI cards, arrivals, departures, room-status summary, and recent activity.
-- **Reservation management** — create, edit, and cancel reservations with guest data, stay dates, room type, and rate.
-- **Tape Chart** — occupancy visualization as a room × date grid with color-coded status. Main workspace for front desk staff.
-- **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, print the GRC, and auto-open the folio.
+- **Front Office dashboard** — KPI cards, arrivals, departures, in-house count, occupancy, and recent activity.
+- **Reservation management** — create and edit reservations with guest data, stay dates, room type, optional physical-room allocation, and rate. Confirmed reservations can be cancelled (`CONFIRMED → CANCELLED`), releasing room-type inventory capacity and disappearing from the active list and Kalender.
+- **Kalender (Tape Chart)** — default Front Office landing page: occupancy visualization as a room × date grid with unified status colors, room-type groups, unallocated-reservation lanes, and a checkout marker. Clicking an empty cell opens the reservation form with Kalender context prefilled.
+- **Overbooking prevention** — reservation create/edit checks room-type inventory capacity (the number of registered physical rooms for that type) across the stay, including unallocated reservations.
+- **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, capture the guest's required digital signature on screen, save `signatureDataUrl` and `signedAt`, embed the signature in the GRC PDF, and auto-open the folio.
 - **Guest Folio** — line-item charges, manual charge posting by staff, payment recording (cash, transfer, card), and post-check-in GRC printing.
+- **Reservation detail** — Details and Folio tabs keep reservation operations and folio access together.
 - **Check-out** — zero-balance verification, final payment processing, and auto-update of room status to Vacant Dirty.
+- **Room cleaning request** — Front Office can mark an in-house room as `Occupied Dirty` (`OC → OD`) for mid-stay cleaning.
 - **Bill printing** — guest bill is downloadable as PDF for archiving or physical printing.
 - **Tipe Reservasi** — categorization for reporting: Individual, Company, Government, OTA, Walk-in.
-- **Tipe Arrangement** — rate package stored on Reservation: Room Only, Room + Breakfast, Full Board Meeting; ACC auto-posting is deferred to Night Audit work.
+- **Tipe Arrangement** — rate package stored on Reservation: Room Only, Room + Breakfast, Full Board Meeting. Night Audit auto-posts arrangement-driven daily room charges to guest folios.
 - **Komentar Reservasi** — free-text notes field on reservations.
 - **Cetak Guest Registration Card** — downloadable PDF GRC from reservation detail/pre-check-in, check-in, and folio/post-check-in.
 
@@ -52,7 +55,7 @@ Shipped point-of-sale operations for the hotel restaurant.
 In progress — screens shipped, full workflow being completed. The spec below keeps the intended daily-close workflow; advanced behaviors are planned/in-progress where noted.
 
 - **Accounting dashboard** — `/app/acc` shows today's night audit status, running revenue snapshot, and audit history. Unprocessed-posting indicator is planned/in-progress.
-- **Night Audit** — `/app/acc/night-audit` includes prerequisite checklist and daily-close execution. Full workflow remains the target: business-date advancement/locking, open-F&B-order handling, audit-time cutoff enforcement, audit lifecycle states beyond COMPLETED, and arrangement-driven posting to guest folios are planned/in-progress.
+- **Night Audit** — `/app/acc/night-audit` includes prerequisite checklist, daily-close execution, and arrangement-driven posting to guest folios. Business-date advancement/locking, open-F&B-order handling, audit-time cutoff enforcement, and audit lifecycle states beyond COMPLETED remain planned/in-progress.
 - **Night Report** — `/app/acc/reports/[auditId]` shows the consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
 
 ## Admin
@@ -71,8 +74,10 @@ Managed by the supervising lecturer. Master data only.
 Shared access features used by all role workspaces.
 
 - **Role-based login** — credentials login routes each user to the correct FO/HK/FB/ACC/Admin workspace.
-- **Console-themed login** — login screen follows the Console theme and includes collapsible demo credentials.
+- **Console-themed login** — login screen follows the Console theme and exposes direct demo-account buttons.
 - **Self-service profile** — authenticated users can view account/role metadata and change their own password.
+- **Responsive navigation** — desktop sidebar and one shared mobile bottom tab bar for all roles, including coarse-pointer tablets. The only navigation badge is ACC's pending Night Audit indicator.
+- **Hotel-timezone dates** — all operational "today" calculations use WIB (`Asia/Jakarta`).
 
 ---
 

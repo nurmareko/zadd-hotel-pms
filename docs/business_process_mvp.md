@@ -45,10 +45,10 @@ flowchart TD
     E -->|No| F[Suggest alternative<br/>dates / room type]
     F --> D
     E -->|Yes| G[Set rate amount,<br/>deposit, reservation type]
-    G --> H[Generate reservation_no<br/>e.g. RSV-DDMM-NNNN]
+    G --> H[Generate reservation_no<br/>e.g. RSV-yyMMdd-NNNN]
     H --> I[Create Guest row]
     I --> J[Create Reservation row<br/>status: CONFIRMED]
-    J --> K[Reservation appears<br/>on Tape Chart]
+    J --> K[Reservation appears<br/>on Kalender]
     K --> L([End])
 
     style A fill:#ecfdf5
@@ -57,7 +57,7 @@ flowchart TD
     style L fill:#f1f5f9
 ```
 
-**Decision point:** room availability check is the gating condition. The system prevents double-booking by checking active reservations (CONFIRMED or CHECKED_IN) overlapping the requested date range.
+**Decision point:** room-type inventory availability is the gating condition. The system prevents overbooking by counting overlapping active reservations (`CONFIRMED` or `CHECKED_IN`), including unallocated reservations, against the number of registered physical rooms for the selected type. Physical-room allocation remains optional until check-in.
 
 **Atomic transaction:** Guest + Reservation creation happens in a single Prisma transaction. If reservation_no generation conflicts (race condition), the transaction rolls back and a new number is generated.
 
@@ -70,12 +70,12 @@ How a CONFIRMED reservation becomes a CHECKED_IN active stay. Creates the folio 
 ```mermaid
 flowchart TD
     A([Guest arrives]) --> B[Receptionist finds<br/>reservation in system]
-    B --> C[Optional: Print GRC<br/>for guest signature]
-    C --> D[Confirm/update<br/>guest details]
+    B --> C[Confirm/update<br/>guest details]
+    C --> D[Capture required GRC<br/>signature on screen]
     D --> E{Room pre-assigned<br/>during reservation?}
     E -->|Yes| F[Confirm or change<br/>assigned room]
     E -->|No| G[Pick available room<br/>of booked type]
-    F --> H[Fill GRC inline:<br/>purpose of visit]
+    F --> H[Complete GRC inline:<br/>purpose of visit]
     G --> H
     H --> I[Optional:<br/>Record deposit]
     I --> J[Receptionist confirms<br/>check-in checklist]
@@ -92,6 +92,8 @@ flowchart TD
 **Why atomic:** the four state changes must succeed together or roll back together. A reservation that's CHECKED_IN without a folio is data corruption; a room that's OC without a guest assigned is data corruption.
 
 **Defensive overlap re-check:** even though availability was checked when the form opened, it re-checks inside the transaction. The window between form-open and form-submit could allow another receptionist to book the same room. The transaction's overlap check catches this.
+
+**Digital GRC signature:** the guest signs on screen before completion. `signatureDataUrl` and `signedAt` are saved transactionally with check-in and the signature is embedded in the downloadable GRC PDF.
 
 ---
 
@@ -167,7 +169,7 @@ flowchart TD
     J --> K[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
     K --> L[Generate PDF bill]
     L --> M([Guest leaves])
-    M --> N[Housekeeping notified<br/>via Tape Chart]
+    M --> N[Housekeeping notified;<br/>Kalender reflects VD]
     N --> O([Room cleaning cycle])
 
     style A fill:#ecfdf5
@@ -187,7 +189,7 @@ flowchart TD
 
 ## 6. Housekeeping Process
 
-Room cleaning lifecycle. Operates independently from FO transactions but feeds room status back to the Tape Chart.
+Room cleaning lifecycle. Operates independently from FO transactions but feeds room status back to Kalender.
 
 ```mermaid
 flowchart TD
@@ -222,7 +224,7 @@ flowchart TD
     style O fill:#f1f5f9
 ```
 
-**Mobile-first:** HK staff operates from phones or tablets while walking the corridors. Every status update syncs immediately to the FO Tape Chart so receptionists see the live picture.
+**Mobile-first:** HK staff operates from phones or tablets while walking the corridors. Every status update syncs immediately to FO Kalender so receptionists see the live picture.
 
 **Inspection step:** for vacant rooms, the VCU intermediate state separates "I cleaned this" from "I verified this is ready." Occupied rooms return from OD to OC after mid-stay cleaning because they remain assigned to the in-house guest.
 

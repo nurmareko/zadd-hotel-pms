@@ -35,13 +35,13 @@ A single guest lifecycle that exercises **every module and every cross-module se
 
 ### 2. FO — create a reservation
 **Action:** As `fo1`, create a new reservation. Choose room type, stay dates, **arrangement = RB or FBM**, reservation type, set rate + deposit.
-**Verify:** Reservation gets a number (RSV-...), appears on the Tape Chart.
-**Demo note:** *"Reservasi baru langsung tampil di tape chart."*
+**Verify:** Reservation gets a number (`RSV-yyMMdd-NNNN`), appears on Kalender.
+**Demo note:** *"Reservasi baru langsung tampil di kalender."*
 
 ### 3. FO — check-in  ⚠️ *refactored flow — watch closely*
-**Action:** Check in that reservation. Fill the GRC, record the deposit.
-**Verify:** Reservation → **CHECKED_IN**, room → **OC**, folio created and **OPEN**, deposit recorded. No error, no slow hang.
-**Demo note:** *"Saat check-in, sistem membuat folio tamu secara otomatis."*
+**Action:** Check in that reservation. Fill the GRC, ask the guest to sign on the required on-screen signature pad, then record the deposit.
+**Verify:** Reservation → **CHECKED_IN**, room → **OC**, folio created and **OPEN**, deposit recorded, and the captured signature appears in the downloadable GRC PDF. No error, no slow hang.
+**Demo note:** *"Saat check-in, tamu menandatangani GRC secara digital dan sistem membuat folio secara otomatis."*
 **Regression check:** this is one of the two flows refactored for the P2028 fix — confirm it completes cleanly.
 
 ### 4. FB — order + charge to room
@@ -56,7 +56,7 @@ A single guest lifecycle that exercises **every module and every cross-module se
 
 ### 6. HK — cleaning cycle (optional but good to show)
 **Action:** As `hk1` (mobile viewport), pick a dirty room → start cleaning → stop (mark VCU) → pass inspection → VC.
-**Verify:** Status transitions work; the change reflects on the FO Tape Chart.
+**Verify:** Status transitions work; the change reflects on the FO Kalender.
 **Demo note:** *"Housekeeping berjalan dari ponsel, status tersinkron ke front office."*
 
 ### 7. ACC — run Night Audit

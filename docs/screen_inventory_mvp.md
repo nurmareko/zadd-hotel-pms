@@ -18,7 +18,8 @@ The application is built as a **single Next.js app** with four operational areas
 └───────────────────────┘
 ┌─ /app (authenticated) ─────────────────────────────────┐
 │  Login → module-specific dashboard (role-based)        │
-│  Persistent nav: sidebar (desktop) / bottom nav (HK)   │
+│  Persistent nav: sidebar (desktop) / bottom tabs       │
+│  (all roles on mobile and coarse-pointer tablets)      │
 │                                                        │
 │  /app/fo/*    → Front Office                           │
 │  /app/hk/*    → Housekeeping (mobile-first)            │
@@ -34,8 +35,8 @@ The application is built as a **single Next.js app** with four operational areas
 
 | # | Screen | Type | Purpose |
 |---|---|---|---|
-| G-01 | Login | Page | Username + password. Routes to user's module dashboard. |
-| G-02 | Profile / Change Password | Page | User info, logout. |
+| G-01 | Login | Page | Username + password with direct demo-account buttons. Routes to user's module workspace. |
+| G-02 | Profile / Change Password | Page | Account and role metadata, password change, logout. |
 | G-03 | 404 / Forbidden | Page | Standard error page. |
 
 ---
@@ -47,14 +48,14 @@ The application is built as a **single Next.js app** with four operational areas
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | FO-01 | FO Dashboard | Page | Today: arrivals, departures, in-house count, occupancy % |
-| FO-02 | **Tape Chart** | Page | Room × date grid with color-coded status. Entry point for new reservations and in-house guest selection. |
-| FO-03 | Reservation List | Page | Table with date/status filters |
-| FO-04 | Reservation Form | Page | Create / edit / view reservation (detail view is the same form in read mode) |
-| FO-05 | Check-in | Page | Assign room, fill GRC inline, set deposit, create folio |
+| FO-02 | **Kalender (Tape Chart)** | Page | Default FO landing: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, and in-house guest selection. |
+| FO-03 | Reservation List | Page | Date-grouped reservations with date/status filters; the whole row opens the reservation detail. |
+| FO-04 | Reservation Form / Detail | Page | Create / edit / view reservation. Detail view uses `Details` and `Folio` tabs; the Folio tab embeds the guest folio after check-in. |
+| FO-05 | Check-in | Page | Assign room, fill GRC inline, capture the required on-screen digital signature, set deposit, create folio |
 | FO-06 | Guest Folio | Page | Line items, add manual charge, record payment, view balance |
 | FO-07 | Check-out | Page | Zero-balance check, final payment, PDF bill download |
 
-**Cut from original**: separate Reservation Detail (merged into FO-04), In-House Guest List (use Tape Chart filter), Master Bill, Guest Database.
+**Cut from original**: separate Reservation Detail (merged into FO-04), In-House Guest List (use Kalender), Master Bill, Guest Database.
 
 ### 3.2 Housekeeping (3 screens, mobile-first)
 
@@ -117,7 +118,7 @@ The application is built as a **single Next.js app** with four operational areas
 | Admin | 6 | 4 |
 | **Total** | **27** | **20 cut** |
 
-Modal dialogs kept minimal: only 2 confirmation modals total (destructive actions: cancel reservation, void folio). Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-05, not a separate modal.
+Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-05, not a separate modal.
 
 ---
 
@@ -126,19 +127,19 @@ Modal dialogs kept minimal: only 2 confirmation modals total (destructive action
 Five core business flows the app must support end-to-end:
 
 **Flow 1 — Reservation to Check-in**
-`FO-02 Tape Chart` → click empty cell → `FO-04 Reservation Form` → submit → `FO-05 Check-in` (assign room + GRC) → folio created → `FO-06 Guest Folio`.
+`FO-02 Kalender` → click empty cell → `FO-04 Reservation Form` with room/type/date context prefilled → submit → `FO-05 Check-in` (assign room + inline GRC + required digital signature) → folio created → `FO-04 Folio tab` / `FO-06 Guest Folio`.
 
 **Flow 2 — Charge F&B to Room**
 `FB-01 Table Picker` → `FB-01A New Order` → `FB-02 Captain Order` → `FB-03 Bill Detail` → Pay → `FB-04 Payment`, choose "Charge to Room" → enter room number → line item posted to `FO-06 Guest Folio`.
 
 **Flow 3 — Check-out**
-`FO-02 Tape Chart` (or `FO-06 Guest Folio`) → Check-out → `FO-07 Check-out` → zero-balance verification → payment if needed → PDF bill → room status auto-set to VD → visible in `HK-01`.
+`FO-02 Kalender` (or `FO-04 Folio tab` / `FO-06 Guest Folio`) → Check-out → `FO-07 Check-out` → zero-balance verification → payment if needed → PDF receipt → room status auto-set to VD → visible in `HK-01`.
 
 **Flow 4 — Night Audit**
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.
 
 **Flow 5 — HK Status Update**
-`HK-01 Dashboard` → tap room → `HK-02 Detail` → Update → `HK-03 Update Status` → pick status → confirm → syncs to `FO-02 Tape Chart`.
+`HK-01 Dashboard` → tap room → `HK-02 Detail` → Update → `HK-03 Update Status` → pick status → confirm → syncs to `FO-02 Kalender`.
 
 ---
 
@@ -150,10 +151,10 @@ Build these seven before opening Stitch / Claude Design:
 |---|---|---|
 | DataTable | FO-03, FB-01 history tab, AD-01..05 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
 | FormShell | all forms | shadcn `Form` + `zod` |
-| StatusBadge | Tape Chart, HK dashboard, reservation status | Fixed palette: VC `#639922`, CNF `#378ADD`, IN `#7F77DD`, VD `#D85A30`, VCU `#EF9F27`, OOO `#888780` |
-| Dialog | cancel/void confirmations | shadcn `Dialog`, reused |
+| StatusBadge | Kalender, HK dashboard, reservation status | Room palette: VC emerald, OC blue, VD amber, OD red, VCU yellow-amber, OOO slate. Reservation palette: confirmed orange `#f97316`, checked-in emerald `#047857`, checked-out slate `#64748b`; Kalender's unallocated lane is blue `#2563eb`. |
+| Dialog | cancellation, destructive Admin actions, compact CRUD forms | shadcn `Dialog` / `AlertDialog`, reused |
 | PDFButton | bills, reports | Wrapper around a print-to-PDF route |
-| NavShell | every authenticated page | Sidebar desktop + bottom nav mobile |
+| NavShell | every authenticated page | Sidebar desktop + one bottom tab bar for all roles on mobile and coarse-pointer tablets |
 | EmptyState | tables with no data | Plain text "Belum ada data." + CTA button |
 
 ---
@@ -164,9 +165,9 @@ Build these seven before opening Stitch / Claude Design:
 |---|---|---|
 | 1 | Setup: Next.js + Prisma + NextAuth + Tailwind + shadcn. Seed. Deploy to Vercel. | Login works, DB migrated, deployed |
 | 2 | Admin module (6 screens). Warm-up CRUD. | Master data manageable |
-| 3 | FO: Tape Chart + Reservation List + Reservation Form | Can create reservations, grid renders |
+| 3 | FO: Kalender + Reservation List + Reservation Form | Can create reservations, grid renders |
 | 4 | FO: Check-in + Folio creation + Folio Detail (charges + payments) | Full FO spine working |
-| 5 | FO: Check-out + PDF bill. HK module (3 mobile screens). | Guest lifecycle complete, HK syncs to Tape Chart |
+| 5 | FO: Check-out + PDF bill. HK module (3 mobile screens). | Guest lifecycle complete, HK syncs to Kalender |
 | 6 | F&B: Table Picker + New Order + Captain Order + Bill Detail + Payment (cash + card + transfer + CTR) | F&B feeds folio |
 | 7 | Accounting: Night Audit trigger + Night Report + PDF export | Day close works end-to-end |
 | 8 | **Buffer: bug fixes, seed data for demo, integration testing, docs update** | Presentable, stable, defended |

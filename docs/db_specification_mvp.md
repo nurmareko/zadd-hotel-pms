@@ -113,7 +113,7 @@ erDiagram
     text comment
     int guest_id FK
     int room_type_id FK
-    int room_id FK
+    int room_id FK "nullable; NULL = unallocated"
     date arrival_date
     date departure_date
     int adults
@@ -313,8 +313,9 @@ A few choices worth explaining:
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
 3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
-5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep the Tape Chart read fast. HousekeepingLog is the audit trail of every status change.
+5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
+7. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 
 ---
 
@@ -358,7 +359,7 @@ A few choices worth explaining:
 | code | VARCHAR(20) | UNIQUE, NOT NULL | Type code (STD, DLX, SUP) |
 | name | VARCHAR(50) | NOT NULL | Room type name |
 | description | TEXT | — | Description |
-| capacity | INT | NOT NULL | Max guest capacity |
+| capacity | INT | NOT NULL | Max guest capacity per room. Reservation overbooking uses the count of physical room rows for this type as inventory capacity. |
 | base_rate | DECIMAL(12,2) | NOT NULL | Base rate per night |
 
 ### `room`

@@ -13,7 +13,7 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 | Username | Password | Role  | Lands on            |
 |----------|----------|-------|---------------------|
 | admin    | admin123 | ADMIN | `/app/admin/users`  |
-| fo1      | fo123    | FO    | `/app/fo`           |
+| fo1      | fo123    | FO    | `/app/fo/tape-chart` |
 | hk1      | hk123    | HK    | `/app/hk`           |
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
@@ -70,7 +70,7 @@ You're coming from Laravel + XAMPP. Here's how concepts map:
 | `php artisan make:model`         | edit `schema.prisma`, then `migrate dev` |
 | Form Request validation         | Zod schemas + react-hook-form       |
 | `auth()->user()`                 | `await auth()` from `@/auth`        |
-| `middleware('auth')`             | `proxy.ts` at project root          |
+| `middleware('auth')`             | `src/proxy.ts`                      |
 | `public/` folder                 | `public/` folder (same — static files only, NOT routing) |
 | `php artisan storage:link`       | not needed — `/public` is auto-served |
 | Service provider                 | usually a singleton in `src/lib/`   |
@@ -109,27 +109,48 @@ src/
 │   │   ├── profile/          ← /app/profile
 │   │   ├── forbidden/        ← /app/forbidden (403)
 │   │   └── layout.tsx        ← NavShell wrapping all app pages
-│   ├── api/auth/[...nextauth]/  ← NextAuth handlers (don't touch)
+│   ├── api/
+│   │   ├── auth/[...nextauth]/  ← NextAuth handlers (don't touch)
+│   │   └── nav-badges/          ← GET: current role's nav badges
 │   ├── layout.tsx            ← root layout
 │   ├── page.tsx              ← / (redirects based on session)
 │   └── not-found.tsx         ← 404
-├── auth.ts                   ← NextAuth config (don't touch unless lead)
+├── auth.config.ts            ← Edge-safe NextAuth config for src/proxy.ts
+├── auth.ts                   ← full Credentials + Prisma NextAuth config
 ├── lib/
+│   ├── date-only.ts          ← WIB date-only and timestamp-range helpers
+│   ├── nav-badges.ts         ← ACC pending Night Audit badge lookup
 │   └── prisma.ts             ← PrismaClient singleton — import from here
 ├── components/               ← shared components (lead-owned)
+├── proxy.ts                  ← role-gating; imports auth.config.ts only
 └── types/                    ← TypeScript declarations
 prisma/
 ├── schema.prisma             ← DB schema (lead-only)
 ├── migrations/               ← migration history (don't edit by hand)
 └── seed.ts                   ← seed script
-proxy.ts                      ← role-gating (don't touch unless lead)
 AGENTS.md                     ← AI tool context
 .env                          ← local env vars (NEVER COMMIT)
 ```
 
 ---
 
-## Common patterns (copy-paste templates)
+## Hotel-timezone date handling
+
+All operational "today" calculations use the hotel's WIB timezone (`Asia/Jakarta`), regardless of the server timezone.
+
+- For Prisma `@db.Date` columns, use `todayDateOnly()` for today/tomorrow boundaries and `dateOnlyBoundary()` when normalizing a known calendar date.
+- For timestamp columns such as `createdAt`, use `hotelTodayTimestampRange()` and query the half-open `[start, end)` window.
+- Do not use `startOfDay(new Date())` for hotel-day filters; Vercel's server clock does not define the hotel's operating date.
+
+## Nav badges
+
+The authenticated layout loads nav badges with `getRoleNavBadges()` from `src/lib/nav-badges.ts`. `NavShell` refreshes them through `GET /api/nav-badges` on navigation.
+
+There is one badge only: ACC sees `!` on Night Audit while the current WIB business date has no audit. Do not reintroduce the removed `nav-badge-actions.ts` server action or module-level live counters.
+
+---
+
+## Common patterns
 
 ### Server component reading from DB
 
@@ -152,53 +173,72 @@ export default async function ReservationsPage() {
 }
 ```
 
-### Server action (form submission)
+### Reservation mutation (transaction + overlap + capacity checks)
 
 ```typescript
-// src/app/app/fo/reservations/actions.ts
-"use server";
+// src/app/app/fo/reservations/new/actions.ts (abbreviated)
+return prisma.$transaction(
+  async (tx) => {
+    const assignment = await validateReservationRoomAssignment(tx, input);
+    if (!assignment.ok) return assignment;
 
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { z } from "zod";
+    const capacity = await validateRoomTypeCapacity(
+      {
+        roomTypeId: input.roomTypeId,
+        arrival: input.arrivalDate,
+        departure: input.departureDate,
+      },
+      tx,
+    );
+    if (!capacity.ok) return capacity;
 
-const ReservationSchema = z.object({
-  guestId: z.coerce.number().int().positive(),
-  arrivalDate: z.coerce.date(),
-  departureDate: z.coerce.date(),
-  // ...
-});
-
-export async function createReservation(formData: FormData) {
-  const parsed = ReservationSchema.parse(Object.fromEntries(formData));
-  const created = await prisma.reservation.create({ data: parsed });
-  revalidatePath("/app/fo/reservations");
-  redirect(`/app/fo/reservations/${created.id}`);
-}
+    const guest = await tx.guest.create({ data: guestData });
+    return tx.reservation.create({
+      data: {
+        ...reservationData,
+        guestId: guest.id,
+        roomId: assignment.assignment.room?.id ?? null,
+      },
+    });
+  },
+  {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    ...TRANSACTION_OPTIONS,
+  },
+);
 ```
 
-### Client component with form
+`validateReservationRoomAssignment()` checks guest capacity, locks and validates an allocated room, rejects OOO rooms, and checks assigned-room overlap. `validateRoomTypeCapacity()` separately checks inventory capacity across the stay, including unallocated reservations. The shipped action also validates auth/input, generates `RSV-yyMMdd-NNNN`, retries expected transaction conflicts, and revalidates the reservation list and Kalender.
+
+### Client component with a watched field
 
 ```typescript
-// src/app/app/fo/reservations/new/ReservationForm.tsx
+// src/app/app/fo/reservations/new/reservation-form.tsx
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { createReservation } from "../actions";
+import { useMemo } from "react";
+import { createReservation } from "./actions";
+import { createReservationSchema, type CreateReservationInput } from "./schema";
 
-const Schema = z.object({
-  guestId: z.string().min(1),
-  arrivalDate: z.string().min(1),
-});
+export function ReservationForm({ defaultValues, roomTypes }) {
+  const schema = useMemo(() => createReservationSchema(roomTypes), [roomTypes]);
+  const form = useForm<CreateReservationInput>({
+    resolver: zodResolver(schema),
+    defaultValues,
+  });
+  const [roomTypeId, arrivalDate, departureDate] = useWatch({
+    control: form.control,
+    name: ["roomTypeId", "arrivalDate", "departureDate"],
+  });
 
-export function ReservationForm() {
-  const form = useForm({ resolver: zodResolver(Schema) });
+  async function onSubmit() {
+    await createReservation(form.getValues());
+  }
 
   return (
-    <form action={createReservation} className="space-y-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* fields */}
       <button type="submit">Save</button>
     </form>

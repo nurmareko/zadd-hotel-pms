@@ -26,6 +26,7 @@ You're going to pick up most of this by working on it. Don't try to master the s
 | **TypeScript** | JavaScript with types | Learn as you go |
 | **Tailwind CSS** | Styling via utility classes | Learn as you go |
 | **shadcn/ui** | Pre-built components (Button, Form, Dialog) | Learn as you go |
+| **signature_pad** | Canvas-based guest signature capture during FO check-in | Read its usage in the check-in form |
 | **Prisma** | Database access from TypeScript | Read 15-min quickstart (link below) |
 | **PostgreSQL (Neon)** | The actual database | No need to learn deeply — Prisma abstracts it |
 | **NextAuth** | Login & sessions | Only relevant when we reach auth |
@@ -66,9 +67,9 @@ cd hotel-pms
 # 2. Install dependencies
 npm install
 
-# 3. Get the .env file from the team lead
-#    DM them for it. DO NOT commit this file.
-#    Place it at the project root (same folder as package.json).
+# 3. Pull the linked Vercel project's env vars into the root .env file
+#    Ask the team lead for Vercel project access first. DO NOT commit this file.
+vercel env pull .env
 
 # 4. Generate the Prisma client (reads prisma/schema.prisma)
 npx prisma generate
@@ -77,7 +78,7 @@ npx prisma generate
 npm run dev
 ```
 
-Open http://localhost:3000 — you should see the login page (placeholder for now).
+Open http://localhost:3000 — you should see the Console-themed login page with direct demo-account buttons.
 
 ### About the database
 
@@ -110,12 +111,27 @@ hotel-pms/
 │   │   ├── hk/                      ← Housekeeping
 │   │   ├── fb/                      ← Food & Beverage
 │   │   ├── acc/                     ← Accounting
-│   │   └── admin/                   ← Admin
+│   │   ├── admin/                   ← Admin
+│   │   └── profile/                 ← Account metadata + password change
+│   ├── api/
+│   │   ├── auth/[...nextauth]/      ← NextAuth route handlers
+│   │   └── nav-badges/              ← Current role's nav badges
 │   └── layout.tsx
+├── src/auth.config.ts               ← Edge-safe auth config used by proxy
+├── src/auth.ts                      ← Credentials + Prisma auth config
+├── src/lib/date-only.ts             ← WIB date helpers
+├── src/lib/nav-badges.ts            ← ACC pending Night Audit badge
+├── src/proxy.ts                     ← Auth + role gating for /app/*
 └── package.json
 ```
 
 If you're unsure what a screen should look like or do, check `docs/screen_inventory_mvp.md` before asking. Most answers are already there.
+
+### Hotel-timezone convention
+
+All operational "today" calculations use WIB (`Asia/Jakarta`), not the server's UTC date. For Prisma `@db.Date` queries, use `todayDateOnly()` or `dateOnlyBoundary()` from `src/lib/date-only.ts`. For timestamp-column filters, use `hotelTodayTimestampRange()`.
+
+Navigation badges are intentionally small in scope: `GET /api/nav-badges` serves the single ACC pending Night Audit indicator from `src/lib/nav-badges.ts`.
 
 ---
 
@@ -184,9 +200,9 @@ Each person owns one operational module end-to-end:
 
 The modules touch each other in a few specific places. These are the integration seams where coordination matters:
 
-- **F&B → FO**: "Charge to Room" in F&B Payment (FB-04) writes a line item to the guest's folio. FB owner and FO owner need to agree on the folio-posting function signature before FB-04 can ship. Likely lives in `src/lib/folio.ts` — team-lead-owned.
-- **FO → HK**: Check-out (FO-07) auto-sets room status to `VD`. Shared function in `src/lib/room-status.ts` — team-lead-owned.
-- **HK → FO**: Tape Chart (FO-02) displays the status HK updates. Both read/write the same `Room.status` field.
+- **F&B → FO**: "Charge to Room" in F&B Payment (FB-04) writes a line item to the guest's folio from `src/app/app/fb/orders/[orderId]/actions.ts`.
+- **FO → HK**: Check-out (FO-07) auto-sets room status to `VD`; an in-house cleaning request from reservation detail sets `OC → OD`.
+- **HK → FO**: Kalender (FO-02) displays the status HK updates. Room-status changes revalidate cross-module views through `src/lib/revalidate-room-status.ts`.
 - **Everything → ACC**: Night Audit (AC-02) reads across all modules. Accounting owner is the last to build, because they need the other three modules producing data.
 
 When a cross-module seam comes up, don't design it on your own branch. Open a team chat discussion, team lead writes the shared code, all four modules consume it.
@@ -212,7 +228,7 @@ A few rules so we don't step on each other:
 
 **`npm install` fails** → check Node version: `node --version`. Needs 20+.
 
-**`npx prisma generate` fails** → `.env` is missing or has wrong values. Ask the team lead for a fresh copy.
+**`npx prisma generate` fails** → `.env` is missing or has wrong values. Re-run `vercel env pull .env`; ask the team lead to confirm your Vercel project access if it still fails.
 
 **Dev server runs but every page 500s** → database isn't reachable. Test with:
 ```bash
