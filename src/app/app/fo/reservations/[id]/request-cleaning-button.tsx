@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { consoleButtonClassName } from "@/components/console-button";
 import { requestRoomCleaning } from "./actions";
 
 export function RequestCleaningButton({
@@ -44,7 +45,7 @@ export function RequestCleaningButton({
           ? undefined
           : "Permintaan pembersihan hanya tersedia untuk kamar berstatus OC."
       }
-      className="inline-flex h-8 items-center justify-center gap-2 border border-status-od-pip bg-status-od-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-od-fg hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+      className={consoleButtonClassName("secondary")}
     >
       <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
       {isPending
