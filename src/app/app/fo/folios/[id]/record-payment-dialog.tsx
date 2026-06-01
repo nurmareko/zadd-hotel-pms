@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
+import { consoleButtonClassName } from "@/components/console-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -131,7 +132,7 @@ export function RecordPaymentDialog({
         type="button"
         disabled={disabled}
         onClick={() => resetAndClose(true)}
-        className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+        className={consoleButtonClassName("primary")}
       >
         <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
         Catat Pembayaran
@@ -237,14 +238,14 @@ export function RecordPaymentDialog({
                   type="button"
                   variant="outline"
                   onClick={() => resetAndClose(false)}
-                  className="h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  className={consoleButtonClassName("secondary")}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
-                  className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  className={consoleButtonClassName("primary")}
                 >
                   {form.formState.isSubmitting
                     ? "Recording..."

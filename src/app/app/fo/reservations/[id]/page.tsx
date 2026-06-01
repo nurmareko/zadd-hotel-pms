@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { consoleButtonClassName } from "@/components/console-button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { GuestFolioView } from "../../folios/[id]/folio-view";
@@ -219,7 +220,7 @@ export default async function ReservationDetailPage({
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
               <Link
                 href="/app/fo/reservations"
-                className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                className={consoleButtonClassName("secondary")}
               >
                 Kembali
               </Link>
@@ -227,7 +228,7 @@ export default async function ReservationDetailPage({
                 <>
                   <Link
                     href={`/app/fo/reservations/${reservation.id}?tab=details&mode=view`}
-                    className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                    className={consoleButtonClassName("secondary")}
                   >
                     Batal
                   </Link>
@@ -235,7 +236,7 @@ export default async function ReservationDetailPage({
               ) : (
                 <Link
                   href={`/app/fo/reservations/${reservation.id}?tab=details&mode=edit`}
-                  className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  className={consoleButtonClassName("secondary")}
                 >
                   Edit Reservasi
                 </Link>
@@ -244,7 +245,7 @@ export default async function ReservationDetailPage({
                 <a
                   href={`/api/reservations/${reservation.id}/grc`}
                   download
-                  className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  className={consoleButtonClassName("secondary")}
                 >
                   <Download className="h-3.5 w-3.5" aria-hidden="true" />
                   Cetak GRC
@@ -265,7 +266,7 @@ export default async function ReservationDetailPage({
               {canCheckIn ? (
                 <Link
                   href={`/app/fo/check-in/${reservation.id}`}
-                  className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  className={consoleButtonClassName("primary")}
                 >
                   Check In Guest
                 </Link>

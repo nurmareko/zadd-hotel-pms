@@ -8,6 +8,7 @@ import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { consoleButtonClassName } from "@/components/console-button";
 import {
   Dialog,
   DialogContent,
@@ -136,7 +137,7 @@ export function AddChargeDialog({
         type="button"
         disabled={disabled || articles.length === 0}
         onClick={() => setOpen(true)}
-        className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+        className={consoleButtonClassName("primary")}
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         Tambah Charge
@@ -278,14 +279,14 @@ export function AddChargeDialog({
                   type="button"
                   variant="outline"
                   onClick={() => resetAndClose(false)}
-                  className="h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  className={consoleButtonClassName("secondary")}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
-                  className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  className={consoleButtonClassName("primary")}
                 >
                   {form.formState.isSubmitting ? "Posting..." : "Post Charge"}
                 </Button>

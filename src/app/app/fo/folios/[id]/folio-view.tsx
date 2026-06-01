@@ -2,6 +2,7 @@ import { ArticleType, FolioStatus } from "@prisma/client";
 import { Download } from "lucide-react";
 import Link from "next/link";
 
+import { consoleButtonClassName } from "@/components/console-button";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { formatCompactDateID, formatDayOfMonthID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -140,7 +141,7 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Link
             href={`/api/folios/${folio.id}/bill`}
-            className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className={consoleButtonClassName("secondary")}
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             PDF Bill
@@ -148,7 +149,7 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
           <a
             href={`/api/reservations/${folio.reservationId}/grc`}
             download
-            className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className={consoleButtonClassName("secondary")}
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             Cetak GRC
