@@ -174,12 +174,7 @@ function GroupRows({ group }: { group: ReservationGroup }) {
               <ReservationStatusBadge status={row.status} />
             </td>
             <td className="border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
-              <Link
-                href={href}
-                className="hover:text-console-accent hover:underline"
-              >
-                {row.guestName}
-              </Link>
+              {row.guestName}
             </td>
             <td className="num border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
               {row.reservationNo}
