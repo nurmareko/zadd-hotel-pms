@@ -1,16 +1,19 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import authConfig, { type AppRole } from "@/auth.config";
+import authConfig, { isHkSupervisor, type AppRole } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
+const hkSupervisorPrefix = "/app/hk/supervisor";
 
-const roleRoutes: Array<{ prefix: string; role: AppRole }> = [
-  { prefix: "/app/fo", role: "FO" },
-  { prefix: "/app/hk", role: "HK" },
-  { prefix: "/app/fb", role: "FB" },
-  { prefix: "/app/acc", role: "ACC" },
-  { prefix: "/app/admin", role: "ADMIN" },
+const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
+  { prefix: hkSupervisorPrefix, roles: ["HK", "ADMIN"] },
+  { prefix: "/app/hk/list", roles: ["HK", "ADMIN"] },
+  { prefix: "/app/fo", roles: ["FO"] },
+  { prefix: "/app/hk", roles: ["HK"] },
+  { prefix: "/app/fb", roles: ["FB"] },
+  { prefix: "/app/acc", roles: ["ACC"] },
+  { prefix: "/app/admin", roles: ["ADMIN"] },
 ];
 
 function routeMatches(pathname: string, prefix: string) {
@@ -25,11 +28,19 @@ export const proxy = auth((request) => {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const requiredRole = roleRoutes.find(({ prefix }) =>
-    routeMatches(pathname, prefix),
-  )?.role;
+  if (
+    routeMatches(pathname, hkSupervisorPrefix) &&
+    session.user.role !== "ADMIN" &&
+    !isHkSupervisor(session)
+  ) {
+    return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+  }
 
-  if (requiredRole && session.user.role !== requiredRole) {
+  const requiredRoles = roleRoutes.find(({ prefix }) =>
+    routeMatches(pathname, prefix),
+  )?.roles;
+
+  if (requiredRoles && !requiredRoles.includes(session.user.role)) {
     return NextResponse.rewrite(new URL("/app/forbidden", request.url));
   }
 

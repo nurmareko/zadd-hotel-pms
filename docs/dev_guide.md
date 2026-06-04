@@ -14,11 +14,14 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 |----------|----------|-------|---------------------|
 | admin    | admin123 | ADMIN | `/app/admin/users`  |
 | fo1      | fo123    | FO    | `/app/fo/tape-chart` |
+| hksup    | hksup123 | HK supervisor | `/app/hk` |
 | hk1      | hk123    | HK    | `/app/hk`           |
+| hk2      | hk2123   | HK    | `/app/hk`           |
+| hk3      | hk3123   | HK    | `/app/hk`           |
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
 
-**One account = one role.** A user with role FO cannot access `/app/hk` — they get a 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
+**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. A user with role FO cannot access `/app/hk` — they get a 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
 To reset all data and re-seed: `npm run db:reset` (drops everything, re-runs migrations + seed).
 

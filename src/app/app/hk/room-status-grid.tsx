@@ -3,6 +3,7 @@ import type { RoomStatus } from "@prisma/client";
 
 import { StatusBadge } from "@/components/status-badge";
 import { RoomStatusControl } from "./room-status-control";
+import { SupervisorStatusOverride } from "./supervisor-status-override";
 
 export type RoomStatusGridRoom = {
   id: number;
@@ -67,7 +68,13 @@ export function StatusPill({ status }: { status: RoomStatus }) {
   );
 }
 
-export function RoomStatusGrid({ floors }: { floors: RoomStatusGridFloor[] }) {
+export function RoomStatusGrid({
+  floors,
+  canOverrideStatus = false,
+}: {
+  floors: RoomStatusGridFloor[];
+  canOverrideStatus?: boolean;
+}) {
   return (
     <div className="space-y-4">
       {floors.map((floor) => (
@@ -102,6 +109,13 @@ export function RoomStatusGrid({ floors }: { floors: RoomStatusGridFloor[] }) {
                     status={room.status}
                     isOccupied={room.isOccupied}
                   />
+                  {canOverrideStatus ? (
+                    <SupervisorStatusOverride
+                      roomId={room.id}
+                      roomNumber={room.number}
+                      status={room.status}
+                    />
+                  ) : null}
                 </article>
               );
             })}

@@ -1,5 +1,7 @@
 import { ReservationStatus, RoomStatus } from "@prisma/client";
 
+import { auth } from "@/auth";
+import { isHkSupervisor } from "@/auth.config";
 import { formatWeekdayLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -10,7 +12,7 @@ import {
 import { KpiCard } from "./kpi-card";
 import type { RoomStatusGridFloor } from "./room-status-grid";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const queueStatuses = [RoomStatus.VD, RoomStatus.OD, RoomStatus.VCU] as const;
 const displayQueueLimit = 10;
@@ -45,7 +47,8 @@ function roomDetailHref(roomId: number) {
 export default async function HKDashboardPage() {
   const now = new Date();
 
-  const [rooms, activeLogs, queueRooms] = await Promise.all([
+  const [session, rooms, activeLogs, queueRooms] = await Promise.all([
+    auth(),
     prisma.room.findMany({
       include: {
         roomType: true,
@@ -80,6 +83,10 @@ export default async function HKDashboardPage() {
       orderBy: { number: "asc" },
     }),
   ]);
+  const canOverrideStatus = Boolean(
+    session?.user &&
+      (session.user.role === "ADMIN" || isHkSupervisor(session)),
+  );
 
   const roomsWithLatestActiveCleaning = rooms.filter((room) => {
     const latestLog = room.housekeepingLogs[0];
@@ -191,7 +198,11 @@ export default async function HKDashboardPage() {
         <KpiCard label="READY" value={readyCount} sub="siap untuk tamu" />
       </div>
 
-      <HKDashboardTabs queueRows={queueRows} floors={floors} />
+      <HKDashboardTabs
+        queueRows={queueRows}
+        floors={floors}
+        canOverrideStatus={canOverrideStatus}
+      />
     </main>
   );
 }

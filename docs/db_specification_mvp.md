@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 18 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,13 +8,16 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 18 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 21 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
   USER ||--o{ USER_ROLE : "has"
   ROLE ||--o{ USER_ROLE : "assigned_to"
   USER ||--o{ HOUSEKEEPING_LOG : "performs"
+  USER ||--o{ HOUSEKEEPING_ASSIGNMENT : "assigned_to_clean"
+  USER ||--o{ CLEANING_SESSION : "cleans"
+  USER ||--o{ CLEANING_SESSION : "inspects"
   USER ||--o{ NIGHT_AUDIT : "runs"
   USER ||--o{ PAYMENT : "receives"
   USER ||--o{ RESERVATION : "creates"
@@ -25,10 +28,13 @@ erDiagram
   ROOM_TYPE ||--o{ RESERVATION : "requested_for"
 
   ROOM ||--o{ HOUSEKEEPING_LOG : "tracks"
+  ROOM ||--o{ HOUSEKEEPING_ASSIGNMENT : "assigned_for"
+  ROOM ||--o{ CLEANING_SESSION : "cleaned_in"
   ROOM ||--o{ RESERVATION : "assigned_to"
 
   GUEST ||--o{ RESERVATION : "makes"
   RESERVATION ||--o| FOLIO : "opens"
+  RESERVATION ||--o{ RESERVATION_ADD_ON : "requests"
 
   FOLIO ||--o{ FOLIO_LINE_ITEM : "contains"
   FOLIO ||--o{ PAYMENT : "settled_by"
@@ -49,6 +55,7 @@ erDiagram
     varchar password_hash
     varchar full_name
     boolean is_active
+    boolean is_supervisor
     timestamp created_at
     timestamp updated_at
   }
@@ -122,6 +129,7 @@ erDiagram
     decimal rate_amount
     decimal deposit
     text notes
+    text housekeeping_note
     timestamp grc_filled_at
     varchar purpose_of_visit
     text signature_data_url
@@ -129,6 +137,13 @@ erDiagram
     int created_by_id FK
     timestamp created_at
     timestamp updated_at
+  }
+  RESERVATION_ADD_ON {
+    int id PK
+    int reservation_id FK
+    varchar label
+    boolean delivered
+    timestamp created_at
   }
   FOLIO {
     int id PK
@@ -209,6 +224,24 @@ erDiagram
     boolean linen_changed
     boolean towel_changed
   }
+  HOUSEKEEPING_ASSIGNMENT {
+    int id PK
+    int room_id FK
+    int housekeeper_id FK
+    date date
+    timestamp created_at
+  }
+  CLEANING_SESSION {
+    int id PK
+    int room_id FK
+    int housekeeper_id FK
+    date date
+    timestamp started_at
+    timestamp finished_at
+    timestamp inspected_at
+    int inspected_by_id FK
+    timestamp created_at
+  }
   NIGHT_AUDIT {
     int id PK
     date business_date UK
@@ -247,7 +280,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Authentication**
 
-1. User(*id*, username, email, password_hash, full_name, is_active, created_at, updated_at)
+1. User(*id*, username, email, password_hash, full_name, is_active, is_supervisor, created_at, updated_at)
 2. Role(*id*, code, name, permissions)
 3. UserRole(*user_id\#*, *role_id\#*, assigned_at)
 
@@ -261,28 +294,31 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
-10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
-11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, comment, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, housekeeping_note, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
+10. ReservationAddOn(*id*, *reservation_id\#*, label, delivered, created_at)
+11. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
+12. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
 **Food & Beverage**
 
-12. MenuItem(*id*, code, name, category, price, is_active)
-13. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
-14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
-15. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
+13. MenuItem(*id*, code, name, category, price, is_active)
+14. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
+15. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
+16. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 
 **Housekeeping**
 
-16. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
+17. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
+18. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
+19. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
 
 **Accounting**
 
-17. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
+20. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
 
 **Payment**
 
-18. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
+21. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
 
 ---
 
@@ -314,8 +350,11 @@ A few choices worth explaining:
 3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
-6. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
-7. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
+6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
+7. **Cleaning timing lives outside Room.** CleaningSession stores per-room, per-housekeeper timestamps so cleaning duration (`finished_at - started_at`) and inspection history are preserved beyond the current Room status.
+8. **Reservation housekeeping instructions are separate from general notes.** `Reservation.housekeeping_note` stores guest preferences and operational instructions for HK, while `ReservationAddOn` stores delivery checklist items such as baby beds or packages.
+9. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
+10. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 
 ---
 
@@ -331,6 +370,7 @@ A few choices worth explaining:
 | password_hash | VARCHAR(255) | NOT NULL | Password hash (bcrypt) |
 | full_name | VARCHAR(100) | NOT NULL | User's full name |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Account active status |
+| is_supervisor | BOOLEAN | NOT NULL, DEFAULT FALSE | Per-module elevated tier flag; role code remains unchanged |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Account creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
 
@@ -428,6 +468,7 @@ A few choices worth explaining:
 | rate_amount | DECIMAL(12,2) | NOT NULL | Rate snapshot at booking time |
 | deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
 | notes | TEXT | — | Reservation notes |
+| housekeeping_note | TEXT | — | Guest preferences or HK instructions such as allergies, extra pillows, or VIP handling |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
 | purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
 | signature_data_url | TEXT | — | Guest signature as a PNG data URL captured during check-in |
@@ -435,6 +476,16 @@ A few choices worth explaining:
 | created_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Staff who created the reservation |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+### `reservation_add_on`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique add-on identifier |
+| reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Parent reservation |
+| label | VARCHAR(100) | NOT NULL | Add-on or delivery item label |
+| delivered | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether the item has been delivered |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 
 ### `folio`
 
@@ -535,6 +586,43 @@ A few choices worth explaining:
 | cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
 | linen_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether bed linen was changed during cleaning |
 | towel_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether towels were changed during cleaning |
+
+### `housekeeping_assignment`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique assignment identifier |
+| room_id | INT | NOT NULL, FOREIGN KEY → room(id) | Room assigned for cleaning |
+| housekeeper_id | INT | NOT NULL, FOREIGN KEY → user(id) | Assigned HK user |
+| date | DATE | NOT NULL | Cleaning date |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Assignment creation time |
+
+Indexes and constraints:
+
+- UNIQUE (`room_id`, `date`) — one assignee per room per day.
+- INDEX (`housekeeper_id`, `date`) — daily assignment lookup per housekeeper.
+- INDEX (`date`) — daily housekeeping board lookup.
+
+### `cleaning_session`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique cleaning session identifier |
+| room_id | INT | NOT NULL, FOREIGN KEY → room(id) | Room being cleaned |
+| housekeeper_id | INT | NOT NULL, FOREIGN KEY → user(id) | HK user doing the cleaning |
+| date | DATE | NOT NULL | Cleaning date |
+| started_at | TIMESTAMP | — | Cleaning start time |
+| finished_at | TIMESTAMP | — | Cleaning finish time |
+| inspected_at | TIMESTAMP | — | Inspection time |
+| inspected_by_id | INT | FOREIGN KEY → user(id), ON DELETE SET NULL | Inspector user, if inspected |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Session record creation time |
+
+Indexes:
+
+- INDEX (`room_id`) — room history lookup.
+- INDEX (`housekeeper_id`, `date`) — daily work history per housekeeper.
+
+Active cleaning is derived from `started_at` being set while `finished_at` is null. Cleaning duration is derived from `finished_at - started_at`.
 
 ### `night_audit`
 

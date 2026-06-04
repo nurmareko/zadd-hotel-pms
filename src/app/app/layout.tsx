@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <NavShell
       initialNavBadges={navBadges}
       userRole={session.user.role}
+      userIsSupervisor={session.user.isSupervisor}
       userFullName={session.user.fullName}
     >
       {children}

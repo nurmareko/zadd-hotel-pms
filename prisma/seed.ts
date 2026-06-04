@@ -20,30 +20,56 @@ const users = [
     fullName: "Noah Py",
     roleCode: "ADMIN",
     password: "admin123",
+    isSupervisor: false,
   },
   {
     username: "fo1",
     fullName: "Sheena Ringo",
     roleCode: "FO",
     password: "fo123",
+    isSupervisor: false,
+  },
+  {
+    username: "hksup",
+    fullName: "Ratna Supervisor",
+    roleCode: "HK",
+    password: "hksup123",
+    isSupervisor: true,
   },
   {
     username: "hk1",
     fullName: "Mas Japran",
     roleCode: "HK",
     password: "hk123",
+    isSupervisor: false,
+  },
+  {
+    username: "hk2",
+    fullName: "Nadia Housekeeper",
+    roleCode: "HK",
+    password: "hk2123",
+    isSupervisor: false,
+  },
+  {
+    username: "hk3",
+    fullName: "Rizky Housekeeper",
+    roleCode: "HK",
+    password: "hk3123",
+    isSupervisor: false,
   },
   {
     username: "fb1",
     fullName: "Jaka Alif",
     roleCode: "FB",
     password: "fb123",
+    isSupervisor: false,
   },
   {
     username: "acc1",
     fullName: "Astrid Noah",
     roleCode: "ACC",
     password: "acc123",
+    isSupervisor: false,
   },
 ] as const;
 
@@ -118,11 +144,13 @@ async function main() {
         fullName: userToSeed.fullName,
         passwordHash,
         isActive: true,
+        isSupervisor: userToSeed.isSupervisor,
       },
       update: {
         fullName: userToSeed.fullName,
         passwordHash,
         isActive: true,
+        isSupervisor: userToSeed.isSupervisor,
       },
     });
 
