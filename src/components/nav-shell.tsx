@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
+  Gauge,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -52,6 +53,7 @@ type NavShellProps = {
   children: ReactNode;
   initialNavBadges: NavBadgeMap;
   userRole: AppRole;
+  userIsSupervisor: boolean;
   userFullName: string;
 };
 
@@ -190,6 +192,13 @@ const accountGroup: NavGroup = {
   ],
 };
 
+const hkSupervisorLink: NavLink = {
+  label: "Supervisor",
+  href: "/app/hk/supervisor",
+  icon: Gauge,
+  activeMatch: "startsWith",
+};
+
 // Mobile bottom tab bar shows at most this many slots. When a role has more
 // destinations than fit, the last slot becomes "Lainnya" (More), which opens a
 // bottom sheet with the overflow routes.
@@ -218,6 +227,23 @@ function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
     )
     .sort((a, b) => b.activePath.href.length - a.activePath.href.length)[0]
     ?.link.href;
+}
+
+function getNavGroups(userRole: AppRole, userIsSupervisor: boolean) {
+  const canUseHkSupervisorNav =
+    userRole === "ADMIN" || (userRole === "HK" && userIsSupervisor);
+
+  if (!canUseHkSupervisorNav) {
+    return [...navGroupsByRole[userRole], accountGroup];
+  }
+
+  const roleGroups = navGroupsByRole[userRole].map((group) =>
+    group.label === "Housekeeping"
+      ? { ...group, links: [...group.links, hkSupervisorLink] }
+      : group,
+  );
+
+  return [...roleGroups, accountGroup];
 }
 
 async function fetchCurrentNavBadges(): Promise<NavBadgeMap> {
@@ -258,6 +284,7 @@ export function NavShell({
   children,
   initialNavBadges,
   userRole,
+  userIsSupervisor,
   userFullName,
 }: NavShellProps) {
   const pathname = usePathname();
@@ -265,7 +292,7 @@ export function NavShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const lastPathnameRef = useRef(pathname);
   const [, startTransition] = useTransition();
-  const navGroups = [...navGroupsByRole[userRole], accountGroup];
+  const navGroups = getNavGroups(userRole, userIsSupervisor);
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
 
   // One mobile nav: a role-scoped bottom tab bar built from the same link set

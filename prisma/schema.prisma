@@ -115,6 +115,7 @@ model User {
   passwordHash String   @map("password_hash") @db.VarChar(255)
   fullName     String   @map("full_name") @db.VarChar(100)
   isActive     Boolean  @default(true) @map("is_active")
+  isSupervisor Boolean  @default(false) @map("is_supervisor")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

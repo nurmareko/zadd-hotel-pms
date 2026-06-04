@@ -26,7 +26,10 @@ const loginSchema = z.object({
 const demoAccounts = [
   { username: "admin", password: "admin123", role: "Administrator" },
   { username: "fo1", password: "fo123", role: "Front Office" },
+  { username: "hksup", password: "hksup123", role: "HK Supervisor" },
   { username: "hk1", password: "hk123", role: "Housekeeping" },
+  { username: "hk2", password: "hk2123", role: "Housekeeping 2" },
+  { username: "hk3", password: "hk3123", role: "Housekeeping 3" },
   { username: "fb1", password: "fb123", role: "Food & Beverage" },
   { username: "acc1", password: "acc123", role: "Accounting" },
 ];

@@ -18,7 +18,10 @@ A single guest lifecycle that exercises **every module and every cross-module se
 |------|----------|----------|
 | Admin | admin | admin123 |
 | Front Office | fo1 | fo123 |
+| HK Supervisor | hksup | hksup123 |
 | Housekeeping | hk1 | hk123 |
+| Housekeeping | hk2 | hk2123 |
+| Housekeeping | hk3 | hk3123 |
 | Food & Beverage | fb1 | fb123 |
 | Accounting | acc1 | acc123 |
 

@@ -55,6 +55,7 @@ erDiagram
     varchar password_hash
     varchar full_name
     boolean is_active
+    boolean is_supervisor
     timestamp created_at
     timestamp updated_at
   }
@@ -279,7 +280,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Authentication**
 
-1. User(*id*, username, email, password_hash, full_name, is_active, created_at, updated_at)
+1. User(*id*, username, email, password_hash, full_name, is_active, is_supervisor, created_at, updated_at)
 2. Role(*id*, code, name, permissions)
 3. UserRole(*user_id\#*, *role_id\#*, assigned_at)
 
@@ -369,6 +370,7 @@ A few choices worth explaining:
 | password_hash | VARCHAR(255) | NOT NULL | Password hash (bcrypt) |
 | full_name | VARCHAR(100) | NOT NULL | User's full name |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Account active status |
+| is_supervisor | BOOLEAN | NOT NULL, DEFAULT FALSE | Per-module elevated tier flag; role code remains unchanged |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Account creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
 

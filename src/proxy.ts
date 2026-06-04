@@ -1,11 +1,13 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import authConfig, { type AppRole } from "@/auth.config";
+import authConfig, { isHkSupervisor, type AppRole } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
+const hkSupervisorPrefix = "/app/hk/supervisor";
 
 const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
+  { prefix: hkSupervisorPrefix, roles: ["HK", "ADMIN"] },
   { prefix: "/app/hk/list", roles: ["HK", "ADMIN"] },
   { prefix: "/app/fo", roles: ["FO"] },
   { prefix: "/app/hk", roles: ["HK"] },
@@ -24,6 +26,14 @@ export const proxy = auth((request) => {
 
   if (!session?.user) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (
+    routeMatches(pathname, hkSupervisorPrefix) &&
+    session.user.role !== "ADMIN" &&
+    !isHkSupervisor(session)
+  ) {
+    return NextResponse.rewrite(new URL("/app/forbidden", request.url));
   }
 
   const requiredRoles = roleRoutes.find(({ prefix }) =>

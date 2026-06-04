@@ -8,6 +8,7 @@ declare module "next-auth" {
       username: string;
       fullName: string;
       role: AppRole;
+      isSupervisor: boolean;
       sessionStartedAt?: string;
     } & DefaultSession["user"];
   }
@@ -16,6 +17,7 @@ declare module "next-auth" {
     username: string;
     fullName: string;
     role: AppRole;
+    isSupervisor: boolean;
   }
 }
 
@@ -25,5 +27,6 @@ declare module "next-auth/jwt" {
     username: string;
     fullName: string;
     role: AppRole;
+    isSupervisor: boolean;
   }
 }
