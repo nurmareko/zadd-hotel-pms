@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import {
   BedDouble,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -103,6 +104,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           icon: BedDouble,
           activeMatch: "startsWith",
         },
+        {
+          label: "Housekeeping List",
+          href: "/app/hk/list",
+          icon: ClipboardCheck,
+          activeMatch: "exact",
+        },
       ],
     },
   ],
@@ -155,6 +162,17 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
         { label: "Meja", href: "/app/admin/tables", icon: Table2 },
         { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },
         { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
+      ],
+    },
+    {
+      label: "Housekeeping",
+      links: [
+        {
+          label: "Housekeeping List",
+          href: "/app/hk/list",
+          icon: ClipboardCheck,
+          activeMatch: "exact",
+        },
       ],
     },
   ],

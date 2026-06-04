@@ -12,10 +12,10 @@ import {
   TableLocation,
   TableStatus,
 } from "@prisma/client";
-import { addDays, format, startOfDay, subHours, subMinutes } from "date-fns";
+import { addDays, format, subHours, subMinutes } from "date-fns";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
-import { dateOnlyBoundary } from "@/lib/date-only";
+import { dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { getRestaurantTableGridPosition } from "@/lib/restaurant-table-layout";
 
@@ -192,6 +192,8 @@ const reservations: Array<{
   deposit?: number;
   notes?: string;
   comment?: string;
+  housekeepingNote?: string;
+  addOns?: Array<{ label: string; delivered: boolean }>;
 }> = [
   {
     reservationNo: "DEMO-RSV-001",
@@ -259,6 +261,8 @@ const reservations: Array<{
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     comment: "Late arrival requested, prepare quiet room.",
+    housekeepingNote: "Fresh towels only; guest prefers no strong fragrance.",
+    addOns: [{ label: "Welcome fruit", delivered: true }],
   },
   {
     reservationNo: "DEMO-RSV-006",
@@ -266,13 +270,14 @@ const reservations: Array<{
     roomTypeCode: "DLX",
     roomNumber: "202",
     arrivalOffset: -3,
-    departureOffset: 1,
+    departureOffset: 0,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.COMPANY,
     deposit: 850000,
     comment: "Company booking, billing contact follows later.",
+    housekeepingNote: "Turnover priority; laptop stand left at desk is guest-owned.",
   },
   {
     reservationNo: "DEMO-RSV-007",
@@ -306,26 +311,38 @@ const reservations: Array<{
     guestFullName: "Budi Santoso",
     roomTypeCode: "DLX",
     roomNumber: "105",
-    arrivalOffset: 1,
+    arrivalOffset: 0,
     departureOffset: 4,
     adults: 2,
     status: ReservationStatus.CONFIRMED,
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
+    notes: "ETA 14:30",
+    housekeepingNote: "Prepare baby bed near window side and keep extra blanket ready.",
+    addOns: [
+      { label: "Baby bed", delivered: false },
+      { label: "Welcome fruit", delivered: true },
+    ],
   },
   {
     reservationNo: "DEMO-RSV-010",
     guestFullName: "Sari Indah",
     roomTypeCode: "DLX",
     roomNumber: "201",
-    arrivalOffset: 2,
+    arrivalOffset: 0,
     departureOffset: 6,
     adults: 2,
     status: ReservationStatus.CONFIRMED,
     arrangementType: ArrangementType.RB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
+    notes: "ETA 16:00",
+    housekeepingNote: "VIP amenity setup before arrival; check minibar seal.",
+    addOns: [
+      { label: "Flower setup", delivered: false },
+      { label: "Welcome fruit", delivered: false },
+    ],
   },
   {
     reservationNo: "DEMO-RSV-011",
@@ -697,9 +714,76 @@ async function seedHousekeepingLogs({
   );
 }
 
+async function seedHousekeepingListDemo({
+  roomsByNumber,
+  housekeeperId,
+  date,
+}: {
+  roomsByNumber: Map<string, { id: number }>;
+  housekeeperId: number;
+  date: Date;
+}) {
+  const seededRoomIds = [...roomsByNumber.values()].map((room) => room.id);
+  const assignedRoomNumbers = [
+    "101",
+    "103",
+    "105",
+    "201",
+    "202",
+    "204",
+    "301",
+    "307",
+  ];
+
+  await prisma.housekeepingAssignment.deleteMany({
+    where: { date, roomId: { in: seededRoomIds } },
+  });
+  await prisma.cleaningSession.deleteMany({
+    where: { date, roomId: { in: seededRoomIds } },
+  });
+
+  await prisma.housekeepingAssignment.createMany({
+    data: assignedRoomNumbers.map((roomNumber) => {
+      const room = roomsByNumber.get(roomNumber);
+
+      if (!room) {
+        throw new Error(`Missing room ${roomNumber} for HK assignment seed.`);
+      }
+
+      return {
+        roomId: room.id,
+        housekeeperId,
+        date,
+      };
+    }),
+  });
+
+  const inProgressRoom = roomsByNumber.get("204");
+
+  if (!inProgressRoom) {
+    throw new Error("Missing room 204 for HK cleaning session seed.");
+  }
+
+  await prisma.cleaningSession.create({
+    data: {
+      roomId: inProgressRoom.id,
+      housekeeperId,
+      date,
+      startedAt: minutesAgo(55),
+      finishedAt: null,
+      inspectedAt: null,
+      inspectedById: null,
+    },
+  });
+
+  console.log(
+    `✓ seeded ${assignedRoomNumbers.length} HK list assignments and 1 open cleaning session`,
+  );
+}
+
 async function main() {
   try {
-    const today = startOfDay(new Date());
+    const today = hotelTodayDateOnly();
     const createdBy = await findSeedUser();
     const housekeepingUser = await findHousekeepingUser();
     const fbUser = await findFoodBeverageUser();
@@ -879,7 +963,8 @@ async function main() {
           status: reservation.status,
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
-          notes: reservation.notes,
+          notes: reservation.notes ?? null,
+          housekeepingNote: reservation.housekeepingNote ?? null,
           grcFilledAt,
           purposeOfVisit,
           createdById: createdBy.id,
@@ -899,12 +984,27 @@ async function main() {
           status: reservation.status,
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
-          notes: reservation.notes,
+          notes: reservation.notes ?? null,
+          housekeepingNote: reservation.housekeepingNote ?? null,
           grcFilledAt,
           purposeOfVisit,
           createdById: createdBy.id,
         },
       });
+
+      await prisma.reservationAddOn.deleteMany({
+        where: { reservationId: seededReservation.id },
+      });
+
+      if (reservation.addOns && reservation.addOns.length > 0) {
+        await prisma.reservationAddOn.createMany({
+          data: reservation.addOns.map((addOn) => ({
+            reservationId: seededReservation.id,
+            label: addOn.label,
+            delivered: addOn.delivered,
+          })),
+        });
+      }
 
       if (hasCompletedGrc && !room) {
         throw new Error(`${reservation.reservationNo} needs an assigned room.`);
@@ -973,6 +1073,12 @@ async function main() {
     await seedHousekeepingLogs({
       roomsByNumber,
       updatedById: housekeepingUser.id,
+    });
+
+    await seedHousekeepingListDemo({
+      roomsByNumber,
+      housekeeperId: housekeepingUser.id,
+      date: dateOnlyBoundary(today),
     });
 
     for (const [index, reservation] of checkedInReservations.entries()) {
