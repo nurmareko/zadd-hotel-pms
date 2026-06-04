@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   Moon,
   Settings,
+  Sparkles,
   Tag,
   Table2,
   User,
@@ -105,6 +106,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           href: "/app/hk",
           icon: BedDouble,
           activeMatch: "startsWith",
+        },
+        {
+          label: "My Rooms",
+          href: "/app/hk/clean",
+          icon: Sparkles,
+          activeMatch: "exact",
         },
         {
           label: "Housekeeping List",

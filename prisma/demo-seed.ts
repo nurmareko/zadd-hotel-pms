@@ -35,9 +35,9 @@ const rooms: Array<{
 }> = [
   { number: "101", floor: 1, roomTypeCode: "STD", status: RoomStatus.VC },
   { number: "102", floor: 1, roomTypeCode: "STD", status: RoomStatus.VD },
-  { number: "103", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
+  { number: "103", floor: 1, roomTypeCode: "DLX", status: RoomStatus.OD },
   { number: "104", floor: 1, roomTypeCode: "STD", status: RoomStatus.VC },
-  { number: "105", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
+  { number: "105", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VD },
   { number: "106", floor: 1, roomTypeCode: "STD", status: RoomStatus.VCU },
   { number: "107", floor: 1, roomTypeCode: "DLX", status: RoomStatus.VC },
   { number: "108", floor: 1, roomTypeCode: "STD", status: RoomStatus.OOO },
@@ -62,9 +62,9 @@ const rooms: Array<{
 const hkRoomStatuses: Record<string, RoomStatus> = {
   "101": RoomStatus.OC,
   "102": RoomStatus.VD,
-  "103": RoomStatus.OC,
+  "103": RoomStatus.OD,
   "104": RoomStatus.VC,
-  "105": RoomStatus.VC,
+  "105": RoomStatus.VD,
   "106": RoomStatus.VCU,
   "107": RoomStatus.VC,
   "108": RoomStatus.OOO,
@@ -469,6 +469,18 @@ async function findHousekeepingUser() {
   return hkUser;
 }
 
+async function findSecondHousekeepingUser() {
+  const hkUser = await prisma.user.findUnique({ where: { username: "hk2" } });
+
+  if (!hkUser) {
+    throw new Error(
+      "Run the main Prisma seed first so floor-1 assignments can be attributed to hk2.",
+    );
+  }
+
+  return hkUser;
+}
+
 async function findFoodBeverageUser() {
   const fbUser = await prisma.user.findUnique({ where: { username: "fb1" } });
 
@@ -716,23 +728,31 @@ async function seedHousekeepingLogs({
 
 async function seedHousekeepingListDemo({
   roomsByNumber,
-  housekeeperId,
+  primaryHousekeeperId,
+  secondaryHousekeeperId,
   date,
 }: {
   roomsByNumber: Map<string, { id: number }>;
-  housekeeperId: number;
+  primaryHousekeeperId: number;
+  secondaryHousekeeperId: number;
   date: Date;
 }) {
   const seededRoomIds = [...roomsByNumber.values()].map((room) => room.id);
-  const assignedRoomNumbers = [
-    "101",
-    "103",
-    "105",
-    "201",
-    "202",
-    "204",
-    "301",
-    "307",
+  // hk2 owns the floor-1 worklist (a VD turnover, an OD stayover, plus already
+  // clean / awaiting-inspection rooms) so the housekeeper "My Rooms" view has a
+  // room in each priority group; hk1 keeps the upper floors.
+  const assignmentsByHousekeeper: Array<{
+    housekeeperId: number;
+    roomNumbers: string[];
+  }> = [
+    {
+      housekeeperId: secondaryHousekeeperId,
+      roomNumbers: ["101", "103", "105", "106"],
+    },
+    {
+      housekeeperId: primaryHousekeeperId,
+      roomNumbers: ["201", "202", "204", "301", "307"],
+    },
   ];
 
   await prisma.housekeepingAssignment.deleteMany({
@@ -743,19 +763,21 @@ async function seedHousekeepingListDemo({
   });
 
   await prisma.housekeepingAssignment.createMany({
-    data: assignedRoomNumbers.map((roomNumber) => {
-      const room = roomsByNumber.get(roomNumber);
+    data: assignmentsByHousekeeper.flatMap(({ housekeeperId, roomNumbers }) =>
+      roomNumbers.map((roomNumber) => {
+        const room = roomsByNumber.get(roomNumber);
 
-      if (!room) {
-        throw new Error(`Missing room ${roomNumber} for HK assignment seed.`);
-      }
+        if (!room) {
+          throw new Error(`Missing room ${roomNumber} for HK assignment seed.`);
+        }
 
-      return {
-        roomId: room.id,
-        housekeeperId,
-        date,
-      };
-    }),
+        return {
+          roomId: room.id,
+          housekeeperId,
+          date,
+        };
+      }),
+    ),
   });
 
   const inProgressRoom = roomsByNumber.get("204");
@@ -767,7 +789,7 @@ async function seedHousekeepingListDemo({
   await prisma.cleaningSession.create({
     data: {
       roomId: inProgressRoom.id,
-      housekeeperId,
+      housekeeperId: primaryHousekeeperId,
       date,
       startedAt: minutesAgo(55),
       finishedAt: null,
@@ -776,8 +798,13 @@ async function seedHousekeepingListDemo({
     },
   });
 
+  const assignmentCount = assignmentsByHousekeeper.reduce(
+    (total, group) => total + group.roomNumbers.length,
+    0,
+  );
+
   console.log(
-    `✓ seeded ${assignedRoomNumbers.length} HK list assignments and 1 open cleaning session`,
+    `✓ seeded ${assignmentCount} HK list assignments and 1 open cleaning session`,
   );
 }
 
@@ -786,6 +813,7 @@ async function main() {
     const today = hotelTodayDateOnly();
     const createdBy = await findSeedUser();
     const housekeepingUser = await findHousekeepingUser();
+    const secondHousekeepingUser = await findSecondHousekeepingUser();
     const fbUser = await findFoodBeverageUser();
     const accountingUser = await findAccountingUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
@@ -1077,7 +1105,8 @@ async function main() {
 
     await seedHousekeepingListDemo({
       roomsByNumber,
-      housekeeperId: housekeepingUser.id,
+      primaryHousekeeperId: housekeepingUser.id,
+      secondaryHousekeeperId: secondHousekeepingUser.id,
       date: dateOnlyBoundary(today),
     });
 
