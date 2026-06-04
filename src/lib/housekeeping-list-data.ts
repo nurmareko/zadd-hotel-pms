@@ -44,6 +44,7 @@ export type HousekeepingListRow = {
   } | null;
   addOns: HousekeepingAddOn[];
   assignedHousekeeper: {
+    id: number;
     name: string;
     initials: string;
   } | null;
@@ -227,7 +228,7 @@ export async function getHousekeepingListData(
         where: { date },
         select: {
           roomId: true,
-          housekeeper: { select: { fullName: true } },
+          housekeeper: { select: { id: true, fullName: true } },
         },
       }),
       prisma.cleaningSession.findMany({
@@ -321,6 +322,7 @@ export async function getHousekeepingListData(
         addOns: noteReservation?.addOns ?? [],
         assignedHousekeeper: housekeeper
           ? {
+              id: housekeeper.id,
               name: housekeeper.fullName,
               initials: initialsFromName(housekeeper.fullName),
             }

@@ -25,6 +25,7 @@ export type CleaningQueueRow = {
 type HKDashboardTabsProps = {
   queueRows: CleaningQueueRow[];
   floors: RoomStatusGridFloor[];
+  canOverrideStatus?: boolean;
 };
 
 const filters = ["ALL", "VD", "OD", "VCU"] as const;
@@ -38,7 +39,11 @@ const filterLabels: Record<QueueFilter, string> = {
   VCU: "VCU",
 };
 
-export function HKDashboardTabs({ queueRows, floors }: HKDashboardTabsProps) {
+export function HKDashboardTabs({
+  queueRows,
+  floors,
+  canOverrideStatus = false,
+}: HKDashboardTabsProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("cleaning");
   const [activeFilter, setActiveFilter] = useState<QueueFilter>("ALL");
 
@@ -90,7 +95,10 @@ export function HKDashboardTabs({ queueRows, floors }: HKDashboardTabsProps) {
             onFilterChange={setActiveFilter}
           />
         ) : (
-          <RoomStatusGrid floors={floors} />
+          <RoomStatusGrid
+            floors={floors}
+            canOverrideStatus={canOverrideStatus}
+          />
         )}
       </div>
     </section>

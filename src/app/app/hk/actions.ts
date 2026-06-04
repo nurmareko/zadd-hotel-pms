@@ -1,9 +1,11 @@
 "use server";
 
 import { Prisma, ReservationStatus, RoomStatus } from "@prisma/client";
+import type { Session } from "next-auth";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { isHkSupervisor } from "@/auth.config";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
@@ -16,6 +18,11 @@ const UpdateRoomStatusSchema = z.object({
   status: z.enum(RoomStatus),
 });
 
+const RoomStatusOverrideSchema = z.object({
+  roomId: z.coerce.number().int().positive("Kamar tidak valid"),
+  status: z.enum(RoomStatus),
+});
+
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Input tidak valid";
 }
@@ -24,6 +31,13 @@ function isSerializationConflict(error: unknown) {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2034" || error.code === "P2028")
+  );
+}
+
+function isSupervisorSession(session: Session | null) {
+  return Boolean(
+    session?.user &&
+      (session.user.role === "ADMIN" || isHkSupervisor(session)),
   );
 }
 
@@ -138,5 +152,68 @@ export async function updateRoomStatus(
     }
 
     return { ok: false, error: "Gagal memperbarui status kamar" };
+  }
+}
+
+export async function setRoomStatusOverride(
+  roomId: number,
+  status: RoomStatus,
+): Promise<ActionResult> {
+  const session = await auth();
+
+  if (!isSupervisorSession(session)) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = RoomStatusOverrideSchema.safeParse({ roomId, status });
+
+  if (!parsed.success) {
+    return { ok: false, error: validationError(parsed.error) };
+  }
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "room" WHERE id = ${parsed.data.roomId} FOR UPDATE
+        `;
+
+        const room = await tx.room.findUnique({
+          where: { id: parsed.data.roomId },
+          select: { id: true, status: true },
+        });
+
+        if (!room) {
+          return { ok: false as const, error: "Kamar tidak ditemukan" };
+        }
+
+        if (room.status === parsed.data.status) {
+          return { ok: true as const };
+        }
+
+        await tx.room.update({
+          where: { id: room.id },
+          data: { status: parsed.data.status },
+        });
+
+        return { ok: true as const };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+
+    if (result.ok) {
+      revalidateRoomStatusViews({ roomId: parsed.data.roomId });
+    }
+
+    return result;
+  } catch (error) {
+    if (isSerializationConflict(error)) {
+      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
+    }
+
+    return { ok: false, error: "Gagal override status kamar" };
   }
 }

@@ -1,5 +1,10 @@
 import { addDays, formatISO } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Printer,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -45,6 +50,12 @@ function parseDateParam(value: string | undefined) {
 
 function dateHref(date: Date) {
   return `/app/hk/supervisor?date=${formatISO(date, {
+    representation: "date",
+  })}`;
+}
+
+function printHref(date: Date) {
+  return `/api/hk/daily-list?date=${formatISO(date, {
     representation: "date",
   })}`;
 }
@@ -128,6 +139,14 @@ export default async function HkSupervisorPage({
           >
             Next
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+          <Link
+            href={printHref(date)}
+            target="_blank"
+            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          >
+            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+            Print daily list
           </Link>
         </nav>
       </div>

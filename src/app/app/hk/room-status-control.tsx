@@ -7,16 +7,7 @@ import { toast } from "sonner";
 import type { RoomStatus } from "@prisma/client";
 
 import { updateRoomStatus } from "./actions";
-import { allowedRoomStatuses } from "./room-status-options";
-
-const statusLabels: Record<RoomStatus, string> = {
-  VC: "VC - Vacant Clean",
-  OC: "OC - Occupied Clean",
-  VD: "VD - Vacant Dirty",
-  OD: "OD - Occupied Dirty",
-  VCU: "VCU - Clean Unchecked",
-  OOO: "OOO - Out of Order",
-};
+import { allowedRoomStatuses, roomStatusLabels } from "./room-status-options";
 
 export function RoomStatusControl({
   roomId,
@@ -68,7 +59,7 @@ export function RoomStatusControl({
       >
         {statuses.map((roomStatus) => (
           <option key={roomStatus} value={roomStatus}>
-            {statusLabels[roomStatus]}
+            {roomStatusLabels[roomStatus]}
           </option>
         ))}
       </select>
