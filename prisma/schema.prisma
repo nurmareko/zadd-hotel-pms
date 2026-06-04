@@ -118,13 +118,16 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  roles                UserRole[]
-  reservationsCreated  Reservation[]     @relation("ReservationCreator")
-  folioLineItemsPosted FolioLineItem[]
-  fbOrdersWaited       FBOrder[]
-  housekeepingLogs     HousekeepingLog[]
-  nightAuditsRun       NightAudit[]
-  paymentsReceived     Payment[]
+  roles                   UserRole[]
+  reservationsCreated     Reservation[]            @relation("ReservationCreator")
+  folioLineItemsPosted    FolioLineItem[]
+  fbOrdersWaited          FBOrder[]
+  housekeepingLogs        HousekeepingLog[]
+  housekeepingAssignments HousekeepingAssignment[] @relation("HousekeepingAssignmentHousekeeper")
+  cleaningSessions        CleaningSession[]        @relation("CleaningSessionHousekeeper")
+  cleaningInspections     CleaningSession[]        @relation("CleaningSessionInspector")
+  nightAuditsRun          NightAudit[]
+  paymentsReceived        Payment[]
 
   @@map("user")
 }
@@ -177,9 +180,11 @@ model Room {
   roomTypeId Int        @map("room_type_id")
   status     RoomStatus @default(VC)
 
-  roomType         RoomType          @relation(fields: [roomTypeId], references: [id])
-  reservations     Reservation[]
-  housekeepingLogs HousekeepingLog[]
+  roomType                RoomType                 @relation(fields: [roomTypeId], references: [id])
+  reservations            Reservation[]
+  housekeepingLogs        HousekeepingLog[]
+  housekeepingAssignments HousekeepingAssignment[]
+  cleaningSessions        CleaningSession[]
 
   @@map("room")
 }
@@ -228,23 +233,24 @@ model Guest {
 }
 
 model Reservation {
-  id              Int                  @id @default(autoincrement())
-  reservationNo   String               @unique @map("reservation_no") @db.VarChar(20)
-  type            ReservationUsageType @default(REGULAR)
-  arrangementType ArrangementType      @default(RO) @map("arrangement_type")
-  reservationType ReservationType      @default(INDIVIDUAL) @map("reservation_type")
-  comment         String?              @db.Text
-  guestId         Int                  @map("guest_id")
-  roomTypeId      Int                  @map("room_type_id")
-  roomId          Int?                 @map("room_id")
-  arrivalDate     DateTime             @map("arrival_date") @db.Date
-  departureDate   DateTime             @map("departure_date") @db.Date
-  adults          Int                  @default(1)
-  children        Int                  @default(0)
-  status          ReservationStatus    @default(CONFIRMED)
-  rateAmount      Decimal              @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
-  deposit         Decimal              @default(0) @db.Decimal(12, 2)
-  notes           String?              @db.Text
+  id               Int                  @id @default(autoincrement())
+  reservationNo    String               @unique @map("reservation_no") @db.VarChar(20)
+  type             ReservationUsageType @default(REGULAR)
+  arrangementType  ArrangementType      @default(RO) @map("arrangement_type")
+  reservationType  ReservationType      @default(INDIVIDUAL) @map("reservation_type")
+  comment          String?              @db.Text
+  guestId          Int                  @map("guest_id")
+  roomTypeId       Int                  @map("room_type_id")
+  roomId           Int?                 @map("room_id")
+  arrivalDate      DateTime             @map("arrival_date") @db.Date
+  departureDate    DateTime             @map("departure_date") @db.Date
+  adults           Int                  @default(1)
+  children         Int                  @default(0)
+  status           ReservationStatus    @default(CONFIRMED)
+  rateAmount       Decimal              @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
+  deposit          Decimal              @default(0) @db.Decimal(12, 2)
+  notes            String?              @db.Text
+  housekeepingNote String?              @map("housekeeping_note") @db.Text
 
   // GRC fields (inlined from GuestRegistrationCard entity)
   grcFilledAt      DateTime? @map("grc_filled_at")
@@ -256,13 +262,26 @@ model Reservation {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  guest     Guest    @relation(fields: [guestId], references: [id])
-  roomType  RoomType @relation(fields: [roomTypeId], references: [id])
-  room      Room?    @relation(fields: [roomId], references: [id])
-  createdBy User     @relation("ReservationCreator", fields: [createdById], references: [id])
+  guest     Guest              @relation(fields: [guestId], references: [id])
+  roomType  RoomType           @relation(fields: [roomTypeId], references: [id])
+  room      Room?              @relation(fields: [roomId], references: [id])
+  createdBy User               @relation("ReservationCreator", fields: [createdById], references: [id])
   folio     Folio?
+  addOns    ReservationAddOn[]
 
   @@map("reservation")
+}
+
+model ReservationAddOn {
+  id            Int      @id @default(autoincrement())
+  reservationId Int      @map("reservation_id")
+  label         String   @db.VarChar(100)
+  delivered     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_add_on")
 }
 
 model Folio {
@@ -398,6 +417,42 @@ model HousekeepingLog {
   updatedBy User @relation(fields: [updatedById], references: [id])
 
   @@map("housekeeping_log")
+}
+
+model HousekeepingAssignment {
+  id            Int      @id @default(autoincrement())
+  roomId        Int      @map("room_id")
+  housekeeperId Int      @map("housekeeper_id")
+  date          DateTime @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  room        Room @relation(fields: [roomId], references: [id])
+  housekeeper User @relation("HousekeepingAssignmentHousekeeper", fields: [housekeeperId], references: [id])
+
+  @@unique([roomId, date])
+  @@index([housekeeperId, date])
+  @@index([date])
+  @@map("housekeeping_assignment")
+}
+
+model CleaningSession {
+  id            Int       @id @default(autoincrement())
+  roomId        Int       @map("room_id")
+  housekeeperId Int       @map("housekeeper_id")
+  date          DateTime  @db.Date
+  startedAt     DateTime? @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  inspectedAt   DateTime? @map("inspected_at")
+  inspectedById Int?      @map("inspected_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  room        Room  @relation(fields: [roomId], references: [id])
+  housekeeper User  @relation("CleaningSessionHousekeeper", fields: [housekeeperId], references: [id])
+  inspectedBy User? @relation("CleaningSessionInspector", fields: [inspectedById], references: [id], onDelete: SetNull)
+
+  @@index([roomId])
+  @@index([housekeeperId, date])
+  @@map("cleaning_session")
 }
 
 // ============================================================
