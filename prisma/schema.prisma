@@ -104,6 +104,11 @@ enum NightAuditStatus {
   COMPLETED
 }
 
+enum LostFoundStatus {
+  UNCLAIMED
+  RETURNED
+}
+
 // ============================================================
 // AUTHENTICATION
 // ============================================================
@@ -127,6 +132,7 @@ model User {
   housekeepingAssignments HousekeepingAssignment[] @relation("HousekeepingAssignmentHousekeeper")
   cleaningSessions        CleaningSession[]        @relation("CleaningSessionHousekeeper")
   cleaningInspections     CleaningSession[]        @relation("CleaningSessionInspector")
+  lostFoundItemsFound      LostFoundItem[]          @relation("LostFoundItemFoundBy")
   nightAuditsRun          NightAudit[]
   paymentsReceived        Payment[]
 
@@ -186,6 +192,7 @@ model Room {
   housekeepingLogs        HousekeepingLog[]
   housekeepingAssignments HousekeepingAssignment[]
   cleaningSessions        CleaningSession[]
+  lostFoundItems          LostFoundItem[]
 
   @@map("room")
 }
@@ -454,6 +461,24 @@ model CleaningSession {
   @@index([roomId])
   @@index([housekeeperId, date])
   @@map("cleaning_session")
+}
+
+model LostFoundItem {
+  id          Int             @id @default(autoincrement())
+  roomId      Int?            @map("room_id")
+  description String          @db.Text
+  foundById   Int             @map("found_by_id")
+  status      LostFoundStatus @default(UNCLAIMED)
+  returnedAt  DateTime?       @map("returned_at")
+  resolution  String?         @db.Text
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  room    Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  foundBy User  @relation("LostFoundItemFoundBy", fields: [foundById], references: [id])
+
+  @@index([status])
+  @@index([roomId])
+  @@map("lost_found_item")
 }
 
 // ============================================================

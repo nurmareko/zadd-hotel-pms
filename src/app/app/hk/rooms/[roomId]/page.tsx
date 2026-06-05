@@ -24,30 +24,55 @@ export default async function HKRoomDetailPage({
   }
 
   const { today } = todayDateOnly();
-  const room = await prisma.room.findUnique({
-    where: { id: parsedRoomId },
-    include: {
-      roomType: true,
-      housekeepingLogs: {
-        include: { updatedBy: { select: { fullName: true } } },
-        orderBy: { updatedAt: "desc" },
-        take: 20,
-      },
-      reservations: {
-        where: {
-          OR: [
-            { status: ReservationStatus.CHECKED_OUT },
-            {
-              status: ReservationStatus.CONFIRMED,
-              arrivalDate: { gte: today },
+  const [room, activeCleaningSession, latestCompletedCleaningSession, assignment] =
+    await Promise.all([
+      prisma.room.findUnique({
+        where: { id: parsedRoomId },
+        include: {
+          roomType: true,
+          housekeepingLogs: {
+            include: { updatedBy: { select: { fullName: true } } },
+            orderBy: { updatedAt: "desc" },
+            take: 20,
+          },
+          reservations: {
+            where: {
+              OR: [
+                { status: ReservationStatus.CHECKED_OUT },
+                {
+                  status: ReservationStatus.CONFIRMED,
+                  arrivalDate: { gte: today },
+                },
+              ],
             },
-          ],
+            include: { guest: { select: { fullName: true } } },
+            orderBy: [{ departureDate: "desc" }, { arrivalDate: "asc" }],
+          },
         },
-        include: { guest: { select: { fullName: true } } },
-        orderBy: [{ departureDate: "desc" }, { arrivalDate: "asc" }],
-      },
-    },
-  });
+      }),
+      prisma.cleaningSession.findFirst({
+        where: {
+          roomId: parsedRoomId,
+          startedAt: { not: null },
+          finishedAt: null,
+        },
+        include: { housekeeper: { select: { fullName: true } } },
+        orderBy: [{ startedAt: "desc" }, { createdAt: "desc" }],
+      }),
+      prisma.cleaningSession.findFirst({
+        where: {
+          roomId: parsedRoomId,
+          startedAt: { not: null },
+          finishedAt: { not: null },
+        },
+        include: { housekeeper: { select: { fullName: true } } },
+        orderBy: [{ finishedAt: "desc" }, { createdAt: "desc" }],
+      }),
+      prisma.housekeepingAssignment.findFirst({
+        where: { roomId: parsedRoomId, date: today },
+        include: { housekeeper: { select: { fullName: true } } },
+      }),
+    ]);
 
   if (!room) {
     notFound();
@@ -64,14 +89,6 @@ export default async function HKRoomDetailPage({
       .sort((first, second) => first.arrivalDate.getTime() - second.arrivalDate.getTime())[0] ??
     null;
   const latestLog = room.housekeepingLogs[0] ?? null;
-  const activeCleaningLog =
-    room.housekeepingLogs.find(
-      (log) => log.cleaningStartedAt && !log.cleaningCompletedAt,
-    ) ?? null;
-  const latestCompletedCleaningLog =
-    room.housekeepingLogs.find(
-      (log) => log.cleaningStartedAt && log.cleaningCompletedAt,
-    ) ?? null;
 
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
@@ -104,24 +121,26 @@ export default async function HKRoomDetailPage({
         <ActionPanel
           roomId={room.id}
           status={room.status}
-          activeCleaningLog={
-            activeCleaningLog
+          activeCleaningSession={
+            activeCleaningSession?.startedAt
               ? {
-                  id: activeCleaningLog.id,
-                  startedAt: activeCleaningLog.cleaningStartedAt!,
-                  updatedByName: activeCleaningLog.updatedBy.fullName,
+                  startedAt: activeCleaningSession.startedAt,
+                  housekeeperName: activeCleaningSession.housekeeper.fullName,
                 }
               : null
           }
-          latestCompletedCleaningLog={
-            latestCompletedCleaningLog
+          latestCompletedCleaningSession={
+            latestCompletedCleaningSession?.startedAt &&
+            latestCompletedCleaningSession.finishedAt
               ? {
-                  startedAt: latestCompletedCleaningLog.cleaningStartedAt!,
-                  completedAt: latestCompletedCleaningLog.cleaningCompletedAt!,
-                  updatedByName: latestCompletedCleaningLog.updatedBy.fullName,
+                  startedAt: latestCompletedCleaningSession.startedAt,
+                  finishedAt: latestCompletedCleaningSession.finishedAt,
+                  housekeeperName:
+                    latestCompletedCleaningSession.housekeeper.fullName,
                 }
               : null
           }
+          assignedHousekeeperName={assignment?.housekeeper.fullName ?? null}
         />
         <RoomHistory logs={room.housekeepingLogs} />
       </div>

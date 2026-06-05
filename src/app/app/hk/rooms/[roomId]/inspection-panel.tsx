@@ -13,38 +13,38 @@ import { inspectRoom } from "./actions";
 
 type InspectionPanelProps = {
   roomId: number;
-  latestCompletedCleaningLog: {
+  latestCompletedCleaningSession: {
     startedAt: Date;
-    completedAt: Date;
-    updatedByName: string;
+    finishedAt: Date;
+    housekeeperName: string;
   } | null;
 };
 
-function durationMinutes(startedAt: Date, completedAt: Date) {
+function durationMinutes(startedAt: Date, finishedAt: Date) {
   return Math.max(
     1,
-    Math.round((completedAt.getTime() - startedAt.getTime()) / 60_000),
+    Math.round((finishedAt.getTime() - startedAt.getTime()) / 60_000),
   );
 }
 
 function cleaningSummary(
-  latestCompletedCleaningLog: InspectionPanelProps["latestCompletedCleaningLog"],
+  latestCompletedCleaningSession: InspectionPanelProps["latestCompletedCleaningSession"],
 ) {
-  if (!latestCompletedCleaningLog) {
+  if (!latestCompletedCleaningSession) {
     return "Belum ada catatan pembersihan selesai untuk kamar ini.";
   }
 
-  return `Dibersihkan oleh ${latestCompletedCleaningLog.updatedByName} pada ${formatTimeID(
-    latestCompletedCleaningLog.startedAt,
-  )}, selesai ${formatTimeID(latestCompletedCleaningLog.completedAt)} (${durationMinutes(
-    latestCompletedCleaningLog.startedAt,
-    latestCompletedCleaningLog.completedAt,
+  return `Dibersihkan oleh ${latestCompletedCleaningSession.housekeeperName} pada ${formatTimeID(
+    latestCompletedCleaningSession.startedAt,
+  )}, selesai ${formatTimeID(latestCompletedCleaningSession.finishedAt)} (${durationMinutes(
+    latestCompletedCleaningSession.startedAt,
+    latestCompletedCleaningSession.finishedAt,
   )} menit)`;
 }
 
 export function InspectionPanel({
   roomId,
-  latestCompletedCleaningLog,
+  latestCompletedCleaningSession,
 }: InspectionPanelProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export function InspectionPanel({
       >
         <input type="hidden" name="roomId" value={roomId} />
         <p className="text-[12px] leading-relaxed text-slate-600">
-          {cleaningSummary(latestCompletedCleaningLog)}
+          {cleaningSummary(latestCompletedCleaningSession)}
         </p>
 
         <label className="block">
