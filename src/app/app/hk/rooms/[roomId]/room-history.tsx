@@ -8,31 +8,11 @@ type HistoryLog = HousekeepingLog & {
   updatedBy: Pick<User, "fullName">;
 };
 
-function durationLabel(startedAt: Date, completedAt: Date) {
-  const minutes = Math.max(
-    1,
-    Math.round((completedAt.getTime() - startedAt.getTime()) / 60_000),
-  );
-
-  return `${minutes} menit`;
-}
-
 function transitionLabel(oldStatus: RoomStatus, newStatus: RoomStatus) {
   return `${oldStatus} → ${newStatus}`;
 }
 
 function logDescription(log: HistoryLog) {
-  if (log.cleaningStartedAt && log.cleaningCompletedAt) {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (${durationLabel(
-      log.cleaningStartedAt,
-      log.cleaningCompletedAt,
-    )})`;
-  }
-
-  if (log.cleaningStartedAt && !log.cleaningCompletedAt) {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (sedang berjalan)`;
-  }
-
   if (log.oldStatus === "VCU" && log.newStatus === "VC") {
     return `${transitionLabel(log.oldStatus, log.newStatus)} (lulus inspeksi)`;
   }
@@ -49,23 +29,7 @@ function logDescription(log: HistoryLog) {
 }
 
 function logSecondaryLine(log: HistoryLog) {
-  if (log.oldStatus === "VCU" && log.newStatus === "VD" && log.note) {
-    return `"${log.note}"`;
-  }
-
-  if (!log.cleaningStartedAt || !log.cleaningCompletedAt) {
-    return null;
-  }
-
-  const changeFlags = [
-    log.linenChanged ? "sprei diganti" : null,
-    log.towelChanged ? "handuk diganti" : null,
-  ].filter(Boolean);
-  const flags = changeFlags.length > 0 ? changeFlags.join(", ") : null;
-  const note = log.note ? `"${log.note}"` : null;
-  const details = [flags, note].filter(Boolean);
-
-  return details.length > 0 ? details.join(" — ") : null;
+  return log.note ? `"${log.note}"` : null;
 }
 
 export function RoomHistory({ logs }: { logs: HistoryLog[] }) {

@@ -23,12 +23,6 @@ export const RoomActionSchema = z.object({
   roomId: z.coerce.number().int().positive("Kamar tidak valid"),
 });
 
-export const StopCleaningSchema = RoomActionSchema.extend({
-  notes: OptionalNotesSchema,
-  linenChanged: FormBooleanSchema.default(false),
-  towelChanged: FormBooleanSchema.default(false),
-});
-
 export const InspectRoomSchema = RoomActionSchema.extend({
   passed: FormBooleanSchema,
   notes: OptionalNotesSchema,

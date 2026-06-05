@@ -47,7 +47,7 @@ function roomDetailHref(roomId: number) {
 export default async function HKDashboardPage() {
   const now = new Date();
 
-  const [session, rooms, activeLogs, queueRooms] = await Promise.all([
+  const [session, rooms, activeCleaningCount, queueRooms] = await Promise.all([
     auth(),
     prisma.room.findMany({
       include: {
@@ -61,12 +61,11 @@ export default async function HKDashboardPage() {
       },
       orderBy: { number: "asc" },
     }),
-    prisma.housekeepingLog.findMany({
+    prisma.cleaningSession.count({
       where: {
-        cleaningStartedAt: { not: null },
-        cleaningCompletedAt: null,
+        startedAt: { not: null },
+        finishedAt: null,
       },
-      select: { id: true, roomId: true },
     }),
     prisma.room.findMany({
       where: { status: { in: [...queueStatuses] } },
@@ -88,17 +87,6 @@ export default async function HKDashboardPage() {
       (session.user.role === "ADMIN" || isHkSupervisor(session)),
   );
 
-  const roomsWithLatestActiveCleaning = rooms.filter((room) => {
-    const latestLog = room.housekeepingLogs[0];
-
-    return Boolean(
-      latestLog?.cleaningStartedAt && !latestLog.cleaningCompletedAt,
-    );
-  });
-  const activeLogRoomIds = new Set(activeLogs.map((log) => log.roomId));
-  const activeCleaningCount = roomsWithLatestActiveCleaning.filter((room) =>
-    activeLogRoomIds.has(room.id),
-  ).length;
   const dirtyCount = rooms.filter(
     (room) => room.status === RoomStatus.VD || room.status === RoomStatus.OD,
   ).length;

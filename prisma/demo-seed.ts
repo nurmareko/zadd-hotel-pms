@@ -481,6 +481,20 @@ async function findSecondHousekeepingUser() {
   return hkUser;
 }
 
+async function findHousekeepingSupervisor() {
+  const hkSupervisor = await prisma.user.findUnique({
+    where: { username: "hksup" },
+  });
+
+  if (!hkSupervisor) {
+    throw new Error(
+      "Run the main Prisma seed first so inspection audits can be attributed to hksup.",
+    );
+  }
+
+  return hkSupervisor;
+}
+
 async function findFoodBeverageUser() {
   const fbUser = await prisma.user.findUnique({ where: { username: "fb1" } });
 
@@ -528,9 +542,11 @@ function computeFbAmounts(
 async function seedHousekeepingLogs({
   roomsByNumber,
   updatedById,
+  inspectedById,
 }: {
   roomsByNumber: Map<string, { id: number }>;
   updatedById: number;
+  inspectedById: number;
 }) {
   const seededRoomIds = [...roomsByNumber.values()].map((room) => room.id);
 
@@ -551,23 +567,13 @@ async function seedHousekeepingLogs({
     });
   }
 
-  function cleaningCapture(seed: number) {
-    return {
-      linenChanged: seed % 5 !== 0,
-      towelChanged: seed % 4 !== 1,
-    };
-  }
-
   type HousekeepingLogSeed = {
     roomNumber: string;
     oldStatus: RoomStatus;
     newStatus: RoomStatus;
     note?: string | null;
     updatedAt: Date;
-    cleaningStartedAt?: Date;
-    cleaningCompletedAt?: Date;
-    linenChanged?: boolean;
-    towelChanged?: boolean;
+    updatedById?: number;
   };
 
   const logSeeds: HousekeepingLogSeed[] = [
@@ -591,9 +597,6 @@ async function seedHousekeepingLogs({
       newStatus: RoomStatus.VCU,
       note: "Tidak ada masalah",
       updatedAt: hoursAgo(27),
-      cleaningStartedAt: hoursAgo(28),
-      cleaningCompletedAt: hoursAgo(27),
-      ...cleaningCapture(2),
     },
     {
       roomNumber: "102",
@@ -601,6 +604,7 @@ async function seedHousekeepingLogs({
       newStatus: RoomStatus.VD,
       note: "Lantai masih basah",
       updatedAt: minutesAgo(26 * 60 + 45),
+      updatedById: inspectedById,
     },
     {
       roomNumber: "103",
@@ -615,9 +619,6 @@ async function seedHousekeepingLogs({
       newStatus: RoomStatus.VCU,
       note: "Sudah saya bersihkan",
       updatedAt: hoursAgo(35),
-      cleaningStartedAt: hoursAgo(35),
-      cleaningCompletedAt: hoursAgo(34),
-      ...cleaningCapture(6),
     },
     {
       roomNumber: "108",
@@ -648,22 +649,11 @@ async function seedHousekeepingLogs({
       updatedAt: hoursAgo(23),
     },
     {
-      roomNumber: "204",
-      oldStatus: RoomStatus.VD,
-      newStatus: RoomStatus.VD,
-      note: "Minibar perlu di-restock",
-      updatedAt: hoursAgo(1),
-      cleaningStartedAt: hoursAgo(1),
-    },
-    {
       roomNumber: "205",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
       note: null,
       updatedAt: hoursAgo(48),
-      cleaningStartedAt: hoursAgo(48),
-      cleaningCompletedAt: hoursAgo(47),
-      ...cleaningCapture(5),
     },
     {
       roomNumber: "301",
@@ -685,9 +675,6 @@ async function seedHousekeepingLogs({
       newStatus: RoomStatus.VCU,
       note: "AC sedikit berisik, sudah saya laporkan",
       updatedAt: minutesAgo(30 * 60 + 30),
-      cleaningStartedAt: hoursAgo(31),
-      cleaningCompletedAt: minutesAgo(30 * 60 + 30),
-      ...cleaningCapture(7),
     },
     {
       roomNumber: "307",
@@ -695,6 +682,22 @@ async function seedHousekeepingLogs({
       newStatus: RoomStatus.VD,
       note: "Linen belum diganti",
       updatedAt: hoursAgo(30),
+      updatedById: inspectedById,
+    },
+    {
+      roomNumber: "201",
+      oldStatus: RoomStatus.VD,
+      newStatus: RoomStatus.VCU,
+      note: "Turnover selesai untuk arrival VIP.",
+      updatedAt: minutesAgo(270),
+    },
+    {
+      roomNumber: "201",
+      oldStatus: RoomStatus.VCU,
+      newStatus: RoomStatus.VC,
+      note: "Lulus inspeksi.",
+      updatedAt: hoursAgo(4),
+      updatedById: inspectedById,
     },
   ];
 
@@ -710,12 +713,8 @@ async function seedHousekeepingLogs({
       oldStatus: log.oldStatus,
       newStatus: log.newStatus,
       note: log.note ?? null,
-      updatedById,
+      updatedById: log.updatedById ?? updatedById,
       updatedAt: log.updatedAt,
-      cleaningStartedAt: log.cleaningStartedAt ?? null,
-      cleaningCompletedAt: log.cleaningCompletedAt ?? null,
-      linenChanged: log.linenChanged ?? false,
-      towelChanged: log.towelChanged ?? false,
     };
   });
 
@@ -730,11 +729,13 @@ async function seedHousekeepingListDemo({
   roomsByNumber,
   primaryHousekeeperId,
   secondaryHousekeeperId,
+  inspectedById,
   date,
 }: {
   roomsByNumber: Map<string, { id: number }>;
   primaryHousekeeperId: number;
   secondaryHousekeeperId: number;
+  inspectedById: number;
   date: Date;
 }) {
   const seededRoomIds = [...roomsByNumber.values()].map((room) => room.id);
@@ -747,11 +748,11 @@ async function seedHousekeepingListDemo({
   }> = [
     {
       housekeeperId: secondaryHousekeeperId,
-      roomNumbers: ["101", "103", "105", "106"],
+      roomNumbers: ["101", "102", "103", "105", "106"],
     },
     {
       housekeeperId: primaryHousekeeperId,
-      roomNumbers: ["201", "202", "204", "301", "307"],
+      roomNumbers: ["201", "202", "204", "205", "301", "307"],
     },
   ];
 
@@ -780,22 +781,73 @@ async function seedHousekeepingListDemo({
     ),
   });
 
-  const inProgressRoom = roomsByNumber.get("204");
+  function roomIdForSession(roomNumber: string) {
+    const room = roomsByNumber.get(roomNumber);
 
-  if (!inProgressRoom) {
-    throw new Error("Missing room 204 for HK cleaning session seed.");
+    if (!room) {
+      throw new Error(`Missing room ${roomNumber} for HK cleaning session seed.`);
+    }
+
+    return room.id;
   }
 
-  await prisma.cleaningSession.create({
-    data: {
-      roomId: inProgressRoom.id,
-      housekeeperId: primaryHousekeeperId,
-      date,
-      startedAt: minutesAgo(55),
-      finishedAt: null,
-      inspectedAt: null,
-      inspectedById: null,
-    },
+  await prisma.cleaningSession.createMany({
+    data: [
+      {
+        roomId: roomIdForSession("204"),
+        housekeeperId: primaryHousekeeperId,
+        date,
+        startedAt: minutesAgo(55),
+        finishedAt: null,
+        inspectedAt: null,
+        inspectedById: null,
+      },
+      {
+        roomId: roomIdForSession("106"),
+        housekeeperId: secondaryHousekeeperId,
+        date,
+        startedAt: hoursAgo(35),
+        finishedAt: hoursAgo(34),
+        inspectedAt: null,
+        inspectedById: null,
+      },
+      {
+        roomId: roomIdForSession("205"),
+        housekeeperId: primaryHousekeeperId,
+        date,
+        startedAt: hoursAgo(48),
+        finishedAt: hoursAgo(47),
+        inspectedAt: null,
+        inspectedById: null,
+      },
+      {
+        roomId: roomIdForSession("201"),
+        housekeeperId: primaryHousekeeperId,
+        date,
+        startedAt: hoursAgo(5),
+        finishedAt: minutesAgo(270),
+        inspectedAt: hoursAgo(4),
+        inspectedById,
+      },
+      {
+        roomId: roomIdForSession("102"),
+        housekeeperId: secondaryHousekeeperId,
+        date,
+        startedAt: hoursAgo(28),
+        finishedAt: hoursAgo(27),
+        inspectedAt: minutesAgo(26 * 60 + 45),
+        inspectedById,
+      },
+      {
+        roomId: roomIdForSession("307"),
+        housekeeperId: primaryHousekeeperId,
+        date,
+        startedAt: hoursAgo(31),
+        finishedAt: minutesAgo(30 * 60 + 30),
+        inspectedAt: hoursAgo(30),
+        inspectedById,
+      },
+    ],
   });
 
   const assignmentCount = assignmentsByHousekeeper.reduce(
@@ -804,7 +856,7 @@ async function seedHousekeepingListDemo({
   );
 
   console.log(
-    `✓ seeded ${assignmentCount} HK list assignments and 1 open cleaning session`,
+    `✓ seeded ${assignmentCount} HK list assignments and cleaning sessions`,
   );
 }
 
@@ -814,6 +866,7 @@ async function main() {
     const createdBy = await findSeedUser();
     const housekeepingUser = await findHousekeepingUser();
     const secondHousekeepingUser = await findSecondHousekeepingUser();
+    const housekeepingSupervisor = await findHousekeepingSupervisor();
     const fbUser = await findFoodBeverageUser();
     const accountingUser = await findAccountingUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
@@ -1101,12 +1154,14 @@ async function main() {
     await seedHousekeepingLogs({
       roomsByNumber,
       updatedById: housekeepingUser.id,
+      inspectedById: housekeepingSupervisor.id,
     });
 
     await seedHousekeepingListDemo({
       roomsByNumber,
       primaryHousekeeperId: housekeepingUser.id,
       secondaryHousekeeperId: secondHousekeepingUser.id,
+      inspectedById: housekeepingSupervisor.id,
       date: dateOnlyBoundary(today),
     });
 

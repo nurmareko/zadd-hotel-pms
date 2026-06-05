@@ -2,21 +2,20 @@ import { RoomStatus } from "@prisma/client";
 
 import { ActiveCleaningPanel } from "./active-cleaning-panel";
 import { InspectionPanel } from "./inspection-panel";
-import { StartCleaningForm } from "./start-cleaning-form";
 
 type ActionPanelProps = {
   roomId: number;
   status: RoomStatus;
-  activeCleaningLog: {
-    id: number;
+  activeCleaningSession: {
     startedAt: Date;
-    updatedByName: string;
+    housekeeperName: string;
   } | null;
-  latestCompletedCleaningLog: {
+  latestCompletedCleaningSession: {
     startedAt: Date;
-    completedAt: Date;
-    updatedByName: string;
+    finishedAt: Date;
+    housekeeperName: string;
   } | null;
+  assignedHousekeeperName: string | null;
 };
 
 function CardHeader({ children }: { children: string }) {
@@ -43,25 +42,26 @@ function CalmCard({ title, children }: { title: string; children: string }) {
 export function ActionPanel({
   roomId,
   status,
-  activeCleaningLog,
-  latestCompletedCleaningLog,
+  activeCleaningSession,
+  latestCompletedCleaningSession,
+  assignedHousekeeperName,
 }: ActionPanelProps) {
-  if (activeCleaningLog) {
+  if (activeCleaningSession) {
     return (
       <ActiveCleaningPanel
-        roomId={roomId}
-        startedAt={activeCleaningLog.startedAt}
-        updatedByName={activeCleaningLog.updatedByName}
+        startedAt={activeCleaningSession.startedAt}
+        housekeeperName={activeCleaningSession.housekeeperName}
       />
     );
   }
 
   if (status === RoomStatus.VD || status === RoomStatus.OD) {
     return (
-      <section className="border border-console-border bg-console-surface">
-        <CardHeader>{"// Aksi"}</CardHeader>
-        <StartCleaningForm roomId={roomId} />
-      </section>
+      <CalmCard title="// Menunggu Pembersihan">
+        {assignedHousekeeperName
+          ? `Kamar masuk antrean pembersihan dan ditugaskan ke ${assignedHousekeeperName}.`
+          : "Kamar masuk antrean pembersihan dan belum memiliki assignee hari ini."}
+      </CalmCard>
     );
   }
 
@@ -69,7 +69,7 @@ export function ActionPanel({
     return (
       <InspectionPanel
         roomId={roomId}
-        latestCompletedCleaningLog={latestCompletedCleaningLog}
+        latestCompletedCleaningSession={latestCompletedCleaningSession}
       />
     );
   }

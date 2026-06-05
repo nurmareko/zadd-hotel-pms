@@ -79,7 +79,7 @@ export async function updateRoomStatus(
           return { ok: true as const };
         }
 
-        const [inHouseReservation, activeCleaningLog] = await Promise.all([
+        const [inHouseReservation, activeCleaningSession] = await Promise.all([
           tx.reservation.findFirst({
             where: {
               roomId,
@@ -87,11 +87,11 @@ export async function updateRoomStatus(
             },
             select: { id: true },
           }),
-          tx.housekeepingLog.findFirst({
+          tx.cleaningSession.findFirst({
             where: {
               roomId,
-              cleaningStartedAt: { not: null },
-              cleaningCompletedAt: null,
+              startedAt: { not: null },
+              finishedAt: null,
             },
             select: { id: true },
           }),
@@ -107,11 +107,11 @@ export async function updateRoomStatus(
           };
         }
 
-        if (activeCleaningLog) {
+        if (activeCleaningSession) {
           return {
             ok: false as const,
             error:
-              "Pembersihan kamar sedang berjalan. Selesaikan dari detail kamar terlebih dahulu.",
+              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
           };
         }
 
@@ -190,6 +190,36 @@ export async function setRoomStatusOverride(
         if (room.status === parsed.data.status) {
           return { ok: true as const };
         }
+
+        const activeCleaningSession = await tx.cleaningSession.findFirst({
+          where: {
+            roomId: room.id,
+            startedAt: { not: null },
+            finishedAt: null,
+          },
+          select: { id: true },
+        });
+
+        if (activeCleaningSession) {
+          return {
+            ok: false as const,
+            error:
+              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
+          };
+        }
+
+        const now = new Date();
+
+        await tx.housekeepingLog.create({
+          data: {
+            roomId: room.id,
+            oldStatus: room.status,
+            newStatus: parsed.data.status,
+            updatedById: Number(session!.user.id),
+            updatedAt: now,
+            note: "Manual override status supervisor",
+          },
+        });
 
         await tx.room.update({
           where: { id: room.id },

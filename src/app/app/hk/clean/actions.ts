@@ -199,10 +199,22 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
         // VD turnover → awaiting inspection (VCU); OD stayover → occupied clean.
         const nextStatus =
           room.status === RoomStatus.OD ? RoomStatus.OC : RoomStatus.VCU;
+        const now = new Date();
 
         await tx.cleaningSession.update({
           where: { id: openSession.id },
-          data: { finishedAt: new Date() },
+          data: { finishedAt: now },
+        });
+
+        await tx.housekeepingLog.create({
+          data: {
+            roomId,
+            oldStatus: room.status,
+            newStatus: nextStatus,
+            updatedById: userId,
+            updatedAt: now,
+            note: "Pembersihan selesai dari daftar kerja housekeeper",
+          },
         });
 
         await tx.room.update({
