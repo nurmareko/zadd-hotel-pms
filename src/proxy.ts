@@ -9,6 +9,7 @@ const hkSupervisorPrefix = "/app/hk/supervisor";
 const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
   { prefix: hkSupervisorPrefix, roles: ["HK", "ADMIN"] },
   { prefix: "/app/hk/list", roles: ["HK", "ADMIN"] },
+  { prefix: "/app/hk/lost-found", roles: ["HK", "FO", "ADMIN"] },
   { prefix: "/app/fo", roles: ["FO"] },
   { prefix: "/app/hk", roles: ["HK"] },
   { prefix: "/app/fb", roles: ["FB"] },

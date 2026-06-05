@@ -1,17 +1,23 @@
 "use client";
 
-import { Check, Loader2, Play, Square } from "lucide-react";
+import { Archive, Check, Loader2, Play, Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { formatTimeID } from "@/lib/format";
 import type { CleanRoom } from "@/lib/housekeeper-clean-data";
 
 import { CleaningTimer } from "../rooms/[roomId]/cleaning-timer";
-import { finishCleaning, startCleaning, toggleAddOnDelivered } from "./actions";
+import {
+  finishCleaning,
+  logFoundItemFromCleanCard,
+  startCleaning,
+  toggleAddOnDelivered,
+} from "./actions";
 
 const statusBadgeClass: Record<CleanRoom["status"], string> = {
   VC: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
@@ -68,6 +74,40 @@ function AddOnToggle({ addOn }: { addOn: CleanRoom["addOns"][number] }) {
       )}
       {addOn.label} · {addOn.delivered ? "Diantar" : "Tandai antar"}
     </button>
+  );
+}
+
+function FoundItemForm({ room }: { room: CleanRoom }) {
+  return (
+    <form
+      action={logFoundItemFromCleanCard}
+      className="space-y-2 border-t border-console-border-soft pt-3"
+    >
+      <input type="hidden" name="roomId" value={room.id} />
+      <label
+        htmlFor={`found-item-${room.id}`}
+        className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500"
+      >
+        <Archive className="h-4 w-4" aria-hidden="true" />
+        Log found item
+      </label>
+      <Textarea
+        id={`found-item-${room.id}`}
+        name="description"
+        required
+        minLength={3}
+        maxLength={500}
+        placeholder={`Room ${room.number} item description`}
+        className="min-h-16 rounded-none border-slate-400 bg-console-bg text-[12px] text-console-ink placeholder:text-slate-400 focus-visible:border-console-ink focus-visible:ring-0"
+      />
+      <button
+        type="submit"
+        className="inline-flex h-9 w-full items-center justify-center gap-1.5 border border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+      >
+        <Archive className="h-4 w-4" aria-hidden="true" />
+        Save found item
+      </button>
+    </form>
   );
 }
 
@@ -207,6 +247,8 @@ export function RoomCard({ room }: { room: CleanRoom }) {
             {isPending ? "Memulai..." : "Mulai Bersihkan"}
           </Button>
         ) : null}
+
+        <FoundItemForm room={room} />
 
         {isCompleted ? (
           <div className="flex items-center gap-2 border-t border-console-border-soft pt-3 text-[12px] text-slate-600">

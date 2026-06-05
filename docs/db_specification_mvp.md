@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 22 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 21 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 22 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -18,6 +18,7 @@ erDiagram
   USER ||--o{ HOUSEKEEPING_ASSIGNMENT : "assigned_to_clean"
   USER ||--o{ CLEANING_SESSION : "cleans"
   USER ||--o{ CLEANING_SESSION : "inspects"
+  USER ||--o{ LOST_FOUND_ITEM : "logs_found_item"
   USER ||--o{ NIGHT_AUDIT : "runs"
   USER ||--o{ PAYMENT : "receives"
   USER ||--o{ RESERVATION : "creates"
@@ -30,6 +31,7 @@ erDiagram
   ROOM ||--o{ HOUSEKEEPING_LOG : "tracks"
   ROOM ||--o{ HOUSEKEEPING_ASSIGNMENT : "assigned_for"
   ROOM ||--o{ CLEANING_SESSION : "cleaned_in"
+  ROOM ||--o{ LOST_FOUND_ITEM : "found_in"
   ROOM ||--o{ RESERVATION : "assigned_to"
 
   GUEST ||--o{ RESERVATION : "makes"
@@ -242,6 +244,16 @@ erDiagram
     int inspected_by_id FK
     timestamp created_at
   }
+  LOST_FOUND_ITEM {
+    int id PK
+    int room_id FK "nullable; NULL = public area / unspecified"
+    text description
+    int found_by_id FK
+    varchar status "UNCLAIMED, RETURNED"
+    timestamp returned_at
+    text resolution
+    timestamp created_at
+  }
   NIGHT_AUDIT {
     int id PK
     date business_date UK
@@ -311,14 +323,15 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 17. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
 18. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
 19. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
+20. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
 
 **Accounting**
 
-20. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
+21. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
 
 **Payment**
 
-21. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
+22. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
 
 ---
 
@@ -338,6 +351,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | TableStatus | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
 | PaymentMethod | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
 | NightAuditStatus | COMPLETED |
+| LostFoundStatus | UNCLAIMED, RETURNED |
 
 ---
 
@@ -353,8 +367,9 @@ A few choices worth explaining:
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
 7. **Cleaning timing lives outside Room.** CleaningSession stores per-room, per-housekeeper timestamps so cleaning duration (`finished_at - started_at`) and inspection history are preserved beyond the current Room status.
 8. **Reservation housekeeping instructions are separate from general notes.** `Reservation.housekeeping_note` stores guest preferences and operational instructions for HK, while `ReservationAddOn` stores delivery checklist items such as baby beds or packages.
-9. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
-10. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
+9. **Lost & Found is operationally independent.** LostFoundItem records text descriptions, optional room context, the user who logged the item, and return resolution. It does not create maintenance tickets, store photos, or change Room.status automatically.
+10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
+11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 
 ---
 
@@ -623,6 +638,26 @@ Indexes:
 - INDEX (`housekeeper_id`, `date`) — daily work history per housekeeper.
 
 Active cleaning is derived from `started_at` being set while `finished_at` is null. Cleaning duration is derived from `finished_at - started_at`.
+
+### `lost_found_item`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique lost-and-found item identifier |
+| room_id | INT | FOREIGN KEY -> room(id), ON DELETE SET NULL | Room where item was found, if applicable |
+| description | TEXT | NOT NULL | Text description of the item |
+| found_by_id | INT | NOT NULL, FOREIGN KEY -> user(id) | User who logged the found item |
+| status | LostFoundStatus | NOT NULL, DEFAULT 'UNCLAIMED' | Whether the item is still held or has been returned |
+| returned_at | TIMESTAMP | — | Return/resolution time |
+| resolution | TEXT | — | Free-text claimant or resolution note |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Item log time |
+
+Indexes:
+
+- INDEX (`status`) — unclaimed/returned list filtering.
+- INDEX (`room_id`) — room search/filter lookup.
+
+Lost & Found is text-only in the MVP. Records may be room-specific or public-area items (`room_id` null). Marking an item returned stores `returned_at` and optional `resolution`; it does not mutate room status or create maintenance work.
 
 ### `night_audit`
 

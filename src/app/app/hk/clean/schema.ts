@@ -12,3 +12,11 @@ export const ToggleAddOnSchema = z.object({
     .union([z.literal("true"), z.literal("false")])
     .transform((value) => value === "true"),
 });
+
+export const LogFoundItemSchema = RoomActionSchema.extend({
+  description: z
+    .string()
+    .trim()
+    .min(3, "Deskripsi minimal 3 karakter")
+    .max(500, "Deskripsi maksimal 500 karakter"),
+});

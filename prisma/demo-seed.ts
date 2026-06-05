@@ -3,6 +3,7 @@ import {
   ArticleType,
   FBOrderStatus,
   FolioStatus,
+  LostFoundStatus,
   NightAuditStatus,
   PaymentMethod,
   ReservationStatus,
@@ -860,6 +861,60 @@ async function seedHousekeepingListDemo({
   );
 }
 
+async function seedLostFoundItems({
+  roomsByNumber,
+  housekeepingUserId,
+  secondHousekeepingUserId,
+  frontOfficeUserId,
+}: {
+  roomsByNumber: Map<string, { id: number }>;
+  housekeepingUserId: number;
+  secondHousekeepingUserId: number;
+  frontOfficeUserId: number;
+}) {
+  await prisma.lostFoundItem.deleteMany({});
+
+  function roomId(roomNumber: string) {
+    const room = roomsByNumber.get(roomNumber);
+
+    if (!room) {
+      throw new Error(`Missing room ${roomNumber} for Lost & Found seed.`);
+    }
+
+    return room.id;
+  }
+
+  await prisma.lostFoundItem.createMany({
+    data: [
+      {
+        roomId: roomId("102"),
+        description: "Black phone charger left beside the bed",
+        foundById: secondHousekeepingUserId,
+        status: LostFoundStatus.UNCLAIMED,
+        createdAt: minutesAgo(90),
+      },
+      {
+        roomId: roomId("301"),
+        description: "Blue denim jacket in wardrobe",
+        foundById: housekeepingUserId,
+        status: LostFoundStatus.UNCLAIMED,
+        createdAt: hoursAgo(5),
+      },
+      {
+        roomId: null,
+        description: "Silver water bottle found in lobby seating area",
+        foundById: frontOfficeUserId,
+        status: LostFoundStatus.RETURNED,
+        returnedAt: minutesAgo(25),
+        resolution: "Returned to guest after ID confirmation at front desk",
+        createdAt: hoursAgo(6),
+      },
+    ],
+  });
+
+  console.log("✓ seeded 3 lost & found items");
+}
+
 async function main() {
   try {
     const today = hotelTodayDateOnly();
@@ -1163,6 +1218,13 @@ async function main() {
       secondaryHousekeeperId: secondHousekeepingUser.id,
       inspectedById: housekeepingSupervisor.id,
       date: dateOnlyBoundary(today),
+    });
+
+    await seedLostFoundItems({
+      roomsByNumber,
+      housekeepingUserId: housekeepingUser.id,
+      secondHousekeepingUserId: secondHousekeepingUser.id,
+      frontOfficeUserId: createdBy.id,
     });
 
     for (const [index, reservation] of checkedInReservations.entries()) {

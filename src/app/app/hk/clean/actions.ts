@@ -8,7 +8,12 @@ import { todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
-import { RoomActionSchema, ToggleAddOnSchema, type ActionResult } from "./schema";
+import {
+  LogFoundItemSchema,
+  RoomActionSchema,
+  ToggleAddOnSchema,
+  type ActionResult,
+} from "./schema";
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Input tidak valid";
@@ -314,4 +319,82 @@ export async function toggleAddOnDelivered(
 
     return { ok: false, error: "Gagal memperbarui add-on" };
   }
+}
+
+export async function logFoundItem(formData: FormData): Promise<ActionResult> {
+  const userId = await requireHousekeeper();
+
+  if (!userId) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = LogFoundItemSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return { ok: false, error: validationError(parsed.error) };
+  }
+
+  const { roomId, description } = parsed.data;
+  const { today } = todayDateOnly();
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
+        `;
+
+        const assignment = await tx.housekeepingAssignment.findFirst({
+          where: { roomId, date: today, housekeeperId: userId },
+          select: { id: true },
+        });
+
+        if (!assignment) {
+          return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
+        }
+
+        const room = await tx.room.findUnique({
+          where: { id: roomId },
+          select: { id: true },
+        });
+
+        if (!room) {
+          return { ok: false as const, error: "Kamar tidak ditemukan" };
+        }
+
+        await tx.lostFoundItem.create({
+          data: {
+            roomId,
+            description,
+            foundById: userId,
+          },
+        });
+
+        return { ok: true as const };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+
+    if (result.ok) {
+      revalidatePath("/app/hk/clean");
+      revalidatePath("/app/hk/lost-found");
+    }
+
+    return result;
+  } catch (error) {
+    if (isSerializationConflict(error)) {
+      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
+    }
+
+    return { ok: false, error: "Gagal mencatat barang temuan" };
+  }
+}
+
+export async function logFoundItemFromCleanCard(
+  formData: FormData,
+): Promise<void> {
+  await logFoundItem(formData);
 }

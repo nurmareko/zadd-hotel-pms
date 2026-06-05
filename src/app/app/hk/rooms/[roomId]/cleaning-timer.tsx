@@ -12,13 +12,16 @@ function formatElapsed(elapsed: number) {
 }
 
 export function CleaningTimer({ startedAt }: { startedAt: Date }) {
-  const [elapsed, setElapsed] = useState(
-    () => Date.now() - new Date(startedAt).getTime(),
-  );
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
+    function updateElapsed() {
       setElapsed(Date.now() - new Date(startedAt).getTime());
+    }
+
+    updateElapsed();
+    const interval = window.setInterval(() => {
+      updateElapsed();
     }, 1000);
 
     return () => window.clearInterval(interval);
