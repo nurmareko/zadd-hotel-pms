@@ -11,6 +11,7 @@ import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
+import { HousekeepingReminders } from "./housekeeping-reminders";
 import { RequestCleaningButton } from "./request-cleaning-button";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +111,10 @@ export default async function ReservationDetailPage({
         room: { select: { number: true, status: true } },
         roomType: { select: { name: true } },
         folio: { select: { id: true } },
+        addOns: {
+          select: { id: true, label: true, delivered: true },
+          orderBy: { createdAt: "asc" },
+        },
       },
     }),
     prisma.roomType.findMany({
@@ -287,6 +292,14 @@ export default async function ReservationDetailPage({
               reservationId={reservation.id}
               submitLabel="Simpan Perubahan"
             />
+
+            <div className="mt-5">
+              <HousekeepingReminders
+                reservationId={reservation.id}
+                housekeepingNote={reservation.housekeepingNote ?? ""}
+                addOns={reservation.addOns}
+              />
+            </div>
           </div>
         </>
       ) : reservation.folio ? (
