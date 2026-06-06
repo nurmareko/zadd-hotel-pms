@@ -57,7 +57,7 @@ function selectedRoomIds(formData: FormData) {
 
 function revalidateSupervisorAssignmentViews() {
   revalidatePath("/app/hk/supervisor");
-  revalidatePath("/app/hk/list");
+  revalidatePath("/app/hk/rooms");
 }
 
 async function authorizeSupervisor() {

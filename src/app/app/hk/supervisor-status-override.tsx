@@ -2,9 +2,11 @@
 
 import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import type { RoomStatus } from "@prisma/client";
+
+import { cn } from "@/lib/utils";
 
 import { setRoomStatusOverride } from "./actions";
 import { allRoomStatuses, roomStatusLabels } from "./room-status-options";
@@ -13,16 +15,18 @@ export function SupervisorStatusOverride({
   roomId,
   roomNumber,
   status,
+  className,
 }: {
   roomId: number;
   roomNumber: string;
   status: RoomStatus;
+  className?: string;
 }) {
   const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<RoomStatus>(status);
   const [isPending, startTransition] = useTransition();
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     startTransition(async () => {
@@ -41,7 +45,7 @@ export function SupervisorStatusOverride({
   return (
     <form
       onSubmit={onSubmit}
-      className="mt-2 border border-console-ink bg-console-bg p-1.5"
+      className={cn("mt-2 border border-console-ink bg-console-bg p-1.5", className)}
     >
       <label className="mb-1 block text-[9px] font-bold uppercase tracking-[0.08em] text-console-ink">
         Supervisor override

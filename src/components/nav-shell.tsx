@@ -7,7 +7,6 @@ import { signOut } from "next-auth/react";
 import {
   BedDouble,
   CalendarDays,
-  ClipboardCheck,
   ClipboardList,
   Archive,
   Gauge,
@@ -95,16 +94,10 @@ const hkSupervisorNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Room Status",
+      label: "Rooms",
       href: "/app/hk/rooms",
       icon: BedDouble,
       activeMatch: "startsWith",
-    },
-    {
-      label: "List",
-      href: "/app/hk/list",
-      icon: ClipboardCheck,
-      activeMatch: "exact",
     },
     {
       label: "Lost & Found",
@@ -214,16 +207,10 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "startsWith",
         },
         {
-          label: "Room Status",
+          label: "Rooms",
           href: "/app/hk/rooms",
           icon: BedDouble,
           activeMatch: "startsWith",
-        },
-        {
-          label: "HK List",
-          href: "/app/hk/list",
-          icon: ClipboardCheck,
-          activeMatch: "exact",
         },
         {
           label: "Lost & Found",

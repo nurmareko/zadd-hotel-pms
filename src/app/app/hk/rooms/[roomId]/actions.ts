@@ -22,7 +22,7 @@ function validationError(error: { issues: { message: string }[] }) {
 
 function revalidateRoomPaths(roomId: number) {
   revalidatePath("/app/hk/clean");
-  revalidatePath("/app/hk/list");
+  revalidatePath("/app/hk/rooms");
   revalidatePath("/app/hk/supervisor");
   revalidateRoomStatusViews({ roomId });
 }
