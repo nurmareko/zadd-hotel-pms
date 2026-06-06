@@ -1,15 +1,31 @@
-import { CheckCircle2, Sparkles, Wind } from "lucide-react";
+import { CheckCircle2, ChevronRight, Sparkles, Wind } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
+import { StatusBadge } from "@/components/status-badge";
 import { auth } from "@/auth";
-import { formatWeekdayLongDateID } from "@/lib/format";
+import { formatTimeID, formatWeekdayLongDateID } from "@/lib/format";
 import {
   getHousekeeperCleanData,
   type CleanRoom,
 } from "@/lib/housekeeper-clean-data";
 
-import { RoomCard } from "./room-card";
-
 export const dynamic = "force-dynamic";
+
+const statusBadgeClass: Record<CleanRoom["status"], string> = {
+  VC: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
+  OC: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
+  VD: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
+  OD: "border-status-od-pip bg-status-od-bg text-status-od-fg",
+  VCU: "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
+  OOO: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
+};
+
+const groupLabels: Record<CleanRoom["group"], string> = {
+  ready: "Ready",
+  freshen: "Freshen",
+  done: "Done",
+};
 
 type CleanGroupSectionProps = {
   title: string;
@@ -18,6 +34,90 @@ type CleanGroupSectionProps = {
   rooms: CleanRoom[];
   emptyLabel: string;
 };
+
+function RoomContext({ room }: { room: CleanRoom }) {
+  if (!room.context && !room.notes) {
+    return <span className="text-[11px] italic text-slate-400">No context</span>;
+  }
+
+  return (
+    <div className="min-w-0 space-y-1">
+      {room.context ? (
+        <div className="truncate text-[12px] text-slate-600">
+          {room.context.kind === "turnover" ? (
+            <>
+              <span className="font-semibold text-console-ink">Next:</span>{" "}
+              {room.context.guestName}
+              {room.context.etaLabel ? (
+                <span className="num"> · ETA {room.context.etaLabel}</span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-console-ink">Guest:</span>{" "}
+              {room.context.guestName}
+              <span className="num"> · {room.context.nightsLabel}</span>
+            </>
+          )}
+        </div>
+      ) : null}
+      {room.notes ? (
+        <div className="truncate text-[11px] text-slate-500">{room.notes}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function CleaningState({ room }: { room: CleanRoom }) {
+  if (room.inProgress && room.startedAt) {
+    return (
+      <StatusBadge
+        label={`In progress ${formatTimeID(room.startedAt)}`}
+        className="border-console-ink bg-console-ink text-console-accent"
+        pipClassName="bg-console-accent"
+        size="md"
+      />
+    );
+  }
+
+  return (
+    <StatusBadge
+      label={room.status}
+      className={statusBadgeClass[room.status]}
+      size="md"
+    />
+  );
+}
+
+function CleanRoomRow({ room }: { room: CleanRoom }) {
+  return (
+    <Link
+      href={`/app/hk/rooms/${room.id}`}
+      className="grid gap-3 border border-console-border bg-console-surface px-3 py-3 transition-colors hover:border-console-ink hover:bg-console-bg md:grid-cols-[120px_150px_minmax(0,1fr)_96px_20px] md:items-center"
+    >
+      <div className="min-w-0">
+        <div className="num text-[18px] font-bold leading-none text-console-ink">
+          {room.number}
+        </div>
+        <div className="mt-1 truncate text-[11px] text-slate-500">
+          {room.typeCode} · L{room.floor}
+        </div>
+      </div>
+      <CleaningState room={room} />
+      <RoomContext room={room} />
+      <StatusBadge
+        label={groupLabels[room.group]}
+        className="w-fit border-console-border bg-console-bg text-console-ink"
+        showPip={false}
+        size="md"
+      />
+      <ChevronRight
+        className="hidden h-4 w-4 justify-self-end text-slate-500 md:block"
+        aria-hidden="true"
+      />
+    </Link>
+  );
+}
 
 function CleanGroupSection({
   title,
@@ -44,9 +144,9 @@ function CleanGroupSection({
           {emptyLabel}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-2">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
+            <CleanRoomRow key={room.id} room={room} />
           ))}
         </div>
       )}
@@ -56,6 +156,11 @@ function CleanGroupSection({
 
 export default async function MyRoomsPage() {
   const session = await auth();
+
+  if (session?.user.role !== "HK") {
+    notFound();
+  }
+
   const userId = Number(session?.user.id);
   const { date, ready, freshen, done } = await getHousekeeperCleanData(userId);
   const totalRooms = ready.length + freshen.length + done.length;

@@ -32,8 +32,9 @@ export function ActiveCleaningPanel({
         </div>
 
         <p className="border border-console-border-soft bg-console-bg px-3 py-2 text-[12px] leading-relaxed text-slate-600">
-          Pembersihan berjalan dari daftar kerja housekeeper. Supervisor dapat
-          memantau timer di sini, tetapi penyelesaian dilakukan dari Kamar Saya.
+          Pembersihan berjalan dari tugas housekeeper. Supervisor dapat memantau
+          timer di sini, tetapi penyelesaian tetap dilakukan oleh housekeeper
+          yang bertugas.
         </p>
       </div>
     </section>
