@@ -1,3 +1,4 @@
+import { RoomStatus } from "@prisma/client";
 import { addDays, formatISO } from "date-fns";
 import {
   CalendarDays,
@@ -12,8 +13,10 @@ import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
 import { formatDateWithWeekday, formatISODate } from "@/lib/format";
 import { getHousekeepingForecastData } from "@/lib/housekeeping-forecast-data";
+import { prisma } from "@/lib/prisma";
 
 import { BulkAssignmentPanel } from "./bulk-assignment-panel";
+import { InspectionInbox, type InspectionInboxRow } from "./inspection-inbox";
 
 export const dynamic = "force-dynamic";
 
@@ -98,9 +101,41 @@ export default async function HkSupervisorPage({
 
   const params = await searchParams;
   const selectedDate = parseDateParam(firstParam(params.date));
-  const forecast = await getHousekeepingForecastData(selectedDate);
+  const [forecast, cleaningNowCount, readyCount, vcuRooms] = await Promise.all([
+    getHousekeepingForecastData(selectedDate),
+    prisma.cleaningSession.count({
+      where: { startedAt: { not: null }, finishedAt: null },
+    }),
+    prisma.room.count({ where: { status: RoomStatus.VC } }),
+    prisma.room.findMany({
+      where: { status: RoomStatus.VCU },
+      include: {
+        roomType: { select: { name: true } },
+        cleaningSessions: {
+          where: { finishedAt: { not: null } },
+          orderBy: [{ finishedAt: "desc" }, { createdAt: "desc" }],
+          take: 1,
+          include: { housekeeper: { select: { fullName: true } } },
+        },
+      },
+      orderBy: { number: "asc" },
+    }),
+  ]);
   const { date, summary, housekeepers, rooms } = forecast;
   const dateISO = formatISODate(date);
+
+  const inspectionRooms: InspectionInboxRow[] = vcuRooms.map((room) => {
+    const lastSession = room.cleaningSessions[0] ?? null;
+
+    return {
+      id: room.id,
+      number: room.number,
+      roomTypeName: room.roomType.name,
+      cleanedByName: lastSession?.housekeeper.fullName ?? null,
+      cleanedAt: lastSession?.finishedAt ?? null,
+      href: `/app/hk/rooms/${room.id}`,
+    };
+  });
 
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
@@ -150,6 +185,31 @@ export default async function HkSupervisorPage({
           </Link>
         </nav>
       </div>
+
+      <section className="mb-4">
+        <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          {"// "}Live status
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <ForecastCard
+            label="Cleaning now"
+            value={cleaningNowCount}
+            sub="sessions in progress"
+          />
+          <ForecastCard
+            label="Awaiting inspection"
+            value={inspectionRooms.length}
+            sub="VCU rooms"
+          />
+          <ForecastCard
+            label="Ready"
+            value={readyCount}
+            sub="VC vacant clean"
+          />
+        </div>
+      </section>
+
+      <InspectionInbox rooms={inspectionRooms} />
 
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
