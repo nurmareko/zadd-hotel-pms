@@ -64,7 +64,7 @@ export async function startCleaning(formData: FormData): Promise<ActionResult> {
   const userId = await requireHousekeeperMember();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = RoomActionSchema.safeParse(Object.fromEntries(formData));
@@ -160,7 +160,7 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
   const userId = await requireHousekeeperMember();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = RoomActionSchema.safeParse(Object.fromEntries(formData));
@@ -272,7 +272,7 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
   const userId = await requireHousekeeperMember();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = LogFoundItemSchema.safeParse(Object.fromEntries(formData));
@@ -344,7 +344,7 @@ export async function inspectRoom(formData: FormData): Promise<ActionResult> {
   const userId = await requireInspectionUser();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = InspectRoomSchema.safeParse(Object.fromEntries(formData));

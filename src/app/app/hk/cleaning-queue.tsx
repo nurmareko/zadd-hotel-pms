@@ -34,7 +34,7 @@ type QueueFilter = (typeof filters)[number];
 type ActiveTab = "cleaning" | "status";
 
 const filterLabels: Record<QueueFilter, string> = {
-  ALL: "All",
+  ALL: "Semua",
   VD: "VD",
   OD: "OD",
   VCU: "VCU",

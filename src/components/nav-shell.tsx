@@ -69,7 +69,7 @@ const hkMemberNavGroup: NavGroup = {
   label: "Housekeeping",
   links: [
     {
-      label: "My Rooms",
+      label: "Kamar Saya",
       href: "/app/hk/clean",
       icon: ClipboardList,
       activeMatch: "exact",
@@ -94,7 +94,7 @@ const hkSupervisorNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Rooms",
+      label: "Kamar",
       href: "/app/hk/rooms",
       icon: BedDouble,
       activeMatch: "startsWith",
@@ -207,7 +207,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "startsWith",
         },
         {
-          label: "Rooms",
+          label: "Kamar",
           href: "/app/hk/rooms",
           icon: BedDouble,
           activeMatch: "startsWith",

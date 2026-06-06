@@ -67,7 +67,7 @@ const reasonLabels: Record<HousekeepingForecastReason, string> = {
   turnover: "Turnover",
   "freshen-up": "Freshen-up",
   "arrival-prep": "Arrival prep",
-  "dirty-now": "Dirty now",
+  "dirty-now": "Dirty saat ini",
 };
 
 const headerCellClass =
@@ -103,7 +103,7 @@ function FloorSelectCheckbox({
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
-      aria-label={`Select all floor ${floor}`}
+      aria-label={`Pilih semua lantai ${floor}`}
       className="h-4 w-4 accent-console-ink disabled:cursor-not-allowed"
     />
   );
@@ -126,7 +126,7 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.needsAttention) {
     return (
       <StatusBadge
-        label="No scheduled need"
+        label="Tidak ada kebutuhan terjadwal"
         className="border-console-border bg-console-bg text-slate-500"
         pipClassName="bg-slate-400"
       />
@@ -149,7 +149,11 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
 
 function AssigneeCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.assignment) {
-    return <span className="text-[11px] italic text-slate-400">Unassigned</span>;
+    return (
+      <span className="text-[11px] italic text-slate-400">
+        Belum ditugaskan
+      </span>
+    );
   }
 
   return (
@@ -272,7 +276,7 @@ export function BulkAssignmentPanel({
         return;
       }
 
-      toast.success(`${result.count} kamar di-assign`);
+      toast.success(`${result.count} kamar ditugaskan`);
       setSelectedRoomIds(new Set());
       router.refresh();
     });
@@ -297,7 +301,7 @@ export function BulkAssignmentPanel({
         return;
       }
 
-      toast.success(`${result.count} assignment dihapus`);
+      toast.success(`${result.count} penugasan dihapus`);
       setSelectedRoomIds(new Set());
       router.refresh();
     });
@@ -314,10 +318,10 @@ export function BulkAssignmentPanel({
       <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3 py-3 text-console-accent xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h2 className="text-[12px] font-bold uppercase tracking-[0.08em]">
-            {"// "}Bulk assignment
+            {"// "}Penugasan massal
           </h2>
           <p className="mt-1 text-[11px] text-slate-300">
-            {selectedCount} selected · assign or clear per selected room/date
+            {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal
           </p>
         </div>
 
@@ -333,7 +337,7 @@ export function BulkAssignmentPanel({
               className="h-8 min-w-[250px] border border-console-border bg-console-surface px-2 text-[11px] font-semibold text-console-ink disabled:cursor-not-allowed disabled:opacity-50"
             >
               {housekeepers.length === 0 ? (
-                <option value="">No HK members</option>
+                <option value="">Tidak ada member HK</option>
               ) : null}
               {housekeepers.map((housekeeper) => (
                 <option key={housekeeper.id} value={housekeeper.id}>
@@ -351,7 +355,9 @@ export function BulkAssignmentPanel({
               className={consoleButtonClassName("primary")}
             >
               <UserCheck aria-hidden="true" />
-              {pendingAction === "assign" ? "Assigning" : "Assign selected"}
+              {pendingAction === "assign"
+                ? "Menugaskan..."
+                : "Tugaskan terpilih"}
             </button>
             <button
               type="button"
@@ -360,7 +366,9 @@ export function BulkAssignmentPanel({
               className={consoleButtonClassName("secondary")}
             >
               <Trash2 aria-hidden="true" />
-              {pendingAction === "unassign" ? "Clearing" : "Unassign selected"}
+              {pendingAction === "unassign"
+                ? "Mengosongkan..."
+                : "Kosongkan terpilih"}
             </button>
           </div>
         </div>
@@ -369,27 +377,27 @@ export function BulkAssignmentPanel({
       <div className="max-w-full overflow-auto">
         <table className="w-full min-w-[1080px] border-collapse text-[12px]">
           <caption className="sr-only">
-            Supervisor bulk housekeeping assignments by floor
+            Penugasan massal housekeeping supervisor per lantai
           </caption>
           <thead>
             <tr>
               <th className={cn(headerCellClass, "w-[80px]")} scope="col">
-                Select
+                Pilih
               </th>
               <th className={headerCellClass} scope="col">
-                Room
+                Kamar
               </th>
               <th className={headerCellClass} scope="col">
-                Type
+                Tipe
               </th>
               <th className={headerCellClass} scope="col">
                 Status
               </th>
               <th className={headerCellClass} scope="col">
-                Needs cleaning
+                Perlu dibersihkan
               </th>
               <th className={headerCellClass} scope="col">
-                Current assignee
+                Petugas saat ini
               </th>
             </tr>
           </thead>
@@ -419,9 +427,10 @@ export function BulkAssignmentPanel({
                           disabled={isPending}
                           onChange={(checked) => toggleFloor(floor, checked)}
                         />
-                        <span>Floor {floor.floor}</span>
+                        <span>Lantai {floor.floor}</span>
                         <span className="font-medium normal-case tracking-normal text-slate-500">
-                          · {floor.rows.length} rooms · {floorSelectedCount} selected
+                          · {floor.rows.length} kamar · {floorSelectedCount}{" "}
+                          dipilih
                         </span>
                       </div>
                     </th>
@@ -440,7 +449,7 @@ export function BulkAssignmentPanel({
                             onChange={(event) =>
                               toggleRoom(row.room.id, event.target.checked)
                             }
-                            aria-label={`Select room ${row.room.number}`}
+                            aria-label={`Pilih kamar ${row.room.number}`}
                             className="h-4 w-4 accent-console-ink disabled:cursor-not-allowed"
                           />
                         </label>

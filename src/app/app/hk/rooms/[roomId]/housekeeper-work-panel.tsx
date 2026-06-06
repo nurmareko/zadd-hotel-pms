@@ -184,7 +184,7 @@ export function HousekeeperWorkPanel({
             className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
-            Log found item
+            Catat barang temuan
           </label>
           <Textarea
             id={`found-item-${roomId}`}
@@ -192,7 +192,7 @@ export function HousekeeperWorkPanel({
             required
             minLength={3}
             maxLength={500}
-            placeholder={`Room ${roomNumber} item description`}
+            placeholder={`Deskripsi barang di kamar ${roomNumber}`}
             aria-invalid={Boolean(foundItemError)}
             className="min-h-16 rounded-none border-slate-400 bg-console-bg text-[12px] text-console-ink placeholder:text-slate-400 focus-visible:border-console-ink focus-visible:ring-0"
           />
@@ -207,7 +207,7 @@ export function HousekeeperWorkPanel({
             className="h-9 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
-            {isFoundItemPending ? "Menyimpan..." : "Save found item"}
+            {isFoundItemPending ? "Menyimpan..." : "Simpan barang temuan"}
           </Button>
         </form>
       </div>

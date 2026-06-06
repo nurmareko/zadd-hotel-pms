@@ -73,7 +73,7 @@ export async function assignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await authorizeSupervisor())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = AssignmentSchema.safeParse({
@@ -159,7 +159,7 @@ export async function assignHousekeepingRooms(
 
     return result;
   } catch {
-    return { ok: false, error: "Gagal mengatur assignment HK" };
+    return { ok: false, error: "Gagal mengatur penugasan HK" };
   }
 }
 
@@ -167,7 +167,7 @@ export async function unassignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await authorizeSupervisor())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = UnassignmentSchema.safeParse({
@@ -219,6 +219,6 @@ export async function unassignHousekeepingRooms(
 
     return result;
   } catch {
-    return { ok: false, error: "Gagal menghapus assignment HK" };
+    return { ok: false, error: "Gagal menghapus penugasan HK" };
   }
 }

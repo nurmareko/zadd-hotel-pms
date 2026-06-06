@@ -37,7 +37,7 @@ export function SupervisorStatusOverride({
         return;
       }
 
-      toast.success(`Override status kamar ${roomNumber} disimpan`);
+      toast.success(`Perubahan status kamar ${roomNumber} disimpan`);
       router.refresh();
     });
   }
@@ -48,11 +48,11 @@ export function SupervisorStatusOverride({
       className={cn("mt-2 border border-console-ink bg-console-bg p-1.5", className)}
     >
       <label className="mb-1 block text-[9px] font-bold uppercase tracking-[0.08em] text-console-ink">
-        Supervisor override
+        Ubah status supervisor
       </label>
       <div className="flex gap-1">
         <select
-          aria-label={`Supervisor override status kamar ${roomNumber}`}
+          aria-label={`Ubah status supervisor kamar ${roomNumber}`}
           value={selectedStatus}
           disabled={isPending}
           onChange={(event) =>
@@ -68,7 +68,7 @@ export function SupervisorStatusOverride({
         </select>
         <button
           type="submit"
-          aria-label={`Override status kamar ${roomNumber}`}
+          aria-label={`Simpan perubahan status kamar ${roomNumber}`}
           disabled={isPending || selectedStatus === status}
           className="inline-flex h-7 w-7 shrink-0 items-center justify-center border border-console-ink bg-console-ink text-console-accent hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
         >

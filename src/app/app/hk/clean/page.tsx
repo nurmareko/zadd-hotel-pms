@@ -22,9 +22,9 @@ const statusBadgeClass: Record<CleanRoom["status"], string> = {
 };
 
 const groupLabels: Record<CleanRoom["group"], string> = {
-  ready: "Ready",
-  freshen: "Freshen",
-  done: "Done",
+  ready: "Siap",
+  freshen: "Freshen-up",
+  done: "Selesai",
 };
 
 type CleanGroupSectionProps = {
@@ -37,7 +37,11 @@ type CleanGroupSectionProps = {
 
 function RoomContext({ room }: { room: CleanRoom }) {
   if (!room.context && !room.notes) {
-    return <span className="text-[11px] italic text-slate-400">No context</span>;
+    return (
+      <span className="text-[11px] italic text-slate-400">
+        Tidak ada konteks
+      </span>
+    );
   }
 
   return (
@@ -46,7 +50,7 @@ function RoomContext({ room }: { room: CleanRoom }) {
         <div className="truncate text-[12px] text-slate-600">
           {room.context.kind === "turnover" ? (
             <>
-              <span className="font-semibold text-console-ink">Next:</span>{" "}
+              <span className="font-semibold text-console-ink">Berikutnya:</span>{" "}
               {room.context.guestName}
               {room.context.etaLabel ? (
                 <span className="num"> · ETA {room.context.etaLabel}</span>
@@ -54,7 +58,7 @@ function RoomContext({ room }: { room: CleanRoom }) {
             </>
           ) : (
             <>
-              <span className="font-semibold text-console-ink">Guest:</span>{" "}
+              <span className="font-semibold text-console-ink">Tamu:</span>{" "}
               {room.context.guestName}
               <span className="num"> · {room.context.nightsLabel}</span>
             </>
@@ -72,7 +76,7 @@ function CleaningState({ room }: { room: CleanRoom }) {
   if (room.inProgress && room.startedAt) {
     return (
       <StatusBadge
-        label={`In progress ${formatTimeID(room.startedAt)}`}
+        label={`Berjalan ${formatTimeID(room.startedAt)}`}
         className="border-console-ink bg-console-ink text-console-accent"
         pipClassName="bg-console-accent"
         size="md"
@@ -189,7 +193,7 @@ export default async function MyRoomsPage() {
         <div className="space-y-6">
           <CleanGroupSection
             title="Siap Dibersihkan"
-            hint="vacant turnover (VD)"
+            hint="turnover vacant (VD)"
             icon={Sparkles}
             rooms={ready}
             emptyLabel="Tidak ada turnover menunggu."

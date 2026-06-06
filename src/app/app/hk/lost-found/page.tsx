@@ -36,12 +36,12 @@ const statusClassNames: Record<
   UNCLAIMED: {
     badge: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
     pip: "bg-status-vd-pip",
-    label: "Unclaimed",
+    label: "Belum diambil",
   },
   RETURNED: {
     badge: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
     pip: "bg-status-vc-pip",
-    label: "Returned",
+    label: "Dikembalikan",
   },
 };
 
@@ -81,11 +81,11 @@ function ReturnedInfo({ item }: { item: LostFoundRow }) {
         <span className="num text-[11px] font-semibold">
           {item.returnedAt
             ? formatCompactDateTimeID(item.returnedAt)
-            : "Returned"}
+            : "Dikembalikan"}
         </span>
       </div>
       <div className="text-[12px] leading-5 text-slate-600">
-        {item.resolution ?? "No resolution note"}
+        {item.resolution ?? "Tidak ada catatan penyelesaian"}
       </div>
     </div>
   );
@@ -102,7 +102,7 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
         type="text"
         name="resolution"
         maxLength={500}
-        placeholder="Resolution note"
+        placeholder="Catatan penyelesaian"
         className={fieldClass}
       />
       <button
@@ -110,7 +110,7 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
         className="inline-flex h-8 w-fit items-center justify-center gap-1.5 border border-status-vc-pip bg-status-vc-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
       >
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-        Mark Returned
+        Tandai dikembalikan
       </button>
     </form>
   );
@@ -134,21 +134,23 @@ function LostFoundCard({ item }: { item: LostFoundRow }) {
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
         <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
-          Room
+          Kamar
         </dt>
         <dd>
           {item.room ? (
             <span className="num font-semibold">{item.room.number}</span>
           ) : (
-            <span className="text-[11px] italic text-slate-400">No room</span>
+            <span className="text-[11px] italic text-slate-400">
+              Tanpa kamar
+            </span>
           )}
         </dd>
         <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
-          Found By
+          Ditemukan Oleh
         </dt>
         <dd>{item.foundBy.fullName}</dd>
         <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
-          When
+          Waktu
         </dt>
         <dd className="num text-slate-600">
           {formatCompactDateTimeID(item.createdAt)}
@@ -228,7 +230,7 @@ export default async function LostFoundPage({
             Lost & Found
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            {items.length} items · newest first
+            {items.length} barang · terbaru dulu
           </p>
         </div>
       </div>
@@ -248,7 +250,7 @@ export default async function LostFoundPage({
               type="search"
               name="q"
               defaultValue={q}
-              placeholder="Search description..."
+              placeholder="Cari deskripsi..."
               className="h-8 w-full border border-slate-400 bg-console-surface pl-8 pr-2.5 text-[12px] text-console-ink outline-none placeholder:text-slate-400 focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]"
             />
           </div>
@@ -256,7 +258,7 @@ export default async function LostFoundPage({
             type="search"
             name="room"
             defaultValue={room}
-            placeholder="Room"
+            placeholder="Kamar"
             className={`${fieldClass} sm:w-[110px]`}
           />
           <select
@@ -264,20 +266,20 @@ export default async function LostFoundPage({
             defaultValue={status ?? ""}
             className={`${fieldClass} sm:w-[150px]`}
           >
-            <option value="">All status</option>
-            <option value={LOST_FOUND_STATUS_VALUES[0]}>Unclaimed</option>
-            <option value={LOST_FOUND_STATUS_VALUES[1]}>Returned</option>
+            <option value="">Semua Status</option>
+            <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
+            <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
           </select>
           <button
             type="submit"
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Search className="h-3.5 w-3.5" aria-hidden="true" />
-            Search
+            Cari
           </button>
           <span className="min-w-0 flex-1" />
           <span className="num whitespace-nowrap text-right text-[11px] font-medium text-slate-500">
-            {items.length} results
+            {items.length} hasil
           </span>
         </form>
 
@@ -291,14 +293,14 @@ export default async function LostFoundPage({
             required
             minLength={3}
             maxLength={500}
-            placeholder="Manual add: item description"
+            placeholder="Tambah manual: deskripsi barang"
             className={fieldClass}
           />
           <select name="roomId" defaultValue="" className={fieldClass}>
-            <option value="">No room</option>
+            <option value="">Tanpa kamar</option>
             {rooms.map((roomOption) => (
               <option key={roomOption.id} value={roomOption.id}>
-                Room {roomOption.number}
+                Kamar {roomOption.number}
               </option>
             ))}
           </select>
@@ -307,7 +309,7 @@ export default async function LostFoundPage({
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            Add Item
+            Tambah Barang
           </button>
         </form>
       </section>
@@ -315,7 +317,7 @@ export default async function LostFoundPage({
       <section className="space-y-2 md:hidden">
         {items.length === 0 ? (
           <p className="border border-console-border bg-console-surface px-3 py-8 text-center text-[12px] italic text-slate-400">
-            No lost-and-found items match this filter.
+            Tidak ada barang Lost & Found yang cocok dengan filter.
           </p>
         ) : (
           items.map((item) => <LostFoundCard key={item.id} item={item} />)
@@ -327,12 +329,12 @@ export default async function LostFoundPage({
           <table className="min-w-[980px] w-full border-collapse text-[12px]">
             <thead>
               <tr>
-                <th className={headerCellClass}>Item</th>
-                <th className={headerCellClass}>Room</th>
-                <th className={headerCellClass}>Found By</th>
-                <th className={headerCellClass}>When</th>
+                <th className={headerCellClass}>Barang</th>
+                <th className={headerCellClass}>Kamar</th>
+                <th className={headerCellClass}>Ditemukan Oleh</th>
+                <th className={headerCellClass}>Waktu</th>
                 <th className={headerCellClass}>Status</th>
-                <th className={headerCellClass}>Resolution</th>
+                <th className={headerCellClass}>Penyelesaian</th>
               </tr>
             </thead>
             <tbody>
@@ -342,7 +344,7 @@ export default async function LostFoundPage({
                     colSpan={6}
                     className="px-3 py-8 text-center text-[12px] italic text-slate-400"
                   >
-                    No lost-and-found items match this filter.
+                    Tidak ada barang Lost & Found yang cocok dengan filter.
                   </td>
                 </tr>
               ) : (
@@ -366,7 +368,7 @@ export default async function LostFoundPage({
                         </span>
                       ) : (
                         <span className="text-[11px] italic text-slate-400">
-                          No room
+                          Tanpa kamar
                         </span>
                       )}
                     </td>

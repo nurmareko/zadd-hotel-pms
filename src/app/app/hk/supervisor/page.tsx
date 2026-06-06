@@ -143,15 +143,15 @@ export default async function HkSupervisorPage({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Supervisor dashboard
+            Dashboard Supervisor
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            {formatDateWithWeekday(date)} · revalidate on action
+            {formatDateWithWeekday(date)} · refresh setelah aksi
           </p>
         </div>
 
         <nav
-          aria-label="Housekeeping supervisor date"
+          aria-label="Tanggal supervisor housekeeping"
           className="flex flex-wrap gap-2"
         >
           <Link
@@ -159,20 +159,20 @@ export default async function HkSupervisorPage({
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Prev
+            Sebelumnya
           </Link>
           <Link
             href="/app/hk/supervisor"
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Today
+            Hari Ini
           </Link>
           <Link
             href={dateHref(addDays(date, 1))}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
-            Next
+            Berikutnya
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
           <Link
@@ -181,30 +181,30 @@ export default async function HkSupervisorPage({
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-            Print daily list
+            Cetak Daily List
           </Link>
         </nav>
       </div>
 
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Live status
+          {"// "}Status Live
         </div>
         <div className="grid grid-cols-3 gap-3">
           <ForecastCard
-            label="Cleaning now"
+            label="Pembersihan berjalan"
             value={cleaningNowCount}
-            sub="sessions in progress"
+            sub="sesi berjalan"
           />
           <ForecastCard
-            label="Awaiting inspection"
+            label="Menunggu inspeksi"
             value={inspectionRooms.length}
-            sub="VCU rooms"
+            sub="kamar VCU"
           />
           <ForecastCard
-            label="Ready"
+            label="Siap"
             value={readyCount}
-            sub="VC vacant clean"
+            sub="VC - Vacant Clean"
           />
         </div>
       </section>
@@ -214,45 +214,45 @@ export default async function HkSupervisorPage({
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
           {"// "}
-          {dateISO} workload forecast
+          {dateISO} forecast beban kerja
         </div>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ForecastCard
-            label="Turnovers"
+            label="Turnover"
             value={summary.turnovers}
-            sub="departures today"
+            sub="departure hari ini"
           />
           <ForecastCard
-            label="Freshen-ups"
+            label="Freshen-up"
             value={summary.freshenUps}
-            sub="in-house stayovers"
+            sub="stayover in-house"
           />
           <ForecastCard
-            label="Arrivals"
+            label="Arrival"
             value={summary.arrivalsToPrep}
-            sub="allocated prep"
+            sub="prep dialokasikan"
           />
           <ForecastCard
             label="Dirty"
             value={summary.dirtyNow}
-            sub="VD / OD now"
+            sub="VD / OD saat ini"
           />
           <ForecastCard
-            label="Need attention"
+            label="Perlu perhatian"
             value={summary.totalNeedingAttention}
-            sub="deduped rooms"
+            sub="kamar unik"
           />
           <ForecastCard
-            label="Coverage"
+            label="Cakupan"
             value={`${summary.assignedNeedingAttention}/${summary.totalNeedingAttention}`}
-            sub={`${summary.unassignedNeedingAttention} unassigned`}
+            sub={`${summary.unassignedNeedingAttention} belum ditugaskan`}
           />
         </div>
       </section>
 
       <section className="mb-4 border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Housekeeper load
+          {"// "}Beban housekeeper
         </div>
         <div className="grid gap-2 p-3 md:grid-cols-3">
           {housekeepers.map((housekeeper) => (
@@ -275,7 +275,7 @@ export default async function HkSupervisorPage({
           ))}
           {housekeepers.length === 0 ? (
             <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
-              No active HK members available.
+              Tidak ada member HK aktif.
             </div>
           ) : null}
         </div>

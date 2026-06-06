@@ -90,7 +90,9 @@ function printHref(date: Date) {
 function ReservationContextBadges({ row }: { row: HousekeepingListRow }) {
   if (row.reservationContexts.length === 0) {
     return (
-      <span className="text-[11px] italic text-slate-400">No activity</span>
+      <span className="text-[11px] italic text-slate-400">
+        Tidak ada aktivitas
+      </span>
     );
   }
 
@@ -129,7 +131,11 @@ function ReservationContextBadges({ row }: { row: HousekeepingListRow }) {
 
 function AssignmentCell({ row }: { row: HousekeepingListRow }) {
   if (!row.assignedHousekeeper) {
-    return <span className="text-[11px] italic text-slate-400">Unassigned</span>;
+    return (
+      <span className="text-[11px] italic text-slate-400">
+        Belum ditugaskan
+      </span>
+    );
   }
 
   return (
@@ -166,7 +172,7 @@ function NoteCell({ row }: { row: HousekeepingListRow }) {
         </div>
       ) : (
         <div className="text-[11px] italic text-slate-400">
-          No reservation note
+          Tidak ada catatan reservasi
         </div>
       )}
     </div>
@@ -203,33 +209,33 @@ export default async function HkRoomsPage({
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Rooms
+            Kamar
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            {formatDateWithWeekday(date)} · {rows.length} rooms
+            {formatDateWithWeekday(date)} · {rows.length} kamar
           </p>
         </div>
 
-        <nav aria-label="Housekeeping rooms date" className="flex flex-wrap gap-2">
+        <nav aria-label="Tanggal kamar housekeeping" className="flex flex-wrap gap-2">
           <Link
             href={dateHref(addDays(date, -1))}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Prev
+            Sebelumnya
           </Link>
           <Link
             href="/app/hk/rooms"
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Today
+            Hari Ini
           </Link>
           <Link
             href={dateHref(addDays(date, 1))}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
-            Next
+            Berikutnya
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
           <Link
@@ -238,7 +244,7 @@ export default async function HkRoomsPage({
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-            Print daily list
+            Cetak Daily List
           </Link>
         </nav>
       </div>
@@ -246,35 +252,35 @@ export default async function HkRoomsPage({
       <section className="border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
           {"// "}
-          {formatISODate(date)} supervisor rooms worksheet
+          {formatISODate(date)} worksheet kamar supervisor
         </div>
 
         <div className="max-w-full overflow-auto">
           <table className="w-full min-w-[1180px] border-collapse text-[12px]">
             <caption className="sr-only">
-              Housekeeping supervisor room worksheet with current room status,
-              override controls, dated reservation context, notes, and
-              housekeeper assignments
+              Worksheet kamar housekeeping supervisor berisi status kamar,
+              kontrol ubah status, konteks reservasi bertanggal, catatan, dan
+              penugasan housekeeper
             </caption>
             <thead>
               <tr>
                 <th className={headerCellClass} scope="col">
-                  Room
+                  Kamar
                 </th>
                 <th className={headerCellClass} scope="col">
                   Status
                 </th>
                 <th className={headerCellClass} scope="col">
-                  Override
+                  Ubah Status
                 </th>
                 <th className={headerCellClass} scope="col">
-                  Reservation
+                  Reservasi
                 </th>
                 <th className={headerCellClass} scope="col">
                   Housekeeper
                 </th>
                 <th className={headerCellClass} scope="col">
-                  Note
+                  Catatan
                 </th>
               </tr>
             </thead>
@@ -287,9 +293,9 @@ export default async function HkRoomsPage({
                       scope="colgroup"
                       className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
                     >
-                      Floor {floor}
+                      Lantai {floor}
                       <span className="ml-2 font-medium normal-case tracking-normal text-slate-500">
-                        · {floorRows.length} rooms
+                        · {floorRows.length} kamar
                       </span>
                     </th>
                   </tr>
@@ -303,7 +309,7 @@ export default async function HkRoomsPage({
                           {row.room.number}
                         </div>
                         <div className="mt-1 text-[11px] text-slate-500">
-                          Floor {row.room.floor} · {row.room.typeCode} ·{" "}
+                          Lantai {row.room.floor} · {row.room.typeCode} ·{" "}
                           {row.room.typeName}
                         </div>
                       </td>

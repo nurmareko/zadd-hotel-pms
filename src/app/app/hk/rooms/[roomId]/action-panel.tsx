@@ -60,7 +60,7 @@ export function ActionPanel({
       <CalmCard title="// Menunggu Pembersihan">
         {assignedHousekeeperName
           ? `Kamar masuk antrean pembersihan dan ditugaskan ke ${assignedHousekeeperName}.`
-          : "Kamar masuk antrean pembersihan dan belum memiliki assignee hari ini."}
+          : "Kamar masuk antrean pembersihan dan belum memiliki petugas hari ini."}
       </CalmCard>
     );
   }

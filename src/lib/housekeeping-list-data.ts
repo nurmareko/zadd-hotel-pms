@@ -82,7 +82,7 @@ function nightsLabel(arrivalDate: Date, departureDate: Date) {
     differenceInCalendarDays(departureDate, arrivalDate),
   );
 
-  return nights === 1 ? "1 night" : `${nights} nights`;
+  return nights === 1 ? "1 malam" : `${nights} malam`;
 }
 
 function stayoverNightsLabel(
@@ -99,7 +99,7 @@ function stayoverNightsLabel(
     differenceInCalendarDays(departureDate, arrivalDate),
   );
 
-  return `Night ${Math.min(currentNight, totalNights)}/${totalNights}`;
+  return `Malam ${Math.min(currentNight, totalNights)}/${totalNights}`;
 }
 
 function etaFromReservation(reservation: ReservationCandidate) {
@@ -161,7 +161,7 @@ function serviceLabel({
     return "Freshen-up";
   }
 
-  return "Vacant / idle";
+  return "Vacant / tidak aktif";
 }
 
 export async function getHousekeepingListData(
