@@ -16,7 +16,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
     <section className="mb-4 border border-console-border bg-console-surface">
       <div className="flex items-center justify-between border-b border-console-border bg-console-ink px-3 py-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Awaiting inspection
+          {"// "}Menunggu inspeksi
         </span>
         <span className="num text-[11px] font-bold text-console-accent">
           {rooms.length}
@@ -25,7 +25,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
 
       {rooms.length === 0 ? (
         <p className="px-3 py-4 text-[12px] text-slate-500">
-          Nothing awaiting inspection.
+          Tidak ada kamar menunggu inspeksi.
         </p>
       ) : (
         <ul className="divide-y divide-console-border">
@@ -52,7 +52,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
                       ) : null}
                     </>
                   ) : (
-                    <span>Cleaner unknown</span>
+                    <span>Housekeeper tidak diketahui</span>
                   )}
                 </div>
               </Link>

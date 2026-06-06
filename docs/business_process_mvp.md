@@ -189,33 +189,40 @@ flowchart TD
 
 ## 6. Housekeeping Process
 
-Room cleaning lifecycle. Operates independently from FO transactions but feeds room status back to Kalender.
+Role-aware room cleaning lifecycle. FO can create dirty-room demand, supervisors plan and inspect, housekeepers clean from their assigned worklist, and every room-status change feeds back to Kalender.
 
 ```mermaid
 flowchart TD
     A([Guest checks out<br/>or stay continues]) --> B{Room status<br/>at start of day?}
 
-    B -->|VD<br/>Vacant Dirty| C[HK staff cleans room]
-    B -->|OD<br/>Occupied Dirty| C
+    B -->|VD<br/>Vacant Dirty| S[Supervisor reviews<br/>forecast / rooms worksheet]
+    B -->|OD<br/>Occupied Dirty| S
     B -->|VC<br/>Vacant Clean| D[Room ready,<br/>no action]
     B -->|OC<br/>Occupied Clean| D
     B -->|OOO<br/>Out of Order| E[Maintenance only<br/>no cleaning cycle]
 
-    C --> F[HK staff starts<br/>cleaning timer]
+    S --> T[Assign room for date<br/>or bulk assign]
+    T --> U[Housekeeper opens<br/>My Rooms / Kamar Saya]
+    U --> C[Open shared room detail]
+    C --> F[Start CleaningSession<br/>timer]
     F --> G[Cleaning in progress]
-    G --> H{Occupied stay?}
+    G --> R[Finish cleaning<br/>with optional status note]
+    R --> H{Occupied stay?}
     H -->|Yes| P[Room flips to OC]
     H -->|No| I[Room status:<br/>Vacant Clean Unchecked]
     I --> J[Supervisor inspects]
     J --> K{Pass<br/>inspection?}
     K -->|Yes| L[Room flips to VC]
     K -->|No| M[Returns to VD<br/>for re-cleaning]
-    M --> C
+    M --> S
+    S --> X[Optional manual<br/>status override]
+    X --> Y[Status audit logged]
 
     P --> Q([Room remains occupied])
     L --> N([Available for booking])
     D --> N
     E --> O([Closed for maintenance])
+    Y --> N
 
     style A fill:#ecfdf5
     style I fill:#fffbeb
@@ -224,11 +231,17 @@ flowchart TD
     style O fill:#f1f5f9
 ```
 
-**Mobile-first:** HK staff operates from phones or tablets while walking the corridors. Every status update syncs immediately to FO Kalender so receptionists see the live picture.
+**Mobile-first staff flow:** HK staff operates from phones or tablets through `/app/hk/clean` and `/app/hk/rooms/[id]` while walking the corridors. Every status update syncs immediately to FO Kalender so receptionists see the live picture.
+
+**Supervisor flow:** `/app/hk/supervisor` gives the supervisor workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. `/app/hk/rooms` is the daily worksheet and merged status board with inline status override, reservation context, assigned housekeeper, notes, date navigation, and Daily List print. The retired `/app/hk/list` route redirects to `/app/hk/rooms`.
 
 **Inspection step:** for vacant rooms, the VCU intermediate state separates "I cleaned this" from "I verified this is ready." Occupied rooms return from OD to OC after mid-stay cleaning because they remain assigned to the in-house guest.
 
-**Audit trail:** every status change creates a `housekeeping_log` row capturing who, when, and the from→to transition. Useful for accountability and turnover analysis.
+**Cleaning model:** `CleaningSession` is the single source for the assign → clean with timer → finish → inspect lifecycle. `HousekeepingLog` is the status-change audit capturing who, when, old status, new status, and optional status note.
+
+**Reservation note:** `Reservation.notes` is the one reservation comment field. Front Office edits it; Housekeeping reads it as guest instruction/context on lists, cards, and room detail.
+
+**Lost & Found:** HK can log text-only found items from Lost & Found or room detail. FO can search the Lost & Found page when guests ask, and supervisors can mark items returned with a resolution note. This custody flow is independent from room status and folios.
 
 ---
 

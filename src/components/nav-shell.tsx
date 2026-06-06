@@ -7,7 +7,6 @@ import { signOut } from "next-auth/react";
 import {
   BedDouble,
   CalendarDays,
-  ClipboardCheck,
   ClipboardList,
   Archive,
   Gauge,
@@ -17,7 +16,6 @@ import {
   MoreHorizontal,
   Moon,
   Settings,
-  Sparkles,
   Tag,
   Table2,
   User,
@@ -71,9 +69,9 @@ const hkMemberNavGroup: NavGroup = {
   label: "Housekeeping",
   links: [
     {
-      label: "My Rooms",
+      label: "Kamar Saya",
       href: "/app/hk/clean",
-      icon: Sparkles,
+      icon: ClipboardList,
       activeMatch: "exact",
       activePaths: [{ href: "/app/hk/rooms", match: "startsWith" }],
     },
@@ -96,16 +94,10 @@ const hkSupervisorNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Room Status",
+      label: "Kamar",
       href: "/app/hk/rooms",
       icon: BedDouble,
       activeMatch: "startsWith",
-    },
-    {
-      label: "List",
-      href: "/app/hk/list",
-      icon: ClipboardCheck,
-      activeMatch: "exact",
     },
     {
       label: "Lost & Found",
@@ -215,16 +207,10 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "startsWith",
         },
         {
-          label: "Room Status",
+          label: "Kamar",
           href: "/app/hk/rooms",
           icon: BedDouble,
           activeMatch: "startsWith",
-        },
-        {
-          label: "HK List",
-          href: "/app/hk/list",
-          icon: ClipboardCheck,
-          activeMatch: "exact",
         },
         {
           label: "Lost & Found",

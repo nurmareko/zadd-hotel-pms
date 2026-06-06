@@ -47,7 +47,7 @@ export async function updateRoomStatus(
   const session = await auth();
 
   if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = UpdateRoomStatusSchema.safeParse(Object.fromEntries(formData));
@@ -162,7 +162,7 @@ export async function setRoomStatusOverride(
   const session = await auth();
 
   if (!isSupervisorSession(session)) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Tidak berwenang" };
   }
 
   const parsed = RoomStatusOverrideSchema.safeParse({ roomId, status });
@@ -217,7 +217,7 @@ export async function setRoomStatusOverride(
             newStatus: parsed.data.status,
             updatedById: Number(session!.user.id),
             updatedAt: now,
-            note: "Manual override status supervisor",
+            note: "Perubahan status manual oleh supervisor",
           },
         });
 
@@ -244,6 +244,6 @@ export async function setRoomStatusOverride(
       return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
     }
 
-    return { ok: false, error: "Gagal override status kamar" };
+    return { ok: false, error: "Gagal menyimpan perubahan status kamar" };
   }
 }

@@ -431,9 +431,9 @@ flowchart TD
 
 ## 6. Update Room Status
 
-**Use case:** UC-HK-02 Update Status Kamar with cleaning timer and VCU inspection workflow
-**Actors:** Front Office staff, Housekeeping staff, Housekeeping supervisor (same person in MVP, future role), System
-**Trigger:** HK sees a vacant dirty room after check-out, or FO requests cleaning for an in-house room
+**Use case:** UC-HK-02 Clean Assigned Room with timer and VCU inspection workflow
+**Actors:** Front Office staff, Housekeeping staff, Housekeeping supervisor, System
+**Trigger:** HK sees an assigned vacant dirty room after check-out, or FO requests cleaning for an in-house room
 
 ```mermaid
 flowchart TD
@@ -444,34 +444,42 @@ flowchart TD
         FO2[Open reservation detail<br/>and request cleaning]
     end
 
-    subgraph HK[Housekeeping Staff]
-        HK1[Open HK Dashboard<br/>on mobile]
-        HK2[Tap the dirty room]
-        HK3[Tap Start Cleaning timer]
-        HK4[Clean the room]
-        HK5[Tap Stop Cleaning timer]
-        HK6[Add optional note and<br/>linen/towel flags]
+    subgraph SUP1[HK Supervisor]
+        SP1[Open Supervisor Dashboard<br/>or Supervisor Rooms]
+        SP2[Assign room for date]
+        SP3[Optional bulk assignment<br/>by floor/workload]
     end
 
-    subgraph HS[HK Supervisor]
-        HS1[See VCU rooms on dashboard]
+    subgraph HK[Housekeeping Staff]
+        HK1[Open My Rooms<br/>Kamar Saya]
+        HK2[Open shared room detail]
+        HK3[Tap Start Cleaning timer]
+        HK4[Clean the room]
+        HK5[Tap Finish Cleaning]
+        HK6[Add optional status note]
+    end
+
+    subgraph HS[HK Supervisor Inspection]
+        HS1[See VCU rooms in<br/>inspection inbox or rooms page]
         HS2[Walk to room and inspect]
         HS3{Inspection pass?}
         HS4[Tap Approve - VC]
         HS5[Tap Reject - back to VD]
+        HS6[Optional manual override<br/>from Supervisor Rooms]
     end
 
     subgraph S[System]
         S0[Update Room status:<br/>OC → OD]
-        S1[Record cleaning_started_at<br/>on new housekeeping_log row]
-        S2[Record cleaning_completed_at<br/>on the log row]
+        S1[Create/update CleaningSession:<br/>started_at set]
+        S2[Update CleaningSession:<br/>finished_at set]
         S3{Room occupied?}
         S4[Update Room status:<br/>OD → OC]
         S5[Update Room status:<br/>VD → VCU]
         S6[Sync Kalender and FO views]
         S7[Update Room status:<br/>VCU → VC]
         S8[Update Room status:<br/>VCU → VD]
-        S9[Append new housekeeping_log row<br/>for inspection event]
+        S9[Update CleaningSession:<br/>inspected_at / inspected_by_id]
+        S10[Append housekeeping_log row<br/>for every status change]
     end
 
     End1([Room available for booking])
@@ -479,14 +487,18 @@ flowchart TD
     End3([Occupied room clean;<br/>guest remains in-house])
 
     Start --> FO1
-    FO1 -->|Yes| FO2 --> S0 --> HK1
-    FO1 -->|No, vacant VD| HK1
+    FO1 -->|Yes| FO2 --> S0 --> SP1
+    FO1 -->|No, vacant VD| SP1
+    SP1 --> SP2
+    SP1 --> SP3 --> SP2
+    SP2 --> HK1
     HK1 --> HK2 --> HK3 --> S1 --> HK4 --> HK5 --> HK6 --> S2 --> S3
-    S3 -->|Yes| S4 --> S6 --> End3
-    S3 -->|No| S5 --> S6 --> HS1
+    S3 -->|Yes| S4 --> S10 --> S6 --> End3
+    S3 -->|No| S5 --> S10 --> S6 --> HS1
     HS1 --> HS2 --> HS3
-    HS3 -->|Yes| HS4 --> S7 --> S9 --> End1
-    HS3 -->|No| HS5 --> S8 --> S9 --> End2
+    HS3 -->|Yes| HS4 --> S7 --> S9 --> S10 --> End1
+    HS3 -->|No| HS5 --> S8 --> S9 --> S10 --> End2
+    HS6 --> S10 --> S6
     End2 -.->|Returns to cleaning queue| HK1
 
     style Start fill:#ecfdf5
@@ -505,16 +517,78 @@ flowchart TD
 
 **Key logic:**
 
-- **Timer pair:** `cleaning_started_at` and `cleaning_completed_at` are stored on the same housekeeping_log row. Duration is derived (end - start), not stored separately. This allows for "in-progress" detection: rows with non-null start and null end mean cleaning is currently happening.
+- **CleaningSession is the workflow source:** assignment, timer start, finish, and inspection are read from `cleaning_session`. Active cleaning is derived from `started_at IS NOT NULL AND finished_at IS NULL`; duration is derived from `finished_at - started_at`.
+- **HousekeepingLog is the audit trail:** every room-status change appends a `housekeeping_log` row with old status, new status, actor, timestamp, and optional status note. It is not the source for active timer state.
 - **Occupied-room loop:** FO can request cleaning from an in-house reservation detail, changing the room from `OC → OD`. When HK stops cleaning an occupied room, the room returns directly to `OC`.
 - **Vacant-room inspection:** stopping cleaning for a vacant dirty room changes `VD → VCU`. Inspection then approves `VCU → VC` or rejects `VCU → VD`.
-- **Single role enforcement in MVP:** the HK staff and HK supervisor are the same user role in MVP (any HK user can clean and inspect). In a future revision with proper role hierarchy, the inspect action would be gated to a supervisor sub-role.
+- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true` and to ADMIN. Housekeepers clean only their operational worklist.
+- **Manual override:** supervisors can bypass the normal clean/inspect path from Supervisor Rooms when operations require it; the override still writes the status audit.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
 - **Kalender sync:** every status change revalidates Front Office views. The FO receptionist sees room status updates without maintaining a separate room-status widget on Dashboard.
 
 ---
 
-## 7. Run Night Audit
+## 7. Lost & Found
+
+**Use case:** UC-HK-03 Log, search, and resolve Lost & Found
+**Actors:** Housekeeping staff, Front Office staff, Housekeeping supervisor, System
+**Trigger:** HK finds an item during cleaning, or FO searches for a guest's missing item
+
+```mermaid
+flowchart TD
+    Start([Item found or guest asks])
+
+    subgraph HK[Housekeeping Staff]
+        HK1[Open Lost & Found<br/>or room detail]
+        HK2[Enter text description<br/>and optional room]
+        HK3[Submit item]
+    end
+
+    subgraph FO[Front Office Staff]
+        FO1[Open Lost & Found]
+        FO2[Search by text,<br/>room, or status]
+        FO3{Guest claims item?}
+    end
+
+    subgraph SUP[HK Supervisor]
+        SUP1[Review unclaimed items]
+        SUP2[Enter claimant or<br/>resolution note]
+        SUP3[Mark returned]
+    end
+
+    subgraph S[System]
+        S1[Create LostFoundItem:<br/>UNCLAIMED]
+        S2[Filter text-only records]
+        S3[Update status:<br/>RETURNED]
+        S4[Set returned_at<br/>and resolution]
+    end
+
+    End1([Item held for follow-up])
+    End2([Item resolved])
+
+    Start --> HK1 --> HK2 --> HK3 --> S1 --> End1
+    Start --> FO1 --> FO2 --> S2 --> FO3
+    FO3 -->|No| End1
+    FO3 -->|Yes| SUP1 --> SUP2 --> SUP3 --> S3 --> S4 --> End2
+
+    style Start fill:#ecfdf5
+    style End1 fill:#fffbeb
+    style End2 fill:#ecfdf5
+    style FO3 fill:#fffbeb
+    style S1 fill:#eff6ff
+    style S3 fill:#eff6ff
+    style S4 fill:#eff6ff
+```
+
+**Key logic:**
+
+- **Text-only custody log:** Lost & Found stores text description, optional room, found-by user, status, returned timestamp, and resolution. It does not store photos or create maintenance work.
+- **Shared access:** HK logs found items, FO searches when guests ask, and HK supervisor/ADMIN can resolve returned items.
+- **Operationally independent:** marking an item returned does not change room status, reservation status, or folio state.
+
+---
+
+## 8. Run Night Audit
 
 **Use case:** UC-AC-01 Jalankan Night Audit
 **Actors:** Accounting staff (Night Auditor), System
@@ -612,9 +686,9 @@ This document covers the use cases with non-trivial decision logic or multi-acto
 
 | Use Case | Reason for omission |
 |---|---|
-| UC-HK-01 View Room Status | Read-only display; no decision logic |
+| UC-HK-01 View My Rooms / Supervisor Rooms | Read-only list/worksheet display; no decision logic |
 | UC-AC-02 Generate Night Report | Read-only render of NightAudit snapshot fields |
 | UC-AD-01 Manage Master Data | CRUD operations; covered by use case narrative |
 | UC-AD-02 Manage Users & Roles | CRUD operations; covered by use case narrative |
 
-The seven diagrams above capture the operationally-interesting flows. Read in sequence with the business process document for a complete picture of how the system behaves.
+The eight diagrams above capture the operationally-interesting flows. Read in sequence with the business process document for a complete picture of how the system behaves.

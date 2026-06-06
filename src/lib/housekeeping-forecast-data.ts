@@ -76,33 +76,70 @@ function initialsFromName(name: string) {
   return initials || name.slice(0, 2).toUpperCase();
 }
 
-function addRoomReason(
-  reasonsByRoomId: Map<number, Set<HousekeepingForecastReason>>,
-  roomId: number | null,
-  reason: HousekeepingForecastReason,
-) {
-  if (!roomId) {
-    return;
-  }
-
-  const reasons = reasonsByRoomId.get(roomId) ?? new Set();
-  reasons.add(reason);
-  reasonsByRoomId.set(roomId, reasons);
-}
-
 function countRoomsWithReason(
-  reasonsByRoomId: Map<number, Set<HousekeepingForecastReason>>,
+  reasonsByRoomId: Map<number, HousekeepingForecastReason>,
   reason: HousekeepingForecastReason,
 ) {
   let count = 0;
 
-  for (const reasons of reasonsByRoomId.values()) {
-    if (reasons.has(reason)) {
+  for (const roomReason of reasonsByRoomId.values()) {
+    if (roomReason === reason) {
       count += 1;
     }
   }
 
   return count;
+}
+
+function forecastReasonForRoom({
+  date,
+  reservations,
+  room,
+}: {
+  date: Date;
+  reservations: Array<{
+    status: ReservationStatus;
+    arrivalDate: Date;
+    departureDate: Date;
+  }>;
+  room: RoomShape;
+}): HousekeepingForecastReason | null {
+  const hasDeparture = reservations.some(
+    (reservation) =>
+      reservation.status === ReservationStatus.CHECKED_IN &&
+      reservation.departureDate.getTime() === date.getTime(),
+  );
+
+  if (hasDeparture) {
+    return "turnover";
+  }
+
+  const hasStayover = reservations.some(
+    (reservation) =>
+      reservation.status === ReservationStatus.CHECKED_IN &&
+      reservation.arrivalDate.getTime() <= date.getTime() &&
+      reservation.departureDate.getTime() > date.getTime(),
+  );
+
+  if (hasStayover) {
+    return "freshen-up";
+  }
+
+  if (dirtyStatuses.includes(room.status as (typeof dirtyStatuses)[number])) {
+    return "dirty-now";
+  }
+
+  const hasArrival = reservations.some(
+    (reservation) =>
+      reservation.status === ReservationStatus.CONFIRMED &&
+      reservation.arrivalDate.getTime() === date.getTime(),
+  );
+
+  if (hasArrival) {
+    return "arrival-prep";
+  }
+
+  return null;
 }
 
 export async function getHousekeepingForecastData(
@@ -164,37 +201,29 @@ export async function getHousekeepingForecastData(
     }),
   ]);
 
-  const reasonsByRoomId = new Map<number, Set<HousekeepingForecastReason>>();
+  const reservationsByRoomId = new Map<number, typeof reservations>();
 
   for (const reservation of reservations) {
-    if (
-      reservation.status === ReservationStatus.CHECKED_IN &&
-      reservation.departureDate.getTime() === date.getTime()
-    ) {
-      addRoomReason(reasonsByRoomId, reservation.roomId, "turnover");
+    if (!reservation.roomId) {
       continue;
     }
 
-    if (
-      reservation.status === ReservationStatus.CHECKED_IN &&
-      reservation.arrivalDate.getTime() <= date.getTime() &&
-      reservation.departureDate.getTime() > date.getTime()
-    ) {
-      addRoomReason(reasonsByRoomId, reservation.roomId, "freshen-up");
-      continue;
-    }
-
-    if (
-      reservation.status === ReservationStatus.CONFIRMED &&
-      reservation.arrivalDate.getTime() === date.getTime()
-    ) {
-      addRoomReason(reasonsByRoomId, reservation.roomId, "arrival-prep");
-    }
+    const roomReservations = reservationsByRoomId.get(reservation.roomId) ?? [];
+    roomReservations.push(reservation);
+    reservationsByRoomId.set(reservation.roomId, roomReservations);
   }
 
+  const reasonsByRoomId = new Map<number, HousekeepingForecastReason>();
+
   for (const room of rooms) {
-    if (dirtyStatuses.includes(room.status as (typeof dirtyStatuses)[number])) {
-      addRoomReason(reasonsByRoomId, room.id, "dirty-now");
+    const reason = forecastReasonForRoom({
+      date,
+      reservations: reservationsByRoomId.get(room.id) ?? [],
+      room,
+    });
+
+    if (reason) {
+      reasonsByRoomId.set(room.id, reason);
     }
   }
 
@@ -217,7 +246,8 @@ export async function getHousekeepingForecastData(
   let assignedNeedingAttention = 0;
 
   const roomRows = roomsByNumber.map((room): HousekeepingForecastRoomRow => {
-    const reasons = [...(reasonsByRoomId.get(room.id) ?? [])];
+    const reason = reasonsByRoomId.get(room.id) ?? null;
+    const reasons = reason ? [reason] : [];
     const assignment = assignmentsByRoomId.get(room.id) ?? null;
 
     if (reasons.length > 0 && assignment) {

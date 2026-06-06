@@ -49,10 +49,13 @@ export const proxy = auth((request) => {
     return NextResponse.next();
   }
 
-  if (
-    routeMatches(pathname, "/app/hk/supervisor") ||
-    routeMatches(pathname, "/app/hk/list")
-  ) {
+  if (routeMatches(pathname, "/app/hk/list")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app/hk/rooms";
+    return NextResponse.redirect(url);
+  }
+
+  if (routeMatches(pathname, "/app/hk/supervisor")) {
     if (!canUseHkSupervisorRoute(session)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }

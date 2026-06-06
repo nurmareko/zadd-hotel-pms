@@ -2,7 +2,7 @@
 
 What we're building in the MVP, grouped by module. Features deferred to later releases are listed at the end with rationale.
 
-Last updated: 2026-06-01.
+Last updated: 2026-06-07.
 
 ---
 
@@ -27,18 +27,21 @@ Supports the guest lifecycle from booking to final payment.
 
 ## Housekeeping
 
-Mobile-first for staff moving through room corridors.
+Role-aware for mobile housekeepers and supervisor control.
 
-- **HK-01 Dashboard** — mobile-first workspace with two tabs: Pembersihan and Status Kamar.
-- **Cleaning queue** — prioritized VD/OD/VCU rooms with filters and direct entry to room actions.
-- **Room status dashboard** — floor-grouped overview of all rooms with color-coded status: VC, VD, OC, OD, VCU, OOO.
-- **HK-02 Room Detail + Update** — current status, active cleaning state, action panel, and recent update history.
-- **Cleaning timer** — Start/Stop cleaning session with live duration and stored start/completion timestamps.
-- **VCU inspection workflow** — cleaned rooms move to Vacant Clean Unchecked before supervisor inspection.
-- **Inspection result** — VCU passes to VC or fails back to VD; failed inspection requires a reason.
-- **Operational capture** — optional linen and towel change flags plus cleaning notes on completed cleaning sessions.
-- **Cleaning history** — duration, inspection result, notes, and linen/towel flags are displayed in room history.
-- **FO sync** — HK actions revalidate the HK dashboard and Front Office room/tape-chart views.
+- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors/ADMIN to the supervisor dashboard.
+- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN can access supervisor HK screens.
+- **My Rooms / Kamar Saya** — `/app/hk/clean` is the housekeeper worklist, grouped by assigned room need and linked to shared room detail.
+- **Shared room detail** — `/app/hk/rooms/[id]` adapts by role. Housekeepers start/finish cleaning, see the live timer, add a status note, and log found items. Supervisors inspect rooms, view status/history, and review cleaning context.
+- **Supervisor Rooms** — `/app/hk/rooms` merges the former status board and daily list into one worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` redirects here.
+- **Supervisor dashboard** — `/app/hk/supervisor` shows workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs.
+- **Manual assignment** — supervisors assign rooms by date, including bulk assignment by floor/workload; auto-dispatch remains deferred.
+- **Cleaning timer** — `CleaningSession` is the single workflow source for assignment-to-clean-to-inspect timing. Active cleaning is derived from a started-but-unfinished session.
+- **VCU inspection workflow** — vacant cleaning follows `VD → VCU → VC` on pass or `VCU → VD` on rejection; occupied-room cleaning follows `OD → OC`.
+- **Supervisor status override** — supervisors can manually change a room's current status from the Supervisor Rooms page; each override creates a status audit.
+- **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context.
+- **Lost & Found** — `/app/hk/lost-found` supports text-only item logging, FO/HK/Admin search, and returned-item resolution.
+- **FO sync** — HK actions revalidate HK screens and Front Office room/tape-chart views.
 
 ## Food & Beverage
 
@@ -106,7 +109,6 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Housekeeping Activity Log UI | Housekeeping | Room-level history is shipped; a global searchable HK activity log is post-MVP. |
 | Credit Points / weighted task allocation | Housekeeping | Requires task scoring rules for staff workload balancing. |
 | Auto-assignment logic for cleaning staff | Housekeeping | MVP keeps assignment manual; automated dispatch needs scheduling rules. |
-| Lost & Found tracking | Housekeeping / Front Office | Requires a separate item custody and guest follow-up workflow. |
 | Purchase Request for HK supplies | Housekeeping / Admin | Procurement workflow is outside the room-turnover MVP. |
 | Stock/inventory tracking for extra beds and cribs | Housekeeping / Admin | Requires inventory quantities, movement history, and availability checks. |
 | Maid Station grouping | Housekeeping | Operational grouping by station/floor can be added after basic HK flow is stable. |

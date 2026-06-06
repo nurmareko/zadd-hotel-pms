@@ -4,17 +4,18 @@ Describes the interactions between actors and the system features listed in the 
 
 ## Actors
 
-Five actors interact with the system:
+Five role actors interact with the system, with one implemented supervisor tier:
 
 - **Front Office staff**, **Housekeeping staff**, **F&B staff**, and **Accounting staff (Night Auditor)** — each a role played by a praktikum student.
+- **Housekeeping supervisor** — an HK user with `User.isSupervisor = true`; this is an elevated tier on the HK role, not a separate role code.
 - **Administrator** — the supervising lecturer, responsible for master data and user accounts.
 
 ## Use cases by module
 
-The system has 22 primary use cases and 4 supporting use cases, grouped into five modules:
+The system has 29 primary use cases and 4 supporting use cases, grouped into five modules:
 
 - **Front Office** — guest lifecycle: reservation management, confirmed-reservation cancellation, check-in with required digital signature capture, mid-stay cleaning requests, guest folio management, and check-out. Reservation creation can start from an empty Kalender cell with room/type/date context prefilled; physical-room allocation remains optional until check-in. Folio operations are reached from the reservation detail's `Folio` tab.
-- **Housekeeping** — mobile-first room status monitoring, timed cleaning, and VCU inspection. Vacant cleaning follows `VD → VCU → VC/VD`; occupied-room cleaning follows `OD → OC`.
+- **Housekeeping** — role-aware room operations. Housekeepers work from My Rooms and shared room detail; supervisors forecast workload, assign rooms, inspect VCU rooms, override status, print the Daily List, and manage returned Lost & Found items. Vacant cleaning follows `VD → VCU → VC/VD`; occupied-room cleaning follows `OD → OC`. `CleaningSession` is the workflow source; `HousekeepingLog` is the room-status audit trail.
 - **Food & Beverage** — captain orders, floor actions for reserved/out-of-service tables, bill processing, and payment via cash, card, transfer, or charge-to-room.
 - **Accounting** — night audit execution and consolidated night report generation from NightAudit snapshot fields.
 - **Admin** — master data, restaurant table management and floor-layout arrangement (`/app/admin/tables`), and user/role management.
@@ -23,8 +24,9 @@ The system has 22 primary use cases and 4 supporting use cases, grouped into fiv
 
 | Actor | Use Cases |
 |---|---|
-| Front Office staff | Manage Reservations; Cancel Confirmed Reservation; Process Check-in; Request Mid-stay Cleaning; Manage Guest Folio; Process Check-out |
-| Housekeeping staff | View Room Status; Update Room Status; Run Cleaning Timer; Inspect VCU Room |
+| Front Office staff | Manage Reservations; Cancel Confirmed Reservation; Process Check-in; Request Mid-stay Cleaning; Search Lost & Found; Manage Guest Folio; Process Check-out |
+| Housekeeping staff | View My Rooms; Clean Assigned Room with Timer; Log Found Item |
+| Housekeeping supervisor | View Supervisor Dashboard; Assign Rooms; Bulk Assign Rooms; Inspect VCU Room; Override Room Status; Print Daily List; Mark Lost & Found Returned |
 | F&B staff | Create Captain Order; Seat Reserved Party; Release Table Reservation; Restore OOS Table; Process F&B Bill; Process F&B Payment |
 | Accounting staff | Run Night Audit; Generate Night Report |
 | Administrator | Manage Master Data; Manage Restaurant Tables (`/app/admin/tables`); Arrange Table Floor Layout; Manage Users & Roles |

@@ -274,6 +274,21 @@ HK screens remain mobile-first, but the responsive navigation applies to every m
 
 ---
 
+## Housekeeping surfaces
+
+HK is role-aware:
+
+- `/app/hk` is only a redirect. HK members land on `/app/hk/clean`; HK supervisors and ADMIN land on `/app/hk/supervisor`.
+- `/app/hk/clean` (Kamar Saya) stays mobile-first and optimized for thumb use while walking corridors.
+- `/app/hk/rooms/[id]` is the shared room detail. It should keep housekeeper controls prominent on mobile and supervisor inspection/history controls clear on wider screens.
+- `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
+- `/app/hk/list` is retired and redirects to `/app/hk/rooms`; do not design a standalone Daily List route.
+- `/app/hk/lost-found` is text-only in the MVP. Use compact search/filter/table patterns, not media galleries or photo upload controls.
+
+Keep the room-status palette consistent everywhere: VC emerald, OC blue, VD amber, OD red, VCU yellow-amber, OOO slate.
+
+---
+
 ## Implementation hand-off
 
 ### `src/app/globals.css`
