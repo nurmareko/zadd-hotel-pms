@@ -23,12 +23,6 @@ export type CleanReservationContext =
       nightsLabel: string;
     };
 
-export type CleanAddOn = {
-  id: number;
-  label: string;
-  delivered: boolean;
-};
-
 export type CleanRoom = {
   id: number;
   number: string;
@@ -41,8 +35,7 @@ export type CleanRoom = {
   startedAt: Date | null;
   finishedAt: Date | null;
   context: CleanReservationContext | null;
-  housekeepingNote: string | null;
-  addOns: CleanAddOn[];
+  notes: string | null;
 };
 
 export type HousekeeperCleanData = {
@@ -60,10 +53,7 @@ type ReservationCandidate = {
   status: ReservationStatus;
   roomId: number | null;
   notes: string | null;
-  comment: string | null;
-  housekeepingNote: string | null;
   guest: { fullName: string };
-  addOns: Array<{ id: number; label: string; delivered: boolean }>;
 };
 
 const roomNumberCollator = new Intl.Collator("en", {
@@ -85,27 +75,16 @@ function stayoverNightsLabel(date: Date, arrivalDate: Date, departureDate: Date)
 }
 
 function etaFromReservation(reservation: ReservationCandidate) {
-  const candidate = reservation.notes ?? reservation.comment;
-  const etaMatch = candidate?.match(/\bETA\s*:?\s*([0-2]?\d:[0-5]\d)\b/i);
+  const etaMatch = reservation.notes?.match(/\bETA\s*:?\s*([0-2]?\d:[0-5]\d)\b/i);
 
   return etaMatch?.[1] ?? null;
-}
-
-function addOnsFrom(reservation: ReservationCandidate | undefined): CleanAddOn[] {
-  return (
-    reservation?.addOns.map((addOn) => ({
-      id: addOn.id,
-      label: addOn.label,
-      delivered: addOn.delivered,
-    })) ?? []
-  );
 }
 
 /**
  * Build the cleaning worklist for a single housekeeper on the hotel's current
  * WIB day, scoped to the rooms assigned to them. Rooms are grouped by the work
  * they need (turnover / freshen-up / done) and decorated with the reservation
- * context, HK note, add-ons, and any cleaning session started today.
+ * context, reservation note, and any cleaning session started today.
  */
 export async function getHousekeeperCleanData(
   housekeeperId: number,
@@ -154,13 +133,7 @@ export async function getHousekeeperCleanData(
         status: true,
         roomId: true,
         notes: true,
-        comment: true,
-        housekeepingNote: true,
         guest: { select: { fullName: true } },
-        addOns: {
-          select: { id: true, label: true, delivered: true },
-          orderBy: { createdAt: "asc" },
-        },
       },
     }),
     prisma.cleaningSession.findMany({
@@ -231,8 +204,8 @@ export async function getHousekeeperCleanData(
         group = "done";
       }
 
-      // The reservation that drives the note/add-ons: for a turnover it is the
-      // incoming arrival; for a stayover it is the in-house guest.
+      // The reservation that drives the note: for a turnover it is the incoming
+      // arrival; for a stayover it is the in-house guest.
       const isTurnover = room.status === RoomStatus.VD || group === "ready";
       const noteReservation = isTurnover ? arrival ?? stayover : stayover ?? arrival;
 
@@ -268,8 +241,7 @@ export async function getHousekeeperCleanData(
         startedAt,
         finishedAt,
         context,
-        housekeepingNote: noteReservation?.housekeepingNote ?? null,
-        addOns: addOnsFrom(noteReservation),
+        notes: noteReservation?.notes ?? null,
       };
     });
 

@@ -246,7 +246,6 @@ model Reservation {
   type             ReservationUsageType @default(REGULAR)
   arrangementType  ArrangementType      @default(RO) @map("arrangement_type")
   reservationType  ReservationType      @default(INDIVIDUAL) @map("reservation_type")
-  comment          String?              @db.Text
   guestId          Int                  @map("guest_id")
   roomTypeId       Int                  @map("room_type_id")
   roomId           Int?                 @map("room_id")
@@ -258,7 +257,6 @@ model Reservation {
   rateAmount       Decimal              @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
   deposit          Decimal              @default(0) @db.Decimal(12, 2)
   notes            String?              @db.Text
-  housekeepingNote String?              @map("housekeeping_note") @db.Text
 
   // GRC fields (inlined from GuestRegistrationCard entity)
   grcFilledAt      DateTime? @map("grc_filled_at")
@@ -275,21 +273,8 @@ model Reservation {
   room      Room?              @relation(fields: [roomId], references: [id])
   createdBy User               @relation("ReservationCreator", fields: [createdById], references: [id])
   folio     Folio?
-  addOns    ReservationAddOn[]
 
   @@map("reservation")
-}
-
-model ReservationAddOn {
-  id            Int      @id @default(autoincrement())
-  reservationId Int      @map("reservation_id")
-  label         String   @db.VarChar(100)
-  delivered     Boolean  @default(false)
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-
-  @@map("reservation_add_on")
 }
 
 model Folio {

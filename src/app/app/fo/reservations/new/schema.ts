@@ -35,13 +35,6 @@ const OptionalTextSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
-const OptionalLongTextSchema = z
-  .string()
-  .trim()
-  .or(z.literal(""))
-  .optional()
-  .transform((value) => (value ? value : null));
-
 const OptionalShortTextSchema = z
   .string()
   .trim()
@@ -125,7 +118,6 @@ const BaseCreateReservationSchema = z
       .number("Deposit is required")
       .min(0, "Deposit cannot be negative"),
     notes: OptionalTextSchema,
-    comment: OptionalLongTextSchema,
   })
   .refine((value) => value.departureDate > value.arrivalDate, {
     message: "Departure must be after arrival",
@@ -193,7 +185,6 @@ export type CreateReservationInput = {
   arrangementType: ArrangementType;
   deposit: string;
   notes: string;
-  comment: string;
 };
 export type CreateReservationValues = z.output<typeof CreateReservationSchema>;
 

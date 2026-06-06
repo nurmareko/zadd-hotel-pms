@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Check, Loader2, Play, Square } from "lucide-react";
+import { Archive, Check, Play, Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -16,7 +16,6 @@ import {
   finishCleaning,
   logFoundItemFromCleanCard,
   startCleaning,
-  toggleAddOnDelivered,
 } from "./actions";
 
 const statusBadgeClass: Record<CleanRoom["status"], string> = {
@@ -27,55 +26,6 @@ const statusBadgeClass: Record<CleanRoom["status"], string> = {
   VCU: "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
   OOO: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
 };
-
-function AddOnToggle({ addOn }: { addOn: CleanRoom["addOns"][number] }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  function onToggle() {
-    const formData = new FormData();
-    formData.set("addOnId", String(addOn.id));
-    formData.set("delivered", String(!addOn.delivered));
-
-    startTransition(async () => {
-      const result = await toggleAddOnDelivered(formData);
-
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-
-      toast.success(
-        addOn.delivered
-          ? `${addOn.label} ditandai belum diantar`
-          : `${addOn.label} diantar`,
-      );
-      router.refresh();
-    });
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={isPending}
-      aria-pressed={addOn.delivered}
-      className={[
-        "inline-flex items-center gap-1.5 border px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] transition-colors disabled:opacity-60",
-        addOn.delivered
-          ? "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-          : "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
-      ].join(" ")}
-    >
-      {isPending ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-      ) : (
-        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-      )}
-      {addOn.label} · {addOn.delivered ? "Diantar" : "Tandai antar"}
-    </button>
-  );
-}
 
 function FoundItemForm({ room }: { room: CleanRoom }) {
   return (
@@ -188,26 +138,13 @@ export function RoomCard({ room }: { room: CleanRoom }) {
           </div>
         ) : null}
 
-        {room.housekeepingNote ? (
+        {room.notes ? (
           <div className="border-l-2 border-status-vcu-pip bg-status-vcu-bg px-3 py-2">
             <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-status-vcu-fg">
               Catatan
             </div>
             <div className="mt-0.5 text-[12px] leading-5 text-console-ink">
-              {room.housekeepingNote}
-            </div>
-          </div>
-        ) : null}
-
-        {room.addOns.length > 0 ? (
-          <div className="space-y-1.5">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              Add-ons
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {room.addOns.map((addOn) => (
-                <AddOnToggle key={addOn.id} addOn={addOn} />
-              ))}
+              {room.notes}
             </div>
           </div>
         ) : null}

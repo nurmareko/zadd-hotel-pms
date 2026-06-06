@@ -18,6 +18,7 @@ export type CleaningQueueRow = {
   roomTypeName: string;
   status: Extract<RoomStatus, "VD" | "OD" | "VCU">;
   timeInStatusLabel: string;
+  note: string | null;
   actionLabel: string;
   href: string;
 };
@@ -181,6 +182,11 @@ function CleaningQueue({
                     {row.timeInStatusLabel}
                   </span>
                 </div>
+                {row.note ? (
+                  <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-slate-600">
+                    {row.note}
+                  </p>
+                ) : null}
               </div>
               <span className="self-center border border-console-ink bg-console-ink px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent">
                 {row.actionLabel}

@@ -237,7 +237,6 @@ async function runCreateReservationTransaction(
           type: ReservationUsageType.REGULAR,
           arrangementType: input.arrangementType,
           reservationType: input.reservationType,
-          comment: input.comment,
           guestId: guest.id,
           roomTypeId: input.roomTypeId,
           roomId: room?.id ?? null,
@@ -353,7 +352,6 @@ async function runUpdateReservationTransaction(
           notes: input.notes,
           arrangementType: input.arrangementType,
           reservationType: input.reservationType,
-          comment: input.comment,
         },
       });
 

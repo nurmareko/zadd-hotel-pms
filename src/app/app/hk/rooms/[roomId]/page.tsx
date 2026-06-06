@@ -38,6 +38,7 @@ export default async function HKRoomDetailPage({
           reservations: {
             where: {
               OR: [
+                { status: ReservationStatus.CHECKED_IN },
                 { status: ReservationStatus.CHECKED_OUT },
                 {
                   status: ReservationStatus.CONFIRMED,
@@ -83,6 +84,11 @@ export default async function HKRoomDetailPage({
       .filter((reservation) => reservation.status === ReservationStatus.CHECKED_OUT)
       .sort((first, second) => second.departureDate.getTime() - first.departureDate.getTime())[0] ??
     null;
+  const currentGuest =
+    room.reservations
+      .filter((reservation) => reservation.status === ReservationStatus.CHECKED_IN)
+      .sort((first, second) => first.departureDate.getTime() - second.departureDate.getTime())[0] ??
+    null;
   const upcomingReservation =
     room.reservations
       .filter((reservation) => reservation.status === ReservationStatus.CONFIRMED)
@@ -101,6 +107,14 @@ export default async function HKRoomDetailPage({
         <StatusInfo
           status={room.status}
           statusSince={latestLog?.updatedAt ?? null}
+          currentGuest={
+            currentGuest
+              ? {
+                  guestName: currentGuest.guest.fullName,
+                  notes: currentGuest.notes,
+                }
+              : null
+          }
           recentGuest={
             recentGuest
               ? {
@@ -114,6 +128,7 @@ export default async function HKRoomDetailPage({
               ? {
                   guestName: upcomingReservation.guest.fullName,
                   arrivalDate: upcomingReservation.arrivalDate,
+                  notes: upcomingReservation.notes,
                 }
               : null
           }

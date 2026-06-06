@@ -20,11 +20,6 @@ export type HousekeepingReservationContext = {
   etaLabel: string | null;
 };
 
-export type HousekeepingAddOn = {
-  label: string;
-  delivered: boolean;
-};
-
 export type HousekeepingListRow = {
   room: {
     id: number;
@@ -40,9 +35,8 @@ export type HousekeepingListRow = {
   note: {
     reservationNo: string;
     etaLabel: string | null;
-    housekeepingNote: string | null;
+    notes: string | null;
   } | null;
-  addOns: HousekeepingAddOn[];
   assignedHousekeeper: {
     id: number;
     name: string;
@@ -63,10 +57,7 @@ type ReservationCandidate = {
   status: ReservationStatus;
   roomId: number | null;
   notes: string | null;
-  comment: string | null;
-  housekeepingNote: string | null;
   guest: { fullName: string };
-  addOns: Array<{ label: string; delivered: boolean }>;
 };
 
 const roomNumberCollator = new Intl.Collator("en", {
@@ -112,8 +103,7 @@ function stayoverNightsLabel(
 }
 
 function etaFromReservation(reservation: ReservationCandidate) {
-  const candidate = reservation.notes ?? reservation.comment;
-  const etaMatch = candidate?.match(/\bETA\s*:?\s*([0-2]?\d:[0-5]\d)\b/i);
+  const etaMatch = reservation.notes?.match(/\bETA\s*:?\s*([0-2]?\d:[0-5]\d)\b/i);
 
   return etaMatch?.[1] ?? null;
 }
@@ -215,13 +205,7 @@ export async function getHousekeepingListData(
           status: true,
           roomId: true,
           notes: true,
-          comment: true,
-          housekeepingNote: true,
           guest: { select: { fullName: true } },
-          addOns: {
-            select: { label: true, delivered: true },
-            orderBy: { createdAt: "asc" },
-          },
         },
       }),
       prisma.housekeepingAssignment.findMany({
@@ -316,10 +300,9 @@ export async function getHousekeepingListData(
                 noteReservation.status === ReservationStatus.CONFIRMED
                   ? etaFromReservation(noteReservation)
                   : null,
-              housekeepingNote: noteReservation.housekeepingNote,
+              notes: noteReservation.notes,
             }
           : null,
-        addOns: noteReservation?.addOns ?? [],
         assignedHousekeeper: housekeeper
           ? {
               id: housekeeper.id,

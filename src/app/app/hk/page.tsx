@@ -55,7 +55,7 @@ export default async function HKDashboardPage() {
         housekeepingLogs: { orderBy: { updatedAt: "desc" }, take: 1 },
         reservations: {
           where: { status: ReservationStatus.CHECKED_IN },
-          select: { id: true },
+          select: { id: true, notes: true },
           take: 1,
         },
       },
@@ -74,7 +74,7 @@ export default async function HKDashboardPage() {
         housekeepingLogs: { orderBy: { updatedAt: "desc" }, take: 1 },
         reservations: {
           where: { status: ReservationStatus.CHECKED_IN },
-          select: { departureDate: true },
+          select: { departureDate: true, notes: true },
           orderBy: { departureDate: "asc" },
           take: 1,
         },
@@ -107,6 +107,7 @@ export default async function HKDashboardPage() {
         roomTypeName: room.roomType.name,
         status: room.status as CleaningQueueRow["status"],
         timeInStatusLabel: relativeDurationLabel(statusSince, now),
+        note: activeReservation?.notes ?? null,
         actionLabel: actionLabelForStatus(room.status),
         href: roomDetailHref(room.id),
         priorityTime: activeReservation?.departureDate.getTime() ?? Infinity,
@@ -129,6 +130,7 @@ export default async function HKDashboardPage() {
       timeInStatusLabel: row.timeInStatusLabel,
       actionLabel: row.actionLabel,
       href: row.href,
+      note: row.note,
     }));
 
   const floorsByNumber = new Map<number, RoomStatusGridFloor["rooms"]>();

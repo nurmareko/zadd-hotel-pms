@@ -693,27 +693,6 @@ export function ReservationForm({
                     )}
                   />
                 </div>
-
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="comment"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Komentar Reservasi</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className={textareaClassName}
-                            placeholder="Catatan untuk staf atau manajer terkait reservasi ini..."
-                            readOnly={isViewMode}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </div>
 

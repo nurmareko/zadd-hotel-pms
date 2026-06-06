@@ -11,7 +11,6 @@ import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 import {
   LogFoundItemSchema,
   RoomActionSchema,
-  ToggleAddOnSchema,
   type ActionResult,
 } from "./schema";
 
@@ -246,78 +245,6 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
     }
 
     return { ok: false, error: "Gagal menyelesaikan pembersihan" };
-  }
-}
-
-export async function toggleAddOnDelivered(
-  formData: FormData,
-): Promise<ActionResult> {
-  const userId = await requireHousekeeper();
-
-  if (!userId) {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = ToggleAddOnSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  const { addOnId, delivered } = parsed.data;
-  const { today } = todayDateOnly();
-
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        const addOn = await tx.reservationAddOn.findUnique({
-          where: { id: addOnId },
-          select: { id: true, reservation: { select: { roomId: true } } },
-        });
-
-        if (!addOn) {
-          return { ok: false as const, error: "Add-on tidak ditemukan" };
-        }
-
-        const roomId = addOn.reservation.roomId;
-
-        if (!roomId) {
-          return { ok: false as const, error: "Kamar reservasi belum ditentukan" };
-        }
-
-        const assignment = await tx.housekeepingAssignment.findFirst({
-          where: { roomId, date: today, housekeeperId: userId },
-          select: { id: true },
-        });
-
-        if (!assignment) {
-          return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
-        }
-
-        await tx.reservationAddOn.update({
-          where: { id: addOnId },
-          data: { delivered },
-        });
-
-        return { ok: true as const, roomId };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
-
-    if (result.ok) {
-      revalidateCleaningViews(result.roomId);
-    }
-
-    return result.ok ? { ok: true } : result;
-  } catch (error) {
-    if (isSerializationConflict(error)) {
-      return { ok: false, error: "Add-on sedang diproses. Muat ulang halaman." };
-    }
-
-    return { ok: false, error: "Gagal memperbarui add-on" };
   }
 }
 

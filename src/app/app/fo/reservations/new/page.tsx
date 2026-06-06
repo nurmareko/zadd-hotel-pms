@@ -128,7 +128,6 @@ export default async function NewReservationPage({
     arrangementType: "RO",
     deposit: "0",
     notes: "",
-    comment: "",
   };
   const allocatedActiveReservations = activeReservations.flatMap(
     (reservation) =>
