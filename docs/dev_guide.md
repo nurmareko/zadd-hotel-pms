@@ -14,14 +14,14 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 |----------|----------|-------|---------------------|
 | admin    | admin123 | ADMIN | `/app/admin/users`  |
 | fo1      | fo123    | FO    | `/app/fo/tape-chart` |
-| hksup    | hksup123 | HK supervisor | `/app/hk` |
-| hk1      | hk123    | HK    | `/app/hk`           |
-| hk2      | hk2123   | HK    | `/app/hk`           |
-| hk3      | hk3123   | HK    | `/app/hk`           |
+| hksup    | hksup123 | HK supervisor | `/app/hk` → `/app/hk/supervisor` |
+| hk1      | hk123    | HK    | `/app/hk` → `/app/hk/clean` |
+| hk2      | hk2123   | HK    | `/app/hk` → `/app/hk/clean` |
+| hk3      | hk3123   | HK    | `/app/hk` → `/app/hk/clean` |
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
 
-**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. A user with role FO cannot access `/app/hk` — they get a 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
+**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. For HK, `User.isSupervisor` unlocks supervisor pages/actions while the role remains `HK`; ADMIN can access HK supervisor screens. A user with role FO cannot access operational HK routes except `/app/hk/lost-found` search — other HK routes return 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
 To reset all data and re-seed: `npm run db:reset` (drops everything, re-runs migrations + seed).
 
@@ -134,6 +134,21 @@ prisma/
 AGENTS.md                     ← AI tool context
 .env                          ← local env vars (NEVER COMMIT)
 ```
+
+Housekeeping route map:
+
+- `/app/hk` — role-based redirect; HK members go to `/app/hk/clean`, HK supervisors and ADMIN go to `/app/hk/supervisor`.
+- `/app/hk/clean` — My Rooms / Kamar Saya housekeeper worklist.
+- `/app/hk/rooms/[id]` — shared role-aware room detail.
+- `/app/hk/rooms` — supervisor rooms worksheet and merged status board; `/app/hk/list` is retired and redirects here.
+- `/app/hk/supervisor` — supervisor dashboard with forecast, bulk assignment, VCU inbox, and KPIs.
+- `/app/hk/lost-found` — text-only Lost & Found log/search/return flow for HK, FO, and ADMIN.
+
+Housekeeping data model:
+
+- `CleaningSession` is the source for the assign → start timer → finish → inspect lifecycle.
+- `HousekeepingLog` is the audit trail for room-status changes and optional status notes.
+- `Reservation.notes` is the only reservation note/comment field. FO edits it; HK reads it as guest instruction/context.
 
 ---
 

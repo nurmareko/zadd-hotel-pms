@@ -1,6 +1,6 @@
 # Hotel PMS — MVP Screen Inventory
 
-Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 27 screens total across 4 operational modules + admin + shared.
+Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 29 screens total across 4 operational modules + admin + shared.
 
 ---
 
@@ -57,15 +57,19 @@ The application is built as a **single Next.js app** with four operational areas
 
 **Cut from original**: separate Reservation Detail (merged into FO-04), In-House Guest List (use Kalender), Master Bill, Guest Database.
 
-### 3.2 Housekeeping (3 screens, mobile-first)
+### 3.2 Housekeeping (5 screens, role-aware)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| HK-01 | Room Status Dashboard | Mobile | Grid/list of rooms with color-coded status. Filter by floor / status. |
-| HK-02 | Room Detail | Mobile | Status, guest (if OC), notes, last-updated timestamp |
-| HK-03 | Update Status | Mobile | Large status buttons + optional note. One-tap confirm. |
+| HK-01 | My Rooms / Kamar Saya | Mobile-first | `/app/hk/clean`: housekeeper worklist grouped by room need, with reservation context and links to room detail. |
+| HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: role-aware detail. Housekeepers start/finish cleaning, add status notes, log found items, and see the live timer. Supervisors inspect VCU rooms, view history, and review status context. |
+| HK-03 | Supervisor Rooms | Page | `/app/hk/rooms`: merged status overview and daily worksheet with current room status, inline supervisor status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
+| HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
+| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK/Admin, and returned-item resolution. |
 
-**Cut from original**: Activity Log UI (audit trail data still captured in `housekeeping_log` table).
+`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, HK supervisors and ADMIN land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
+
+**Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 
 ### 3.3 Food & Beverage (5 screens)
 
@@ -112,11 +116,11 @@ The application is built as a **single Next.js app** with four operational areas
 |---|---:|---:|
 | Global | 3 | 1 (Module Switcher) |
 | Front Office | 7 | 4 |
-| Housekeeping | 3 | 1 |
+| Housekeeping | 5 | 1 |
 | Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
 | Admin | 6 | 4 |
-| **Total** | **27** | **20 cut** |
+| **Total** | **29** | **20 cut** |
 
 Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-05, not a separate modal.
 
@@ -138,8 +142,8 @@ Five core business flows the app must support end-to-end:
 **Flow 4 — Night Audit**
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.
 
-**Flow 5 — HK Status Update**
-`HK-01 Dashboard` → tap room → `HK-02 Detail` → Update → `HK-03 Update Status` → pick status → confirm → syncs to `FO-02 Kalender`.
+**Flow 5 — HK Cleaning + Inspection**
+`HK-01 My Rooms` → tap room → `HK-02 Shared Room Detail` → start timer → finish cleaning → `VD → VCU` or `OD → OC` → supervisor opens `HK-04 Supervisor Dashboard` / `HK-03 Supervisor Rooms` → inspect `VCU → VC` or reject `VCU → VD` → syncs to `FO-02 Kalender`.
 
 ---
 
@@ -167,7 +171,7 @@ Build these seven before opening Stitch / Claude Design:
 | 2 | Admin module (6 screens). Warm-up CRUD. | Master data manageable |
 | 3 | FO: Kalender + Reservation List + Reservation Form | Can create reservations, grid renders |
 | 4 | FO: Check-in + Folio creation + Folio Detail (charges + payments) | Full FO spine working |
-| 5 | FO: Check-out + PDF bill. HK module (3 mobile screens). | Guest lifecycle complete, HK syncs to Kalender |
+| 5 | FO: Check-out + PDF bill. HK module (5 role-aware screens). | Guest lifecycle complete, HK syncs to Kalender |
 | 6 | F&B: Table Picker + New Order + Captain Order + Bill Detail + Payment (cash + card + transfer + CTR) | F&B feeds folio |
 | 7 | Accounting: Night Audit trigger + Night Report + PDF export | Day close works end-to-end |
 | 8 | **Buffer: bug fixes, seed data for demo, integration testing, docs update** | Presentable, stable, defended |

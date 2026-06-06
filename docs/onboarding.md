@@ -6,11 +6,11 @@ Welcome! This doc gets you from "I just joined" to "I can work on a feature" in 
 
 ## What we're building
 
-A Hotel Property Management System for the hospitality praktikum. Four operational roles (Front Office, Housekeeping, F&B, Accounting) plus Admin. MVP is 27 screens across 5 modules.
+A Hotel Property Management System for the hospitality praktikum. Four operational roles (Front Office, Housekeeping, F&B, Accounting) plus Admin. MVP is 29 screens across 5 modules.
 
 **Before coding anything, skim these:**
 - `docs/feature_list_mvp.md` — what we're building, per module
-- `docs/screen_inventory_mvp.md` — all 27 screens and what each does
+- `docs/screen_inventory_mvp.md` — all 29 screens and what each does
 
 Those two are the source of truth. When in doubt about scope, check them first.
 
@@ -80,6 +80,15 @@ npm run dev
 
 Open http://localhost:3000 — you should see the Console-themed login page with direct demo-account buttons.
 
+### Seed accounts to know
+
+| Username | Password | Role | Landing |
+|---|---|---|---|
+| hksup | hksup123 | HK supervisor (`isSupervisor`) | `/app/hk` → `/app/hk/supervisor` |
+| hk1 | hk123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
+| hk2 | hk2123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
+| hk3 | hk3123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
+
 ### About the database
 
 We all share one Neon dev database. This keeps setup simple but comes with rules:
@@ -98,7 +107,7 @@ hotel-pms/
 ├── AGENTS.md                        ← Context for AI coding tools. READ THIS.
 ├── docs/
 │   ├── feature_list_mvp.md          ← Features per module
-│   ├── screen_inventory_mvp.md      ← All 27 screens
+│   ├── screen_inventory_mvp.md      ← All 29 screens
 │   ├── db_specification_mvp.md      ← Data model in prose
 │   ├── use_case_narrative_mvp.md    ← Use cases & actors
 │   └── onboarding.md                ← This file
@@ -132,6 +141,16 @@ If you're unsure what a screen should look like or do, check `docs/screen_invent
 All operational "today" calculations use WIB (`Asia/Jakarta`), not the server's UTC date. For Prisma `@db.Date` queries, use `todayDateOnly()` or `dateOnlyBoundary()` from `src/lib/date-only.ts`. For timestamp-column filters, use `hotelTodayTimestampRange()`.
 
 Navigation badges are intentionally small in scope: `GET /api/nav-badges` serves the single ACC pending Night Audit indicator from `src/lib/nav-badges.ts`.
+
+Housekeeping routes are role-aware:
+
+- `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors and ADMIN land on `/app/hk/supervisor`.
+- `/app/hk/clean` is My Rooms / Kamar Saya for assigned housekeeper work.
+- `/app/hk/rooms/[id]` is the shared room detail. Housekeepers clean/log; supervisors inspect/history/status.
+- `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. `/app/hk/list` is retired and redirects here.
+- `/app/hk/lost-found` is shared by HK, FO, and ADMIN for text-only item custody.
+
+Housekeeping data has two separate responsibilities: `CleaningSession` is the source for assignment, timer, finish, and inspection; `HousekeepingLog` is the audit trail for room-status changes. Reservation comments are not duplicated for HK: `Reservation.notes` is the canonical note, editable by FO and read-only to HK.
 
 ---
 
@@ -180,7 +199,7 @@ Each person owns one operational module end-to-end:
 | Owner | Module | Route prefix | Screens | Spec section |
 |---|---|---|---|---|
 | Person 1 | Front Office | `/app/fo/*` | 7 | `feature_list_mvp.md` §FO |
-| Person 2 | Housekeeping | `/app/hk/*` | 3 | `feature_list_mvp.md` §HK |
+| Person 2 | Housekeeping | `/app/hk/*` | 5 | `feature_list_mvp.md` §HK |
 | Person 3 | Food & Beverage | `/app/fb/*` | 5 | `feature_list_mvp.md` §FB |
 | Person 4 | Accounting | `/app/acc/*` | 3 | `feature_list_mvp.md` §ACC |
 | Team lead | Admin, shared code, integration | `/app/admin/*`, `src/lib`, `src/components` | 6 + shared | — |
@@ -203,6 +222,7 @@ The modules touch each other in a few specific places. These are the integration
 - **F&B → FO**: "Charge to Room" in F&B Payment (FB-04) writes a line item to the guest's folio from `src/app/app/fb/orders/[orderId]/actions.ts`.
 - **FO → HK**: Check-out (FO-07) auto-sets room status to `VD`; an in-house cleaning request from reservation detail sets `OC → OD`.
 - **HK → FO**: Kalender (FO-02) displays the status HK updates. Room-status changes revalidate cross-module views through `src/lib/revalidate-room-status.ts`.
+- **HK ↔ FO**: Lost & Found lets HK log text-only items and FO search when guests ask. Returning an item is an HK supervisor/ADMIN resolution action.
 - **Everything → ACC**: Night Audit (AC-02) reads across all modules. Accounting owner is the last to build, because they need the other three modules producing data.
 
 When a cross-module seam comes up, don't design it on your own branch. Open a team chat discussion, team lead writes the shared code, all four modules consume it.

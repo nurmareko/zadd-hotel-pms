@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 22 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 22 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 21 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -36,8 +36,6 @@ erDiagram
 
   GUEST ||--o{ RESERVATION : "makes"
   RESERVATION ||--o| FOLIO : "opens"
-  RESERVATION ||--o{ RESERVATION_ADD_ON : "requests"
-
   FOLIO ||--o{ FOLIO_LINE_ITEM : "contains"
   FOLIO ||--o{ PAYMENT : "settled_by"
   FOLIO ||--o{ FB_ORDER : "charged_by"
@@ -137,13 +135,6 @@ erDiagram
     int created_by_id FK
     timestamp created_at
     timestamp updated_at
-  }
-  RESERVATION_ADD_ON {
-    int id PK
-    int reservation_id FK
-    varchar label
-    boolean delivered
-    timestamp created_at
   }
   FOLIO {
     int id PK
@@ -362,8 +353,8 @@ A few choices worth explaining:
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
-7. **Cleaning timing lives outside Room.** CleaningSession stores per-room, per-housekeeper timestamps so cleaning duration (`finished_at - started_at`) and inspection history are preserved beyond the current Room status.
-8. **Reservation notes are canonical.** `Reservation.notes` is the single free-text reservation note. Front Office can edit it; Housekeeping reads it as guest instructions on HK list, cleaning cards, and room detail surfaces.
+7. **CleaningSession is the workflow source.** CleaningSession stores per-room, per-housekeeper timestamps so cleaning duration (`finished_at - started_at`) and inspection history are preserved beyond the current Room status. HousekeepingLog timing/linen fields remain in the physical table as legacy audit payload columns, but the final HK module reads the cleaning lifecycle from CleaningSession.
+8. **Reservation notes are canonical.** `Reservation.notes` is the single free-text reservation note. Front Office can edit it; Housekeeping reads it as guest instructions on HK worklists, cleaning cards, and room detail surfaces.
 9. **Lost & Found is operationally independent.** LostFoundItem records text descriptions, optional room context, the user who logged the item, and return resolution. It does not create maintenance tickets, store photos, or change Room.status automatically.
 10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
@@ -582,10 +573,10 @@ A few choices worth explaining:
 | note | TEXT | — | Staff note |
 | updated_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | HK staff who updated |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Update time |
-| cleaning_started_at | TIMESTAMP | — | Start time for a cleaning session log row |
-| cleaning_completed_at | TIMESTAMP | — | Completion time for a cleaning session log row |
-| linen_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether bed linen was changed during cleaning |
-| towel_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Whether towels were changed during cleaning |
+| cleaning_started_at | TIMESTAMP | — | Legacy audit payload column; current cleaning timing is sourced from `cleaning_session.started_at` |
+| cleaning_completed_at | TIMESTAMP | — | Legacy audit payload column; current cleaning timing is sourced from `cleaning_session.finished_at` |
+| linen_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Legacy operational-capture column; not part of the final HK screen flow |
+| towel_changed | BOOLEAN | NOT NULL, DEFAULT FALSE | Legacy operational-capture column; not part of the final HK screen flow |
 
 ### `housekeeping_assignment`
 
