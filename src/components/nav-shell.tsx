@@ -67,6 +67,55 @@ const roleModuleNames: Record<AppRole, string> = {
   ADMIN: "ADMINISTRATOR",
 };
 
+const hkMemberNavGroup: NavGroup = {
+  label: "Housekeeping",
+  links: [
+    {
+      label: "My Rooms",
+      href: "/app/hk/clean",
+      icon: Sparkles,
+      activeMatch: "exact",
+      activePaths: [{ href: "/app/hk/rooms", match: "startsWith" }],
+    },
+    {
+      label: "Lost & Found",
+      href: "/app/hk/lost-found",
+      icon: Archive,
+      activeMatch: "exact",
+    },
+  ],
+};
+
+const hkSupervisorNavGroup: NavGroup = {
+  label: "Housekeeping",
+  links: [
+    {
+      label: "Supervisor",
+      href: "/app/hk/supervisor",
+      icon: Gauge,
+      activeMatch: "startsWith",
+    },
+    {
+      label: "Room Status",
+      href: "/app/hk/rooms",
+      icon: BedDouble,
+      activeMatch: "startsWith",
+    },
+    {
+      label: "List",
+      href: "/app/hk/list",
+      icon: ClipboardCheck,
+      activeMatch: "exact",
+    },
+    {
+      label: "Lost & Found",
+      href: "/app/hk/lost-found",
+      icon: Archive,
+      activeMatch: "exact",
+    },
+  ],
+};
+
 const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   FO: [
     {
@@ -104,37 +153,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       ],
     },
   ],
-  HK: [
-    {
-      label: "Housekeeping",
-      links: [
-        {
-          label: "Kamar",
-          href: "/app/hk",
-          icon: BedDouble,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "My Rooms",
-          href: "/app/hk/clean",
-          icon: Sparkles,
-          activeMatch: "exact",
-        },
-        {
-          label: "Housekeeping List",
-          href: "/app/hk/list",
-          icon: ClipboardCheck,
-          activeMatch: "exact",
-        },
-        {
-          label: "Lost & Found",
-          href: "/app/hk/lost-found",
-          icon: Archive,
-          activeMatch: "exact",
-        },
-      ],
-    },
-  ],
+  HK: [hkMemberNavGroup],
   FB: [
     {
       label: "Food & Beverage",
@@ -190,7 +209,19 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       label: "Housekeeping",
       links: [
         {
-          label: "Housekeeping List",
+          label: "HK Supervisor",
+          href: "/app/hk/supervisor",
+          icon: Gauge,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Room Status",
+          href: "/app/hk/rooms",
+          icon: BedDouble,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "HK List",
           href: "/app/hk/list",
           icon: ClipboardCheck,
           activeMatch: "exact",
@@ -216,13 +247,6 @@ const accountGroup: NavGroup = {
       activeMatch: "startsWith",
     },
   ],
-};
-
-const hkSupervisorLink: NavLink = {
-  label: "Supervisor",
-  href: "/app/hk/supervisor",
-  icon: Gauge,
-  activeMatch: "startsWith",
 };
 
 // Mobile bottom tab bar shows at most this many slots. When a role has more
@@ -256,20 +280,11 @@ function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
 }
 
 function getNavGroups(userRole: AppRole, userIsSupervisor: boolean) {
-  const canUseHkSupervisorNav =
-    userRole === "ADMIN" || (userRole === "HK" && userIsSupervisor);
-
-  if (!canUseHkSupervisorNav) {
-    return [...navGroupsByRole[userRole], accountGroup];
+  if (userRole === "HK" && userIsSupervisor) {
+    return [hkSupervisorNavGroup, accountGroup];
   }
 
-  const roleGroups = navGroupsByRole[userRole].map((group) =>
-    group.label === "Housekeeping"
-      ? { ...group, links: [...group.links, hkSupervisorLink] }
-      : group,
-  );
-
-  return [...roleGroups, accountGroup];
+  return [...navGroupsByRole[userRole], accountGroup];
 }
 
 async function fetchCurrentNavBadges(): Promise<NavBadgeMap> {
