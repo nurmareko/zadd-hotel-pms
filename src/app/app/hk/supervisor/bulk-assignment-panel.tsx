@@ -1,7 +1,7 @@
 "use client";
 
 import type { RoomStatus } from "@prisma/client";
-import { CheckSquare, Square, Trash2, UserCheck } from "lucide-react";
+import { Trash2, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Fragment,
@@ -432,7 +432,7 @@ export function BulkAssignmentPanel({
                       className="odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
                     >
                       <td className={bodyCellClass}>
-                        <label className="inline-flex items-center gap-2">
+                        <label className="inline-flex items-center">
                           <input
                             type="checkbox"
                             checked={selectedRoomIds.has(row.room.id)}
@@ -443,17 +443,6 @@ export function BulkAssignmentPanel({
                             aria-label={`Select room ${row.room.number}`}
                             className="h-4 w-4 accent-console-ink disabled:cursor-not-allowed"
                           />
-                          {selectedRoomIds.has(row.room.id) ? (
-                            <CheckSquare
-                              className="h-3.5 w-3.5 text-console-ink"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <Square
-                              className="h-3.5 w-3.5 text-slate-400"
-                              aria-hidden="true"
-                            />
-                          )}
                         </label>
                       </td>
                       <td className={bodyCellClass}>

@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Moon,
   Settings,
-  Sparkles,
   Tag,
   Table2,
   User,
@@ -73,7 +72,7 @@ const hkMemberNavGroup: NavGroup = {
     {
       label: "My Rooms",
       href: "/app/hk/clean",
-      icon: Sparkles,
+      icon: ClipboardList,
       activeMatch: "exact",
       activePaths: [{ href: "/app/hk/rooms", match: "startsWith" }],
     },
