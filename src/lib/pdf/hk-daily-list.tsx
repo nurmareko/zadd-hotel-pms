@@ -125,10 +125,7 @@ const styles = StyleSheet.create({
     width: 150,
   },
   noteCell: {
-    width: 128,
-  },
-  addOnsCell: {
-    width: 86,
+    width: 214,
   },
   strong: {
     fontWeight: 700,
@@ -187,24 +184,8 @@ function noteLabel(row: HousekeepingListRow) {
     <>
       <Text style={styles.line}>{row.note.reservationNo}</Text>
       <Text style={styles.tiny}>
-        {row.note.housekeepingNote ?? "No HK note"}
+        {row.note.notes ?? "No reservation note"}
       </Text>
-    </>
-  );
-}
-
-function addOnsLabel(row: HousekeepingListRow) {
-  if (row.addOns.length === 0) {
-    return <Text style={styles.tiny}>None</Text>;
-  }
-
-  return (
-    <>
-      {row.addOns.map((addOn) => (
-        <Text key={`${addOn.label}-${addOn.delivered}`} style={styles.line}>
-          {addOn.label} ({addOn.delivered ? "delivered" : "pending"})
-        </Text>
-      ))}
     </>
   );
 }
@@ -217,8 +198,7 @@ function TableHeader() {
       <Text style={[styles.headCell, styles.reservationCell]}>
         Reservation
       </Text>
-      <Text style={[styles.headCell, styles.noteCell]}>HK Note</Text>
-      <Text style={[styles.headCell, styles.addOnsCell]}>Add-ons</Text>
+      <Text style={[styles.headCell, styles.noteCell]}>Note</Text>
     </View>
   );
 }
@@ -247,7 +227,6 @@ function RoomRow({
         {reservationLabel(row)}
       </View>
       <View style={[styles.cell, styles.noteCell]}>{noteLabel(row)}</View>
-      <View style={[styles.cell, styles.addOnsCell]}>{addOnsLabel(row)}</View>
     </View>
   );
 }

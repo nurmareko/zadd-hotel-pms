@@ -203,39 +203,15 @@ function NoteCell({ row }: { row: HousekeepingListRow }) {
           </span>
         ) : null}
       </div>
-      {row.note.housekeepingNote ? (
+      {row.note.notes ? (
         <div className="text-[12px] leading-5 text-slate-600">
-          {row.note.housekeepingNote}
+          {row.note.notes}
         </div>
       ) : (
         <div className="text-[11px] italic text-slate-400">
-          No HK note
+          No reservation note
         </div>
       )}
-    </div>
-  );
-}
-
-function AddOnsCell({ row }: { row: HousekeepingListRow }) {
-  if (row.addOns.length === 0) {
-    return <span className="text-[11px] italic text-slate-400">None</span>;
-  }
-
-  return (
-    <div className="flex max-w-[260px] flex-wrap gap-1.5">
-      {row.addOns.map((addOn) => (
-        <span
-          key={`${addOn.label}-${addOn.delivered}`}
-          className={[
-            "inline-flex items-center border px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.04em]",
-            addOn.delivered
-              ? "border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-              : "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
-          ].join(" ")}
-        >
-          {addOn.label} · {addOn.delivered ? "Delivered" : "Pending"}
-        </span>
-      ))}
     </div>
   );
 }
@@ -309,7 +285,7 @@ export default async function HousekeepingListPage({
         </div>
 
         <div className="max-w-full overflow-auto">
-          <table className="w-full min-w-[1180px] border-collapse text-[12px]">
+          <table className="w-full min-w-[1060px] border-collapse text-[12px]">
             <caption className="sr-only">
               Read-only housekeeping list by room and reservation context
             </caption>
@@ -331,9 +307,6 @@ export default async function HousekeepingListPage({
                   Note
                 </th>
                 <th className={headerCellClass} scope="col">
-                  Add-ons
-                </th>
-                <th className={headerCellClass} scope="col">
                   Housekeeper
                 </th>
               </tr>
@@ -343,7 +316,7 @@ export default async function HousekeepingListPage({
                 <Fragment key={floor}>
                   <tr>
                     <th
-                      colSpan={7}
+                      colSpan={6}
                       scope="colgroup"
                       className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
                     >
@@ -382,9 +355,6 @@ export default async function HousekeepingListPage({
                       </td>
                       <td className={bodyCellClass}>
                         <NoteCell row={row} />
-                      </td>
-                      <td className={bodyCellClass}>
-                        <AddOnsCell row={row} />
                       </td>
                       <td className={bodyCellClass}>
                         <AssignmentCell row={row} />

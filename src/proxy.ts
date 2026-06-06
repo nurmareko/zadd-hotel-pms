@@ -4,14 +4,9 @@ import { NextResponse } from "next/server";
 import authConfig, { isHkSupervisor, type AppRole } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
-const hkSupervisorPrefix = "/app/hk/supervisor";
 
 const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
-  { prefix: hkSupervisorPrefix, roles: ["HK", "ADMIN"] },
-  { prefix: "/app/hk/list", roles: ["HK", "ADMIN"] },
-  { prefix: "/app/hk/lost-found", roles: ["HK", "FO", "ADMIN"] },
   { prefix: "/app/fo", roles: ["FO"] },
-  { prefix: "/app/hk", roles: ["HK"] },
   { prefix: "/app/fb", roles: ["FB"] },
   { prefix: "/app/acc", roles: ["ACC"] },
   { prefix: "/app/admin", roles: ["ADMIN"] },
@@ -19,6 +14,15 @@ const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
 
 function routeMatches(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function canUseHkSupervisorRoute(session: {
+  user?: {
+    role?: AppRole;
+    isSupervisor?: boolean;
+  };
+}) {
+  return session.user?.role === "ADMIN" || isHkSupervisor(session);
 }
 
 export const proxy = auth((request) => {
@@ -29,12 +33,63 @@ export const proxy = auth((request) => {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  if (routeMatches(pathname, "/app/hk/lost-found")) {
+    if (!["HK", "FO", "ADMIN"].includes(session.user.role)) {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (pathname === "/app/hk") {
+    if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
   if (
-    routeMatches(pathname, hkSupervisorPrefix) &&
-    session.user.role !== "ADMIN" &&
-    !isHkSupervisor(session)
+    routeMatches(pathname, "/app/hk/supervisor") ||
+    routeMatches(pathname, "/app/hk/list")
   ) {
-    return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    if (!canUseHkSupervisorRoute(session)) {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (pathname === "/app/hk/rooms") {
+    if (!canUseHkSupervisorRoute(session)) {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (routeMatches(pathname, "/app/hk/rooms")) {
+    if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (routeMatches(pathname, "/app/hk/clean")) {
+    if (session.user.role !== "HK") {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (routeMatches(pathname, "/app/hk")) {
+    if (session.user.role !== "HK") {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
   }
 
   const requiredRoles = roleRoutes.find(({ prefix }) =>

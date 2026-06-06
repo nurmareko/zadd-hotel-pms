@@ -192,9 +192,6 @@ const reservations: Array<{
   reservationType: ReservationType;
   deposit?: number;
   notes?: string;
-  comment?: string;
-  housekeepingNote?: string;
-  addOns?: Array<{ label: string; delivered: boolean }>;
 }> = [
   {
     reservationNo: "DEMO-RSV-001",
@@ -261,9 +258,8 @@ const reservations: Array<{
     arrangementType: ArrangementType.RB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
-    comment: "Late arrival requested, prepare quiet room.",
-    housekeepingNote: "Fresh towels only; guest prefers no strong fragrance.",
-    addOns: [{ label: "Welcome fruit", delivered: true }],
+    notes:
+      "Late arrival requested, prepare quiet room. Fresh towels only; guest prefers no strong fragrance.",
   },
   {
     reservationNo: "DEMO-RSV-006",
@@ -277,8 +273,8 @@ const reservations: Array<{
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.COMPANY,
     deposit: 850000,
-    comment: "Company booking, billing contact follows later.",
-    housekeepingNote: "Turnover priority; laptop stand left at desk is guest-owned.",
+    notes:
+      "Company booking, billing contact follows later. Turnover priority; laptop stand left at desk is guest-owned.",
   },
   {
     reservationNo: "DEMO-RSV-007",
@@ -319,12 +315,8 @@ const reservations: Array<{
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
-    notes: "ETA 14:30",
-    housekeepingNote: "Prepare baby bed near window side and keep extra blanket ready.",
-    addOns: [
-      { label: "Baby bed", delivered: false },
-      { label: "Welcome fruit", delivered: true },
-    ],
+    notes:
+      "ETA 14:30. Prepare baby bed near window side and keep extra blanket ready.",
   },
   {
     reservationNo: "DEMO-RSV-010",
@@ -338,12 +330,7 @@ const reservations: Array<{
     arrangementType: ArrangementType.RB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
-    notes: "ETA 16:00",
-    housekeepingNote: "VIP amenity setup before arrival; check minibar seal.",
-    addOns: [
-      { label: "Flower setup", delivered: false },
-      { label: "Welcome fruit", delivered: false },
-    ],
+    notes: "ETA 16:00. VIP amenity setup before arrival; check minibar seal.",
   },
   {
     reservationNo: "DEMO-RSV-011",
@@ -1088,7 +1075,6 @@ async function main() {
           type: ReservationUsageType.REGULAR,
           arrangementType: reservation.arrangementType,
           reservationType: reservation.reservationType,
-          comment: reservation.comment ?? null,
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,
@@ -1100,7 +1086,6 @@ async function main() {
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
           notes: reservation.notes ?? null,
-          housekeepingNote: reservation.housekeepingNote ?? null,
           grcFilledAt,
           purposeOfVisit,
           createdById: createdBy.id,
@@ -1109,7 +1094,6 @@ async function main() {
           type: ReservationUsageType.REGULAR,
           arrangementType: reservation.arrangementType,
           reservationType: reservation.reservationType,
-          comment: reservation.comment ?? null,
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,
@@ -1121,26 +1105,11 @@ async function main() {
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
           notes: reservation.notes ?? null,
-          housekeepingNote: reservation.housekeepingNote ?? null,
           grcFilledAt,
           purposeOfVisit,
           createdById: createdBy.id,
         },
       });
-
-      await prisma.reservationAddOn.deleteMany({
-        where: { reservationId: seededReservation.id },
-      });
-
-      if (reservation.addOns && reservation.addOns.length > 0) {
-        await prisma.reservationAddOn.createMany({
-          data: reservation.addOns.map((addOn) => ({
-            reservationId: seededReservation.id,
-            label: addOn.label,
-            delivered: addOn.delivered,
-          })),
-        });
-      }
 
       if (hasCompletedGrc && !room) {
         throw new Error(`${reservation.reservationNo} needs an assigned room.`);

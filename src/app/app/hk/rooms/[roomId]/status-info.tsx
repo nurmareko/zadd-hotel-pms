@@ -50,13 +50,19 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 type StatusInfoProps = {
   status: RoomStatus;
   statusSince: Date | null;
+  currentGuest: { guestName: string; notes: string | null } | null;
   recentGuest: { guestName: string; departureDate: Date } | null;
-  upcomingReservation: { guestName: string; arrivalDate: Date } | null;
+  upcomingReservation: {
+    guestName: string;
+    arrivalDate: Date;
+    notes: string | null;
+  } | null;
 };
 
 export function StatusInfo({
   status,
   statusSince,
+  currentGuest,
   recentGuest,
   upcomingReservation,
 }: StatusInfoProps) {
@@ -71,6 +77,14 @@ export function StatusInfo({
         <InfoRow label="Status" value={statusDescriptions[status]} />
         <InfoRow label="Sejak" value={relativeDurationLabel(statusSince)} />
         <InfoRow
+          label="Tamu Saat Ini"
+          value={
+            currentGuest
+              ? `${currentGuest.guestName}${currentGuest.notes ? ` · ${currentGuest.notes}` : ""}`
+              : "—"
+          }
+        />
+        <InfoRow
           label="Tamu Terakhir"
           value={
             recentGuest
@@ -82,7 +96,7 @@ export function StatusInfo({
           label="Reservasi Berikutnya"
           value={
             upcomingReservation
-              ? `${upcomingReservation.guestName} · tiba ${dateLabel(upcomingReservation.arrivalDate)}`
+              ? `${upcomingReservation.guestName} · tiba ${dateLabel(upcomingReservation.arrivalDate)}${upcomingReservation.notes ? ` · ${upcomingReservation.notes}` : ""}`
               : "—"
           }
         />

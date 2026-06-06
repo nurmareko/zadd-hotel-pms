@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 
 const ROOM_STATUS_PATHS = [
   "/app/hk",
+  "/app/hk/rooms",
   "/app/fo/tape-chart",
   "/app/fo/dashboard",
   "/app/fo/reservations/new",
