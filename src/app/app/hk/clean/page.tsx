@@ -89,32 +89,36 @@ function CleaningState({ room }: { room: CleanRoom }) {
   );
 }
 
-function CleanRoomRow({ room }: { room: CleanRoom }) {
+function CleanRoomCard({ room }: { room: CleanRoom }) {
   return (
     <Link
       href={`/app/hk/rooms/${room.id}`}
-      className="grid gap-3 border border-console-border bg-console-surface px-3 py-3 transition-colors hover:border-console-ink hover:bg-console-bg md:grid-cols-[120px_150px_minmax(0,1fr)_96px_20px] md:items-center"
+      className="flex h-full flex-col gap-2.5 border border-console-border bg-console-surface px-3 py-3 transition-colors hover:border-console-ink hover:bg-console-bg"
     >
-      <div className="min-w-0">
-        <div className="num text-[18px] font-bold leading-none text-console-ink">
-          {room.number}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="num text-[18px] font-bold leading-none text-console-ink">
+            {room.number}
+          </div>
+          <div className="mt-1 truncate text-[11px] text-slate-500">
+            {room.typeCode} · L{room.floor}
+          </div>
         </div>
-        <div className="mt-1 truncate text-[11px] text-slate-500">
-          {room.typeCode} · L{room.floor}
-        </div>
+        <CleaningState room={room} />
       </div>
-      <CleaningState room={room} />
       <RoomContext room={room} />
-      <StatusBadge
-        label={groupLabels[room.group]}
-        className="w-fit border-console-border bg-console-bg text-console-ink"
-        showPip={false}
-        size="md"
-      />
-      <ChevronRight
-        className="hidden h-4 w-4 justify-self-end text-slate-500 md:block"
-        aria-hidden="true"
-      />
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+        <StatusBadge
+          label={groupLabels[room.group]}
+          className="w-fit border-console-border bg-console-bg text-console-ink"
+          showPip={false}
+          size="md"
+        />
+        <ChevronRight
+          className="h-4 w-4 shrink-0 text-slate-500"
+          aria-hidden="true"
+        />
+      </div>
     </Link>
   );
 }
@@ -144,9 +148,9 @@ function CleanGroupSection({
           {emptyLabel}
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {rooms.map((room) => (
-            <CleanRoomRow key={room.id} room={room} />
+            <CleanRoomCard key={room.id} room={room} />
           ))}
         </div>
       )}

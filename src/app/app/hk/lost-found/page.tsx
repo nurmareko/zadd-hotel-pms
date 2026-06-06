@@ -45,6 +45,17 @@ const statusClassNames: Record<
   },
 };
 
+type LostFoundRow = {
+  id: number;
+  description: string;
+  status: LostFoundStatus;
+  returnedAt: Date | null;
+  resolution: string | null;
+  createdAt: Date;
+  room: { id: number; number: string } | null;
+  foundBy: { fullName: string };
+};
+
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -59,6 +70,99 @@ function statusBadge(status: LostFoundStatus) {
       pipClassName={classes.pip}
       size="md"
     />
+  );
+}
+
+function ReturnedInfo({ item }: { item: LostFoundRow }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 text-status-vc-fg">
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className="num text-[11px] font-semibold">
+          {item.returnedAt
+            ? formatCompactDateTimeID(item.returnedAt)
+            : "Returned"}
+        </span>
+      </div>
+      <div className="text-[12px] leading-5 text-slate-600">
+        {item.resolution ?? "No resolution note"}
+      </div>
+    </div>
+  );
+}
+
+function MarkReturnedForm({ item }: { item: LostFoundRow }) {
+  return (
+    <form
+      action={markLostFoundItemReturned}
+      className="flex flex-col gap-2"
+    >
+      <input type="hidden" name="itemId" value={item.id} />
+      <input
+        type="text"
+        name="resolution"
+        maxLength={500}
+        placeholder="Resolution note"
+        className={fieldClass}
+      />
+      <button
+        type="submit"
+        className="inline-flex h-8 w-fit items-center justify-center gap-1.5 border border-status-vc-pip bg-status-vc-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+        Mark Returned
+      </button>
+    </form>
+  );
+}
+
+function LostFoundCard({ item }: { item: LostFoundRow }) {
+  return (
+    <article className="space-y-3 border border-console-border bg-console-surface p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <Archive
+            className="mt-0.5 h-4 w-4 shrink-0 text-console-accent"
+            aria-hidden="true"
+          />
+          <span className="text-[13px] leading-5 text-console-ink">
+            {item.description}
+          </span>
+        </div>
+        {statusBadge(item.status)}
+      </div>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+          Room
+        </dt>
+        <dd>
+          {item.room ? (
+            <span className="num font-semibold">{item.room.number}</span>
+          ) : (
+            <span className="text-[11px] italic text-slate-400">No room</span>
+          )}
+        </dd>
+        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+          Found By
+        </dt>
+        <dd>{item.foundBy.fullName}</dd>
+        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+          When
+        </dt>
+        <dd className="num text-slate-600">
+          {formatCompactDateTimeID(item.createdAt)}
+        </dd>
+      </dl>
+
+      <div className="border-t border-console-border-soft pt-3">
+        {item.status === "RETURNED" ? (
+          <ReturnedInfo item={item} />
+        ) : (
+          <MarkReturnedForm item={item} />
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -208,7 +312,17 @@ export default async function LostFoundPage({
         </form>
       </section>
 
-      <section className="overflow-hidden border border-console-border bg-console-surface">
+      <section className="space-y-2 md:hidden">
+        {items.length === 0 ? (
+          <p className="border border-console-border bg-console-surface px-3 py-8 text-center text-[12px] italic text-slate-400">
+            No lost-and-found items match this filter.
+          </p>
+        ) : (
+          items.map((item) => <LostFoundCard key={item.id} item={item} />)
+        )}
+      </section>
+
+      <section className="hidden overflow-hidden border border-console-border bg-console-surface md:block">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full border-collapse text-[12px]">
             <thead>
@@ -263,50 +377,9 @@ export default async function LostFoundPage({
                     <td className={bodyCellClass}>{statusBadge(item.status)}</td>
                     <td className={`${bodyCellClass} min-w-[280px]`}>
                       {item.status === "RETURNED" ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-status-vc-fg">
-                            <CheckCircle2
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
-                            />
-                            <span className="num text-[11px] font-semibold">
-                              {item.returnedAt
-                                ? formatCompactDateTimeID(item.returnedAt)
-                                : "Returned"}
-                            </span>
-                          </div>
-                          <div className="text-[12px] leading-5 text-slate-600">
-                            {item.resolution ?? "No resolution note"}
-                          </div>
-                        </div>
+                        <ReturnedInfo item={item} />
                       ) : (
-                        <form
-                          action={markLostFoundItemReturned}
-                          className="flex flex-col gap-2"
-                        >
-                          <input
-                            type="hidden"
-                            name="itemId"
-                            value={item.id}
-                          />
-                          <input
-                            type="text"
-                            name="resolution"
-                            maxLength={500}
-                            placeholder="Resolution note"
-                            className={fieldClass}
-                          />
-                          <button
-                            type="submit"
-                            className="inline-flex h-8 w-fit items-center justify-center gap-1.5 border border-status-vc-pip bg-status-vc-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
-                          >
-                            <CheckCircle2
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
-                            />
-                            Mark Returned
-                          </button>
-                        </form>
+                        <MarkReturnedForm item={item} />
                       )}
                     </td>
                   </tr>
