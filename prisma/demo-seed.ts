@@ -259,7 +259,7 @@ const reservations: Array<{
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes:
-      "Late arrival requested, prepare quiet room. Fresh towels only; guest prefers no strong fragrance.",
+      "Late arrival, siapkan quiet room. Fresh towels saja; tamu tidak suka aroma yang kuat.",
   },
   {
     reservationNo: "DEMO-RSV-006",
@@ -274,7 +274,7 @@ const reservations: Array<{
     reservationType: ReservationType.COMPANY,
     deposit: 850000,
     notes:
-      "Company booking, billing contact follows later. Turnover priority; laptop stand left at desk is guest-owned.",
+      "Company booking, kontak billing menyusul. Prioritas turnover; laptop stand di meja milik tamu.",
   },
   {
     reservationNo: "DEMO-RSV-007",
@@ -316,7 +316,7 @@ const reservations: Array<{
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes:
-      "ETA 14:30. Prepare baby bed near window side and keep extra blanket ready.",
+      "ETA 14:30. Siapkan baby bed dekat jendela dan selimut tambahan.",
   },
   {
     reservationNo: "DEMO-RSV-010",
@@ -330,7 +330,7 @@ const reservations: Array<{
     arrangementType: ArrangementType.RB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
-    notes: "ETA 16:00. VIP amenity setup before arrival; check minibar seal.",
+    notes: "ETA 16:00. Siapkan VIP amenity sebelum arrival; cek minibar seal.",
   },
   {
     reservationNo: "DEMO-RSV-011",
@@ -383,7 +383,7 @@ const reservations: Array<{
     status: ReservationStatus.CANCELLED,
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.INDIVIDUAL,
-    notes: "Cancelled by guest before arrival.",
+    notes: "Dibatalkan oleh tamu sebelum arrival.",
   },
 ];
 
@@ -875,25 +875,25 @@ async function seedLostFoundItems({
     data: [
       {
         roomId: roomId("102"),
-        description: "Black phone charger left beside the bed",
+        description: "Phone charger hitam tertinggal di samping tempat tidur",
         foundById: secondHousekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
         createdAt: minutesAgo(90),
       },
       {
         roomId: roomId("301"),
-        description: "Blue denim jacket in wardrobe",
+        description: "Jaket denim biru tertinggal di lemari pakaian",
         foundById: housekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
         createdAt: hoursAgo(5),
       },
       {
         roomId: null,
-        description: "Silver water bottle found in lobby seating area",
+        description: "Botol minum silver ditemukan di area duduk lobby",
         foundById: frontOfficeUserId,
         status: LostFoundStatus.RETURNED,
         returnedAt: minutesAgo(25),
-        resolution: "Returned to guest after ID confirmation at front desk",
+        resolution: "Dikembalikan ke tamu setelah konfirmasi ID di front desk",
         createdAt: hoursAgo(6),
       },
     ],
@@ -1437,7 +1437,7 @@ async function main() {
       items: [
         { code: "NASI-GORENG", quantity: 2, notes: "Pedas sedang" },
         { code: "SATE-AYAM", quantity: 1 },
-        { code: "TEA", quantity: 4, notes: "Less sugar" },
+        { code: "TEA", quantity: 4, notes: "Gula sedikit" },
       ],
     });
 
@@ -1478,7 +1478,7 @@ async function main() {
       paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
       chargedFolioId: chargeToRoomFolio.id,
       items: [
-        { code: "MIE-GORENG", quantity: 2, notes: "Tanpa seafood pedas" },
+        { code: "MIE-GORENG", quantity: 2, notes: "Tanpa seafood, pedas" },
         { code: "ORANGE-JUICE", quantity: 3 },
         { code: "ES-CAMPUR", quantity: 1 },
       ],
