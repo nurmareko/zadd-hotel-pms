@@ -8,39 +8,19 @@ import {
 import Link from "next/link";
 import { Fragment } from "react";
 
-import { StatusBadge } from "@/components/status-badge";
 import { formatDateWithWeekday, formatISODate } from "@/lib/format";
 import {
   getHousekeepingListData,
   type HousekeepingListRow,
-  type HousekeepingReservationContextKind,
 } from "@/lib/housekeeping-list-data";
 
 import { StatusPill } from "../room-status-grid";
-import { SupervisorStatusOverride } from "../supervisor-status-override";
+import { SupervisorRoomStatusSelect } from "./supervisor-room-status-select";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
   date?: string | string[];
-};
-
-const reservationKindClassNames: Record<
-  HousekeepingReservationContextKind,
-  { badge: string; pip: string }
-> = {
-  arrival: {
-    badge: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
-    pip: "bg-status-oc-pip",
-  },
-  departure: {
-    badge: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
-    pip: "bg-status-vd-pip",
-  },
-  stayover: {
-    badge: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
-    pip: "bg-status-vc-pip",
-  },
 };
 
 const headerCellClass =
@@ -87,7 +67,7 @@ function printHref(date: Date) {
   })}`;
 }
 
-function ReservationContextBadges({ row }: { row: HousekeepingListRow }) {
+function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
   if (row.reservationContexts.length === 0) {
     return (
       <span className="text-[11px] italic text-slate-400">
@@ -97,34 +77,15 @@ function ReservationContextBadges({ row }: { row: HousekeepingListRow }) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {row.reservationContexts.map((context) => {
-        const classes = reservationKindClassNames[context.kind];
-
-        return (
-          <div
-            key={`${context.kind}-${context.reservationNo}`}
-            className="flex flex-wrap items-center gap-2"
-          >
-            <StatusBadge
-              label={context.label}
-              className={classes.badge}
-              pipClassName={classes.pip}
-            />
-            <span className="font-semibold text-console-ink">
-              {context.guestName}
-            </span>
-            <span className="num text-[11px] text-slate-500">
-              {context.nightsLabel}
-            </span>
-            {context.etaLabel ? (
-              <span className="num text-[11px] text-slate-500">
-                ETA {context.etaLabel}
-              </span>
-            ) : null}
-          </div>
-        );
-      })}
+    <div className="flex flex-col gap-1">
+      {row.reservationContexts.map((context) => (
+        <span
+          key={`${context.kind}-${context.reservationNo}`}
+          className="font-semibold text-console-ink"
+        >
+          {context.guestName}
+        </span>
+      ))}
     </div>
   );
 }
@@ -156,16 +117,7 @@ function NoteCell({ row }: { row: HousekeepingListRow }) {
   }
 
   return (
-    <div className="max-w-[280px] space-y-1">
-      <div className="num text-[11px] font-semibold text-console-ink">
-        {row.note.reservationNo}
-        {row.note.etaLabel ? (
-          <span className="font-medium text-slate-500">
-            {" "}
-            · ETA {row.note.etaLabel}
-          </span>
-        ) : null}
-      </div>
+    <div className="max-w-[280px]">
       {row.note.notes ? (
         <div className="text-[12px] leading-5 text-slate-600">
           {row.note.notes}
@@ -309,7 +261,6 @@ export default async function HkRoomsPage({
                           {row.room.number}
                         </div>
                         <div className="mt-1 text-[11px] text-slate-500">
-                          Lantai {row.room.floor} · {row.room.typeCode} ·{" "}
                           {row.room.typeName}
                         </div>
                       </td>
@@ -317,15 +268,15 @@ export default async function HkRoomsPage({
                         <StatusPill status={row.room.status} />
                       </td>
                       <td className={`${bodyCellClass} min-w-[220px]`}>
-                        <SupervisorStatusOverride
+                        <SupervisorRoomStatusSelect
+                          key={`${row.room.id}-${row.room.status}`}
                           roomId={row.room.id}
                           roomNumber={row.room.number}
                           status={row.room.status}
-                          className="mt-0"
                         />
                       </td>
                       <td className={`${bodyCellClass} min-w-[260px]`}>
-                        <ReservationContextBadges row={row} />
+                        <ReservationGuestCell row={row} />
                       </td>
                       <td className={`${bodyCellClass} min-w-[180px]`}>
                         <AssignmentCell row={row} />
