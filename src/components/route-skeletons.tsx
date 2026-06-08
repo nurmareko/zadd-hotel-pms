@@ -64,11 +64,17 @@ export function DashboardSkeleton({
   kpiCount = 4,
   sectionCount = 3,
   actionCount = 0,
+  variant = "default",
 }: {
   kpiCount?: number;
   sectionCount?: number;
   actionCount?: number;
+  variant?: "default" | "hkSupervisor";
 }) {
+  if (variant === "hkSupervisor") {
+    return <HkSupervisorDashboardSkeleton actionCount={actionCount} />;
+  }
+
   return (
     <PageShell>
       <PageHeaderSkeleton
@@ -94,6 +100,69 @@ export function DashboardSkeleton({
   );
 }
 
+function HkSupervisorDashboardSkeleton({
+  actionCount,
+}: {
+  actionCount: number;
+}) {
+  return (
+    <PageShell>
+      <PageHeaderSkeleton
+        titleWidth="w-64"
+        subtitleWidth="w-72"
+        actionCount={actionCount}
+      />
+
+      <section className="mb-4">
+        <PanelHeaderSkeleton titleWidth="w-28" />
+        <KpiStripSkeleton
+          count={3}
+          className="mt-2 grid-cols-3 xl:grid-cols-3"
+        />
+      </section>
+
+      <section className="mb-4 border border-console-border bg-console-surface">
+        <PanelHeaderSkeleton titleWidth="w-32" metaWidth="w-16" />
+        <TableSkeleton rows={4} cols={4} minWidth="680px" />
+      </section>
+
+      <section className="mb-4">
+        <PanelHeaderSkeleton titleWidth="w-52" />
+        <KpiStripSkeleton
+          count={6}
+          className="mt-2 grid-cols-2 xl:grid-cols-6"
+        />
+      </section>
+
+      <section className="mb-4 border border-console-border bg-console-surface">
+        <PanelHeaderSkeleton titleWidth="w-36" />
+        <div className="grid gap-2 p-3 md:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between gap-3 border border-console-border bg-console-bg px-3 py-2"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <Skeleton className="size-8 border border-console-border bg-console-surface" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-8" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border border-console-border bg-console-surface">
+        <PanelHeaderSkeleton titleWidth="w-44" metaWidth="w-24" />
+        <div className="grid gap-3 p-3 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <FieldRowsSkeleton rows={3} />
+          <TableSkeleton rows={6} cols={5} minWidth="720px" />
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
 export function CrudTablePageSkeleton({
   cols,
   rows,
@@ -107,6 +176,9 @@ export function CrudTablePageSkeleton({
   minWidth = "760px",
   titleWidth = "w-64",
   subtitleWidth = "w-80",
+  showHeader = true,
+  withShell = true,
+  contentClassName,
 }: {
   cols: number;
   rows: number;
@@ -120,14 +192,19 @@ export function CrudTablePageSkeleton({
   minWidth?: string;
   titleWidth?: string;
   subtitleWidth?: string;
+  showHeader?: boolean;
+  withShell?: boolean;
+  contentClassName?: string;
 }) {
-  return (
-    <PageShell>
-      <PageHeaderSkeleton
-        titleWidth={titleWidth}
-        subtitleWidth={subtitleWidth}
-        actionCount={actionCount}
-      />
+  const content = (
+    <>
+      {showHeader ? (
+        <PageHeaderSkeleton
+          titleWidth={titleWidth}
+          subtitleWidth={subtitleWidth}
+          actionCount={actionCount}
+        />
+      ) : null}
       {hasTabs ? <TabStripSkeleton count={tabCount} className="mb-4" /> : null}
       {kpiCount > 0 ? (
         <KpiStripSkeleton
@@ -146,8 +223,14 @@ export function CrudTablePageSkeleton({
         {hasFilter ? <FilterBarSkeleton fields={filterFields} /> : null}
         <TableSkeleton rows={rows} cols={cols} minWidth={minWidth} />
       </section>
-    </PageShell>
+    </>
   );
+
+  if (!withShell) {
+    return content;
+  }
+
+  return <PageShell contentClassName={contentClassName}>{content}</PageShell>;
 }
 
 export function CardListPageSkeleton({
@@ -155,23 +238,38 @@ export function CardListPageSkeleton({
   grouped = false,
   groups = 2,
   actionCount = 1,
+  formRows = 0,
+  showHeader = true,
+  withShell = true,
+  contentClassName,
+  cardGridClassName,
 }: {
   cards?: number;
   grouped?: boolean;
   groups?: number;
   actionCount?: number;
+  formRows?: number;
+  showHeader?: boolean;
+  withShell?: boolean;
+  contentClassName?: string;
+  cardGridClassName?: string;
 }) {
   const cardGrid = (count: number) => (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+    <div
+      className={cn(
+        "grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4",
+        cardGridClassName,
+      )}
+    >
       {Array.from({ length: count }).map((_, index) => (
         <CardSkeleton key={index} rows={4} titleWidth="w-28" />
       ))}
     </div>
   );
 
-  return (
-    <PageShell>
-      <PageHeaderSkeleton actionCount={actionCount} />
+  const content = (
+    <>
+      {showHeader ? <PageHeaderSkeleton actionCount={actionCount} /> : null}
       {grouped ? (
         <div className="space-y-4">
           {Array.from({ length: groups }).map((_, index) => (
@@ -187,8 +285,23 @@ export function CardListPageSkeleton({
       ) : (
         cardGrid(cards)
       )}
-    </PageShell>
+      {formRows > 0 ? (
+        <div className="mt-4 max-w-xl">
+          <FormPageSkeleton
+            fieldRows={formRows}
+            showHeader={false}
+            withShell={false}
+          />
+        </div>
+      ) : null}
+    </>
   );
+
+  if (!withShell) {
+    return content;
+  }
+
+  return <PageShell contentClassName={contentClassName}>{content}</PageShell>;
 }
 
 export function FormPageSkeleton({
