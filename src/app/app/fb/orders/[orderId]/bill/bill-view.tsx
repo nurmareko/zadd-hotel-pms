@@ -6,7 +6,7 @@ import { ReceiptText } from "lucide-react";
 type BillViewProps = {
   order: {
     orderNo: string;
-    tableNo: string;
+    locationLabel: string;
     guestCount: number;
     openedAtLabel: string;
     cashierName: string;
@@ -99,7 +99,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
 
         <div className="grid gap-x-5 gap-y-2 border-b border-console-border py-3 text-[12px] sm:grid-cols-2">
           <BillMeta label="Order #" value={order.orderNo} />
-          <BillMeta label="Meja" value={order.tableNo} />
+          <BillMeta label="Lokasi" value={order.locationLabel} />
           <BillMeta label="Jumlah Tamu" value={`${order.guestCount} pax`} />
           <BillMeta label="Tanggal/Waktu" value={order.openedAtLabel} />
           <BillMeta label="Kasir" value={order.cashierName} />

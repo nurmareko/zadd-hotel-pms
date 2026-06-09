@@ -384,25 +384,13 @@ export function NavShell({
             Z
           </div>
           <div>
-            <div
-              className="text-white"
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              ZADD PMS
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              ZADD
             </div>
-            <div
-              className="text-slate-400"
-              style={{
-                fontSize: 9,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
+            <div className="text-[13px] font-semibold leading-tight text-white">
+              Hotel Management
+            </div>
+            <div className="mt-1 text-[9px] uppercase tracking-[0.04em] text-slate-400">
               {roleModuleNames[userRole]}
             </div>
           </div>

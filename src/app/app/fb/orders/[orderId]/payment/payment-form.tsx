@@ -38,6 +38,11 @@ type PaymentFormProps = {
     serviceChargePercent: string;
     taxPercent: string;
   };
+  attachedRoomFolio?: {
+    folioNo: string;
+    roomNumber: string;
+    guestName: string;
+  } | null;
 };
 
 type PaymentSuccess = {
@@ -142,6 +147,7 @@ export function PaymentForm({
   total,
   items,
   settings,
+  attachedRoomFolio = null,
 }: PaymentFormProps) {
   const [selectedQuantities, setSelectedQuantities] = useState(() =>
     Object.fromEntries(items.map((item) => [item.id, item.quantity])),
@@ -173,7 +179,9 @@ export function PaymentForm({
   const selectedTotal = selectedSubtotal + selectedServiceCharge + selectedTax;
   const selectedTotalString = selectedTotal.toFixed(2);
   const totalNumber = selectedTotal;
-  const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [method, setMethod] = useState<PaymentMethod>(
+    attachedRoomFolio ? PaymentMethod.CHARGE_TO_ROOM : PaymentMethod.CASH,
+  );
   const [amountTendered, setAmountTendered] = useState("");
   const [reference, setReference] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
@@ -193,7 +201,9 @@ export function PaymentForm({
   const cashIsValid =
     method !== PaymentMethod.CASH || tenderedNumber >= totalNumber;
   const canSubmitCharge =
-    method !== PaymentMethod.CHARGE_TO_ROOM || lookupResult?.ok === true;
+    method !== PaymentMethod.CHARGE_TO_ROOM ||
+    Boolean(attachedRoomFolio) ||
+    lookupResult?.ok === true;
   const hasSelection = selectedItems.length > 0 && selectedTotal > 0;
 
   useEffect(() => {
@@ -267,7 +277,7 @@ export function PaymentForm({
     startSubmitTransition(async () => {
       const result = await chargeOrderToRoom({
         orderId,
-        roomNumber,
+        roomNumber: attachedRoomFolio ? undefined : roomNumber,
         selectedItems,
       });
 
@@ -599,31 +609,48 @@ export function PaymentForm({
 
           {method === PaymentMethod.CHARGE_TO_ROOM ? (
             <div className="grid gap-3">
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Nomor Kamar
-                </span>
-                <Input
-                  className={fieldClassName}
-                  maxLength={10}
-                  onChange={(event) => {
-                    setRoomNumber(event.target.value);
-                    setLookupResult(null);
-                  }}
-                  placeholder="204"
-                  value={roomNumber}
-                />
-              </label>
-              {isLookupPending ? (
-                <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
-                  Mencari tamu in-house...
+              {attachedRoomFolio ? (
+                <div className="border border-status-oc-pip bg-status-oc-bg px-3 py-2 text-[12px] text-status-oc-fg">
+                  <div className="font-semibold">
+                    Folio room service sudah terhubung.
+                  </div>
+                  <div className="mt-1 leading-5">
+                    Akan dibebankan ke: {attachedRoomFolio.guestName} · Kamar{" "}
+                    {attachedRoomFolio.roomNumber} ·{" "}
+                    <span className="num font-semibold">
+                      {attachedRoomFolio.folioNo}
+                    </span>
+                  </div>
                 </div>
-              ) : lookupResult ? (
-                <ResultMessage result={lookupResult} />
               ) : (
-                <div className="border border-dashed border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
-                  Masukkan nomor kamar untuk validasi folio aktif.
-                </div>
+                <>
+                  <label className="block">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                      Nomor Kamar
+                    </span>
+                    <Input
+                      className={fieldClassName}
+                      maxLength={10}
+                      onChange={(event) => {
+                        setRoomNumber(event.target.value);
+                        setLookupResult(null);
+                      }}
+                      placeholder="204"
+                      value={roomNumber}
+                    />
+                  </label>
+                  {isLookupPending ? (
+                    <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
+                      Mencari tamu in-house...
+                    </div>
+                  ) : lookupResult ? (
+                    <ResultMessage result={lookupResult} />
+                  ) : (
+                    <div className="border border-dashed border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
+                      Masukkan nomor kamar untuk validasi folio aktif.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : null}

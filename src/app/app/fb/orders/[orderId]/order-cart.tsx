@@ -13,7 +13,7 @@ export type OrderCartData = {
   id: number;
   orderNo: string;
   status: string;
-  tableNo: string;
+  locationLabel: string;
   guestCount: number;
   subtotal: string;
   serviceCharge: string;
@@ -55,7 +55,7 @@ export function OrderCart({ order, settings }: OrderCartProps) {
           {"// KERANJANG ORDER"}
         </div>
         <div className="mt-1 text-[11px] text-slate-300">
-          Meja {order.tableNo} · {order.guestCount} pax · {order.orderNo}
+          {order.locationLabel} · {order.guestCount} pax · {order.orderNo}
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import { FileQuestion, Home } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
-  title: "Halaman tidak ditemukan | ZADD Hotel PMS",
+  title: "Halaman tidak ditemukan | ZADD Hotel Management",
 };
 
 const homeLinkClassName =

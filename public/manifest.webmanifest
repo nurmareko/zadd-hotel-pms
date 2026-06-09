@@ -1,7 +1,7 @@
 {
-  "name": "ZADD Hotel PMS",
-  "short_name": "ZADD PMS",
-  "description": "ZADD Hotel Property Management System",
+  "name": "ZADD Hotel Management",
+  "short_name": "ZADD Hotel Management",
+  "description": "ZADD Hotel Management",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",

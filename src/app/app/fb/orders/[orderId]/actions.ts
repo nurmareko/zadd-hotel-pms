@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  FBOrderServiceType,
   ArticleType,
   FBOrderStatus,
   FolioStatus,
@@ -25,6 +26,7 @@ import {
   AddItemToOrderSchema,
   ChargeOrderToRoomSchema,
   CreateOrderSchema,
+  CreateRoomServiceOrderSchema,
   LookupRoomForChargeSchema,
   OrderItemIdSchema,
   PayOrderDirectSchema,
@@ -199,6 +201,7 @@ async function applyPaymentSelection(
     orderNo: string;
     tableId: number | null;
     tableNo: string | null;
+    serviceType: FBOrderServiceType;
     guestCount: number;
     waitedById: number;
     openedAt: Date;
@@ -295,6 +298,7 @@ async function applyPaymentSelection(
     data: {
       orderNo: paidOrderNo,
       tableNo: order.tableNo,
+      serviceType: order.serviceType,
       guestCount: order.guestCount,
       waitedById: order.waitedById,
       status: FBOrderStatus.CLOSED,
@@ -447,6 +451,62 @@ async function resolveRoomForCharge(
   };
 }
 
+async function resolveAttachedFolioForCharge(
+  db: RoomChargeDb,
+  folioId: number,
+  options: { lockRows?: boolean } = {},
+): Promise<ChargeLookupResult> {
+  if (options.lockRows && db.$queryRaw) {
+    await db.$queryRaw<Array<{ id: number }>>`
+      SELECT id FROM "folio" WHERE id = ${folioId} FOR UPDATE
+    `;
+  }
+
+  const folio = await db.folio.findUnique({
+    where: { id: folioId },
+    select: {
+      id: true,
+      folioNo: true,
+      status: true,
+      reservation: {
+        select: {
+          id: true,
+          status: true,
+          guest: { select: { fullName: true } },
+          room: { select: { number: true } },
+        },
+      },
+    },
+  });
+
+  if (!folio || folio.status !== FolioStatus.OPEN) {
+    return { ok: false, error: "Folio tidak terbuka" };
+  }
+
+  if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
+    return {
+      ok: false,
+      error: "Folio tidak terhubung ke tamu yang sedang menginap",
+    };
+  }
+
+  if (!folio.reservation.room) {
+    return {
+      ok: false,
+      error: "Reservasi tidak memiliki kamar aktif",
+    };
+  }
+
+  return {
+    ok: true,
+    guestName: folio.reservation.guest.fullName,
+    roomNumber: folio.reservation.room.number,
+    folioNo: folio.folioNo,
+    folioId: folio.id,
+    reservationId: folio.reservation.id,
+  };
+}
+
 function revalidatePaymentPaths(
   orderId: number,
   folioId?: number,
@@ -583,6 +643,107 @@ export async function createOrder(input: unknown): Promise<ActionResult> {
 
   if (!result) {
     return { ok: false, error: "Something went wrong creating order" };
+  }
+
+  if (!result.ok) {
+    return result;
+  }
+
+  revalidateOrderPaths(result.orderId);
+  redirect(`/app/fb/orders/${result.orderId}`);
+}
+
+async function runCreateRoomServiceOrderTransaction(
+  input: { roomNumber: string; guestCount: number },
+  userId: number,
+) {
+  return prisma.$transaction(
+    async (tx) => {
+      const roomLookup = await resolveRoomForCharge(tx, input.roomNumber, {
+        lockRows: true,
+      });
+
+      if (!roomLookup.ok) {
+        return roomLookup;
+      }
+
+      const now = new Date();
+      const orderPrefix = `FB-${format(now, "ddMM")}-`;
+      const orderCount = await tx.fBOrder.count({
+        where: { orderNo: { startsWith: orderPrefix } },
+      });
+      const orderNo = `${orderPrefix}${String(orderCount + 1).padStart(4, "0")}`;
+
+      const order = await tx.fBOrder.create({
+        data: {
+          orderNo,
+          tableId: null,
+          tableNo: null,
+          serviceType: FBOrderServiceType.ROOM_SERVICE,
+          chargedFolioId: roomLookup.folioId,
+          guestCount: input.guestCount,
+          waitedById: userId,
+          status: FBOrderStatus.OPEN,
+        },
+        select: { id: true },
+      });
+
+      return { ok: true as const, orderId: order.id };
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    },
+  );
+}
+
+export async function createRoomServiceOrder(
+  input: unknown,
+): Promise<ActionResult> {
+  const userId = await canManageFbOrders();
+
+  if (!userId) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = CreateRoomServiceOrderSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: validationError(parsed.error) };
+  }
+
+  let result: Awaited<
+    ReturnType<typeof runCreateRoomServiceOrderTransaction>
+  > | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      result = await runCreateRoomServiceOrderTransaction(parsed.data, userId);
+      break;
+    } catch (error) {
+      if (attempt < 2 && isRetryableOrderNoError(error)) {
+        continue;
+      }
+
+      if (isSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Data kamar atau folio berubah. Coba lagi.",
+        };
+      }
+
+      return {
+        ok: false,
+        error: "Something went wrong creating room service order",
+      };
+    }
+  }
+
+  if (!result) {
+    return {
+      ok: false,
+      error: "Something went wrong creating room service order",
+    };
   }
 
   if (!result.ok) {
@@ -939,6 +1100,8 @@ export async function payOrderDirect(
       id: true,
       status: true,
       tableId: true,
+      serviceType: true,
+      chargedFolioId: true,
       paymentMethod: true,
     },
   });
@@ -999,6 +1162,8 @@ export async function payOrderDirect(
             status: true,
             tableId: true,
             tableNo: true,
+            serviceType: true,
+            chargedFolioId: true,
             guestCount: true,
             waitedById: true,
             openedAt: true,
@@ -1017,6 +1182,10 @@ export async function payOrderDirect(
           parsed.data.selectedItems,
           {
             method: parsed.data.method,
+            chargedFolioId:
+              lockedOrder.serviceType === FBOrderServiceType.ROOM_SERVICE
+                ? lockedOrder.chargedFolioId
+                : undefined,
             closedAt: now,
           },
         );
@@ -1101,6 +1270,7 @@ export async function chargeOrderToRoom(
     select: {
       id: true,
       status: true,
+      serviceType: true,
       paymentMethod: true,
       chargedFolioId: true,
     },
@@ -1132,7 +1302,27 @@ export async function chargeOrderToRoom(
     };
   }
 
-  const roomLookup = await resolveRoomForCharge(prisma, parsed.data.roomNumber);
+  let roomLookup: ChargeLookupResult;
+
+  if (order.serviceType === FBOrderServiceType.ROOM_SERVICE) {
+    if (!order.chargedFolioId) {
+      return {
+        ok: false,
+        error: "Order room service belum terhubung ke folio kamar",
+      };
+    }
+
+    roomLookup = await resolveAttachedFolioForCharge(
+      prisma,
+      order.chargedFolioId,
+    );
+  } else {
+    if (!parsed.data.roomNumber) {
+      return { ok: false, error: "Nomor kamar harus diisi" };
+    }
+
+    roomLookup = await resolveRoomForCharge(prisma, parsed.data.roomNumber);
+  }
 
   if (!roomLookup.ok) {
     return roomLookup;
@@ -1184,6 +1374,7 @@ export async function chargeOrderToRoom(
             status: true,
             tableId: true,
             tableNo: true,
+            serviceType: true,
             guestCount: true,
             waitedById: true,
             openedAt: true,

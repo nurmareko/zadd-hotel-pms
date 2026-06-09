@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ZADD Hotel PMS",
-  description: "Hotel property management system",
+  title: "ZADD Hotel Management",
+  description: "ZADD Hotel Management",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PMS HK",
+    title: "ZADD Hotel Management",
   },
   icons: {
     icon: "/icons/icon-192.png",
