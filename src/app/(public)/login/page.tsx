@@ -35,14 +35,14 @@ export default async function LoginPage() {
 
         <div className="relative max-w-md">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-console-accent">
-            {"// Operations Workspace"}
+            {"ZADD"}
           </p>
           <h1 className="text-[28px] font-bold uppercase leading-tight tracking-[0.04em]">
-            Hotel Property Management System
+            Hotel Management
           </h1>
           <p className="mt-4 text-[12px] leading-6 text-slate-400">
             Operational workspace untuk Front Office, Housekeeping, F&amp;B,
-            Accounting, dan Administrator.
+            danAccounting.
           </p>
         </div>
 
@@ -98,16 +98,16 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
         Z
       </div>
       <div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          ZADD
+        </div>
         <div
           className={[
-            "text-[12px] font-bold uppercase tracking-[0.08em]",
+            "text-[17px] font-semibold leading-tight",
             compact ? "text-console-ink" : "text-white",
           ].join(" ")}
         >
-          ZADD PMS
-        </div>
-        <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-          Hotel Property Management System
+          Hotel Management
         </div>
       </div>
     </div>

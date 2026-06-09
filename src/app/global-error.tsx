@@ -14,7 +14,7 @@ export default function GlobalError({
   return (
     <html lang="id">
       <head>
-        <title>Gangguan Sistem | ZADD Hotel PMS</title>
+        <title>Gangguan Sistem | ZADD Hotel Management</title>
       </head>
       <body
         style={{
