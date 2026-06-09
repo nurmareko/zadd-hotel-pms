@@ -1,4 +1,9 @@
-import { FBOrderStatus, TableLocation, TableStatus } from "@prisma/client";
+import {
+  FBOrderServiceType,
+  FBOrderStatus,
+  TableLocation,
+  TableStatus,
+} from "@prisma/client";
 import Link from "next/link";
 
 import { hotelTodayTimestampRange } from "@/lib/date-only";
@@ -86,6 +91,16 @@ export default async function FBLandingPage({
       },
       include: {
         table: { select: { id: true, number: true } },
+        chargedFolio: {
+          select: {
+            reservation: {
+              select: {
+                guest: { select: { fullName: true } },
+                room: { select: { number: true } },
+              },
+            },
+          },
+        },
         items: { select: { amount: true } },
       },
       orderBy: { openedAt: "desc" },
@@ -132,12 +147,20 @@ export default async function FBLandingPage({
             tamu aktif
           </p>
         </div>
-        <Link
-          className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          href="/app/fb/orders/new"
-        >
-          Mulai Order Baru
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            href="/app/fb/orders/new?service=room-service"
+          >
+            New Room Service Order
+          </Link>
+          <Link
+            className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            href="/app/fb/orders/new"
+          >
+            Mulai Order Baru
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -195,10 +218,20 @@ export default async function FBLandingPage({
               id: order.id,
               orderNo: order.orderNo,
               status: order.status,
+              serviceType: order.serviceType,
               guestCount: order.guestCount,
               openedAt: order.openedAt,
               total: order.total.toString(),
               table: order.table,
+              roomService:
+                order.serviceType === FBOrderServiceType.ROOM_SERVICE
+                  ? {
+                      roomNumber:
+                        order.chargedFolio?.reservation.room?.number ?? "-",
+                      guestName:
+                        order.chargedFolio?.reservation.guest.fullName ?? "-",
+                    }
+                  : null,
               items: order.items.map((item) => ({
                 amount: item.amount.toString(),
               })),

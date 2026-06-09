@@ -1,3 +1,4 @@
+import { FBOrderServiceType } from "@prisma/client";
 import { notFound } from "next/navigation";
 
 import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
@@ -21,6 +22,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
       where: { id },
       include: {
         table: { select: { id: true, number: true } },
+        chargedFolio: {
+          select: {
+            reservation: {
+              select: {
+                guest: { select: { fullName: true } },
+                room: { select: { number: true } },
+              },
+            },
+          },
+        },
         waitedBy: { select: { fullName: true } },
         items: {
           include: {
@@ -56,6 +67,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
   const computedTotals = computeFBOrderTotals(order.items, settings);
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const isRoomService = order.serviceType === FBOrderServiceType.ROOM_SERVICE;
+  const roomNumber = order.chargedFolio?.reservation.room?.number ?? "-";
+  const guestName = order.chargedFolio?.reservation.guest.fullName ?? "-";
+  const locationLabel = isRoomService
+    ? `Room Service untuk kamar ${roomNumber} / ${guestName}`
+    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
 
   return (
     <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
@@ -63,7 +80,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Captain Order · Meja {order.table?.number ?? order.tableNo ?? "-"}
+            Captain Order · {locationLabel}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
             Order #{order.orderNo} ·{" "}
@@ -91,7 +108,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             id: order.id,
             orderNo: order.orderNo,
             status: order.status,
-            tableNo: order.table?.number ?? order.tableNo ?? "-",
+            locationLabel,
             guestCount: order.guestCount,
             subtotal: computedTotals.subtotal.toString(),
             serviceCharge: computedTotals.serviceCharge.toString(),

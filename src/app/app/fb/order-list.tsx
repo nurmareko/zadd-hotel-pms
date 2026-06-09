@@ -1,4 +1,4 @@
-import { FBOrderStatus } from "@prisma/client";
+import { FBOrderServiceType, FBOrderStatus } from "@prisma/client";
 import { ClipboardList, SearchX } from "lucide-react";
 import Link from "next/link";
 
@@ -11,10 +11,12 @@ export type FBOrderListRow = {
   id: number;
   orderNo: string;
   status: FBOrderStatus;
+  serviceType: FBOrderServiceType;
   guestCount: number;
   openedAt: Date;
   total: string;
   table: { id: number; number: string } | null;
+  roomService: { roomNumber: string; guestName: string } | null;
   items: Array<{ amount: string }>;
 };
 
@@ -46,6 +48,20 @@ function actionLabel(status: FBOrderStatus) {
 
 function itemTotal(order: FBOrderListRow) {
   return order.items.reduce((sum, item) => sum + Number(item.amount), 0);
+}
+
+function serviceLocation(order: FBOrderListRow) {
+  if (order.serviceType === FBOrderServiceType.ROOM_SERVICE) {
+    return {
+      primary: `Room Service · Kamar ${order.roomService?.roomNumber ?? "-"}`,
+      secondary: order.roomService?.guestName ?? "-",
+    };
+  }
+
+  return {
+    primary: order.table?.number ?? "-",
+    secondary: "Dine in",
+  };
 }
 
 export function OrderList({
@@ -134,7 +150,7 @@ export function OrderList({
                   Order #
                 </th>
                 <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Meja
+                  Lokasi
                 </th>
                 <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
                   Tamu
@@ -154,39 +170,48 @@ export function OrderList({
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
-                <tr
-                  className="border-b border-console-border-soft odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
-                  key={order.id}
-                >
-                  <td className="px-3 py-2 font-semibold text-console-ink">
-                    {order.orderNo}
-                  </td>
-                  <td className="px-3 py-2 text-slate-700">
-                    {order.table?.number ?? "-"}
-                  </td>
-                  <td className="num px-3 py-2 text-right text-slate-700">
-                    {order.guestCount}
-                  </td>
-                  <td className="px-3 py-2">
-                    <OrderStatusBadge status={order.status} />
-                  </td>
-                  <td className="num px-3 py-2 text-slate-700">
-                    {formatTimeID(order.openedAt)}
-                  </td>
-                  <td className="num px-3 py-2 text-right font-semibold text-console-ink">
-                    {formatIDR(itemTotal(order))}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Link
-                      className="inline-flex h-7 items-center border border-console-border bg-white px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-                      href={`/app/fb/orders/${order.id}`}
-                    >
-                      {actionLabel(order.status)}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {filteredOrders.map((order) => {
+                const location = serviceLocation(order);
+
+                return (
+                  <tr
+                    className="border-b border-console-border-soft odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
+                    key={order.id}
+                  >
+                    <td className="px-3 py-2 font-semibold text-console-ink">
+                      {order.orderNo}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      <div className="font-semibold text-console-ink">
+                        {location.primary}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-slate-500">
+                        {location.secondary}
+                      </div>
+                    </td>
+                    <td className="num px-3 py-2 text-right text-slate-700">
+                      {order.guestCount}
+                    </td>
+                    <td className="px-3 py-2">
+                      <OrderStatusBadge status={order.status} />
+                    </td>
+                    <td className="num px-3 py-2 text-slate-700">
+                      {formatTimeID(order.openedAt)}
+                    </td>
+                    <td className="num px-3 py-2 text-right font-semibold text-console-ink">
+                      {formatIDR(itemTotal(order))}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Link
+                        className="inline-flex h-7 items-center border border-console-border bg-white px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                        href={`/app/fb/orders/${order.id}`}
+                      >
+                        {actionLabel(order.status)}
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

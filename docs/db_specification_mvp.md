@@ -181,6 +181,7 @@ erDiagram
     varchar order_no UK
     varchar table_no
     int table_id FK
+    varchar service_type
     varchar status
     int guest_count
     varchar payment_method
@@ -303,7 +304,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 12. MenuItem(*id*, code, name, category, price, is_active)
 13. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
-14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
+14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, service_type, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
 15. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 
 **Housekeeping**
@@ -334,6 +335,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | ArrangementType | RO, RB, FBM |
 | ReservationType | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
 | FolioStatus | OPEN, CLOSED, VOIDED |
+| FBOrderServiceType | DINE_IN, ROOM_SERVICE |
 | FBOrderStatus | OPEN, BILLED, CLOSED, VOIDED |
 | TableLocation | INDOOR, OUTDOOR, PRIVATE |
 | TableStatus | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
@@ -536,8 +538,9 @@ A few choices worth explaining:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique order identifier |
 | order_no | VARCHAR(20) | UNIQUE, NOT NULL | Order number |
-| table_id | INT | FOREIGN KEY → restaurant_table(id), ON DELETE SET NULL | Assigned restaurant table |
+| table_id | INT | FOREIGN KEY → restaurant_table(id), ON DELETE SET NULL | Assigned restaurant table; nullable for room service |
 | table_no | VARCHAR(10) | — | Legacy/free-text table number |
+| service_type | FBOrderServiceType | NOT NULL, DEFAULT 'DINE_IN' | DINE_IN orders use restaurant tables; ROOM_SERVICE orders are tableless and charged to an in-house folio |
 | guest_count | INT | NOT NULL, DEFAULT 1 | Guest count/pax |
 | status | FBOrderStatus | NOT NULL, DEFAULT 'OPEN' | OPEN, BILLED, CLOSED, VOIDED |
 | payment_method | PaymentMethod | — | CASH, TRANSFER, CARD, CHARGE_TO_ROOM (set at billing) |

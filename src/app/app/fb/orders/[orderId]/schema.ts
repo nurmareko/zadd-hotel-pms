@@ -10,6 +10,19 @@ export const CreateOrderSchema = z.object({
     .max(99, "Jumlah tamu terlalu banyak"),
 });
 
+export const CreateRoomServiceOrderSchema = z.object({
+  roomNumber: z
+    .string()
+    .trim()
+    .min(1, "Nomor kamar harus diisi")
+    .max(10, "Nomor kamar terlalu panjang"),
+  guestCount: z.coerce
+    .number()
+    .int()
+    .min(1, "Jumlah tamu minimal 1")
+    .max(99, "Jumlah tamu terlalu banyak"),
+});
+
 export const AddItemToOrderSchema = z.object({
   orderId: z.coerce.number().int().positive("Order wajib dipilih"),
   menuItemId: z.coerce.number().int().positive("Item menu wajib dipilih"),
@@ -111,8 +124,9 @@ export const ChargeOrderToRoomSchema = z.object({
   roomNumber: z
     .string()
     .trim()
-    .min(1, "Nomor kamar harus diisi")
-    .max(10, "Nomor kamar terlalu panjang"),
+    .max(10, "Nomor kamar terlalu panjang")
+    .optional()
+    .transform((value) => value || undefined),
   selectedItems: z
     .array(PaymentSelectionItemSchema)
     .min(1, "Pilih minimal satu item untuk dibayar"),

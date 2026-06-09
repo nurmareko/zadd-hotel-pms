@@ -1,4 +1,4 @@
-import { FBOrderStatus, PaymentMethod } from "@prisma/client";
+import { FBOrderServiceType, FBOrderStatus, PaymentMethod } from "@prisma/client";
 import { CircleSlash } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -102,6 +102,7 @@ function ClosedState({
   paymentReference,
   cashDetails,
   chargedFolio,
+  locationLabel,
 }: {
   orderId: number;
   paymentMethod: PaymentMethod | null;
@@ -109,6 +110,7 @@ function ClosedState({
   paymentReference: string | null;
   cashDetails: { amountTendered: string; change: string } | null;
   chargedFolio: { folioNo: string } | null;
+  locationLabel: string;
 }) {
   return (
     <section className="border border-status-vc-pip bg-status-vc-bg">
@@ -123,7 +125,8 @@ function ClosedState({
           <div className="mt-1 leading-5">
             {methodLabel(paymentMethod)} · Total{" "}
             <span className="num font-semibold">{formatIDR(total)}</span>
-            {chargedFolio ? (
+            · {locationLabel}
+            {paymentMethod === PaymentMethod.CHARGE_TO_ROOM && chargedFolio ? (
               <>
                 {" "}
                 · Folio <span className="num font-semibold">{chargedFolio.folioNo}</span>
@@ -184,7 +187,17 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
       include: {
         table: { select: { number: true } },
         waitedBy: { select: { fullName: true } },
-        chargedFolio: { select: { folioNo: true } },
+        chargedFolio: {
+          select: {
+            folioNo: true,
+            reservation: {
+              select: {
+                guest: { select: { fullName: true } },
+                room: { select: { number: true } },
+              },
+            },
+          },
+        },
         payments: {
           orderBy: { receivedAt: "desc" },
           take: 1,
@@ -210,7 +223,18 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
   }
 
   const totals = computeFBOrderTotals(order.items, settings);
-  const tableNo = order.table?.number ?? order.tableNo ?? "-";
+  const isRoomService = order.serviceType === FBOrderServiceType.ROOM_SERVICE;
+  const attachedRoomFolio =
+    isRoomService && order.chargedFolio
+      ? {
+          folioNo: order.chargedFolio.folioNo,
+          roomNumber: order.chargedFolio.reservation.room?.number ?? "-",
+          guestName: order.chargedFolio.reservation.guest.fullName,
+        }
+      : null;
+  const locationLabel = attachedRoomFolio
+    ? `Room Service · Kamar ${attachedRoomFolio.roomNumber} · ${attachedRoomFolio.guestName}`
+    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
   const openedAtLabel = formatDateTimeID(order.openedAt);
   const serviceChargePercent = settings.serviceChargePercent.toString();
   const taxPercent = settings.taxPercent.toString();
@@ -226,7 +250,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
             Pembayaran — {order.orderNo}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Meja {tableNo} · <span className="num">{order.guestCount}</span>{" "}
+            {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
             pax · Dibuka {openedAtLabel}
           </p>
         </div>
@@ -264,6 +288,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
                 serviceChargePercent: serviceChargePercent,
                 taxPercent: taxPercent,
               }}
+              attachedRoomFolio={attachedRoomFolio}
             />
           ) : null}
 
@@ -275,6 +300,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               paymentReference={latestPayment?.reference ?? null}
               cashDetails={latestCashDetails}
               chargedFolio={order.chargedFolio}
+              locationLabel={locationLabel}
             />
           ) : null}
 

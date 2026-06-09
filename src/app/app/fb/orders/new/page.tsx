@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
 import { ConfirmForm } from "./confirm-form";
+import { RoomServiceForm } from "./room-service-form";
 
 type NewOrderPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -17,9 +18,10 @@ function firstParam(value: string | string[] | undefined) {
 
 export default async function NewOrderPage({ searchParams }: NewOrderPageProps) {
   const params = (await searchParams) ?? {};
+  const isRoomService = firstParam(params.service) === "room-service";
   const tableId = Number(firstParam(params.tableId) ?? 0);
   const [table, availableTables] = await Promise.all([
-    tableId > 0
+    tableId > 0 && !isRoomService
       ? prisma.restaurantTable.findUnique({
           where: { id: tableId },
           include: {
@@ -32,7 +34,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           },
         })
       : null,
-    tableId > 0
+    tableId > 0 || isRoomService
       ? Promise.resolve([])
       : prisma.restaurantTable.findMany({
           where: { status: TableStatus.AVAILABLE },
@@ -50,21 +52,47 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
         <div>
           <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
             <span className="text-console-accent">▸ </span>
-            Captain Order
+            {isRoomService ? "Room Service Order" : "Captain Order"}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Konfirmasi meja dan jumlah tamu sebelum membuat order.
+            {isRoomService
+              ? "Validasi kamar in-house sebelum membuat order tanpa meja."
+              : "Konfirmasi meja dan jumlah tamu sebelum membuat order."}
           </p>
         </div>
-        <Link
-          className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
-          href="/app/fb"
-        >
-          Kembali
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {isRoomService ? (
+            <Link
+              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              href="/app/fb/orders/new"
+            >
+              Dine In
+            </Link>
+          ) : (
+            <Link
+              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              href="/app/fb/orders/new?service=room-service"
+            >
+              Room Service
+            </Link>
+          )}
+          <Link
+            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            href="/app/fb"
+          >
+            Kembali
+          </Link>
+        </div>
       </div>
 
-      {table ? (
+      {isRoomService ? (
+        <section className="max-w-xl border border-console-border bg-console-surface">
+          <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+            {"// ROOM SERVICE"}
+          </div>
+          <RoomServiceForm />
+        </section>
+      ) : table ? (
         <section className="max-w-xl border border-console-border bg-console-surface">
           <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
             {"// KONFIRMASI ORDER"}

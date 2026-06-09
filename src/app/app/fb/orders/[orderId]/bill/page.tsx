@@ -1,4 +1,4 @@
-import { FBOrderStatus } from "@prisma/client";
+import { FBOrderServiceType, FBOrderStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
 
 import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
@@ -58,6 +58,16 @@ export default async function BillPage({ params }: BillPageProps) {
       where: { id },
       include: {
         table: { select: { number: true } },
+        chargedFolio: {
+          select: {
+            reservation: {
+              select: {
+                guest: { select: { fullName: true } },
+                room: { select: { number: true } },
+              },
+            },
+          },
+        },
         waitedBy: { select: { fullName: true } },
         items: {
           include: {
@@ -79,7 +89,12 @@ export default async function BillPage({ params }: BillPageProps) {
   }
 
   const totals = computeFBOrderTotals(order.items, settings);
-  const tableNo = order.table?.number ?? order.tableNo ?? "-";
+  const isRoomService = order.serviceType === FBOrderServiceType.ROOM_SERVICE;
+  const roomNumber = order.chargedFolio?.reservation.room?.number ?? "-";
+  const guestName = order.chargedFolio?.reservation.guest.fullName ?? "-";
+  const locationLabel = isRoomService
+    ? `Room Service · Kamar ${roomNumber} · ${guestName}`
+    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
   const openedAtLabel = formatDateTimeID(order.openedAt);
 
   return (
@@ -91,7 +106,7 @@ export default async function BillPage({ params }: BillPageProps) {
             Bill — {order.orderNo}
           </h1>
           <p className="mt-1 text-[11px] text-slate-500">
-            Meja {tableNo} · <span className="num">{order.guestCount}</span>{" "}
+            {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
             pax · Dibuka {openedAtLabel}
           </p>
         </div>
@@ -104,7 +119,7 @@ export default async function BillPage({ params }: BillPageProps) {
         <BillView
           order={{
             orderNo: order.orderNo,
-            tableNo,
+            locationLabel,
             guestCount: order.guestCount,
             openedAtLabel,
             cashierName: order.waitedBy.fullName,
