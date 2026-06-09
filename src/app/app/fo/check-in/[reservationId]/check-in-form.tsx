@@ -333,7 +333,7 @@ export function CheckInForm({
 
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// GUEST INFORMATION"}
+              {"GUEST INFORMATION"}
             </div>
             <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
               <FormField
@@ -431,7 +431,7 @@ export function CheckInForm({
 
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// 2. Guest Registration Card (GRC)"}
+              {"2. Guest Registration Card (GRC)"}
             </div>
             <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
               <div>
@@ -540,7 +540,7 @@ export function CheckInForm({
 
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// 3. Deposit & Pembayaran Awal"}
+              {"3. Deposit & Pembayaran Awal"}
             </div>
             <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
               {depositNote ? (
@@ -638,7 +638,7 @@ export function CheckInForm({
         <aside className="min-w-0">
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Ringkasan"}
+              {"Ringkasan"}
             </div>
             <div className="p-3.5 text-[13px]">
               <SummaryRow label="Reservasi" value={reservationNo} strong />

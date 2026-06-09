@@ -396,7 +396,7 @@ export function UserTable({ users }: UserTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Tambah Pengguna"}
+              {"Tambah Pengguna"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Buat akun pengguna dan tetapkan satu role modul.
@@ -422,7 +422,7 @@ export function UserTable({ users }: UserTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Edit Pengguna"}
+              {"Edit Pengguna"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Perbarui detail akun dan role yang ditetapkan.
@@ -451,7 +451,7 @@ export function UserTable({ users }: UserTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Reset Password"}
+              {"Reset Password"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Atur password baru untuk{" "}

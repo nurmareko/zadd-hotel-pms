@@ -146,7 +146,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
       <section className="border border-console-border bg-console-surface">
         <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3.5 py-3 text-console-accent sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.08em]">
-            {"// Daftar Kamar"}
+            {"Daftar Kamar"}
           </h2>
           <div className="flex flex-wrap gap-2">
             <div className="flex h-8 min-w-[220px] items-center gap-2 border border-console-border bg-white px-2.5 text-slate-500">
@@ -263,7 +263,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Tambah Kamar"}
+              {"Tambah Kamar"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Buat kamar fisik dan hubungkan ke tipe kamar.
@@ -290,7 +290,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Edit Kamar"}
+              {"Edit Kamar"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Perbarui detail kamar dan status saat ini.

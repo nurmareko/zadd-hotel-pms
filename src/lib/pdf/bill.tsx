@@ -236,7 +236,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// RESERVATION"}</Text>
+          <Text style={styles.blockHeader}>{"RESERVATION"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Guest" value={folio.reservation.guest.fullName} />
             <Field label="Room" value={folio.reservation.room?.number ?? "-"} />
@@ -254,7 +254,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// LINE ITEMS"}</Text>
+          <Text style={styles.blockHeader}>{"LINE ITEMS"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
@@ -317,7 +317,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// PAYMENTS"}</Text>
+          <Text style={styles.blockHeader}>{"PAYMENTS"}</Text>
           <View style={styles.blockBody}>
             {folio.payments.length === 0 ? (
               <Text style={styles.muted}>Belum ada pembayaran.</Text>

@@ -57,7 +57,7 @@ export function ActionPanel({
 
   if (status === RoomStatus.VD || status === RoomStatus.OD) {
     return (
-      <CalmCard title="// Menunggu Pembersihan">
+      <CalmCard title="Menunggu Pembersihan">
         {assignedHousekeeperName
           ? `Kamar masuk antrean pembersihan dan ditugaskan ke ${assignedHousekeeperName}.`
           : "Kamar masuk antrean pembersihan dan belum memiliki petugas hari ini."}
@@ -76,14 +76,14 @@ export function ActionPanel({
 
   if (status === RoomStatus.OOO) {
     return (
-      <CalmCard title="// Aksi">
+      <CalmCard title="Aksi">
         Kamar sedang diperbaiki. Hubungi admin untuk mengembalikan status.
       </CalmCard>
     );
   }
 
   return (
-    <CalmCard title="// Aksi">
+    <CalmCard title="Aksi">
       Kamar dalam kondisi baik. Tidak ada aksi yang diperlukan.
     </CalmCard>
   );

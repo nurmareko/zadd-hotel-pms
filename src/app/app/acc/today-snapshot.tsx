@@ -20,7 +20,7 @@ export function TodaySnapshot({ snapshot }: TodaySnapshotProps) {
   return (
     <section>
       <div className="mb-2 border border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// HARI INI"}
+        {"HARI INI"}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard

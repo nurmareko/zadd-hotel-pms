@@ -88,14 +88,14 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       {isRoomService ? (
         <section className="max-w-xl border border-console-border bg-console-surface">
           <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"// ROOM SERVICE"}
+            {"ROOM SERVICE"}
           </div>
           <RoomServiceForm />
         </section>
       ) : table ? (
         <section className="max-w-xl border border-console-border bg-console-surface">
           <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"// KONFIRMASI ORDER"}
+            {"KONFIRMASI ORDER"}
           </div>
           {canCreateOrder ? (
             <ConfirmForm
@@ -128,7 +128,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       ) : (
         <section className="border border-console-border bg-console-surface">
           <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"// PILIH MEJA AVAILABLE"}
+            {"PILIH MEJA AVAILABLE"}
           </div>
           {availableTables.length === 0 ? (
             <EmptyState

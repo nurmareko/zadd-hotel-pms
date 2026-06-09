@@ -82,7 +82,7 @@ export function OrderList({
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// DAFTAR ORDER"}
+        {"DAFTAR ORDER"}
       </div>
       <form className="flex flex-wrap items-center gap-2 border-b border-console-border p-3.5" action="/app/fb">
         <input type="hidden" name="tab" value="orders" />

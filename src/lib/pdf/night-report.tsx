@@ -210,7 +210,7 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// AUDIT"}</Text>
+          <Text style={styles.blockHeader}>{"AUDIT"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Audit ID" value={`#${audit.id}`} />
             <Field label="Business Date" value={dateLabel(audit.businessDate)} />
@@ -220,7 +220,7 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// OCCUPANCY"}</Text>
+          <Text style={styles.blockHeader}>{"OCCUPANCY"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Occupancy Rate" value={percentLabel(audit.occupancyRate)} />
             <Field
@@ -231,7 +231,7 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// MOVEMENT"}</Text>
+          <Text style={styles.blockHeader}>{"MOVEMENT"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Check-in" value={String(audit.checkInCount)} />
             <Field label="Check-out" value={String(audit.checkOutCount)} />
@@ -240,7 +240,7 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// REVENUE BREAKDOWN"}</Text>
+          <Text style={styles.blockHeader}>{"REVENUE BREAKDOWN"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <TableRow

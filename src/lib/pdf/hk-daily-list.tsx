@@ -243,7 +243,6 @@ function Section({
   return (
     <View style={styles.section}>
       <Text style={styles.sectionHeader}>
-        {"// "}
         {title} <Text style={styles.sectionMeta}>- {count} kamar</Text>
       </Text>
       {rows.length === 0 ? (

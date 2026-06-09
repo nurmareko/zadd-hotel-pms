@@ -317,7 +317,7 @@ export function MenuTable({ items }: MenuTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Tambah Menu"}
+              {"Tambah Menu"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Buat menu untuk flow order F&amp;B.
@@ -343,7 +343,7 @@ export function MenuTable({ items }: MenuTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Edit Menu"}
+              {"Edit Menu"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Perbarui detail menu yang tampil untuk pengguna F&amp;B.

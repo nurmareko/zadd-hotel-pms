@@ -57,7 +57,7 @@ export function AccountCard({
   return (
     <section className="overflow-hidden border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// AKUN"}
+        {"AKUN"}
       </div>
       <dl className="px-3.5 py-2">
         <InfoRow label="Nama Lengkap" value={fullName} />

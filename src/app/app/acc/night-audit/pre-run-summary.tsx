@@ -69,7 +69,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// PRE-RUN SUMMARY"}
+          {"PRE-RUN SUMMARY"}
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
@@ -190,7 +190,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// POSTING ARTICLES"}
+          {"POSTING ARTICLES"}
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[720px] border-collapse text-[12px]">

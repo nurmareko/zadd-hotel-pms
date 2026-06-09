@@ -90,7 +90,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       <section className="border border-console-border bg-console-surface">
         <div className="flex flex-col gap-3 bg-console-ink px-3.5 py-3 text-console-accent sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.08em]">
-            {"// Tipe Kamar"}
+            {"Tipe Kamar"}
           </h2>
           <AddRoomTypeButton onClick={() => setCreateOpen(true)} />
         </div>
@@ -166,7 +166,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Tambah Tipe Kamar"}
+              {"Tambah Tipe Kamar"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Buat tipe kamar untuk inventory dan reservasi.
@@ -192,7 +192,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Edit Tipe Kamar"}
+              {"Edit Tipe Kamar"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Perbarui detail tipe kamar dan tarif default.

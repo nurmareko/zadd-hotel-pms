@@ -58,7 +58,6 @@ function Section({
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// "}
         {title}
       </div>
       <div className="p-3.5">{children}</div>
@@ -281,7 +280,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
         <aside className="space-y-3">
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Preview"}
+              {"Preview"}
             </div>
             <div className="p-3.5 text-[12px]">
               <div className="border border-console-border-soft bg-console-bg p-2.5">

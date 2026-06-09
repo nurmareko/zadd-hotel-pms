@@ -338,7 +338,7 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// ORDER"}</Text>
+          <Text style={styles.blockHeader}>{"ORDER"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Order #" value={order.orderNo} />
             <Field label="Meja" value={tableNo} />
@@ -349,7 +349,7 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// ITEMIZED BILL"}</Text>
+          <Text style={styles.blockHeader}>{"ITEMIZED BILL"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
@@ -398,7 +398,7 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
 
         {receipt ? (
           <View style={styles.block}>
-            <Text style={styles.blockHeader}>{"// PAYMENT"}</Text>
+            <Text style={styles.blockHeader}>{"PAYMENT"}</Text>
             <View style={styles.blockBody}>
               <SummaryRow
                 label="Metode"

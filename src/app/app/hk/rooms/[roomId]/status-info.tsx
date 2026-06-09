@@ -70,7 +70,7 @@ export function StatusInfo({
     <section className="border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// Status Saat Ini"}
+          {"Status Saat Ini"}
         </h2>
       </div>
       <dl className="p-3.5">

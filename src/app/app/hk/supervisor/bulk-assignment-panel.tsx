@@ -318,7 +318,7 @@ export function BulkAssignmentPanel({
       <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3 py-3 text-console-accent xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h2 className="text-[12px] font-bold uppercase tracking-[0.08em]">
-            {"// "}Penugasan massal
+            Penugasan massal
           </h2>
           <p className="mt-1 text-[11px] text-slate-300">
             {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal

@@ -15,7 +15,7 @@ export function ActiveCleaningPanel({
     <section className="border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// Pembersihan Berlangsung"}
+          {"Pembersihan Berlangsung"}
         </h2>
       </div>
       <div className="space-y-3.5 p-3.5">

@@ -81,7 +81,7 @@ function FolioPendingState() {
       </div>
       <section className="max-w-6xl border border-console-border bg-console-surface">
         <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// Folio"}
+          {"Folio"}
         </div>
         <p className="p-3.5 text-[12px] text-slate-500">
           Folio dibuat saat check-in.

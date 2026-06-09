@@ -52,7 +52,7 @@ export function OrderCart({ order, settings }: OrderCartProps) {
     <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
       <div className="border-b border-console-border bg-console-ink px-3.5 py-2">
         <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// KERANJANG ORDER"}
+          {"KERANJANG ORDER"}
         </div>
         <div className="mt-1 text-[11px] text-slate-300">
           {order.locationLabel} · {order.guestCount} pax · {order.orderNo}

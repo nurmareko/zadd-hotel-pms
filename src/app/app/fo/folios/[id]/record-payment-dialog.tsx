@@ -142,7 +142,7 @@ export function RecordPaymentDialog({
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Catat Pembayaran"}
+              {"Catat Pembayaran"}
             </DialogTitle>
           </DialogHeader>
 

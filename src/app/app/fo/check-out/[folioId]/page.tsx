@@ -192,7 +192,7 @@ function PreviewBill({
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// Preview Bill"}
+        {"Preview Bill"}
       </div>
       <div className="p-3.5 text-[12px]">
         <div className="border-b border-dashed border-slate-300 pb-2 text-center">

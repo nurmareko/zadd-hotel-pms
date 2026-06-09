@@ -196,7 +196,7 @@ export function Grc({
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// RESERVATION"}</Text>
+          <Text style={styles.blockHeader}>{"RESERVATION"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Reservation No" value={reservation.reservationNo} />
             <Field label="Folio No" value={folio?.folioNo ?? "-"} />
@@ -224,7 +224,7 @@ export function Grc({
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// GUEST"}</Text>
+          <Text style={styles.blockHeader}>{"GUEST"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Full Name" value={guest.fullName} />
             <Field label="ID Number" value={guest.idNumber ?? "-"} />
@@ -235,7 +235,7 @@ export function Grc({
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// STAY DETAILS"}</Text>
+          <Text style={styles.blockHeader}>{"STAY DETAILS"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Room" value={roomNumber} />
             <Field label="Room Type" value={roomType.name} />
@@ -249,7 +249,7 @@ export function Grc({
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"// GRC METADATA"}</Text>
+          <Text style={styles.blockHeader}>{"GRC METADATA"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field
               label="Purpose of Visit"

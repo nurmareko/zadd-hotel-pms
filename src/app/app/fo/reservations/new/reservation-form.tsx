@@ -707,7 +707,7 @@ export function ReservationForm({
         <aside className="flex min-w-0 flex-col gap-3">
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Ringkasan Tarif"}
+              {"Ringkasan Tarif"}
             </div>
             <div className="p-3.5">
               <SummaryRow
@@ -748,7 +748,7 @@ export function ReservationForm({
 
           <section className="border border-console-border bg-console-surface">
             <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Ketersediaan"}
+              {"Ketersediaan"}
             </div>
             <div className="p-3.5 text-[13px]">
               <div className="flex items-center gap-2 bg-status-vc-bg px-2.5 py-2 font-medium text-status-vc-fg">

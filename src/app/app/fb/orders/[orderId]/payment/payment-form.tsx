@@ -309,7 +309,7 @@ export function PaymentForm({
     return (
       <section className="border border-status-vc-pip bg-status-vc-bg">
         <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// PEMBAYARAN SELESAI"}
+          {"PEMBAYARAN SELESAI"}
         </div>
         <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg">
           <div>
@@ -387,7 +387,7 @@ export function PaymentForm({
   return (
     <section className="border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// METODE PEMBAYARAN"}
+        {"METODE PEMBAYARAN"}
       </div>
 
       <div className="grid gap-3 p-3.5">

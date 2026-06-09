@@ -106,7 +106,7 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
   return (
     <section className="min-w-0 border border-console-border bg-console-surface">
       <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// Tamu"}
+        {"Tamu"}
       </div>
       <div className="p-3.5 text-[13px]">
         <div className="flex items-start justify-between gap-3">

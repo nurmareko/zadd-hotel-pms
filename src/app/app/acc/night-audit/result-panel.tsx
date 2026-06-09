@@ -22,7 +22,7 @@ export function ResultPanel({ summary }: ResultPanelProps) {
   return (
     <section className="border border-status-vc-pip bg-status-vc-bg">
       <div className="border-b border-status-vc-pip bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// NIGHT AUDIT SELESAI"}
+        {"NIGHT AUDIT SELESAI"}
       </div>
       <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>

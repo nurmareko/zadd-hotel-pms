@@ -188,7 +188,7 @@ export default async function HkSupervisorPage({
 
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Status Live
+          Status Live
         </div>
         <div className="grid grid-cols-3 gap-3">
           <ForecastCard
@@ -213,7 +213,6 @@ export default async function HkSupervisorPage({
 
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}
           {dateISO} forecast beban kerja
         </div>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
@@ -252,7 +251,7 @@ export default async function HkSupervisorPage({
 
       <section className="mb-4 border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Beban housekeeper
+          Beban housekeeper
         </div>
         <div className="grid gap-2 p-3 md:grid-cols-3">
           {housekeepers.map((housekeeper) => (

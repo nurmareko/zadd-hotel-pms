@@ -102,7 +102,7 @@ export function HousekeeperWorkPanel({
 
   return (
     <section className="border border-console-border bg-console-surface">
-      <CardHeader>{"// Tugas Housekeeper"}</CardHeader>
+      <CardHeader>{"Tugas Housekeeper"}</CardHeader>
       <div className="space-y-3.5 p-3.5">
         {workContext ? (
           <div className="border border-console-border-soft bg-console-bg p-3">

@@ -61,7 +61,7 @@ export default async function LoginPage() {
           <div className="border border-console-border bg-console-surface">
             <div className="border-b border-console-border bg-console-ink px-5 py-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-                {"// Login"}
+                {"Login"}
               </p>
             </div>
             <div className="px-5 py-6 sm:px-7 sm:py-7">

@@ -54,7 +54,7 @@ export function MenuBrowse({
     <section className="border border-console-border bg-console-surface">
       <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3.5 py-2 md:flex-row md:items-center md:justify-between">
         <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// PILIH MENU"}
+          {"PILIH MENU"}
         </div>
         <div className="relative w-full md:max-w-[240px]">
           <Search

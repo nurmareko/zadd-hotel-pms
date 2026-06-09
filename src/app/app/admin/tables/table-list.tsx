@@ -348,7 +348,7 @@ export function RestaurantTableList({
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Tambah Meja"}
+              {"Tambah Meja"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Buat meja restoran untuk floor plan F&amp;B.
@@ -374,7 +374,7 @@ export function RestaurantTableList({
         <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
           <DialogHeader className="bg-console-ink px-3.5 py-3">
             <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"// Edit Meja"}
+              {"Edit Meja"}
             </DialogTitle>
             <DialogDescription className="text-[11px] text-slate-400">
               Perbarui detail meja dan status operasionalnya.

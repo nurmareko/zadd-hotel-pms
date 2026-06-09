@@ -115,7 +115,7 @@ function ClosedState({
   return (
     <section className="border border-status-vc-pip bg-status-vc-bg">
       <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"// SUDAH DIBAYAR"}
+        {"SUDAH DIBAYAR"}
       </div>
       <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg">
         <div>
@@ -316,7 +316,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
 
         <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:self-start">
           <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"// RINGKASAN BILL"}
+            {"RINGKASAN BILL"}
           </div>
           <div className="p-3.5 text-[12px]">
             <SummaryRow

@@ -16,7 +16,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
     <section className="mb-4 border border-console-border bg-console-surface">
       <div className="flex items-center justify-between border-b border-console-border bg-console-ink px-3 py-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"// "}Menunggu inspeksi
+          Menunggu inspeksi
         </span>
         <span className="num text-[11px] font-bold text-console-accent">
           {rooms.length}
