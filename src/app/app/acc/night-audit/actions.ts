@@ -4,8 +4,13 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { buildNightAuditPlan } from "@/lib/night-audit";
+import {
+  buildAuditStayChargeLines,
+  buildNightAuditPlan,
+  type NightAuditLineItemInput,
+} from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
 
 import { RunNightAuditSchema } from "./schema";
 
@@ -94,25 +99,98 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
     };
   }
 
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      let transactionWriteCount = 0;
+  const now = new Date();
+  const roomArticleId = plan.stayChargeArticles.find(
+    (article) => article.code === ROOM_CHARGE_ARTICLE_CODE,
+  )?.id;
 
-      if (plan.lineItemsToCreate.length > 0) {
-        await tx.folioLineItem.createMany({
-          data: plan.lineItemsToCreate,
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const lineItemsToCreate: NightAuditLineItemInput[] = [];
+        const chargedFolioIds = new Set<number>();
+
+        // Re-read each open folio's line items inside the transaction and post
+        // only the shortfall, so a check-out catch-up that posted a night
+        // between plan and commit cannot be double-posted here.
+        for (const reservation of plan.stayChargeReservations) {
+          const folio = await tx.folio.findUnique({
+            where: { id: reservation.folioId },
+            select: {
+              status: true,
+              lineItems: { select: { articleId: true } },
+            },
+          });
+
+          // Skip folios closed (e.g. checked out) between plan and commit.
+          if (!folio || folio.status !== "OPEN") {
+            continue;
+          }
+
+          const lines = buildAuditStayChargeLines({
+            reservation,
+            existingLineItems: folio.lineItems,
+            articles: plan.stayChargeArticles,
+            businessDate: plan.businessDate,
+            postedById: userId,
+            postedAt: now,
+            label: plan.postingLabel,
+          });
+
+          if (lines.length > 0) {
+            chargedFolioIds.add(reservation.folioId);
+            lineItemsToCreate.push(...lines);
+          }
+        }
+
+        let transactionWriteCount = 0;
+
+        if (lineItemsToCreate.length > 0) {
+          await tx.folioLineItem.createMany({ data: lineItemsToCreate });
+          transactionWriteCount += 1;
+        }
+
+        // Snapshot revenue reflects what was actually posted, not the plan's
+        // projection (which can be larger if a catch-up posted a night first).
+        const roomRevenue = lineItemsToCreate
+          .filter((line) => line.articleId === roomArticleId)
+          .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+        const inclusionRevenue = lineItemsToCreate
+          .filter((line) => line.articleId !== roomArticleId)
+          .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+        const fbRevenue = inclusionRevenue.plus(
+          new Prisma.Decimal(plan.closedFbRevenue),
+        );
+        const totalRevenue = roomRevenue
+          .plus(fbRevenue)
+          .plus(plan.snapshot.otherRevenue);
+
+        const audit = await tx.nightAudit.create({
+          data: {
+            ...plan.snapshot,
+            roomRevenue,
+            fbRevenue,
+            totalRevenue,
+          },
+          select: { id: true },
         });
         transactionWriteCount += 1;
-      }
 
-      const audit = await tx.nightAudit.create({
-        data: plan.snapshot,
-        select: { id: true },
-      });
-      transactionWriteCount += 1;
-
-      return { auditId: audit.id, transactionWriteCount };
-    }, TRANSACTION_OPTIONS);
+        return {
+          auditId: audit.id,
+          transactionWriteCount,
+          lineItemsPosted: lineItemsToCreate.length,
+          roomsCharged: chargedFolioIds.size,
+          roomRevenue: roomRevenue.toString(),
+          fbRevenue: fbRevenue.toString(),
+          totalRevenue: totalRevenue.toString(),
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
 
     revalidateNightAuditPaths(
       plan.affectedFolioIds,
@@ -124,12 +202,12 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
       summary: {
         auditId: result.auditId,
         businessDateLabel: plan.businessDateLabel,
-        roomsCharged: plan.roomChargeCount,
-        lineItemsPosted: plan.lineItemCount,
-        roomRevenue: plan.roomRevenue,
-        fbRevenue: plan.fbRevenue,
+        roomsCharged: result.roomsCharged,
+        lineItemsPosted: result.lineItemsPosted,
+        roomRevenue: result.roomRevenue,
+        fbRevenue: result.fbRevenue,
         otherRevenue: plan.otherRevenue,
-        totalRevenue: plan.totalRevenue,
+        totalRevenue: result.totalRevenue,
         warnings: plan.warnings,
         transactionWriteCount: result.transactionWriteCount,
       },

@@ -10,8 +10,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import {
+  postPendingStayCharges,
+  STAY_CHARGE_ARTICLE_CODES,
+  type StayChargeArticle,
+} from "@/lib/stay-charges";
 import { PaymentSchema } from "../../folios/[id]/schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -42,6 +48,13 @@ async function canManageFoCheckout() {
   return Number(session.user.id);
 }
 
+function fetchStayChargeArticles(): Promise<StayChargeArticle[]> {
+  return prisma.article.findMany({
+    where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+    select: { id: true, code: true, name: true, type: true, defaultPrice: true },
+  });
+}
+
 export async function recordFinalPayment(
   formData: FormData,
 ): Promise<ActionResult> {
@@ -57,16 +70,24 @@ export async function recordFinalPayment(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const [folio, settings] = await Promise.all([
+  const [folio, settings, stayChargeArticles] = await Promise.all([
     prisma.folio.findUnique({
       where: { id: parsed.data.folioId },
       include: {
-        reservation: { select: { status: true } },
+        reservation: {
+          select: {
+            status: true,
+            arrangementType: true,
+            rateAmount: true,
+            arrivalDate: true,
+          },
+        },
         lineItems: { include: { article: true } },
         payments: true,
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+    fetchStayChargeArticles(),
   ]);
 
   if (!folio) {
@@ -88,7 +109,24 @@ export async function recordFinalPayment(
     };
   }
 
-  const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
+  // Post any room charges the night audit has not yet posted for the nights
+  // already stayed, so the final payment can settle the true amount owed even
+  // when check-out happens before the night audit runs.
+  await postPendingStayCharges({
+    folioId: folio.id,
+    arrangementType: folio.reservation.arrangementType,
+    rateAmount: folio.reservation.rateAmount,
+    arrivalDate: folio.reservation.arrivalDate,
+    articles: stayChargeArticles,
+    postedById: userId,
+  });
+
+  const lineItems = await prisma.folioLineItem.findMany({
+    where: { folioId: folio.id },
+    include: { article: true },
+  });
+
+  const totals = computeFolioTotals(lineItems, folio.payments, settings);
   const roundedBalance = Math.round(totals.balance);
 
   if (roundedBalance <= 0) {
@@ -135,7 +173,7 @@ export async function completeCheckout(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const [folio, settings] = await Promise.all([
+  const [folio, settings, stayChargeArticles] = await Promise.all([
     prisma.folio.findUnique({
       where: { id: parsed.data.folioId },
       include: {
@@ -149,6 +187,7 @@ export async function completeCheckout(
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+    fetchStayChargeArticles(),
   ]);
 
   if (!folio) {
@@ -183,12 +222,35 @@ export async function completeCheckout(
     };
   }
 
-  const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
+  // Post any room charges the night audit has not yet posted for the nights
+  // already stayed before judging the balance. Persisted up front (not inside
+  // the close transaction) so a blocked check-out still surfaces the true
+  // outstanding balance on the folio for staff to settle.
+  await postPendingStayCharges({
+    folioId: folio.id,
+    arrangementType: folio.reservation.arrangementType,
+    rateAmount: folio.reservation.rateAmount,
+    arrivalDate: folio.reservation.arrivalDate,
+    articles: stayChargeArticles,
+    postedById: userId,
+  });
+
+  const lineItems = await prisma.folioLineItem.findMany({
+    where: { folioId: folio.id },
+    include: { article: true },
+  });
+
+  const totals = computeFolioTotals(lineItems, folio.payments, settings);
 
   if (Math.round(totals.balance) > 0) {
+    revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
+    revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
+
     return {
       ok: false,
-      error: "Saldo masih belum lunas. Catat pembayaran final dahulu.",
+      error: `Saldo masih belum lunas (${formatIDR(
+        totals.balance,
+      )}). Catat pembayaran final dahulu.`,
     };
   }
 
