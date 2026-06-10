@@ -18,6 +18,11 @@ import {
 import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
+import {
+  buildPendingStayChargeLines,
+  type PendingStayChargeLine,
+  STAY_CHARGE_ARTICLE_CODES,
+} from "@/lib/stay-charges";
 import { CompleteCheckoutForm, FinalPaymentForm } from "./checkout-forms";
 
 export const dynamic = "force-dynamic";
@@ -184,10 +189,12 @@ function PreviewBill({
   folio,
   settings,
   totals,
+  pendingLines,
 }: {
   folio: PreviewFolio;
   settings: PreviewSettings;
   totals: ReturnType<typeof computeFolioTotals>;
+  pendingLines: PendingStayChargeLine[];
 }) {
   return (
     <section className="border border-console-border bg-console-surface">
@@ -225,6 +232,13 @@ function PreviewBill({
               key={lineItem.id}
               label={descriptionLabel(lineItem)}
               value={formatIDR(lineItem.amount.toString())}
+            />
+          ))}
+          {pendingLines.map((line, index) => (
+            <SummaryRow
+              key={`pending-${index}`}
+              label={`${line.description} (belum diposting)`}
+              value={formatIDR(line.amount.toString())}
             />
           ))}
           <SummaryRow
@@ -287,7 +301,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
     notFound();
   }
 
-  const [folio, settings] = await Promise.all([
+  const [folio, settings, stayChargeArticles] = await Promise.all([
     prisma.folio.findUnique({
       where: { id: parsedFolioId },
       include: {
@@ -310,6 +324,10 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+    prisma.article.findMany({
+      where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+      select: { id: true, code: true, name: true, type: true, defaultPrice: true },
+    }),
   ]);
 
   if (!folio) {
@@ -330,11 +348,32 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
     );
   }
 
-  const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
   const isClosed = folio.status === FolioStatus.CLOSED;
   const isCheckoutAllowed =
     folio.status === FolioStatus.OPEN &&
     folio.reservation.status === ReservationStatus.CHECKED_IN;
+
+  // Project the stay charges the night audit has not yet posted for the nights
+  // already stayed, so the screen shows the true amount owed (and disables
+  // check-out) even before the night audit runs. The check-out actions post
+  // these for real before judging the balance server-side.
+  const pendingStayCharges = isCheckoutAllowed
+    ? buildPendingStayChargeLines({
+        arrangementType: folio.reservation.arrangementType,
+        rateAmount: folio.reservation.rateAmount,
+        arrivalDate: folio.reservation.arrivalDate,
+        lineItems: folio.lineItems,
+        articles: stayChargeArticles,
+      })
+    : [];
+
+  const totals = computeFolioTotals(
+    [...folio.lineItems, ...pendingStayCharges] as Parameters<
+      typeof computeFolioTotals
+    >[0],
+    folio.payments,
+    settings,
+  );
   const balanceState = folioBalanceState(totals.balance);
   const hasBalanceDue = balanceState === "due";
 
@@ -452,7 +491,12 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
         </div>
 
         <aside className="min-w-0">
-          <PreviewBill folio={folio} settings={settings} totals={totals} />
+          <PreviewBill
+            folio={folio}
+            settings={settings}
+            totals={totals}
+            pendingLines={pendingStayCharges}
+          />
         </aside>
       </div>
     </main>

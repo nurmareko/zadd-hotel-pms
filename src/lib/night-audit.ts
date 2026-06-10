@@ -11,38 +11,48 @@ import { addDays } from "date-fns";
 import { dateOnlyBoundary, hotelTodayTimestampRange } from "@/lib/date-only";
 import { formatISODate, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import {
+  ARRANGEMENT_INCLUSION_CODES,
+  ROOM_CHARGE_ARTICLE_CODE,
+  stayChargeShortfallLines,
+  stayNightsThroughAuditDate,
+  STAY_CHARGE_ARTICLE_CODES,
+  type StayChargeArticle,
+  type StayChargeArticleCode,
+} from "@/lib/stay-charges";
 
-export const NIGHT_AUDIT_POSTING_ARTICLE_CODES = [
-  "ROOM-CHARGE",
-  "BREAKFAST",
-  "COFFEE-BREAK",
-  "LUNCH",
-  "DINNER",
-] as const;
-
-export type NightAuditPostingArticleCode =
-  (typeof NIGHT_AUDIT_POSTING_ARTICLE_CODES)[number];
-
-const ARRANGEMENT_INCLUSION_CODES: Record<
-  ArrangementType,
-  NightAuditPostingArticleCode[]
-> = {
-  [ArrangementType.RO]: [],
-  [ArrangementType.RB]: ["BREAKFAST"],
-  [ArrangementType.FBM]: ["BREAKFAST", "COFFEE-BREAK", "LUNCH", "DINNER"],
-};
+// Re-exported under the night-audit name for the article codes/preview API.
+const NIGHT_AUDIT_POSTING_ARTICLE_CODES = STAY_CHARGE_ARTICLE_CODES;
+type NightAuditPostingArticleCode = StayChargeArticleCode;
 
 const ZERO = new Prisma.Decimal(0);
-const ONE = new Prisma.Decimal(1);
 
 type NightAuditReservation = {
   id: number;
   reservationNo: string;
   arrangementType: ArrangementType;
   rateAmount: Prisma.Decimal | null;
+  arrivalDate: Date;
   guest: { fullName: string };
   room: { number: string } | null;
-  folio: { id: number; folioNo: string; status: FolioStatus } | null;
+  folio: {
+    id: number;
+    folioNo: string;
+    status: FolioStatus;
+    lineItems: { articleId: number }[];
+  } | null;
+};
+
+/**
+ * The per-reservation data needed to recompute and post stay-charge shortfalls
+ * inside the commit transaction (race-safe re-read), independent of the preview
+ * line items the plan also builds.
+ */
+export type NightAuditStayChargeReservation = {
+  folioId: number;
+  arrangementType: ArrangementType;
+  rateAmount: Prisma.Decimal | null;
+  arrivalDate: Date;
 };
 
 export type NightAuditLineItemInput = {
@@ -129,11 +139,14 @@ export type NightAuditPlan = {
     checkOutCount: number;
     inHouseCount: number;
   };
+  postingLabel: string;
   postingArticles: NightAuditPostingArticlePreview[];
   reservations: NightAuditPreviewReservation[];
   warnings: string[];
   blockingErrors: string[];
   lineItemsToCreate: NightAuditLineItemInput[];
+  stayChargeReservations: NightAuditStayChargeReservation[];
+  stayChargeArticles: StayChargeArticle[];
   snapshot: NightAuditSnapshotInput;
   affectedFolioIds: number[];
   affectedReservationIds: number[];
@@ -259,15 +272,74 @@ function validateReservations(reservations: NightAuditReservation[]) {
   return { blockingErrors, warnings };
 }
 
+/**
+ * Stay-charge line items the night audit should post for one reservation on
+ * `businessDate`, computed as the shortfall against what is already on the folio
+ * (room charge + arrangement inclusions). Shared by the plan/preview (fed the
+ * line items read up front) and the commit transaction (fed the line items
+ * re-read inside the txn), so both are idempotent and identical in logic. A
+ * normal nightly run yields exactly one night per article; a night the check-out
+ * catch-up already posted yields zero.
+ */
+export function buildAuditStayChargeLines({
+  reservation,
+  existingLineItems,
+  articles,
+  businessDate,
+  postedById,
+  postedAt,
+  label,
+}: {
+  reservation: NightAuditStayChargeReservation;
+  existingLineItems: { articleId: number }[];
+  articles: StayChargeArticle[];
+  businessDate: Date;
+  postedById: number;
+  postedAt: Date;
+  label: string;
+}): NightAuditLineItemInput[] {
+  const roomArticleId = articles.find(
+    (article) => article.code === ROOM_CHARGE_ARTICLE_CODE,
+  )?.id;
+
+  const shortfall = stayChargeShortfallLines({
+    arrangementType: reservation.arrangementType,
+    rateAmount: reservation.rateAmount,
+    expectedNights: stayNightsThroughAuditDate(
+      reservation.arrivalDate,
+      businessDate,
+    ),
+    lineItems: existingLineItems,
+    articles,
+  });
+
+  return shortfall.map((line) => ({
+    folioId: reservation.folioId,
+    articleId: line.articleId,
+    fbOrderId: null,
+    description:
+      line.articleId === roomArticleId
+        ? `Night Audit Room Charge - ${label}`
+        : `Night Audit ${line.article.name} Inclusion - ${label}`,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    amount: line.amount,
+    postedById,
+    postedAt,
+  }));
+}
+
 function buildLineItems({
   reservations,
-  articleByCode,
+  articles,
+  businessDate,
   postedById,
   postedAt,
   label,
 }: {
   reservations: NightAuditReservation[];
-  articleByCode: Map<string, Awaited<ReturnType<typeof prisma.article.findMany>>[number]>;
+  articles: StayChargeArticle[];
+  businessDate: Date;
   postedById: number;
   postedAt: Date;
   label: string;
@@ -275,53 +347,31 @@ function buildLineItems({
   const lineItems: NightAuditLineItemInput[] = [];
   const previews: NightAuditPreviewReservation[] = [];
 
-  const roomChargeArticle = articleByCode.get("ROOM-CHARGE");
-
-  if (!roomChargeArticle) {
-    return { lineItems, previews };
-  }
-
   for (const reservation of reservations) {
     if (!reservation.folio || reservation.folio.status !== FolioStatus.OPEN) {
       continue;
     }
 
     const folio = reservation.folio;
-    const reservationLineItems: NightAuditLineItemInput[] = [];
-    const roomCharge = safeRateAmount(reservation);
-
-    reservationLineItems.push({
-      folioId: folio.id,
-      articleId: roomChargeArticle.id,
-      fbOrderId: null,
-      description: `Night Audit Room Charge - ${label}`,
-      quantity: ONE,
-      unitPrice: roomCharge,
-      amount: roomCharge,
+    const reservationLineItems = buildAuditStayChargeLines({
+      reservation: {
+        folioId: folio.id,
+        arrangementType: reservation.arrangementType,
+        rateAmount: reservation.rateAmount,
+        arrivalDate: reservation.arrivalDate,
+      },
+      existingLineItems: folio.lineItems,
+      articles,
+      businessDate,
       postedById,
       postedAt,
+      label,
     });
 
-    for (const code of ARRANGEMENT_INCLUSION_CODES[reservation.arrangementType]) {
-      const article = articleByCode.get(code);
-
-      if (!article || article.defaultPrice === null) {
-        continue;
-      }
-
-      const amount = decimal(article.defaultPrice);
-
-      reservationLineItems.push({
-        folioId: folio.id,
-        articleId: article.id,
-        fbOrderId: null,
-        description: `Night Audit ${article.name} Inclusion - ${label}`,
-        quantity: ONE,
-        unitPrice: amount,
-        amount,
-        postedById,
-        postedAt,
-      });
+    // Folio already current for this business date (e.g. check-out catch-up
+    // posted the night first): nothing to post, omit from the preview.
+    if (reservationLineItems.length === 0) {
+      continue;
     }
 
     lineItems.push(...reservationLineItems);
@@ -332,7 +382,7 @@ function buildLineItems({
       roomNumber: reservation.room?.number ?? "-",
       folioNo: folio.folioNo,
       arrangementType: reservation.arrangementType,
-      rateAmount: roomCharge.toString(),
+      rateAmount: safeRateAmount(reservation).toString(),
       lineItemCount: reservationLineItems.length,
       postingTotal: addDecimal(
         reservationLineItems.map((lineItem) => lineItem.amount),
@@ -382,9 +432,17 @@ export async function buildNightAuditPlan({
         reservationNo: true,
         arrangementType: true,
         rateAmount: true,
+        arrivalDate: true,
         guest: { select: { fullName: true } },
         room: { select: { number: true } },
-        folio: { select: { id: true, folioNo: true, status: true } },
+        folio: {
+          select: {
+            id: true,
+            folioNo: true,
+            status: true,
+            lineItems: { select: { articleId: true } },
+          },
+        },
       },
     }),
     prisma.article.findMany({
@@ -436,24 +494,22 @@ export async function buildNightAuditPlan({
     validateReservations(reservations);
   const { lineItems, previews } = buildLineItems({
     reservations,
-    articleByCode,
+    articles,
+    businessDate,
     postedById: runById,
     postedAt: now,
     label: postingLabel,
   });
 
+  const roomArticleId = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE)?.id;
   const roomRevenue = addDecimal(
     lineItems
-      .filter(
-        (lineItem) => lineItem.articleId === articleByCode.get("ROOM-CHARGE")?.id,
-      )
+      .filter((lineItem) => lineItem.articleId === roomArticleId)
       .map((lineItem) => lineItem.amount),
   );
   const fbInclusionRevenue = addDecimal(
     lineItems
-      .filter(
-        (lineItem) => lineItem.articleId !== articleByCode.get("ROOM-CHARGE")?.id,
-      )
+      .filter((lineItem) => lineItem.articleId !== roomArticleId)
       .map((lineItem) => lineItem.amount),
   );
   const closedFbOrderRevenue = decimal(closedFbRevenue._sum.total);
@@ -492,6 +548,26 @@ export async function buildNightAuditPlan({
     ),
   ];
 
+  const roomLineCount = lineItems.filter(
+    (lineItem) => lineItem.articleId === roomArticleId,
+  ).length;
+
+  // Every in-house reservation with an open folio is a candidate for posting;
+  // the commit transaction re-reads each folio's line items and recomputes the
+  // shortfall, so a concurrent check-out catch-up cannot cause a double.
+  const stayChargeReservations: NightAuditStayChargeReservation[] = reservations
+    .filter(
+      (reservation) =>
+        reservation.folio !== null &&
+        reservation.folio.status === FolioStatus.OPEN,
+    )
+    .map((reservation) => ({
+      folioId: reservation.folio!.id,
+      arrangementType: reservation.arrangementType,
+      rateAmount: reservation.rateAmount,
+      arrivalDate: reservation.arrivalDate,
+    }));
+
   return {
     businessDate,
     businessDateLabel: businessDateLabel(businessDate),
@@ -517,7 +593,7 @@ export async function buildNightAuditPlan({
     inHouseCount: reservations.length,
     lineItemCount: lineItems.length,
     roomChargeCount: previews.length,
-    inclusionCount: lineItems.length - previews.length,
+    inclusionCount: lineItems.length - roomLineCount,
     roomRevenue: roomRevenue.toString(),
     fbInclusionRevenue: fbInclusionRevenue.toString(),
     closedFbRevenue: closedFbOrderRevenue.toString(),
@@ -532,11 +608,14 @@ export async function buildNightAuditPlan({
       checkOutCount,
       inHouseCount: reservations.length,
     },
+    postingLabel,
     postingArticles: buildPostingArticlesPreview(articleByCode),
     reservations: previews,
     warnings,
     blockingErrors: [...articleErrors, ...reservationErrors],
     lineItemsToCreate: lineItems,
+    stayChargeReservations,
+    stayChargeArticles: articles,
     snapshot: {
       businessDate,
       runById,
