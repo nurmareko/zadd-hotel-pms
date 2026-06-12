@@ -6,12 +6,12 @@ import {
   ReservationUsageType,
   RoomStatus,
 } from "@prisma/client";
-import { format, formatISO } from "date-fns";
+import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { dateOnlyBoundary } from "@/lib/date-only";
+import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
@@ -211,7 +211,8 @@ async function runCreateReservationTransaction(
       }
 
       const now = new Date();
-      const reservationPrefix = `RSV-${format(now, "yyMMdd")}-`;
+      const reservationDatePart = hotelTodayISO(now).replace(/-/g, "").slice(2);
+      const reservationPrefix = `RSV-${reservationDatePart}-`;
       const reservationCount = await tx.reservation.count({
         where: { reservationNo: { startsWith: reservationPrefix } },
       });
