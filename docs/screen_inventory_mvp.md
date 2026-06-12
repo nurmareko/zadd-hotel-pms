@@ -1,4 +1,4 @@
-# Hotel PMS — MVP Screen Inventory
+# ZADD Hotel Management — MVP Screen Inventory
 
 Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 29 screens total across 4 operational modules + admin + shared.
 

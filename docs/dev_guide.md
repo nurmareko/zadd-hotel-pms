@@ -1,6 +1,6 @@
 # Dev Guide
 
-Cheat sheet for working on Hotel PMS. Keep this open in a tab.
+Cheat sheet for working on ZADD Hotel Management. Keep this open in a tab.
 
 If you're new to the project, read [onboarding.md](./onboarding.md) first. This file is for "I forgot how to do X" lookups.
 

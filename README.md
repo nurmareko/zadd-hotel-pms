@@ -1,4 +1,4 @@
-# ZADD Hotel PMS
+# ZADD Hotel Management
 
 **New to the project?** Start with [docs/onboarding.md](docs/onboarding.md).
 

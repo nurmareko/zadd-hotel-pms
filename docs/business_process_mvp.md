@@ -1,6 +1,6 @@
 # Business Processes (MVP)
 
-End-to-end business processes that the Hotel PMS supports. Each diagram is rendered with Mermaid — view inline on GitHub or paste into [mermaid.live](https://mermaid.live).
+End-to-end business processes that ZADD Hotel Management supports. Each diagram is rendered with Mermaid — view inline on GitHub or paste into [mermaid.live](https://mermaid.live).
 
 This document complements [use_case_narrative_mvp.md](./use_case_narrative_mvp.md) (what actors do) and [feature_list_mvp.md](./feature_list_mvp.md) (what the system implements). Where the use case narrative answers *who does what*, this document answers *in what order, with what decisions, across which modules*.
 

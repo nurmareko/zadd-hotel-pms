@@ -1,6 +1,6 @@
 # Design System
 
-Visual conventions for Hotel PMS, derived from the **Console** theme of our reference mockups.
+Visual conventions for ZADD Hotel Management, derived from the **Console** theme of our reference mockups.
 
 The Console direction is intentional: terminal-density, monospace everywhere, neon-on-dark sidebar. It reads as "professional internal tool" rather than consumer SaaS, fits the operational nature of a PMS, and ages well — utilitarian designs don't go out of fashion the way trend-driven ones do.
 

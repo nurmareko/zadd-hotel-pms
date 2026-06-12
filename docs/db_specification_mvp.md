@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the Hotel PMS MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
