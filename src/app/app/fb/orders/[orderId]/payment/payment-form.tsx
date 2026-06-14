@@ -55,6 +55,8 @@ type PaymentSuccess = {
   fullyPaid: boolean;
 };
 
+type PaymentItem = PaymentFormProps["items"][number];
+
 const methodOptions = [
   {
     value: PaymentMethod.CASH,
@@ -121,6 +123,14 @@ function methodLabel(method: PaymentMethod) {
   return option?.label ?? method;
 }
 
+function paymentItemGroupKey(item: PaymentItem) {
+  return [item.name, item.unitPrice, item.notes ?? ""].join("\u001f");
+}
+
+function formatGuestLabels(items: PaymentItem[]) {
+  return Array.from(new Set(items.map((item) => item.guestLabel))).join(", ");
+}
+
 function ResultMessage({ result }: { result: ChargeLookupResult }) {
   if (!result.ok) {
     return (
@@ -149,6 +159,36 @@ export function PaymentForm({
   settings,
   attachedRoomFolio = null,
 }: PaymentFormProps) {
+  const groupedItems = useMemo(() => {
+    const groups = new Map<
+      string,
+      PaymentItem & {
+        items: PaymentItem[];
+        totalQuantity: number;
+        guestLabels: string;
+      }
+    >();
+
+    for (const item of items) {
+      const key = paymentItemGroupKey(item);
+      const current = groups.get(key);
+
+      if (current) {
+        current.items.push(item);
+        current.totalQuantity += item.quantity;
+        current.guestLabels = formatGuestLabels(current.items);
+      } else {
+        groups.set(key, {
+          ...item,
+          items: [item],
+          totalQuantity: item.quantity,
+          guestLabels: item.guestLabel,
+        });
+      }
+    }
+
+    return Array.from(groups.values());
+  }, [items]);
   const [selectedQuantities, setSelectedQuantities] = useState(() =>
     Object.fromEntries(items.map((item) => [item.id, item.quantity])),
   );
@@ -205,6 +245,29 @@ export function PaymentForm({
     Boolean(attachedRoomFolio) ||
     lookupResult?.ok === true;
   const hasSelection = selectedItems.length > 0 && selectedTotal > 0;
+
+  function selectedGroupQuantity(groupItems: PaymentItem[]) {
+    return groupItems.reduce(
+      (sum, item) => sum + (selectedQuantities[item.id] ?? 0),
+      0,
+    );
+  }
+
+  function setSelectedGroupQuantity(groupItems: PaymentItem[], quantity: number) {
+    setSelectedQuantities((current) => {
+      let remainingQuantity = quantity;
+      const next = { ...current };
+
+      for (const item of groupItems) {
+        const itemQuantity = Math.min(item.quantity, remainingQuantity);
+
+        next[item.id] = itemQuantity;
+        remainingQuantity -= itemQuantity;
+      }
+
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (method !== PaymentMethod.CHARGE_TO_ROOM) {
@@ -429,20 +492,20 @@ export function PaymentForm({
             </div>
           </div>
           <div className="grid gap-2 p-3">
-            {items.map((item) => {
-              const quantity = selectedQuantities[item.id] ?? 0;
+            {groupedItems.map((item) => {
+              const quantity = selectedGroupQuantity(item.items);
 
               return (
                 <div
                   className="grid gap-2 border border-console-border bg-white p-2 text-[12px] sm:grid-cols-[minmax(0,1fr)_90px_120px]"
-                  key={item.id}
+                  key={paymentItemGroupKey(item)}
                 >
                   <div>
                     <div className="font-semibold text-console-ink">
                       {item.name}
                     </div>
                     <div className="mt-1 text-[11px] text-slate-500">
-                      {item.guestLabel} - Sisa {item.quantity} -{" "}
+                      {item.guestLabels} - Sisa {item.totalQuantity} -{" "}
                       {formatIDR(item.unitPrice)}
                     </div>
                     {item.notes ? (
@@ -453,18 +516,15 @@ export function PaymentForm({
                   </div>
                   <Input
                     className="h-8 rounded-none border-console-border bg-console-surface text-right text-[12px]"
-                    max={item.quantity}
+                    max={item.totalQuantity}
                     min={0}
                     onChange={(event) => {
                       const nextQuantity = Math.min(
-                        item.quantity,
+                        item.totalQuantity,
                         Math.max(0, Number(event.target.value || 0)),
                       );
 
-                      setSelectedQuantities((current) => ({
-                        ...current,
-                        [item.id]: nextQuantity,
-                      }));
+                      setSelectedGroupQuantity(item.items, nextQuantity);
                     }}
                     type="number"
                     value={quantity}
