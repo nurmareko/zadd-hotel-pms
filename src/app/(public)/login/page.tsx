@@ -13,19 +13,16 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-console-surface font-mono text-console-ink md:grid md:grid-cols-[45%_55%]">
-      <section className="relative hidden overflow-hidden bg-console-ink px-10 py-9 text-white md:flex md:flex-col md:justify-between lg:px-14">
-        <div
-          className="absolute inset-0 opacity-20"
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-inter text-slate-900 sm:p-8">
+      <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-slate-200/50 md:flex-row md:min-h-[600px]">
+        <section className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-900 px-10 py-12 text-white md:flex lg:px-12">
+          <div
+            className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(0,212,170,0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,0.22) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
+              "linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
           }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-x-0 top-0 h-px bg-console-accent"
           aria-hidden="true"
         />
 
@@ -33,52 +30,41 @@ export default async function LoginPage() {
           <BrandBlock />
         </div>
 
-        <div className="relative max-w-md">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-console-accent">
-            {"ZADD"}
-          </p>
-          <h1 className="text-[28px] font-bold uppercase leading-tight tracking-[0.04em]">
-            Hotel Management
+        <div className="relative max-w-md mt-16">
+          <h1 className="text-[32px] font-semibold leading-tight tracking-tight">
+            ZADD Hotel Management
           </h1>
-          <p className="mt-4 text-[12px] leading-6 text-slate-400">
-            Operational workspace untuk Front Office, Housekeeping, F&amp;B,
-            danAccounting.
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
+            A modern operational workspace designed specifically for hospitality professionals. 
+            Empowering Front Office, Housekeeping, F&B, and Accounting teams.
           </p>
         </div>
 
-        <div className="relative flex items-center justify-between border-t border-white/10 pt-5 text-[10px] uppercase tracking-[0.08em] text-slate-500">
-          <span>Secure Access</span>
-          <span>Role Based Workspace</span>
-        </div>
-      </section>
+          <div className="relative flex items-center justify-between border-t border-white/10 pt-6 text-[12px] font-medium text-slate-500">
+            <span>Secure Access</span>
+            <span>Role-Based Workspace</span>
+          </div>
+        </section>
 
-      <section className="flex min-h-screen items-center justify-center bg-console-bg px-5 py-8 sm:px-8 md:bg-console-surface">
-        <div className="w-full max-w-[420px]">
+        <section className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10 sm:py-16">
+          <div className="w-full max-w-[380px]">
           <div className="mb-8 md:hidden">
             <BrandBlock compact />
           </div>
 
-          <div className="border border-console-border bg-console-surface">
-            <div className="border-b border-console-border bg-console-ink px-5 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-                {"Login"}
+            <div className="mb-8 text-center">
+              <h2 className="text-[28px] font-semibold tracking-tight text-slate-900">
+                Welcome back
+              </h2>
+              <p className="mt-2 text-[15px] text-slate-500">
+                Sign in to your account to continue
               </p>
             </div>
-            <div className="px-5 py-6 sm:px-7 sm:py-7">
-              <div className="mb-6">
-                <h2 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-                  Masuk ke Akun Anda
-                </h2>
-                <p className="mt-2 text-[12px] leading-5 text-slate-500">
-                  Gunakan username dan password yang terdaftar.
-                </p>
-              </div>
 
-              <LoginForm />
-            </div>
+            <LoginForm />
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
@@ -87,24 +73,24 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="flex shrink-0 items-center justify-center border border-console-accent text-console-accent"
+        className="flex shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm"
         style={{
-          width: compact ? 32 : 36,
-          height: compact ? 32 : 36,
-          fontSize: compact ? 13 : 15,
-          fontWeight: 700,
+          width: compact ? 36 : 40,
+          height: compact ? 36 : 40,
+          fontSize: compact ? 16 : 18,
+          fontWeight: 600,
         }}
       >
         Z
       </div>
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[13px] font-medium text-slate-500">
           ZADD
         </div>
         <div
           className={[
-            "text-[17px] font-semibold leading-tight",
-            compact ? "text-console-ink" : "text-white",
+            "text-[16px] font-semibold leading-tight tracking-tight",
+            compact ? "text-slate-900" : "text-white",
           ].join(" ")}
         >
           Hotel Management

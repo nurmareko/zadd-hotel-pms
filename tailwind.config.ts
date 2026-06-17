@@ -43,6 +43,7 @@ const config = {
       fontFamily: {
         sans: monospaceStack,
         mono: monospaceStack,
+        inter: ["var(--font-inter)", "sans-serif"],
       },
     },
   },
