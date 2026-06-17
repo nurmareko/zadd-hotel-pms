@@ -37,9 +37,9 @@ function etaFromNotes(notes: string | null) {
 
 function HousekeeperDeniedPanel() {
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4">
+        <h2 className="text-[16px] font-semibold tracking-tight text-slate-900">
           {"Tugas Housekeeper"}
         </h2>
       </div>
@@ -200,7 +200,7 @@ export default async function HKRoomDetailPage({
       : null;
 
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
         <RoomHeader
           roomNumber={room.number}

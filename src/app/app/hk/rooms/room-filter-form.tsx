@@ -49,14 +49,14 @@ export function RoomFilterForm({
 
   return (
     <form
-      className="flex flex-wrap items-center gap-2 border-b border-console-border p-3.5"
+      className="flex flex-wrap items-center gap-2 border-b border-slate-200 p-3.5"
       onSubmit={(e) => e.preventDefault()}
     >
       <input type="hidden" name="date" value={dateIso} />
-      <div className="relative w-full sm:w-[200px]">
+      <div className="relative w-full sm:w-[240px]">
         <Search
           aria-hidden="true"
-          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
         />
         <input
           type="search"
@@ -64,14 +64,14 @@ export function RoomFilterForm({
           defaultValue={defaultQ}
           onChange={(e) => updateFilters("q", e.target.value, true)}
           placeholder="Cari kamar..."
-          className="h-8 w-full border border-slate-400 bg-console-surface pl-8 pr-2.5 text-[12px] font-medium text-console-ink outline-none placeholder:text-slate-400 focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]"
+          className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none"
         />
       </div>
       <select
         name="status"
         defaultValue={defaultStatus}
         onChange={(e) => updateFilters("status", e.target.value)}
-        className="h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)] sm:w-[150px]"
+        className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none sm:w-[180px]"
       >
         <option value="">Semua Status</option>
         <option value="VC">VC - Vacant Clean</option>
@@ -82,7 +82,7 @@ export function RoomFilterForm({
         <option value="OOO">OOO - Out of Order</option>
       </select>
       {isPending && (
-        <span className="text-[11px] text-slate-400 italic ml-2">Loading...</span>
+        <span className="text-xs text-slate-400 italic ml-2">Loading...</span>
       )}
     </form>
   );

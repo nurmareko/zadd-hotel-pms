@@ -9,6 +9,10 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
 import { formatDateWithWeekday, formatISODate } from "@/lib/format";
@@ -74,15 +78,15 @@ function ForecastCard({
   sub: string;
 }) {
   return (
-    <section className="border border-console-border bg-console-surface p-3.5">
-      <div className="text-[9.5px] font-semibold uppercase tracking-[0.10em] text-slate-600">
-        [ {label} ]
+    <Card className="rounded-2xl p-5 gap-2">
+      <div className="text-xs font-semibold tracking-tight text-muted-foreground uppercase">
+        {label}
       </div>
-      <div className="num mt-2 text-[22px] font-bold leading-tight text-console-ink">
+      <div className="num text-3xl font-bold leading-none text-foreground">
         {value}
       </div>
-      <div className="mt-1 text-[11px] text-slate-500">{sub}</div>
-    </section>
+      <div className="text-xs font-medium text-muted-foreground">{sub}</div>
+    </Card>
   );
 }
 
@@ -155,15 +159,14 @@ export default async function HkSupervisorPage({
   });
 
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+      <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Dashboard Supervisor
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Supervisor Dashboard
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
-            {formatDateWithWeekday(date)} · refresh setelah aksi
+          <p className="mt-1.5 text-sm text-slate-500">
+            {formatDateWithWeekday(date)}
           </p>
         </div>
 
@@ -173,40 +176,40 @@ export default async function HkSupervisorPage({
         >
           <Link
             href={dateHref(addDays(date, -1))}
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Sebelumnya
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            Prev
           </Link>
           <Link
             href="/app/hk/supervisor"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className={cn(buttonVariants({ variant: "default", size: "lg" }), "rounded-xl")}
           >
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Hari Ini
+            <CalendarDays className="h-4 w-4" aria-hidden="true" />
+            Today
           </Link>
           <Link
             href={dateHref(addDays(date, 1))}
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            Berikutnya
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            Next
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
           <Link
             href={printHref(date)}
             target="_blank"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-            Cetak Daily List
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Print Daily List
           </Link>
         </nav>
       </div>
 
-      <section className="mb-4">
-        <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          Status Live
-        </div>
+      <section className="mb-8">
+        <h3 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+          Live Status
+        </h3>
         <div className="grid grid-cols-3 gap-3">
           <ForecastCard
             label="Pembersihan berjalan"
@@ -230,10 +233,10 @@ export default async function HkSupervisorPage({
 
       <RecentActivityFeed logs={recentLogs} />
 
-      <section className="mb-4">
-        <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {dateISO} forecast beban kerja
-        </div>
+      <section className="mb-8">
+        <h3 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+          Workload Forecast
+        </h3>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ForecastCard
             label="Turnover"
@@ -268,36 +271,38 @@ export default async function HkSupervisorPage({
         </div>
       </section>
 
-      <section className="mb-4 border border-console-border bg-console-surface">
-        <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          Beban housekeeper
-        </div>
-        <div className="grid gap-2 p-3 md:grid-cols-3">
+      <Card className="mb-8 rounded-2xl overflow-hidden p-0">
+        <CardHeader className="border-b border-border rounded-none px-5 py-4">
+          <CardTitle className="text-[16px] font-semibold tracking-tight">
+            Housekeeper Workload
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2 p-3 md:grid-cols-3">
           {housekeepers.map((housekeeper) => (
-            <div
+            <Card
               key={housekeeper.id}
-              className="flex items-center justify-between gap-3 border border-console-border bg-console-bg px-3 py-2"
+              className="flex flex-row items-center justify-between gap-3 rounded-xl px-4 py-3 p-0"
             >
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-console-border bg-console-surface text-[10px] font-bold text-console-ink">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[12px] font-semibold text-blue-700">
                   {housekeeper.initials}
                 </span>
-                <span className="truncate text-[12px] font-semibold text-console-ink">
+                <span className="truncate text-[14px] font-medium text-foreground">
                   {housekeeper.name}
                 </span>
               </div>
-              <span className="num shrink-0 text-[16px] font-bold text-console-ink">
+              <span className="num shrink-0 text-[18px] font-semibold text-foreground">
                 {housekeeper.assignedCount}
               </span>
-            </div>
+            </Card>
           ))}
           {housekeepers.length === 0 ? (
-            <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
+            <p className="px-3 py-2 text-[12px] text-muted-foreground">
               Tidak ada member HK aktif.
-            </div>
+            </p>
           ) : null}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       <BulkAssignmentPanel
         dateISO={dateISO}

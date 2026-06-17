@@ -71,9 +71,9 @@ const reasonLabels: Record<HousekeepingForecastReason, string> = {
 };
 
 const headerCellClass =
-  "bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent";
+  "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
 const bodyCellClass =
-  "border-b border-console-border-soft px-3 py-[9px] align-top";
+  "border-b border-slate-100 px-3 py-[9px] align-top";
 
 function FloorSelectCheckbox({
   checked,
@@ -104,7 +104,7 @@ function FloorSelectCheckbox({
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
       aria-label={`Pilih semua lantai ${floor}`}
-      className="h-4 w-4 accent-console-ink disabled:cursor-not-allowed"
+      className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
     />
   );
 }
@@ -127,7 +127,7 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
     return (
       <StatusBadge
         label="Tidak ada kebutuhan terjadwal"
-        className="border-console-border bg-console-bg text-slate-500"
+        className="border-slate-200 bg-slate-50 text-slate-500"
         pipClassName="bg-slate-400"
       />
     );
@@ -139,8 +139,8 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
         <StatusBadge
           key={reason}
           label={reasonLabels[reason]}
-          className="border-console-ink bg-console-ink text-console-accent"
-          pipClassName="bg-console-accent"
+          className="rounded-xl bg-blue-600 border-blue-600 shadow-sm text-blue-600"
+          pipClassName="bg-blue-600"
         />
       ))}
     </div>
@@ -158,10 +158,10 @@ function AssigneeCell({ row }: { row: HousekeepingForecastRoomRow }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-console-border bg-console-bg text-[10px] font-bold text-console-ink">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-900">
         {row.assignment.housekeeperInitials}
       </span>
-      <span className="text-[12px] font-semibold text-console-ink">
+      <span className="text-[12px] font-semibold text-slate-900">
         {row.assignment.housekeeperName}
       </span>
     </div>
@@ -314,27 +314,27 @@ export function BulkAssignmentPanel({
   const controlsDisabled = isPending || housekeepers.length === 0;
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3 py-3 text-console-accent xl:flex-row xl:items-end xl:justify-between">
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h2 className="text-[12px] font-bold uppercase tracking-[0.08em]">
-            Penugasan massal
+          <h2 className="text-base font-semibold text-slate-900">
+            Penugasan Massal
           </h2>
-          <p className="mt-1 text-[11px] text-slate-300">
+          <p className="mt-1 text-xs text-slate-500">
             {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-300">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Housekeeper
             </span>
             <select
               value={housekeeperId}
               onChange={onHousekeeperChange}
               disabled={controlsDisabled}
-              className="h-8 min-w-[250px] border border-console-border bg-console-surface px-2 text-[11px] font-semibold text-console-ink disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-10 min-w-[250px] rounded-xl border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {housekeepers.length === 0 ? (
                 <option value="">Tidak ada member HK</option>
@@ -352,9 +352,9 @@ export function BulkAssignmentPanel({
               type="button"
               onClick={assignSelected}
               disabled={controlsDisabled || selectedCount === 0}
-              className={consoleButtonClassName("primary")}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
             >
-              <UserCheck aria-hidden="true" />
+              <UserCheck className="h-4 w-4" aria-hidden="true" />
               {pendingAction === "assign"
                 ? "Menugaskan..."
                 : "Tugaskan terpilih"}
@@ -363,9 +363,9 @@ export function BulkAssignmentPanel({
               type="button"
               onClick={unassignSelected}
               disabled={isPending || selectedCount === 0}
-              className={consoleButtonClassName("secondary")}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
             >
-              <Trash2 aria-hidden="true" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
               {pendingAction === "unassign"
                 ? "Mengosongkan..."
                 : "Kosongkan terpilih"}
@@ -415,7 +415,7 @@ export function BulkAssignmentPanel({
                     <th
                       colSpan={6}
                       scope="colgroup"
-                      className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
+                      className="border-y border-slate-200 bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold font-medium tracking-tight text-slate-900"
                     >
                       <div className="flex items-center gap-2">
                         <FloorSelectCheckbox
@@ -438,7 +438,7 @@ export function BulkAssignmentPanel({
                   {floor.rows.map((row) => (
                     <tr
                       key={row.room.id}
-                      className="odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
+                      className="odd:bg-white even:bg-slate-50 hover:bg-status-vc-bg"
                     >
                       <td className={bodyCellClass}>
                         <label className="inline-flex items-center">
@@ -450,17 +450,17 @@ export function BulkAssignmentPanel({
                               toggleRoom(row.room.id, event.target.checked)
                             }
                             aria-label={`Pilih kamar ${row.room.number}`}
-                            className="h-4 w-4 accent-console-ink disabled:cursor-not-allowed"
+                            className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
                           />
                         </label>
                       </td>
                       <td className={bodyCellClass}>
-                        <div className="num text-[16px] font-bold leading-none text-console-ink">
+                        <div className="num text-[16px] font-bold leading-none text-slate-900">
                           {row.room.number}
                         </div>
                       </td>
                       <td className={bodyCellClass}>
-                        <div className="font-semibold text-console-ink">
+                        <div className="font-semibold text-slate-900">
                           {row.room.typeCode}
                         </div>
                         <div className="mt-1 text-[11px] text-slate-500">

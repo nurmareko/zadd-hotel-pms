@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { formatTimeID } from "@/lib/format";
 
@@ -34,16 +35,6 @@ type HousekeeperWorkPanelProps = {
   workContext: WorkContext;
   isTurnover?: boolean;
 };
-
-function CardHeader({ children }: { children: string }) {
-  return (
-    <div className="bg-console-ink px-3.5 py-3">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {children}
-      </h2>
-    </div>
-  );
-}
 
 export function HousekeeperWorkPanel({
   roomId,
@@ -130,15 +121,19 @@ export function HousekeeperWorkPanel({
   }
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <CardHeader>{"Tugas Housekeeper"}</CardHeader>
-      <div className="space-y-3.5 p-3.5">
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border rounded-t-2xl px-5 py-4">
+        <CardTitle className="text-[16px] font-semibold tracking-tight">
+          Tugas Housekeeper
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3.5 p-3.5">
         {workContext ? (
-          <div className="border border-console-border-soft bg-console-bg p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <div className="border border-slate-100 bg-slate-50 p-3">
+            <div className="text-[10px] font-semibold font-medium tracking-tight text-slate-500">
               {workContext.label}
             </div>
-            <div className="mt-1 text-[12px] font-semibold text-console-ink">
+            <div className="mt-1 text-[12px] font-semibold text-slate-900">
               {workContext.guestName}
               {workContext.detail ? (
                 <span className="num font-normal text-slate-500">
@@ -148,55 +143,55 @@ export function HousekeeperWorkPanel({
               ) : null}
             </div>
             {workContext.notes ? (
-              <p className="mt-2 border-l-2 border-status-vcu-pip bg-status-vcu-bg px-3 py-2 text-[12px] leading-5 text-console-ink">
+              <p className="mt-2 border-l-2 border-status-vcu-pip bg-status-vcu-bg px-3 py-2 text-[12px] leading-5 text-slate-900">
                 {workContext.notes}
               </p>
             ) : null}
           </div>
         ) : (
-          <p className="border border-console-border-soft bg-console-bg px-3 py-2 text-[12px] text-slate-600">
+          <p className="border border-slate-100 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
             Tidak ada catatan reservasi aktif untuk kamar ini.
           </p>
         )}
 
         {activeCleaningSession ? (
-          <div className="space-y-4 border border-console-border-soft bg-console-bg p-3">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500 text-center">
+          <div className="space-y-4 border border-slate-100 bg-slate-50 p-3">
+            <div className="text-[9px] font-semibold font-medium tracking-tight text-slate-500 text-center">
               Berlangsung · dimulai {formatTimeID(activeCleaningSession.startedAt)}
             </div>
             <div className="text-center">
               <CleaningTimer startedAt={activeCleaningSession.startedAt} />
             </div>
             {canFinish ? (
-              <div className="space-y-3.5 border-t border-console-border-soft pt-3.5 text-left">
-                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+              <div className="space-y-3.5 border-t border-slate-100 pt-3.5 text-left">
+                <div className="text-[10px] font-bold font-medium tracking-tight text-slate-500">
                   Checklist Amenities
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-console-ink cursor-pointer select-none">
+                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-slate-900 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={linenChanged}
                       onChange={(e) => setLinenChanged(e.target.checked)}
-                      className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
+                      className="h-4.5 w-4.5 rounded text-blue-600 border-slate-300 bg-white focus:ring-blue-500 cursor-pointer"
                     />
                     <span>Linen diganti (Ganti Sprei) {isTurnover && <span className="text-status-od-fg font-bold">*wajib</span>}</span>
                   </label>
 
-                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-console-ink cursor-pointer select-none">
+                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-slate-900 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={towelChanged}
                       onChange={(e) => setTowelChanged(e.target.checked)}
-                      className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
+                      className="h-4.5 w-4.5 rounded text-blue-600 border-slate-300 bg-white focus:ring-blue-500 cursor-pointer"
                     />
                     <span>Handuk diganti {isTurnover && <span className="text-status-od-fg font-bold">*wajib</span>}</span>
                   </label>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                  <label className="text-[10px] font-bold font-medium tracking-tight text-slate-500">
                     Catatan Pembersihan (Opsional)
                   </label>
                   <Textarea
@@ -204,7 +199,7 @@ export function HousekeeperWorkPanel({
                     value={cleaningNote}
                     onChange={(e) => setCleaningNote(e.target.value)}
                     maxLength={500}
-                    className="min-h-14 rounded-none border-slate-400 bg-console-bg text-[12px] text-console-ink placeholder:text-slate-400 focus-visible:border-console-ink focus-visible:ring-0"
+                    className="min-h-14 rounded-xl border-slate-300 bg-white text-[13px] text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
                   />
                 </div>
 
@@ -212,7 +207,7 @@ export function HousekeeperWorkPanel({
                   type="button"
                   disabled={isPending || (isTurnover && (!linenChanged || !towelChanged))}
                   onClick={handleFinishCleaning}
-                  className="h-11 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
+                  className="h-10 w-full rounded-xl bg-slate-900 shadow-sm text-[13px] font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <Square className="h-4 w-4" aria-hidden="true" />
                   {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}
@@ -227,7 +222,7 @@ export function HousekeeperWorkPanel({
             type="button"
             disabled={isPending}
             onClick={() => runRoomAction(startCleaning, "Pembersihan dimulai")}
-            className="h-11 w-full rounded-none border-console-accent bg-console-accent text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:bg-console-accent/90"
+            className="h-10 w-full rounded-xl bg-slate-900 text-[13px] font-medium text-white shadow-sm hover:bg-slate-800"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
             {isPending ? "Memulai..." : "Mulai Bersihkan"}
@@ -235,7 +230,7 @@ export function HousekeeperWorkPanel({
         ) : null}
 
         {!activeCleaningSession && !canStart ? (
-          <div className="flex items-center gap-2 border border-console-border-soft bg-console-bg px-3 py-2 text-[12px] text-slate-600">
+          <div className="flex items-center gap-2 border border-slate-100 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
             <Check className="h-4 w-4 text-status-vc-fg" aria-hidden="true" />
             {latestCompletedCleaningSession
               ? `Selesai ${formatTimeID(latestCompletedCleaningSession.finishedAt)}`
@@ -246,12 +241,12 @@ export function HousekeeperWorkPanel({
         <form
           ref={foundItemFormRef}
           onSubmit={submitFoundItem}
-          className="space-y-2 border-t border-console-border-soft pt-3"
+          className="space-y-2 border-t border-slate-100 pt-3"
         >
           <input type="hidden" name="roomId" value={roomId} />
           <label
             htmlFor={`found-item-${roomId}`}
-            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500"
+            className="flex items-center gap-1.5 text-[10px] font-semibold font-medium tracking-tight text-slate-500"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
             Catat barang temuan
@@ -264,7 +259,7 @@ export function HousekeeperWorkPanel({
             maxLength={500}
             placeholder={`Deskripsi barang di kamar ${roomNumber}`}
             aria-invalid={Boolean(foundItemError)}
-            className="min-h-16 rounded-none border-slate-400 bg-console-bg text-[12px] text-console-ink placeholder:text-slate-400 focus-visible:border-console-ink focus-visible:ring-0"
+            className="min-h-16 rounded-xl border-slate-300 bg-white text-[13px] text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
           />
           {foundItemError ? (
             <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
@@ -274,13 +269,13 @@ export function HousekeeperWorkPanel({
           <Button
             type="submit"
             disabled={isFoundItemPending}
-            className="h-9 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className="h-10 w-full rounded-xl bg-slate-900 shadow-sm text-[13px] font-medium text-white hover:bg-slate-800"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
             {isFoundItemPending ? "Menyimpan..." : "Simpan barang temuan"}
           </Button>
         </form>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

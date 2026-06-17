@@ -50,7 +50,7 @@ function RoomContext({ room }: { room: CleanRoom }) {
         <div className="truncate text-[12px] text-slate-600">
           {room.context.kind === "turnover" ? (
             <>
-              <span className="font-semibold text-console-ink">Berikutnya:</span>{" "}
+              <span className="font-semibold text-slate-900">Berikutnya:</span>{" "}
               {room.context.guestName}
               {room.context.etaLabel ? (
                 <span className="num"> · ETA {room.context.etaLabel}</span>
@@ -58,7 +58,7 @@ function RoomContext({ room }: { room: CleanRoom }) {
             </>
           ) : (
             <>
-              <span className="font-semibold text-console-ink">Tamu:</span>{" "}
+              <span className="font-semibold text-slate-900">Tamu:</span>{" "}
               {room.context.guestName}
               <span className="num"> · {room.context.nightsLabel}</span>
             </>
@@ -77,8 +77,8 @@ function CleaningState({ room }: { room: CleanRoom }) {
     return (
       <StatusBadge
         label={`Berjalan ${formatTimeID(room.startedAt)}`}
-        className="border-console-ink bg-console-ink text-console-accent"
-        pipClassName="bg-console-accent"
+        className="bg-blue-50 border-blue-200 text-blue-700"
+        pipClassName="bg-blue-500"
         size="md"
       />
     );
@@ -97,14 +97,14 @@ function CleanRoomCard({ room }: { room: CleanRoom }) {
   return (
     <Link
       href={`/app/hk/rooms/${room.id}`}
-      className="flex h-full flex-col gap-2.5 border border-console-border bg-console-surface px-3 py-3 transition-colors hover:border-console-ink hover:bg-console-bg"
+      className="flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-5 transition-colors hover:border-slate-300 hover:bg-slate-50"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="num text-[18px] font-bold leading-none text-console-ink">
+          <div className="num text-lg font-bold leading-none text-slate-900">
             {room.number}
           </div>
-          <div className="mt-1 truncate text-[11px] text-slate-500">
+          <div className="mt-1 truncate text-xs text-slate-500">
             {room.typeCode} · L{room.floor}
           </div>
         </div>
@@ -114,12 +114,12 @@ function CleanRoomCard({ room }: { room: CleanRoom }) {
       <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <StatusBadge
           label={groupLabels[room.group]}
-          className="w-fit border-console-border bg-console-bg text-console-ink"
+          className="w-fit border-slate-200 bg-slate-50 text-slate-900"
           showPip={false}
           size="md"
         />
         <ChevronRight
-          className="h-4 w-4 shrink-0 text-slate-500"
+          className="h-4 w-4 shrink-0 text-slate-400"
           aria-hidden="true"
         />
       </div>
@@ -135,24 +135,24 @@ function CleanGroupSection({
   emptyLabel,
 }: CleanGroupSectionProps) {
   return (
-    <section className="space-y-2.5">
+    <section className="space-y-4">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-console-accent" aria-hidden="true" />
-        <h2 className="text-[12px] font-bold uppercase tracking-[0.06em] text-console-ink">
+        <Icon className="h-5 w-5 text-slate-700" aria-hidden="true" />
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
           {title}
         </h2>
-        <span className="num flex h-5 min-w-5 items-center justify-center border border-console-border bg-console-bg px-1 text-[10px] font-bold text-console-ink">
+        <span className="num flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-semibold text-slate-600">
           {rooms.length}
         </span>
-        <span className="text-[10px] text-slate-500">· {hint}</span>
+        <span className="text-xs text-slate-500">· {hint}</span>
       </div>
 
       {rooms.length === 0 ? (
-        <p className="border border-dashed border-console-border-soft bg-console-surface px-3 py-4 text-center text-[11px] italic text-slate-400">
+        <p className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-6 text-center text-xs italic text-slate-400">
           {emptyLabel}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rooms.map((room) => (
             <CleanRoomCard key={room.id} room={room} />
           ))}
@@ -174,19 +174,18 @@ export default async function MyRoomsPage() {
   const totalRooms = ready.length + freshen.length + done.length;
 
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           Kamar Saya
         </h1>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1.5 text-sm text-slate-500">
           {formatWeekdayLongDateID(date)} · {totalRooms} kamar ditugaskan
         </p>
       </div>
 
       {totalRooms === 0 ? (
-        <p className="border border-console-border bg-console-surface px-4 py-8 text-center text-[12px] text-slate-500">
+        <p className="rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-8 text-center text-[12px] text-slate-500">
           Belum ada kamar yang ditugaskan untuk Anda hari ini.
         </p>
       ) : (

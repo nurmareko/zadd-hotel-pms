@@ -38,11 +38,11 @@ function dateLabel(date: Date) {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 border-t border-console-border-soft py-2 first:border-t-0">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 border-t border-slate-100 py-2 first:border-t-0">
+      <dt className="text-[10px] font-semibold font-medium tracking-tight text-slate-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-[12px] text-console-ink">{value}</dd>
+      <dd className="min-w-0 text-[12px] text-slate-900">{value}</dd>
     </div>
   );
 }
@@ -67,9 +67,9 @@ export function StatusInfo({
   upcomingReservation,
 }: StatusInfoProps) {
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="bg-slate-900 px-3.5 py-3">
+        <h2 className="text-[11px] font-bold font-medium tracking-tight text-blue-600">
           {"Status Saat Ini"}
         </h2>
       </div>

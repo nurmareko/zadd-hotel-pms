@@ -1,6 +1,8 @@
 import { Prisma, type LostFoundStatus } from "@prisma/client";
 import { Archive, CheckCircle2, Plus, Search } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -23,11 +25,11 @@ type SearchParams = {
 };
 
 const fieldClass =
-  "h-8 w-full border border-slate-400 bg-console-surface px-2.5 text-[11px] font-medium text-console-ink outline-none focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]";
+  "h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none";
 const headerCellClass =
-  "bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent";
+  "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
 const bodyCellClass =
-  "border-b border-console-border-soft px-3 py-[9px] align-top";
+  "border-b border-slate-100 px-3 py-[9px] align-top";
 
 const statusClassNames: Record<
   LostFoundStatus,
@@ -105,27 +107,28 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
         placeholder="Catatan penyelesaian"
         className={fieldClass}
       />
-      <button
+      <Button
         type="submit"
-        className="inline-flex h-8 w-fit items-center justify-center gap-1.5 border border-status-vc-pip bg-status-vc-bg px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
+        className="h-10 w-fit rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
+        variant="outline"
       >
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
         Tandai dikembalikan
-      </button>
+      </Button>
     </form>
   );
 }
 
 function LostFoundCard({ item }: { item: LostFoundRow }) {
   return (
-    <article className="space-y-3 border border-console-border bg-console-surface p-3">
+    <Card className="rounded-2xl p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
           <Archive
-            className="mt-0.5 h-4 w-4 shrink-0 text-console-accent"
+            className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
             aria-hidden="true"
           />
-          <span className="text-[13px] leading-5 text-console-ink">
+          <span className="text-[13px] leading-5 text-slate-900">
             {item.description}
           </span>
         </div>
@@ -133,7 +136,7 @@ function LostFoundCard({ item }: { item: LostFoundRow }) {
       </div>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
-        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
           Kamar
         </dt>
         <dd>
@@ -145,11 +148,11 @@ function LostFoundCard({ item }: { item: LostFoundRow }) {
             </span>
           )}
         </dd>
-        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
           Ditemukan Oleh
         </dt>
         <dd>{item.foundBy.fullName}</dd>
-        <dt className="text-[11px] uppercase tracking-[0.04em] text-slate-500">
+        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
           Waktu
         </dt>
         <dd className="num text-slate-600">
@@ -157,14 +160,14 @@ function LostFoundCard({ item }: { item: LostFoundRow }) {
         </dd>
       </dl>
 
-      <div className="border-t border-console-border-soft pt-3">
+      <div className="border-t border-border pt-3">
         {item.status === "RETURNED" ? (
           <ReturnedInfo item={item} />
         ) : (
           <MarkReturnedForm item={item} />
         )}
       </div>
-    </article>
+    </Card>
   );
 }
 
@@ -222,101 +225,94 @@ export default async function LostFoundPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+      <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Lost & Found
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1.5 text-sm text-slate-500">
             {items.length} barang · terbaru dulu
           </p>
         </div>
       </div>
 
-      <section className="mb-4 border border-console-border bg-console-surface">
-        <form
-          action="/app/hk/lost-found"
-          method="get"
-          className="flex flex-wrap items-center gap-2 border-b border-console-border p-3.5"
-        >
-          <div className="relative w-full sm:w-[300px]">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-            />
+        <Card className="mb-4 rounded-2xl overflow-hidden p-0">
+          <form
+            action="/app/hk/lost-found"
+            method="get"
+            className="flex flex-wrap items-center gap-2 border-b border-border p-3.5"
+          >
+            <div className="relative w-full sm:w-[300px]">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Cari deskripsi..."
+                className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none"
+              />
+            </div>
             <input
               type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Cari deskripsi..."
-              className="h-8 w-full border border-slate-400 bg-console-surface pl-8 pr-2.5 text-[12px] text-console-ink outline-none placeholder:text-slate-400 focus:border-console-ink focus:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]"
+              name="room"
+              defaultValue={room}
+              placeholder="Kamar"
+              className={`${fieldClass} sm:w-[110px]`}
             />
-          </div>
-          <input
-            type="search"
-            name="room"
-            defaultValue={room}
-            placeholder="Kamar"
-            className={`${fieldClass} sm:w-[110px]`}
-          />
-          <select
-            name="status"
-            defaultValue={status ?? ""}
-            className={`${fieldClass} sm:w-[150px]`}
-          >
-            <option value="">Semua Status</option>
-            <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
-            <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
-          </select>
-          <button
-            type="submit"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          >
-            <Search className="h-3.5 w-3.5" aria-hidden="true" />
-            Cari
-          </button>
-          <span className="min-w-0 flex-1" />
-          <span className="num whitespace-nowrap text-right text-[11px] font-medium text-slate-500">
-            {items.length} hasil
-          </span>
-        </form>
+            <select
+              name="status"
+              defaultValue={status ?? ""}
+              className={`${fieldClass} sm:w-[150px]`}
+            >
+              <option value="">Semua Status</option>
+              <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
+              <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
+            </select>
+            <Button type="submit" variant="outline" className="rounded-xl">
+              <Search className="h-4 w-4" aria-hidden="true" />
+              Cari
+            </Button>
+            <span className="min-w-0 flex-1" />
+            <span className="num whitespace-nowrap text-right text-xs font-semibold text-slate-500">
+              {items.length} hasil
+            </span>
+          </form>
 
-        <form
-          action={createLostFoundItem}
-          className="grid gap-2 p-3.5 md:grid-cols-[minmax(220px,1fr)_150px_auto]"
-        >
-          <input
-            type="text"
-            name="description"
-            required
-            minLength={3}
-            maxLength={500}
-            placeholder="Tambah manual: deskripsi barang"
-            className={fieldClass}
-          />
-          <select name="roomId" defaultValue="" className={fieldClass}>
-            <option value="">Tanpa kamar</option>
-            {rooms.map((roomOption) => (
-              <option key={roomOption.id} value={roomOption.id}>
-                Kamar {roomOption.number}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          <form
+            action={createLostFoundItem}
+            className="grid gap-2 p-3.5 md:grid-cols-[minmax(220px,1fr)_150px_auto]"
           >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            Tambah Barang
-          </button>
-        </form>
-      </section>
+            <input
+              type="text"
+              name="description"
+              required
+              minLength={3}
+              maxLength={500}
+              placeholder="Tambah manual: deskripsi barang"
+              className={fieldClass}
+            />
+            <select name="roomId" defaultValue="" className={fieldClass}>
+              <option value="">Tanpa kamar</option>
+              {rooms.map((roomOption) => (
+                <option key={roomOption.id} value={roomOption.id}>
+                  Kamar {roomOption.number}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" className="rounded-xl">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Tambah Barang
+            </Button>
+          </form>
+        </Card>
 
       <section className="space-y-2 md:hidden">
         {items.length === 0 ? (
-          <p className="border border-console-border bg-console-surface px-3 py-8 text-center text-[12px] italic text-slate-400">
+          <p className="rounded-2xl border border-slate-200 bg-white shadow-sm px-3 py-8 text-center text-[12px] italic text-slate-400">
             Tidak ada barang Lost & Found yang cocok dengan filter.
           </p>
         ) : (
@@ -324,7 +320,7 @@ export default async function LostFoundPage({
         )}
       </section>
 
-      <section className="hidden overflow-hidden border border-console-border bg-console-surface md:block">
+      <Card className="hidden overflow-hidden rounded-2xl md:block p-0">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full border-collapse text-[12px]">
             <thead>
@@ -349,14 +345,14 @@ export default async function LostFoundPage({
                 </tr>
               ) : (
                 items.map((item) => (
-                  <tr key={item.id} className="hover:bg-console-bg">
+                  <tr key={item.id} className="hover:bg-slate-50">
                     <td className={`${bodyCellClass} max-w-[320px]`}>
                       <div className="flex items-start gap-2">
                         <Archive
-                          className="mt-0.5 h-4 w-4 shrink-0 text-console-accent"
+                          className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
                           aria-hidden="true"
                         />
-                        <span className="leading-5 text-console-ink">
+                        <span className="leading-5 text-slate-900">
                           {item.description}
                         </span>
                       </div>
@@ -390,7 +386,7 @@ export default async function LostFoundPage({
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }

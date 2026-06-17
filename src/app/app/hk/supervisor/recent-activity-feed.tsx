@@ -36,8 +36,8 @@ function logSecondaryLine(log: FeedLog) {
 
 export function RecentActivityFeed({ logs }: { logs: FeedLog[] }) {
   return (
-    <section className="mb-4 border border-console-border bg-console-surface">
-      <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="mb-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4 text-base font-semibold text-slate-900">
         Aktivitas Terkini (Global)
       </div>
 
@@ -63,19 +63,19 @@ function ActivityRow({ log }: { log: FeedLog }) {
   const secondaryLine = logSecondaryLine(log);
 
   return (
-    <div className="grid gap-2 border-b border-console-border-soft px-3 py-2.5 text-[12px] last:border-b-0 sm:grid-cols-[90px_60px_100px_minmax(0,1fr)] sm:items-start">
+    <div className="grid gap-2 border-b border-slate-100 px-3 py-2.5 text-[12px] last:border-b-0 sm:grid-cols-[90px_60px_100px_minmax(0,1fr)] sm:items-start">
       <div className="num text-[11px] text-slate-500">
         {formatCompactMonthDayTimeID(log.updatedAt)}
       </div>
       <div>
         <Link
           href={`/app/hk/rooms/${log.roomId}`}
-          className="inline-flex h-5 items-center justify-center border border-console-ink bg-console-ink px-1.5 text-[10px] font-bold text-console-accent hover:bg-slate-800"
+          className="inline-flex h-6 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           {log.room.number}
         </Link>
       </div>
-      <div className="truncate font-medium text-console-ink">
+      <div className="truncate font-medium text-slate-900">
         {log.updatedBy.fullName}
       </div>
       <div className="min-w-0 text-slate-600">
@@ -88,7 +88,7 @@ function ActivityRow({ log }: { log: FeedLog }) {
         {log.linenChanged || log.towelChanged ? (
           <div className="mt-1 text-[11px] text-slate-400">
             <span className="block font-semibold">Amenities diganti:</span>
-            <ul className="list-inside list-disc pl-1 mt-0.5 space-y-0.5 font-mono italic">
+            <ul className="list-inside list-disc pl-1 mt-0.5 space-y-0.5 font-inter italic">
               {log.linenChanged && <li>Linen / Seprei</li>}
               {log.towelChanged && <li>Handuk</li>}
             </ul>

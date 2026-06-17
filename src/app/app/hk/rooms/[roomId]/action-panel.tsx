@@ -23,8 +23,8 @@ type ActionPanelProps = {
 
 function CardHeader({ children }: { children: string }) {
   return (
-    <div className="bg-console-ink px-3.5 py-3">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4">
+      <h2 className="text-[16px] font-semibold tracking-tight text-slate-900">
         {children}
       </h2>
     </div>
@@ -33,7 +33,7 @@ function CardHeader({ children }: { children: string }) {
 
 function CalmCard({ title, children }: { title: string; children: string }) {
   return (
-    <section className="border border-console-border bg-console-surface">
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <CardHeader>{title}</CardHeader>
       <div className="p-3.5 text-[12px] leading-relaxed text-slate-600">
         {children}

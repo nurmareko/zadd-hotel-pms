@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { formatTimeID } from "@/lib/format";
 
@@ -94,12 +95,13 @@ export function InspectionPanel({
   }
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"Menunggu Inspeksi"}
-        </h2>
-      </div>
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border rounded-t-2xl px-5 py-4">
+        <CardTitle className="text-[16px] font-semibold tracking-tight">
+          Menunggu Inspeksi
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
       <form
         onSubmit={submitInspection}
         className="space-y-3.5 p-3.5"
@@ -110,18 +112,18 @@ export function InspectionPanel({
         </p>
 
         {latestCompletedCleaningSession && (latestCompletedCleaningSession.linenChanged || latestCompletedCleaningSession.towelChanged || latestCompletedCleaningSession.note) ? (
-          <div className="border border-console-border-soft bg-console-bg p-3 space-y-2 text-[12px]">
+          <div className="border border-slate-100 bg-slate-50 p-3 space-y-2 text-[12px]">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">Amenities Diganti:</span>
-              <ul className="list-inside list-disc mt-0.5 space-y-0.5 font-mono italic text-slate-600">
+              <span className="text-[10px] font-bold font-medium tracking-tight text-slate-500">Amenities Diganti:</span>
+              <ul className="list-inside list-disc mt-0.5 space-y-0.5 font-inter italic text-slate-600">
                 <li>Linen / Seprei: {latestCompletedCleaningSession.linenChanged ? "YA" : "TIDAK"}</li>
                 <li>Handuk: {latestCompletedCleaningSession.towelChanged ? "YA" : "TIDAK"}</li>
               </ul>
             </div>
             {latestCompletedCleaningSession.note ? (
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">Catatan Housekeeper:</span>
-                <p className="mt-0.5 font-mono text-slate-600 italic">
+                <span className="text-[10px] font-bold font-medium tracking-tight text-slate-500">Catatan Housekeeper:</span>
+                <p className="mt-0.5 font-inter text-slate-600 italic">
                   "{latestCompletedCleaningSession.note}"
                 </p>
               </div>
@@ -130,14 +132,14 @@ export function InspectionPanel({
         ) : null}
 
         <label className="block">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+          <span className="text-[10px] font-semibold font-medium tracking-tight text-slate-500">
             {isFailMode ? "Alasan kegagalan *" : "Catatan Inspeksi"}
           </span>
           <Textarea
             name="notes"
             placeholder="Catatan jika ada temuan saat inspeksi"
             aria-invalid={isFailMode && Boolean(error)}
-            className="mt-1 min-h-24 rounded-none border-console-border bg-console-surface text-[12px]"
+            className="mt-1 min-h-24 rounded-xl border-slate-300 bg-white text-[13px] text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
           />
         </label>
 
@@ -153,7 +155,7 @@ export function InspectionPanel({
             name="passed"
             value="true"
             disabled={isPending}
-            className="h-11 rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className="h-10 w-full rounded-xl bg-slate-900 shadow-sm text-[13px] font-medium text-white hover:bg-slate-800"
           >
             <Check className="h-4 w-4" aria-hidden="true" />
             Lulus Inspeksi (-&gt; VC)
@@ -163,13 +165,14 @@ export function InspectionPanel({
             name="passed"
             value="false"
             disabled={isPending}
-            className="h-11 rounded-none border border-console-border bg-console-surface text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white shadow-sm text-[13px] font-medium text-slate-700 hover:bg-slate-50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
             Gagal Inspeksi (-&gt; VD)
           </Button>
         </div>
       </form>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

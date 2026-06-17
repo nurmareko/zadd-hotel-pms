@@ -365,32 +365,20 @@ export function NavShell({
 
   return (
     <div className="min-h-screen flex-1 bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-[240px] flex-col border-r border-border bg-sidebar px-4 py-5 desktop:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-[260px] flex-col border-r border-slate-200 bg-white px-4 py-5 desktop:flex">
         {/* Brand header */}
-        <div
-          className="mb-5 flex items-center gap-2.5 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <div
-            className="flex shrink-0 items-center justify-center text-console-accent"
-            style={{
-              width: 28,
-              height: 28,
-              border: "1px solid #00d4aa",
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
+        <div className="mb-5 flex items-center gap-2.5 border-b border-slate-100 pb-4">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[13px] font-bold text-white">
             Z
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="text-[10px] font-bold tracking-wide text-slate-500 uppercase">
               ZADD
             </div>
-            <div className="text-[13px] font-semibold leading-tight text-white">
+            <div className="text-[13px] font-semibold leading-tight text-slate-900">
               Hotel Management
             </div>
-            <div className="mt-1 text-[9px] uppercase tracking-[0.04em] text-slate-400">
+            <div className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-slate-500">
               {roleModuleNames[userRole]}
             </div>
           </div>
@@ -399,7 +387,7 @@ export function NavShell({
         <nav className="flex-1 space-y-6">
           {navGroups.map((group) => (
             <section key={group.label}>
-              <h2 className="mb-2 px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4b5563]">
+              <h2 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {group.label}
               </h2>
               <div className="space-y-0.5">
@@ -414,14 +402,14 @@ export function NavShell({
                       href={link.href}
                       aria-current={isActive ? "page" : undefined}
                       className={[
-                        "flex items-center gap-2 px-3 py-2 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
+                        "flex items-center gap-2 py-2 text-sm font-medium transition-colors border-l-2",
                         isActive
-                          ? "bg-white/[0.03] text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
-                          : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
+                          ? "bg-slate-100 text-slate-900 border-slate-900 pl-2.5"
+                          : "text-slate-600 border-transparent pl-2.5 hover:bg-slate-50 hover:text-slate-900",
                       ].join(" ")}
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <Icon size={14} aria-hidden="true" />
+                        <Icon size={18} aria-hidden="true" />
                         <span className="truncate">{link.label}</span>
                       </span>
                       {badge ? <NavBadgePill badge={badge} /> : null}
@@ -433,45 +421,33 @@ export function NavShell({
           ))}
         </nav>
 
-        <div
-          className="pt-4"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <p className="truncate px-3 text-sm font-medium text-white">
+        <div className="border-t border-slate-100 pt-4">
+          <p className="truncate px-3 text-sm font-semibold text-slate-900">
             {userFullName}
           </p>
-          <p className="mt-1 px-3 text-xs font-medium text-sidebar-foreground">
+          <p className="mt-0.5 px-3 text-xs font-medium text-slate-500">
             {userRole}
           </p>
           <Button
             type="button"
             variant="ghost"
-            className="mt-3 w-full justify-start gap-2 text-[12px] uppercase tracking-[0.04em] text-sidebar-foreground hover:bg-transparent hover:text-console-accent"
+            className="mt-3 w-full justify-start gap-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-3 h-10 rounded-xl"
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
-            <LogOut size={14} aria-hidden="true" />
+            <LogOut size={18} aria-hidden="true" />
             Keluar
           </Button>
         </div>
       </aside>
 
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 desktop:hidden">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 desktop:hidden">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div
-            className="flex shrink-0 items-center justify-center text-console-accent"
-            style={{
-              width: 26,
-              height: 26,
-              border: "1px solid #00d4aa",
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-900 text-[11px] font-bold text-white">
             Z
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{userFullName}</p>
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className="truncate text-sm font-semibold text-slate-900">{userFullName}</p>
+            <p className="text-xs font-medium text-slate-500">
               {userRole}
             </p>
           </div>
@@ -481,13 +457,14 @@ export function NavShell({
           variant="ghost"
           size="icon"
           aria-label="Keluar"
+          className="text-slate-600 hover:text-slate-900"
           onClick={() => void signOut({ redirectTo: "/login" })}
         >
-          <LogOut aria-hidden="true" />
+          <LogOut className="size-4" aria-hidden="true" />
         </Button>
       </div>
 
-      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] desktop:ml-[240px] desktop:pb-0">
+      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] desktop:ml-[260px] desktop:pb-0">
         {children}
       </div>
 
@@ -495,13 +472,13 @@ export function NavShell({
         <div className="fixed inset-0 z-30 desktop:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/45"
+            className="absolute inset-0 bg-black/40"
             aria-label="Tutup menu"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 border-t border-sidebar-border bg-sidebar px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
+          <div className="absolute inset-x-0 bottom-0 border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4b5563]">
+              <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Lainnya
               </h2>
               <Button
@@ -509,7 +486,7 @@ export function NavShell({
                 variant="ghost"
                 size="icon"
                 aria-label="Tutup menu"
-                className="shrink-0 text-sidebar-foreground hover:bg-white/[0.03] hover:text-console-accent"
+                className="shrink-0 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 onClick={() => setMoreOpen(false)}
               >
                 <X aria-hidden="true" />
@@ -528,14 +505,14 @@ export function NavShell({
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => setMoreOpen(false)}
                     className={[
-                      "flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium uppercase tracking-[0.04em] transition-colors",
+                      "flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors border-l-2",
                       isActive
-                        ? "bg-white/[0.03] text-console-accent shadow-[inset_2px_0_0_#00d4aa]"
-                        : "text-sidebar-foreground hover:text-console-accent hover:shadow-[inset_2px_0_0_#00d4aa]",
+                        ? "bg-slate-100 text-slate-900 border-slate-900 pl-2.5"
+                        : "text-slate-600 border-transparent pl-2.5 hover:bg-slate-50 hover:text-slate-900",
                     ].join(" ")}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <Icon size={16} aria-hidden="true" />
+                      <Icon size={18} aria-hidden="true" />
                       <span className="truncate">{link.label}</span>
                     </span>
                     {badge ? <NavBadgePill badge={badge} /> : null}
@@ -549,7 +526,7 @@ export function NavShell({
 
       <nav
         aria-label="Navigasi mobile"
-        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)] desktop:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] desktop:hidden"
       >
         {tabLinks.map((link) => {
           const Icon = link.icon;
@@ -562,10 +539,10 @@ export function NavShell({
               href={link.href}
               aria-current={isActive ? "page" : undefined}
               className={[
-                "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium uppercase tracking-[0.04em] transition-colors",
+                "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium tracking-tight transition-colors",
                 isActive
-                  ? "text-console-accent shadow-[inset_0_2px_0_#00d4aa]"
-                  : "text-muted-foreground hover:text-console-accent",
+                  ? "text-slate-900 shadow-[inset_0_2px_0_#0f172a]"
+                  : "text-slate-500 hover:text-slate-900",
               ].join(" ")}
             >
               <span className="relative">
@@ -584,10 +561,10 @@ export function NavShell({
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(true)}
             className={[
-              "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium uppercase tracking-[0.04em] transition-colors",
+              "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium tracking-tight transition-colors",
               isMoreActive || moreOpen
-                ? "text-console-accent shadow-[inset_0_2px_0_#00d4aa]"
-                : "text-muted-foreground hover:text-console-accent",
+                ? "text-slate-900 shadow-[inset_0_2px_0_#0f172a]"
+                : "text-slate-500 hover:text-slate-900",
             ].join(" ")}
           >
             <span className="relative">
