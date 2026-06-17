@@ -17,6 +17,9 @@ type InspectionPanelProps = {
     startedAt: Date;
     finishedAt: Date;
     housekeeperName: string;
+    note?: string | null;
+    linenChanged?: boolean;
+    towelChanged?: boolean;
   } | null;
 };
 
@@ -102,9 +105,29 @@ export function InspectionPanel({
         className="space-y-3.5 p-3.5"
       >
         <input type="hidden" name="roomId" value={roomId} />
-        <p className="text-[12px] leading-relaxed text-slate-600">
+         <p className="text-[12px] leading-relaxed text-slate-600">
           {cleaningSummary(latestCompletedCleaningSession)}
         </p>
+
+        {latestCompletedCleaningSession && (latestCompletedCleaningSession.linenChanged || latestCompletedCleaningSession.towelChanged || latestCompletedCleaningSession.note) ? (
+          <div className="border border-console-border-soft bg-console-bg p-3 space-y-2 text-[12px]">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">Amenities Diganti:</span>
+              <ul className="list-inside list-disc mt-0.5 space-y-0.5 font-mono italic text-slate-600">
+                <li>Linen / Seprei: {latestCompletedCleaningSession.linenChanged ? "YA" : "TIDAK"}</li>
+                <li>Handuk: {latestCompletedCleaningSession.towelChanged ? "YA" : "TIDAK"}</li>
+              </ul>
+            </div>
+            {latestCompletedCleaningSession.note ? (
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">Catatan Housekeeper:</span>
+                <p className="mt-0.5 font-mono text-slate-600 italic">
+                  "{latestCompletedCleaningSession.note}"
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">

@@ -77,6 +77,15 @@ function HistoryRow({ log }: { log: HistoryLog }) {
             {secondaryLine}
           </span>
         ) : null}
+        {log.linenChanged || log.towelChanged ? (
+          <div className="mt-1 text-[11px] text-slate-400">
+            <span className="block font-semibold">Amenities diganti:</span>
+            <ul className="list-inside list-disc pl-1 mt-0.5 space-y-0.5 font-mono italic">
+              {log.linenChanged && <li>Linen / Seprei</li>}
+              {log.towelChanged && <li>Handuk</li>}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );

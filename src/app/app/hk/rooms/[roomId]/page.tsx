@@ -157,6 +157,9 @@ export default async function HKRoomDetailPage({
           startedAt: latestCompletedCleaningSession.startedAt,
           finishedAt: latestCompletedCleaningSession.finishedAt,
           housekeeperName: latestCompletedCleaningSession.housekeeper.fullName,
+          note: latestLog?.newStatus === RoomStatus.VCU ? latestLog.note : null,
+          linenChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.linenChanged : false,
+          towelChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.towelChanged : false,
         }
       : null;
   const activeSessionBelongsToCurrentUser =

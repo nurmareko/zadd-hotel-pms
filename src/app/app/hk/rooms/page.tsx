@@ -256,9 +256,12 @@ export default async function HkRoomsPage({
                       className="odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
                     >
                       <td className={bodyCellClass}>
-                        <div className="num text-[16px] font-bold leading-none text-console-ink">
+                        <Link
+                          href={`/app/hk/rooms/${row.room.id}`}
+                          className="num text-[16px] font-bold leading-none text-console-ink hover:underline hover:text-console-accent"
+                        >
                           {row.room.number}
-                        </div>
+                        </Link>
                         <div className="mt-1 text-[11px] text-slate-500">
                           {row.room.typeName}
                         </div>

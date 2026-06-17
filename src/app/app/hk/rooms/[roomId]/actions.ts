@@ -10,6 +10,7 @@ import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
 import {
+  FinishCleaningSchema,
   InspectRoomSchema,
   LogFoundItemSchema,
   RoomActionSchema,
@@ -163,13 +164,13 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
     return { ok: false, error: "Tidak berwenang" };
   }
 
-  const parsed = RoomActionSchema.safeParse(Object.fromEntries(formData));
+  const parsed = FinishCleaningSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const { roomId } = parsed.data;
+  const { roomId, linenChanged, towelChanged, note } = parsed.data;
   const { today } = todayDateOnly();
 
   try {
@@ -237,7 +238,9 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
             newStatus: nextStatus,
             updatedById: userId,
             updatedAt: now,
-            note: "Pembersihan selesai dari daftar kerja housekeeper",
+            note: note || "Pembersihan selesai dari daftar kerja housekeeper",
+            linenChanged,
+            towelChanged,
           },
         });
 

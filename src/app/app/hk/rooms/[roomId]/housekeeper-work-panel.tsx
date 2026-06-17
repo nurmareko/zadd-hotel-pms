@@ -59,6 +59,33 @@ export function HousekeeperWorkPanel({
   const [isPending, startTransition] = useTransition();
   const [isFoundItemPending, startFoundItemTransition] = useTransition();
 
+  const [linenChanged, setLinenChanged] = useState(false);
+  const [towelChanged, setTowelChanged] = useState(false);
+  const [cleaningNote, setCleaningNote] = useState("");
+
+  function handleFinishCleaning() {
+    const formData = new FormData();
+    formData.set("roomId", String(roomId));
+    formData.set("linenChanged", String(linenChanged));
+    formData.set("towelChanged", String(towelChanged));
+    formData.set("note", cleaningNote);
+
+    startTransition(async () => {
+      const result = await finishCleaning(formData);
+
+      if (!result.ok) {
+        toast.error(result.error ?? "Gagal menyelesaikan pembersihan");
+        return;
+      }
+
+      toast.success("Pembersihan selesai");
+      setLinenChanged(false);
+      setTowelChanged(false);
+      setCleaningNote("");
+      router.refresh();
+    });
+  }
+
   function runRoomAction(
     action: (formData: FormData) => Promise<{ ok: boolean; error?: string }>,
     successMessage: string,
@@ -131,23 +158,64 @@ export function HousekeeperWorkPanel({
         )}
 
         {activeCleaningSession ? (
-          <div className="space-y-3 border border-console-border-soft bg-console-bg p-3 text-center">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          <div className="space-y-4 border border-console-border-soft bg-console-bg p-3">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500 text-center">
               Berlangsung · dimulai {formatTimeID(activeCleaningSession.startedAt)}
             </div>
-            <CleaningTimer startedAt={activeCleaningSession.startedAt} />
+            <div className="text-center">
+              <CleaningTimer startedAt={activeCleaningSession.startedAt} />
+            </div>
             {canFinish ? (
-              <Button
-                type="button"
-                disabled={isPending}
-                onClick={() =>
-                  runRoomAction(finishCleaning, "Pembersihan selesai")
-                }
-                className="h-11 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-              >
-                <Square className="h-4 w-4" aria-hidden="true" />
-                {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}
-              </Button>
+              <div className="space-y-3.5 border-t border-console-border-soft pt-3.5 text-left">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                  Checklist Amenities
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-console-ink cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={linenChanged}
+                      onChange={(e) => setLinenChanged(e.target.checked)}
+                      className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
+                    />
+                    <span>Linen diganti (Ganti Sprei)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 text-[12px] font-semibold text-console-ink cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={towelChanged}
+                      onChange={(e) => setTowelChanged(e.target.checked)}
+                      className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
+                    />
+                    <span>Handuk diganti</span>
+                  </label>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                    Catatan Pembersihan (Opsional)
+                  </label>
+                  <Textarea
+                    placeholder="Catatan tambahan kondisi kamar..."
+                    value={cleaningNote}
+                    onChange={(e) => setCleaningNote(e.target.value)}
+                    maxLength={500}
+                    className="min-h-14 rounded-none border-slate-400 bg-console-bg text-[12px] text-console-ink placeholder:text-slate-400 focus-visible:border-console-ink focus-visible:ring-0"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  disabled={isPending}
+                  onClick={handleFinishCleaning}
+                  className="h-11 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                >
+                  <Square className="h-4 w-4" aria-hidden="true" />
+                  {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}
+                </Button>
+              </div>
             ) : null}
           </div>
         ) : null}

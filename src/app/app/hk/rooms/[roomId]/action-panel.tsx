@@ -14,6 +14,9 @@ type ActionPanelProps = {
     startedAt: Date;
     finishedAt: Date;
     housekeeperName: string;
+    note?: string | null;
+    linenChanged?: boolean;
+    towelChanged?: boolean;
   } | null;
   assignedHousekeeperName: string | null;
 };
