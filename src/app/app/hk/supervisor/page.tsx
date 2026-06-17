@@ -117,6 +117,11 @@ export default async function HkSupervisorPage({
           take: 1,
           include: { housekeeper: { select: { fullName: true } } },
         },
+        housekeepingLogs: {
+          where: { newStatus: RoomStatus.VCU },
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: { number: "asc" },
     }),
@@ -126,6 +131,7 @@ export default async function HkSupervisorPage({
 
   const inspectionRooms: InspectionInboxRow[] = vcuRooms.map((room) => {
     const lastSession = room.cleaningSessions[0] ?? null;
+    const lastLog = room.housekeepingLogs[0] ?? null;
 
     return {
       id: room.id,
@@ -134,6 +140,8 @@ export default async function HkSupervisorPage({
       cleanedByName: lastSession?.housekeeper.fullName ?? null,
       cleanedAt: lastSession?.finishedAt ?? null,
       href: `/app/hk/rooms/${room.id}`,
+      linenChanged: lastLog?.linenChanged ?? false,
+      towelChanged: lastLog?.towelChanged ?? false,
     };
   });
 

@@ -9,6 +9,8 @@ export type InspectionInboxRow = {
   cleanedByName: string | null;
   cleanedAt: Date | null;
   href: string;
+  linenChanged: boolean;
+  towelChanged: boolean;
 };
 
 export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
@@ -42,6 +44,16 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
                   <span className="truncate text-[11px] uppercase tracking-[0.04em] text-slate-500">
                     {room.roomTypeName}
                   </span>
+                  {room.linenChanged || room.towelChanged ? (
+                    <span className="inline-flex gap-1 shrink-0">
+                      {room.linenChanged ? (
+                        <span className="border border-status-vc-pip bg-status-vc-bg text-status-vc-fg text-[9px] font-bold px-1 uppercase tracking-wide rounded-none">Linen</span>
+                      ) : null}
+                      {room.towelChanged ? (
+                        <span className="border border-status-vc-pip bg-status-vc-bg text-status-vc-fg text-[9px] font-bold px-1 uppercase tracking-wide rounded-none">Handuk</span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="shrink-0 text-right text-[11px] text-slate-500">
                   {room.cleanedByName ? (

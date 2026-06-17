@@ -205,6 +205,13 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
           };
         }
 
+        if (room.status === RoomStatus.VD && (!linenChanged || !towelChanged)) {
+          return {
+            ok: false as const,
+            error: "Untuk kamar kosong (turnover), linen dan handuk wajib diganti.",
+          };
+        }
+
         const openSession = await tx.cleaningSession.findFirst({
           where: {
             roomId,

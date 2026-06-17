@@ -32,6 +32,7 @@ type HousekeeperWorkPanelProps = {
     finishedAt: Date;
   } | null;
   workContext: WorkContext;
+  isTurnover?: boolean;
 };
 
 function CardHeader({ children }: { children: string }) {
@@ -52,6 +53,7 @@ export function HousekeeperWorkPanel({
   activeCleaningSession,
   latestCompletedCleaningSession,
   workContext,
+  isTurnover = false,
 }: HousekeeperWorkPanelProps) {
   const router = useRouter();
   const foundItemFormRef = useRef<HTMLFormElement>(null);
@@ -179,7 +181,7 @@ export function HousekeeperWorkPanel({
                       onChange={(e) => setLinenChanged(e.target.checked)}
                       className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
                     />
-                    <span>Linen diganti (Ganti Sprei)</span>
+                    <span>Linen diganti (Ganti Sprei) {isTurnover && <span className="text-status-od-fg font-bold">*wajib</span>}</span>
                   </label>
 
                   <label className="flex items-center gap-2.5 text-[12px] font-semibold text-console-ink cursor-pointer select-none">
@@ -189,7 +191,7 @@ export function HousekeeperWorkPanel({
                       onChange={(e) => setTowelChanged(e.target.checked)}
                       className="h-4.5 w-4.5 rounded-none border border-slate-400 bg-console-bg text-console-ink focus:ring-0 focus:ring-offset-0 cursor-pointer accent-console-accent"
                     />
-                    <span>Handuk diganti</span>
+                    <span>Handuk diganti {isTurnover && <span className="text-status-od-fg font-bold">*wajib</span>}</span>
                   </label>
                 </div>
 
@@ -208,9 +210,9 @@ export function HousekeeperWorkPanel({
 
                 <Button
                   type="button"
-                  disabled={isPending}
+                  disabled={isPending || (isTurnover && (!linenChanged || !towelChanged))}
                   onClick={handleFinishCleaning}
-                  className="h-11 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  className="h-11 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
                 >
                   <Square className="h-4 w-4" aria-hidden="true" />
                   {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}

@@ -253,6 +253,7 @@ export default async function HKRoomDetailPage({
                   : null
               }
               workContext={workContext}
+              isTurnover={room.status === RoomStatus.VD}
             />
             <RoomHistory logs={room.housekeepingLogs.slice(0, 5)} />
           </>
