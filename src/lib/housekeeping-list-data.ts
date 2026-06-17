@@ -166,10 +166,16 @@ function serviceLabel({
 
 export async function getHousekeepingListData(
   date: Date = todayDateOnly().today,
+  q?: string,
+  status?: RoomStatus,
 ): Promise<HousekeepingListData> {
   const [rooms, reservations, assignments, openCleaningSessions] =
     await Promise.all([
       prisma.room.findMany({
+        where: {
+          number: q ? { contains: q, mode: "insensitive" } : undefined,
+          status: status ? status : undefined,
+        },
         select: {
           id: true,
           number: true,

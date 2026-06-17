@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Printer,
 } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 
@@ -15,12 +16,15 @@ import {
 } from "@/lib/housekeeping-list-data";
 
 import { StatusPill } from "../room-status-grid";
+import { RoomFilterForm } from "./room-filter-form";
 import { SupervisorRoomStatusSelect } from "./supervisor-room-status-select";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
   date?: string | string[];
+  q?: string | string[];
+  status?: string | string[];
 };
 
 const headerCellClass =
@@ -55,16 +59,24 @@ function parseDateParam(value: string | undefined) {
   return parsed;
 }
 
-function dateHref(date: Date) {
-  return `/app/hk/rooms?date=${formatISO(date, {
-    representation: "date",
-  })}`;
+function buildQuery(params: {
+  date: Date;
+  q: string;
+  status: string;
+}) {
+  const p = new URLSearchParams();
+  p.set("date", formatISO(params.date, { representation: "date" }));
+  if (params.q) p.set("q", params.q);
+  if (params.status) p.set("status", params.status);
+  return `?${p.toString()}`;
 }
 
-function printHref(date: Date) {
-  return `/api/hk/daily-list?date=${formatISO(date, {
-    representation: "date",
-  })}`;
+function dateHref(params: { date: Date; q: string; status: string }) {
+  return `/app/hk/rooms${buildQuery(params)}`;
+}
+
+function printHref(params: { date: Date; q: string; status: string }) {
+  return `/api/hk/daily-list${buildQuery(params)}`;
 }
 
 function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
@@ -152,8 +164,22 @@ export default async function HkRoomsPage({
 }) {
   const params = await searchParams;
   const selectedDate = parseDateParam(firstParam(params.date));
-  const { date, rows } = await getHousekeepingListData(selectedDate);
+  const q = firstParam(params.q)?.trim() ?? "";
+  const statusParam = firstParam(params.status)?.trim() ?? "";
+  const status =
+    statusParam === "VC" ||
+    statusParam === "OC" ||
+    statusParam === "VD" ||
+    statusParam === "OD" ||
+    statusParam === "VCU" ||
+    statusParam === "OOO"
+      ? statusParam
+      : undefined;
+
+  const { date, rows } = await getHousekeepingListData(selectedDate, q, status);
   const groupedRows = groupRowsByFloor(rows);
+
+  const queryParams = { date, q, status: statusParam };
 
   return (
     <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
@@ -170,28 +196,28 @@ export default async function HkRoomsPage({
 
         <nav aria-label="Tanggal kamar housekeeping" className="flex flex-wrap gap-2">
           <Link
-            href={dateHref(addDays(date, -1))}
+            href={dateHref({ ...queryParams, date: addDays(date, -1) })}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
             Sebelumnya
           </Link>
           <Link
-            href="/app/hk/rooms"
+            href={dateHref({ ...queryParams, date: new Date() })}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             Hari Ini
           </Link>
           <Link
-            href={dateHref(addDays(date, 1))}
+            href={dateHref({ ...queryParams, date: addDays(date, 1) })}
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
           >
             Berikutnya
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
           <Link
-            href={printHref(date)}
+            href={printHref(queryParams)}
             target="_blank"
             className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
           >
@@ -200,6 +226,14 @@ export default async function HkRoomsPage({
           </Link>
         </nav>
       </div>
+
+      <section className="mb-4 border border-console-border bg-console-surface">
+        <RoomFilterForm
+          dateIso={formatISO(date, { representation: "date" })}
+          defaultQ={q}
+          defaultStatus={statusParam}
+        />
+      </section>
 
       <section className="border border-console-border bg-console-surface">
         <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
