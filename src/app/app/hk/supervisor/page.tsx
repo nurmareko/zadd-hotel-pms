@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 
 import { BulkAssignmentPanel } from "./bulk-assignment-panel";
 import { InspectionInbox, type InspectionInboxRow } from "./inspection-inbox";
+import { RecentActivityFeed } from "./recent-activity-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function HkSupervisorPage({
 
   const params = await searchParams;
   const selectedDate = parseDateParam(firstParam(params.date));
-  const [forecast, cleaningNowCount, readyCount, vcuRooms] = await Promise.all([
+  const [forecast, cleaningNowCount, readyCount, vcuRooms, recentLogs] = await Promise.all([
     getHousekeepingForecastData(selectedDate),
     prisma.cleaningSession.count({
       where: { startedAt: { not: null }, finishedAt: null },
@@ -124,6 +125,14 @@ export default async function HkSupervisorPage({
         },
       },
       orderBy: { number: "asc" },
+    }),
+    prisma.housekeepingLog.findMany({
+      take: 10,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        updatedBy: { select: { fullName: true } },
+        room: { select: { number: true } },
+      },
     }),
   ]);
   const { date, summary, housekeepers, rooms } = forecast;
@@ -218,6 +227,8 @@ export default async function HkSupervisorPage({
       </section>
 
       <InspectionInbox rooms={inspectionRooms} />
+
+      <RecentActivityFeed logs={recentLogs} />
 
       <section className="mb-4">
         <div className="mb-2 border border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
