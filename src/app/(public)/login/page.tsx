@@ -13,7 +13,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-inter text-slate-900 sm:p-8">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-jakarta text-slate-900 sm:p-8">
       <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-slate-200/50 md:flex-row md:min-h-[600px]">
         <section className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-900 px-10 py-12 text-white md:flex lg:px-12">
           <div

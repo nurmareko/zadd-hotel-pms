@@ -28,7 +28,7 @@ export function CleaningTimer({ startedAt }: { startedAt: Date }) {
   }, [startedAt]);
 
   return (
-    <span className="num font-inter text-[32px] font-bold leading-none text-slate-900">
+    <span className="num font-jakarta text-[32px] font-bold leading-none text-slate-900">
       {formatElapsed(elapsed)}
     </span>
   );

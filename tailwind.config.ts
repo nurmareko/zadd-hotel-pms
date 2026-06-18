@@ -40,7 +40,8 @@ const config = {
       fontFamily: {
         sans: monospaceStack,
         mono: monospaceStack,
-        inter: ["var(--font-inter)", "sans-serif"],
+        inter: ["var(--font-plus-jakarta-sans)", "sans-serif"],
+        jakarta: ["var(--font-plus-jakarta-sans)", "sans-serif"],
       },
     },
   },
