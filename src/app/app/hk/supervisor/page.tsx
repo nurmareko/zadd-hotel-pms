@@ -69,24 +69,39 @@ function printHref(date: Date) {
   })}`;
 }
 
+type ForecastVariant = "default" | "blue" | "emerald" | "amber" | "violet" | "rose" | "orange";
+
+const forecastVariantStyles: Record<ForecastVariant, { card: string; label: string; value: string; sub: string }> = {
+  default: { card: "bg-card border-border", label: "text-muted-foreground", value: "text-foreground", sub: "text-muted-foreground" },
+  blue: { card: "bg-blue-50/50 border-blue-200", label: "text-blue-600", value: "text-blue-950", sub: "text-blue-600" },
+  emerald: { card: "bg-emerald-50/50 border-emerald-200", label: "text-emerald-600", value: "text-emerald-950", sub: "text-emerald-600" },
+  amber: { card: "bg-amber-50/50 border-amber-200", label: "text-amber-600", value: "text-amber-950", sub: "text-amber-600" },
+  violet: { card: "bg-violet-50/50 border-violet-200", label: "text-violet-600", value: "text-violet-950", sub: "text-violet-600" },
+  rose: { card: "bg-rose-50/50 border-rose-200", label: "text-rose-600", value: "text-rose-950", sub: "text-rose-600" },
+  orange: { card: "bg-orange-50/50 border-orange-200", label: "text-orange-600", value: "text-orange-950", sub: "text-orange-600" },
+};
+
 function ForecastCard({
   label,
   value,
   sub,
+  variant = "default",
 }: {
   label: string;
   value: number | string;
   sub: string;
+  variant?: ForecastVariant;
 }) {
+  const styles = forecastVariantStyles[variant];
   return (
-    <Card className="rounded-2xl p-5 gap-2">
-      <div className="text-xs font-semibold tracking-tight text-muted-foreground uppercase">
+    <Card className={cn("rounded-2xl p-5 gap-2 transition-colors", styles.card)}>
+      <div className={cn("text-xs font-semibold tracking-tight uppercase", styles.label)}>
         {label}
       </div>
-      <div className="num text-3xl font-bold leading-none text-foreground">
+      <div className={cn("num text-3xl font-bold leading-none mt-1.5 mb-1", styles.value)}>
         {value}
       </div>
-      <div className="text-xs font-medium text-muted-foreground">{sub}</div>
+      <div className={cn("text-xs font-medium", styles.sub)}>{sub}</div>
     </Card>
   );
 }
@@ -216,16 +231,19 @@ export default async function HkSupervisorPage({
             label="Pembersihan berjalan"
             value={cleaningNowCount}
             sub="sesi berjalan"
+            variant="blue"
           />
           <ForecastCard
             label="Menunggu inspeksi"
             value={inspectionRooms.length}
             sub="kamar VCU"
+            variant="amber"
           />
           <ForecastCard
             label="Siap"
             value={readyCount}
             sub="VC - Vacant Clean"
+            variant="emerald"
           />
         </div>
       </section>
@@ -243,31 +261,37 @@ export default async function HkSupervisorPage({
             label="Turnover"
             value={summary.turnovers}
             sub="departure hari ini"
+            variant="violet"
           />
           <ForecastCard
             label="Freshen-up"
             value={summary.freshenUps}
             sub="stayover in-house"
+            variant="blue"
           />
           <ForecastCard
             label="Arrival"
             value={summary.arrivalsToPrep}
             sub="prep dialokasikan"
+            variant="rose"
           />
           <ForecastCard
             label="Dirty"
             value={summary.dirtyNow}
             sub="VD / OD saat ini"
+            variant="orange"
           />
           <ForecastCard
             label="Perlu perhatian"
             value={summary.totalNeedingAttention}
             sub="kamar unik"
+            variant="rose"
           />
           <ForecastCard
             label="Cakupan"
             value={`${summary.assignedNeedingAttention}/${summary.totalNeedingAttention}`}
             sub={`${summary.unassignedNeedingAttention} belum ditugaskan`}
+            variant="emerald"
           />
         </div>
       </section>

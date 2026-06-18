@@ -22,10 +22,28 @@ const statusBadgeClass: Record<CleanRoom["status"], string> = {
   OOO: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const groupLabelMap: Record<CleanRoom["group"], { label: string; variant: "default" | "secondary" | "outline" }> = {
-  ready: { label: "Siap", variant: "default" },
-  freshen: { label: "Freshen-up", variant: "secondary" },
-  done: { label: "Selesai", variant: "outline" },
+const groupLabelMap: Record<
+  CleanRoom["group"],
+  { label: string; badgeClasses: string; cardClasses: string; iconClasses: string }
+> = {
+  ready: {
+    label: "Siap",
+    badgeClasses: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-transparent",
+    cardClasses: "border-emerald-200/60 bg-emerald-50/30 hover:border-emerald-300 hover:bg-emerald-50",
+    iconClasses: "text-emerald-500",
+  },
+  freshen: {
+    label: "Freshen-up",
+    badgeClasses: "bg-blue-100 text-blue-800 hover:bg-blue-200 border-transparent",
+    cardClasses: "border-blue-200/60 bg-blue-50/30 hover:border-blue-300 hover:bg-blue-50",
+    iconClasses: "text-blue-500",
+  },
+  done: {
+    label: "Selesai",
+    badgeClasses: "bg-slate-100 text-slate-800 hover:bg-slate-200 border-transparent",
+    cardClasses: "border-slate-200/60 bg-slate-50/30 hover:border-slate-300 hover:bg-slate-50",
+    iconClasses: "text-slate-500",
+  },
 };
 
 type CleanGroupSectionProps = {
@@ -39,7 +57,7 @@ type CleanGroupSectionProps = {
 function RoomContext({ room }: { room: CleanRoom }) {
   if (!room.context && !room.notes) {
     return (
-      <span className="text-xs italic text-muted-foreground">
+      <span className="text-xs italic text-muted-foreground/70">
         Tidak ada konteks
       </span>
     );
@@ -94,12 +112,17 @@ function CleaningState({ room }: { room: CleanRoom }) {
   );
 }
 
+import { cn } from "@/lib/utils";
+
 function CleanRoomCard({ room }: { room: CleanRoom }) {
   const groupInfo = groupLabelMap[room.group];
   return (
     <Link
       href={`/app/hk/rooms/${room.id}`}
-      className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-border/80 hover:bg-accent/50"
+      className={cn(
+        "flex h-full flex-col gap-3 rounded-2xl border p-5 transition-colors",
+        groupInfo.cardClasses
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -114,11 +137,11 @@ function CleanRoomCard({ room }: { room: CleanRoom }) {
       </div>
       <RoomContext room={room} />
       <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-        <Badge variant={groupInfo.variant} className="rounded-full text-xs">
+        <Badge className={cn("rounded-full text-xs font-semibold", groupInfo.badgeClasses)}>
           {groupInfo.label}
         </Badge>
         <ChevronRight
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className={cn("h-4 w-4 shrink-0", groupInfo.iconClasses)}
           aria-hidden="true"
         />
       </div>
