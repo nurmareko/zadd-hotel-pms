@@ -2,8 +2,10 @@ import { NightAuditStatus } from "@prisma/client";
 import { History } from "lucide-react";
 import Link from "next/link";
 
-import { StatusBadge as SharedStatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   formatCompactDateID,
   formatCompactDateTimeID,
@@ -27,21 +29,26 @@ type AuditHistoryProps = {
 };
 
 function StatusBadge({ status }: { status: NightAuditStatus }) {
+  const statusConfig = {
+    [NightAuditStatus.COMPLETED]: "bg-emerald-100 text-emerald-800",
+  };
   return (
-    <SharedStatusBadge
-      label={status}
-      className="border-status-vc-pip bg-status-vc-bg text-status-vc-fg"
-      pipClassName="bg-status-vc-pip"
-    />
+    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", statusConfig[status as keyof typeof statusConfig] || "bg-slate-100 text-slate-800")}>
+      {status}
+    </span>
   );
 }
 
+const headerCellClass = "bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide";
+const headerRightClass = "bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide";
+const bodyCellClass = "border-b border-border/60 px-4 py-3 align-top";
+
 export function AuditHistory({ rows }: AuditHistoryProps) {
   return (
-    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"RIWAYAT AUDIT"}
-      </div>
+    <Card className="rounded-2xl overflow-hidden p-0 min-w-0 max-w-full border border-border">
+      <CardHeader className="border-b border-border rounded-none px-5 py-4 bg-card">
+        <CardTitle className="text-base font-semibold tracking-tight text-foreground">Riwayat Audit</CardTitle>
+      </CardHeader>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -50,7 +57,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
           description="Audit yang sudah dijalankan akan tersimpan sebagai riwayat dan laporan."
           action={
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              className={buttonVariants({ size: "lg" })}
               href="/app/acc/night-audit"
             >
               Jalankan Night Audit
@@ -59,66 +66,67 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
           className="m-3.5"
         />
       ) : (
-        <div className="max-w-full overflow-auto">
-          <table className="w-full min-w-[980px] border-collapse text-[12px]">
-            <thead>
-              <tr>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Business Date
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Status
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Dijalankan
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Okupansi %
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Pendapatan Kamar
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Pendapatan F&B
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Total Pendapatan
-                </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+        <CardContent className="p-0">
+          <div className="max-w-full overflow-auto">
+            <table className="w-full min-w-[980px] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className={headerCellClass}>
+                    Business Date
+                  </th>
+                  <th className={headerCellClass}>
+                    Status
+                  </th>
+                  <th className={headerCellClass}>
+                    Dijalankan
+                  </th>
+                  <th className={headerRightClass}>
+                    Okupansi %
+                  </th>
+                  <th className={headerRightClass}>
+                    Pendapatan Kamar
+                  </th>
+                  <th className={headerRightClass}>
+                    Pendapatan F&B
+                  </th>
+                  <th className={headerRightClass}>
+                    Total Pendapatan
+                  </th>
+                  <th className={headerRightClass}>
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
               {rows.map((row) => (
                 <tr
-                  className="border-b border-console-border-soft odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
+                  className="odd:bg-white even:bg-slate-50 hover:bg-accent/50"
                   key={row.id}
                 >
-                  <td className="num px-3 py-[9px] font-semibold text-console-ink">
+                  <td className={cn(bodyCellClass, "font-semibold text-foreground")}>
                     {formatCompactDateID(row.businessDate)}
                   </td>
-                  <td className="px-3 py-[9px]">
+                  <td className={bodyCellClass}>
                     <StatusBadge status={row.status} />
                   </td>
-                  <td className="num px-3 py-[9px] text-slate-700">
+                  <td className={cn(bodyCellClass, "text-muted-foreground")}>
                     {formatCompactDateTimeID(row.runAt)}
                   </td>
-                  <td className="num px-3 py-[9px] text-right text-slate-700">
+                  <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
                     {formatFixedPercent(row.occupancyRate)}
                   </td>
-                  <td className="num px-3 py-[9px] text-right text-slate-700">
+                  <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
                     {formatIDR(row.roomRevenue)}
                   </td>
-                  <td className="num px-3 py-[9px] text-right text-slate-700">
+                  <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
                     {formatIDR(row.fbRevenue)}
                   </td>
-                  <td className="num px-3 py-[9px] text-right font-semibold text-console-ink">
+                  <td className={cn(bodyCellClass, "text-right font-semibold text-foreground")}>
                     {formatIDR(row.totalRevenue)}
                   </td>
-                  <td className="px-3 py-[9px] text-right">
+                  <td className={cn(bodyCellClass, "text-right")}>
                     <Link
-                      className="inline-flex h-7 items-center border border-console-border bg-white px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
                       href={`/app/acc/reports/${row.id}`}
                     >
                       Lihat Laporan
@@ -128,8 +136,9 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </CardContent>
       )}
-    </section>
+    </Card>
   );
 }

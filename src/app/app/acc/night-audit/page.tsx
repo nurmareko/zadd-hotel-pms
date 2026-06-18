@@ -1,4 +1,12 @@
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -18,11 +26,11 @@ function CompletedState({
   audit: NonNullable<Awaited<ReturnType<typeof buildNightAuditPlan>>["existingAudit"]>;
 }) {
   return (
-    <section className="border border-status-vc-pip bg-status-vc-bg">
-      <div className="border-b border-status-vc-pip bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="border border-emerald-200 bg-emerald-50/50 rounded-2xl overflow-hidden">
+      <div className="border-b border-emerald-200 bg-emerald-100/50 px-5 py-4 text-xs font-bold uppercase tracking-[0.08em] text-emerald-900">
         {"COMPLETED"}
       </div>
-      <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-3 p-5 text-sm text-emerald-900 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
           <div className="text-[15px] font-bold uppercase tracking-[0.04em]">
             Night audit sudah selesai
@@ -34,13 +42,13 @@ function CompletedState({
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               href={`/app/acc/reports/${audit.id}`}
             >
               Lihat Laporan
             </Link>
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
               href="/app/acc"
             >
               Kembali
@@ -48,20 +56,20 @@ function CompletedState({
           </div>
         </div>
 
-        <aside className="border border-status-vc-pip bg-white p-3 text-[12px] text-console-ink">
-          <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">Pendapatan Kamar</span>
+        <aside className="border border-emerald-200 bg-white rounded-xl p-4 text-sm text-foreground">
+          <div className="flex items-center justify-between gap-3 border-b border-border py-2">
+            <span className="text-muted-foreground">Pendapatan Kamar</span>
             <span className="num font-semibold">{formatIDR(audit.roomRevenue)}</span>
           </div>
-          <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">Pendapatan F&B</span>
+          <div className="flex items-center justify-between gap-3 border-b border-border py-2">
+            <span className="text-muted-foreground">Pendapatan F&B</span>
             <span className="num font-semibold">{formatIDR(audit.fbRevenue)}</span>
           </div>
-          <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-            <span className="text-slate-500">Pendapatan Lainnya</span>
+          <div className="flex items-center justify-between gap-3 border-b border-border py-2">
+            <span className="text-muted-foreground">Pendapatan Lainnya</span>
             <span className="num font-semibold">{formatIDR(audit.otherRevenue)}</span>
           </div>
-          <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
+          <div className="flex items-center justify-between gap-3 pt-3 text-[13px] font-bold uppercase tracking-[0.04em] text-emerald-900">
             <span>Total Pendapatan</span>
             <span className="num">{formatIDR(audit.totalRevenue)}</span>
           </div>
@@ -85,20 +93,30 @@ export default async function NightAuditPage() {
       : undefined;
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Night Audit
+          <Breadcrumb className="mb-2">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/app/acc">Accounting</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Night Audit</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Eksekusi Night Audit
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Business date: {plan.businessDateLabel} ·{" "}
             {plan.existingAudit ? "Sudah diaudit" : "Belum diaudit"}
           </p>
         </div>
         <Link
-          className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+          className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           href="/app/acc"
         >
           Kembali

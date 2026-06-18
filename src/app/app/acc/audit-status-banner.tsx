@@ -1,8 +1,10 @@
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCompactDateTimeID } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export type TodayAuditStatus = {
   id: number;
@@ -21,19 +23,22 @@ export function AuditStatusBanner({
 }: AuditStatusBannerProps) {
   if (todayAudit) {
     return (
-      <section className="border border-status-vc-pip bg-status-vc-bg p-3.5 text-status-vc-fg">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.08em]">
-              Night audit selesai
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 text-emerald-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-semibold tracking-wide uppercase text-emerald-800">
+                Night audit selesai
+              </div>
+              <p className="mt-1 text-sm text-emerald-700">
+                {formatCompactDateTimeID(todayAudit.runAt)}{" "}
+                oleh {todayAudit.runByName}
+              </p>
             </div>
-            <p className="mt-1 text-[12px]">
-              {formatCompactDateTimeID(todayAudit.runAt)}{" "}
-              oleh {todayAudit.runByName}
-            </p>
           </div>
           <Link
-            className="inline-flex h-8 items-center justify-center border border-status-vc-pip bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vc-fg hover:border-console-ink"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "bg-white/50 border-emerald-200 text-emerald-900 hover:bg-emerald-100 hover:text-emerald-900")}
             href={`/app/acc/reports/${todayAudit.id}`}
           >
             Lihat Laporan
@@ -44,20 +49,20 @@ export function AuditStatusBanner({
   }
 
   return (
-    <section className="border border-console-border bg-console-surface p-3.5">
+    <section className="rounded-2xl border border-border bg-card p-2">
       <EmptyState
         icon={ClipboardCheck}
         title="Night audit belum dijalankan"
         description={`Night audit untuk ${businessDateLabel} belum dijalankan.`}
         action={
-        <Link
-          className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
-          href="/app/acc/night-audit"
-        >
-          Jalankan Night Audit
-        </Link>
+          <Link
+            className={buttonVariants({ size: "lg" })}
+            href="/app/acc/night-audit"
+          >
+            Jalankan Night Audit
+          </Link>
         }
-        className="min-h-0 border-0 bg-console-bg py-4"
+        className="border-0 bg-transparent py-6"
       />
     </section>
   );

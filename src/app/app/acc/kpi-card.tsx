@@ -1,19 +1,23 @@
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 type KpiCardProps = {
   label: string;
   value: number | string;
   sub: string;
+  className?: string;
 };
 
-export function KpiCard({ label, value, sub }: KpiCardProps) {
+export function KpiCard({ label, value, sub, className }: KpiCardProps) {
   return (
-    <section className="border border-console-border bg-console-surface p-3.5">
-      <div className="text-[9.5px] font-semibold uppercase tracking-[0.10em] text-slate-600">
-        {`[ ${label} ]`}
+    <Card className={cn("rounded-2xl p-5 gap-2 border border-border", className)}>
+      <div className="text-xs font-semibold tracking-tight text-muted-foreground uppercase">
+        {label}
       </div>
-      <div className="num mt-2 text-[22px] font-bold leading-tight text-console-ink">
+      <div className="num text-3xl font-bold leading-none mt-1.5 mb-1 text-foreground">
         {value}
       </div>
-      <div className="mt-1 text-[11px] text-slate-500">{sub}</div>
-    </section>
+      <div className="text-xs font-medium text-muted-foreground">{sub}</div>
+    </Card>
   );
 }

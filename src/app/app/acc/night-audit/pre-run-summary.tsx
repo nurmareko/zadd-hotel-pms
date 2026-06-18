@@ -17,23 +17,23 @@ function ArrangementBadge({
   count: number;
 }) {
   return (
-    <div className="border border-console-border bg-console-surface p-3">
-      <div className="text-[9.5px] font-semibold uppercase tracking-[0.10em] text-slate-600">
-        {`[ ${arrangement} ]`}
+    <div className="border border-blue-100 bg-blue-50/50 rounded-2xl p-4">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-blue-600">
+        {arrangement}
       </div>
-      <div className="num mt-2 text-[22px] font-bold leading-tight text-console-ink">
+      <div className="num mt-2 text-[28px] font-bold leading-none text-blue-900">
         {count}
       </div>
-      <div className="mt-1 text-[11px] text-slate-500">reservasi in-house</div>
+      <div className="mt-1.5 text-xs font-medium text-blue-700/80">reservasi in-house</div>
     </div>
   );
 }
 
 function MetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5">
-      <span className="text-slate-500">{label}</span>
-      <span className="num font-semibold text-console-ink">{value}</span>
+    <div className="flex items-center justify-between gap-3 border-b border-border py-1.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="num font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -42,11 +42,11 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
   return (
     <div className="grid gap-4">
       {plan.warnings.length > 0 ? (
-        <section className="border border-status-vd-pip bg-status-vd-bg p-3.5 text-[12px] text-status-vd-fg">
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]">
+        <section className="border border-amber-200 bg-amber-50 rounded-2xl p-4 text-sm text-amber-900">
+          <div className="text-xs font-bold uppercase tracking-[0.08em] text-amber-800">
             Peringatan
           </div>
-          <div className="mt-1 space-y-1 leading-5">
+          <div className="mt-2 space-y-1 leading-5">
             {plan.warnings.map((warning) => (
               <div key={warning}>{warning}</div>
             ))}
@@ -55,11 +55,11 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
       ) : null}
 
       {plan.blockingErrors.length > 0 ? (
-        <section className="border border-status-od-pip bg-status-od-bg p-3.5 text-[12px] text-status-od-fg">
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em]">
+        <section className="border border-red-200 bg-red-50 rounded-2xl p-4 text-sm text-red-900">
+          <div className="text-xs font-bold uppercase tracking-[0.08em] text-red-800">
             Audit belum bisa dijalankan
           </div>
-          <div className="mt-1 space-y-1 leading-5">
+          <div className="mt-2 space-y-1 leading-5">
             {plan.blockingErrors.map((error) => (
               <div key={error}>{error}</div>
             ))}
@@ -67,8 +67,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
         </section>
       ) : null}
 
-      <section className="border border-console-border bg-console-surface">
-        <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+      <section className="border border-border bg-card rounded-2xl">
+        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-2xl">
           {"PRE-RUN SUMMARY"}
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -88,26 +88,26 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
               />
             </div>
 
-            <div className="mt-3 overflow-auto border border-console-border">
-              <table className="w-full min-w-[760px] border-collapse text-[12px]">
+            <div className="mt-3 overflow-auto border border-border">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Reservasi
                     </th>
-                    <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Tamu
                     </th>
-                    <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Kamar
                     </th>
-                    <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Arrangement
                     </th>
-                    <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Lines
                     </th>
-                    <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                    <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Total Posting
                     </th>
                   </tr>
@@ -126,25 +126,25 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                   ) : (
                     plan.reservations.map((reservation) => (
                       <tr
-                        className="border-b border-console-border-soft odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
+                        className="border-b border-border/60 odd:bg-white even:bg-slate-50 hover:bg-accent/50"
                         key={reservation.id}
                       >
-                        <td className="num px-3 py-[9px] font-semibold text-console-ink">
+                        <td className="num px-4 py-3 font-semibold text-foreground">
                           {reservation.reservationNo}
                         </td>
-                        <td className="px-3 py-[9px] text-slate-700">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {reservation.guestName}
                         </td>
-                        <td className="num px-3 py-[9px] text-slate-700">
+                        <td className="num px-4 py-3 text-muted-foreground">
                           {reservation.roomNumber}
                         </td>
-                        <td className="px-3 py-[9px] text-slate-700">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {reservation.arrangementType}
                         </td>
-                        <td className="num px-3 py-[9px] text-right text-slate-700">
+                        <td className="num px-4 py-3 text-right text-muted-foreground">
                           {reservation.lineItemCount}
                         </td>
-                        <td className="num px-3 py-[9px] text-right font-semibold text-console-ink">
+                        <td className="num px-4 py-3 text-right font-semibold text-foreground">
                           {formatIDR(reservation.postingTotal)}
                         </td>
                       </tr>
@@ -155,8 +155,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
             </div>
           </div>
 
-          <aside className="border border-console-border bg-console-bg p-3 text-[12px]">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
+          <aside className="border border-border rounded-xl bg-slate-50 p-4 text-sm">
+            <div className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
               Snapshot
             </div>
             <MetricRow
@@ -188,24 +188,24 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
         </div>
       </section>
 
-      <section className="border border-console-border bg-console-surface">
-        <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+      <section className="border border-border bg-card rounded-2xl">
+        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-2xl">
           {"POSTING ARTICLES"}
         </div>
         <div className="overflow-auto">
-          <table className="w-full min-w-[720px] border-collapse text-[12px]">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Code
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Article
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Amount Source
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Article Price
                 </th>
               </tr>
@@ -213,21 +213,21 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
             <tbody>
               {plan.postingArticles.map((article) => (
                 <tr
-                  className="border-b border-console-border-soft odd:bg-white even:bg-console-bg"
+                  className="border-b border-border/60 odd:bg-white even:bg-slate-50"
                   key={article.code}
                 >
-                  <td className="num px-3 py-[9px] font-semibold text-console-ink">
+                  <td className="num px-4 py-3 font-semibold text-foreground">
                     {article.code}
                   </td>
-                  <td className="px-3 py-[9px] text-slate-700">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {article.name}
                   </td>
-                  <td className="px-3 py-[9px] text-slate-700">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {article.amountSource === "reservation-rate"
                       ? "Reservation rateAmount"
                       : "Article defaultPrice"}
                   </td>
-                  <td className="num px-3 py-[9px] text-right text-slate-700">
+                  <td className="num px-4 py-3 text-right text-muted-foreground">
                     {article.amount ? formatIDR(article.amount) : "-"}
                   </td>
                 </tr>
