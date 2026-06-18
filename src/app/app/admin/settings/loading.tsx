@@ -6,7 +6,7 @@ import {
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <PageHeaderSkeleton titleWidth="w-56" subtitleWidth="w-[360px]" />
 
       <div className="grid max-w-[1100px] gap-4 lg:grid-cols-[1fr_320px]">
@@ -18,10 +18,10 @@ export default function Loading() {
 
         <aside className="space-y-3">
           <CardSkeleton rows={5} titleWidth="w-24" />
-          <section className="border border-console-border bg-console-surface p-3.5">
+          <section className="rounded-2xl border border-border bg-card p-3.5">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end lg:flex-col-reverse">
-              <Skeleton className="h-8 border border-console-border sm:w-24 lg:w-full" />
-              <Skeleton className="h-8 border border-console-border sm:w-24 lg:w-full" />
+              <Skeleton className="h-8 border border-border sm:w-24 lg:w-full" />
+              <Skeleton className="h-8 border border-border sm:w-24 lg:w-full" />
             </div>
           </section>
         </aside>

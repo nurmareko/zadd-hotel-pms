@@ -1,4 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { SettingsForm } from "./settings-form";
 
 export default async function HotelSettingsPage() {
@@ -15,13 +23,23 @@ export default async function HotelSettingsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Pengaturan</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Pengaturan Hotel
         </h1>
-        <p className="mt-1 text-[11px] leading-5 text-slate-500">
+        <p className="mt-1 text-sm leading-5 text-slate-500">
           Konfigurasi hotel, pajak, service charge, dan cut-off Night Audit.
         </p>
       </div>

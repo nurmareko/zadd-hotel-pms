@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 @config "../../tailwind.config.ts";
 
+@custom-variant desktop (@media (min-width: 768px) and (pointer: fine));
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -63,17 +63,14 @@ const emptyValues: UserFormInput = {
   role: "FO",
 };
 
-const inputClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+const inputClassName = "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 const labelClassName =
   "text-[10px] font-semibold uppercase tracking-[0.06em]";
 
-const buttonClassName =
-  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90";
 
 function isRoleCode(value: unknown): value is RoleCode {
   return roleCodes.some((role) => role === value);
@@ -243,7 +240,7 @@ export function UserForm({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-8 w-8 rounded-none text-slate-500 hover:bg-console-bg hover:text-console-ink"
+                      className="absolute right-0 top-0 h-8 w-8 rounded-none text-slate-500 hover:bg-slate-50 hover:text-foreground"
                       onClick={() => setShowPassword((isShown) => !isShown)}
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
@@ -263,7 +260,7 @@ export function UserForm({
           />
         ) : null}
 
-        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"

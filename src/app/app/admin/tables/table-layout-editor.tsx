@@ -36,7 +36,7 @@ type TableLayoutEditorProps = {
 type PositionOverrides = Record<number, { posX: number; posY: number }>;
 
 const tableBoxClassName =
-  "flex h-full w-full cursor-move select-none flex-col items-center justify-center border border-console-ink bg-console-surface text-console-ink shadow-[2px_2px_0_#111827] focus-within:outline-none";
+  "flex h-full w-full cursor-move select-none flex-col items-center justify-center border border-primary bg-card text-foreground shadow-[2px_2px_0_#111827] focus-within:outline-none";
 
 const locationTabs = Object.values(TableLocation);
 
@@ -116,13 +116,13 @@ export function RestaurantTableLayoutEditor({
   }
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="flex flex-col gap-3 border-b border-console-border bg-console-surface p-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-2xl border border-border bg-card">
+      <div className="flex flex-col gap-3 border-b border-border bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-[12px] font-bold uppercase tracking-[0.08em] text-console-ink">
+          <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-foreground">
             Floor Layout
           </h2>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             <span className="num">{RESTAURANT_FLOOR_CANVAS_WIDTH}</span>x
             <span className="num">{RESTAURANT_FLOOR_CANVAS_HEIGHT}</span> px ·{" "}
             <span className="num">{selectedTables.length}</span> meja
@@ -130,7 +130,7 @@ export function RestaurantTableLayoutEditor({
         </div>
         <Button
           type="button"
-          className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent"
+          className="h-8 rounded-none border-primary bg-card px-3 text-sm font-semibold uppercase tracking-[0.04em] text-primary hover:bg-slate-800 hover:text-primary"
           disabled={isArranging}
           onClick={handleAutoArrange}
         >
@@ -139,16 +139,16 @@ export function RestaurantTableLayoutEditor({
         </Button>
       </div>
 
-      <div className="border-b border-console-border px-3.5">
+      <div className="border-b border-border px-3.5">
         <div className="flex gap-5" role="tablist" aria-label="Lokasi meja">
           {locationTabs.map((location) => (
             <button
               key={location}
               type="button"
-              className={`border-b-2 px-0 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+              className={`border-b-2 px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] ${
                 selectedLocation === location
-                  ? "border-console-ink text-console-ink"
-                  : "border-transparent text-slate-500 hover:text-console-ink"
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-slate-500 hover:text-foreground"
               }`}
               role="tab"
               aria-selected={selectedLocation === location}
@@ -162,7 +162,7 @@ export function RestaurantTableLayoutEditor({
 
       <div className="overflow-auto p-3.5">
         <div
-          className="relative border border-dashed border-console-border bg-console-bg"
+          className="relative border border-dashed border-border bg-slate-50"
           style={{
             width: RESTAURANT_FLOOR_CANVAS_WIDTH,
             height: RESTAURANT_FLOOR_CANVAS_HEIGHT,
@@ -204,7 +204,7 @@ export function RestaurantTableLayoutEditor({
                   {table.capacity} pax
                 </span>
                 {savingTableId === table.id ? (
-                  <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-console-accent">
+                  <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-primary">
                     Saving
                   </span>
                 ) : null}
