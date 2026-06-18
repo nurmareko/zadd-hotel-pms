@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { todayDateOnly } from "@/lib/date-only";
 import { formatCompactDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -37,17 +38,15 @@ function etaFromNotes(notes: string | null) {
 
 function HousekeeperDeniedPanel() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4">
-        <h2 className="text-[16px] font-semibold tracking-tight text-slate-900">
-          {"Tugas Housekeeper"}
-        </h2>
-      </div>
-      <p className="p-3.5 text-[12px] leading-relaxed text-slate-600">
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+        <CardTitle className="text-base font-semibold">Tugas Housekeeper</CardTitle>
+      </CardHeader>
+      <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">
         Kamar ini tidak masuk daftar tugas Anda hari ini. Aksi pembersihan hanya
         tersedia untuk housekeeper yang ditugaskan.
-      </p>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 

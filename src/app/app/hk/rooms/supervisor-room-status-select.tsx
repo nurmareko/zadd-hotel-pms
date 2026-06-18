@@ -61,7 +61,7 @@ export function SupervisorRoomStatusSelect({
           value={selectedStatus}
           disabled={isPending}
           onChange={(event) => applyStatus(event.target.value as RoomStatus)}
-          className="h-8 w-full rounded-2xl border border-slate-200 bg-white shadow-sm px-2 pr-8 text-[11px] font-semibold text-slate-900 shadow-none outline-none transition-colors hover:border-slate-300 hover:border-slate-400 focus:border-blue-500 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-50 disabled:text-slate-500"
+          className="h-8 w-full appearance-none rounded-lg border border-border bg-background px-2 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-wait disabled:opacity-50"
         >
           {allRoomStatuses.map((roomStatus) => (
             <option key={roomStatus} value={roomStatus}>
@@ -71,14 +71,14 @@ export function SupervisorRoomStatusSelect({
         </select>
         {isPending ? (
           <LoaderCircle
-            className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-slate-900"
+            className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground"
             aria-hidden="true"
           />
         ) : null}
       </div>
       <div
         aria-live="polite"
-        className="mt-1 h-4 text-[10px] font-semibold font-medium tracking-tight text-slate-500"
+        className="mt-1 h-4 text-xs text-muted-foreground"
       >
         {isPending && pendingStatus ? "Menyimpan..." : ""}
       </div>

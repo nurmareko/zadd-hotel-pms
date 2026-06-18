@@ -225,13 +225,13 @@ export default async function LostFoundPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-6 text-foreground">
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Lost & Found
+          <h1 className="text-3xl font-bold tracking-tight">
+            Lost &amp; Found
           </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {items.length} barang · terbaru dulu
           </p>
         </div>
@@ -272,7 +272,7 @@ export default async function LostFoundPage({
               <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
               <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
             </select>
-            <Button type="submit" variant="outline" className="rounded-xl">
+            <Button type="submit" variant="outline" size="default" className="rounded-lg h-10">
               <Search className="h-4 w-4" aria-hidden="true" />
               Cari
             </Button>
@@ -303,8 +303,8 @@ export default async function LostFoundPage({
                 </option>
               ))}
             </select>
-            <Button type="submit" className="rounded-xl">
-              <Plus className="h-4 w-4" aria-hidden="true" />
+            <Button type="submit" className="rounded-xl h-10 px-4">
+              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               Tambah Barang
             </Button>
           </form>
@@ -312,8 +312,8 @@ export default async function LostFoundPage({
 
       <section className="space-y-2 md:hidden">
         {items.length === 0 ? (
-          <p className="rounded-2xl border border-slate-200 bg-white shadow-sm px-3 py-8 text-center text-[12px] italic text-slate-400">
-            Tidak ada barang Lost & Found yang cocok dengan filter.
+          <p className="rounded-2xl border border-border bg-card px-3 py-8 text-center text-sm italic text-muted-foreground">
+            Tidak ada barang Lost &amp; Found yang cocok dengan filter.
           </p>
         ) : (
           items.map((item) => <LostFoundCard key={item.id} item={item} />)

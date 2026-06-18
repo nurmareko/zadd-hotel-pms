@@ -189,10 +189,10 @@ export default async function HkRoomsPage({
     <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Worksheet Kamar
           </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {formatDateWithWeekday(date)} · {rows.length} kamar
           </p>
         </div>
@@ -207,7 +207,7 @@ export default async function HkRoomsPage({
           </Link>
           <Link
             href={dateHref({ ...queryParams, date: new Date() })}
-            className={cn(buttonVariants({ variant: "default", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
             Today
@@ -230,7 +230,7 @@ export default async function HkRoomsPage({
         </nav>
       </div>
 
-      <section className="mb-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mb-4 rounded-2xl border border-border bg-card">
         <RoomFilterForm
           dateIso={formatISO(date, { representation: "date" })}
           defaultQ={q}

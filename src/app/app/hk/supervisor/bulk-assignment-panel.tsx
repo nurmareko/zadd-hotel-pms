@@ -15,7 +15,9 @@ import {
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
-import { consoleButtonClassName } from "@/components/console-button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   HousekeepingForecastHousekeeperLoad,
   HousekeepingForecastReason,
@@ -71,9 +73,9 @@ const reasonLabels: Record<HousekeepingForecastReason, string> = {
 };
 
 const headerCellClass =
-  "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
+  "bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide";
 const bodyCellClass =
-  "border-b border-slate-100 px-3 py-[9px] align-top";
+  "border-b border-border/60 px-4 py-3 align-top";
 
 function FloorSelectCheckbox({
   checked,
@@ -125,23 +127,28 @@ function StatusCell({ status }: { status: RoomStatus }) {
 function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.needsAttention) {
     return (
-      <StatusBadge
-        label="Tidak ada kebutuhan terjadwal"
-        className="border-slate-200 bg-slate-50 text-slate-500"
-        pipClassName="bg-slate-400"
-      />
+      <Badge variant="secondary" className="rounded-full text-xs font-normal text-muted-foreground">
+        Tidak ada kebutuhan
+      </Badge>
     );
   }
+
+  const reasonColorMap: Record<HousekeepingForecastReason, string> = {
+    turnover: "bg-amber-50 border-amber-200 text-amber-700",
+    "freshen-up": "bg-blue-50 border-blue-200 text-blue-700",
+    "arrival-prep": "bg-violet-50 border-violet-200 text-violet-700",
+    "dirty-now": "bg-orange-50 border-orange-200 text-orange-700",
+  };
 
   return (
     <div className="flex max-w-[260px] flex-wrap gap-1.5">
       {row.reasons.map((reason) => (
-        <StatusBadge
+        <span
           key={reason}
-          label={reasonLabels[reason]}
-          className="rounded-xl bg-blue-600 border-blue-600 shadow-sm text-blue-600"
-          pipClassName="bg-blue-600"
-        />
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${reasonColorMap[reason]}`}
+        >
+          {reasonLabels[reason]}
+        </span>
       ))}
     </div>
   );
@@ -150,7 +157,7 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
 function AssigneeCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.assignment) {
     return (
-      <span className="text-[11px] italic text-slate-400">
+      <span className="text-xs italic text-muted-foreground">
         Belum ditugaskan
       </span>
     );
@@ -158,10 +165,10 @@ function AssigneeCell({ row }: { row: HousekeepingForecastRoomRow }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-900">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
         {row.assignment.housekeeperInitials}
       </span>
-      <span className="text-[12px] font-semibold text-slate-900">
+      <span className="text-sm font-medium text-foreground">
         {row.assignment.housekeeperName}
       </span>
     </div>
@@ -314,67 +321,69 @@ export function BulkAssignmentPanel({
   const controlsDisabled = isPending || housekeepers.length === 0;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">
-            Penugasan Massal
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal
-          </p>
-        </div>
+    <Card className="rounded-2xl overflow-hidden p-0">
+      <CardHeader className="border-b border-border rounded-none px-5 py-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <CardTitle className="text-base font-semibold">Penugasan Massal</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal
+            </p>
+          </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Housekeeper
-            </span>
-            <select
-              value={housekeeperId}
-              onChange={onHousekeeperChange}
-              disabled={controlsDisabled}
-              className="h-10 min-w-[250px] rounded-xl border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {housekeepers.length === 0 ? (
-                <option value="">Tidak ada member HK</option>
-              ) : null}
-              {housekeepers.map((housekeeper) => (
-                <option key={housekeeper.id} value={housekeeper.id}>
-                  {housekeeper.name} ({housekeeper.assignedCount})
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Housekeeper
+              </span>
+              <select
+                value={housekeeperId}
+                onChange={onHousekeeperChange}
+                disabled={controlsDisabled}
+                className="h-9 min-w-[250px] rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {housekeepers.length === 0 ? (
+                  <option value="">Tidak ada member HK</option>
+                ) : null}
+                {housekeepers.map((housekeeper) => (
+                  <option key={housekeeper.id} value={housekeeper.id}>
+                    {housekeeper.name} ({housekeeper.assignedCount})
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={assignSelected}
-              disabled={controlsDisabled || selectedCount === 0}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <UserCheck className="h-4 w-4" aria-hidden="true" />
-              {pendingAction === "assign"
-                ? "Menugaskan..."
-                : "Tugaskan terpilih"}
-            </button>
-            <button
-              type="button"
-              onClick={unassignSelected}
-              disabled={isPending || selectedCount === 0}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              {pendingAction === "unassign"
-                ? "Mengosongkan..."
-                : "Kosongkan terpilih"}
-            </button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="lg"
+                onClick={assignSelected}
+                disabled={controlsDisabled || selectedCount === 0}
+                className="rounded-lg px-4"
+              >
+                <UserCheck className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                {pendingAction === "assign"
+                  ? "Menugaskan..."
+                  : "Tugaskan terpilih"}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                onClick={unassignSelected}
+                disabled={isPending || selectedCount === 0}
+                className="rounded-lg px-4"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                {pendingAction === "unassign"
+                  ? "Mengosongkan..."
+                  : "Kosongkan terpilih"}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-full overflow-auto">
+      </CardHeader>
+      <CardContent className="p-0">
         <table className="w-full min-w-[1080px] border-collapse text-[12px]">
           <caption className="sr-only">
             Penugasan massal housekeeping supervisor per lantai
@@ -415,7 +424,7 @@ export function BulkAssignmentPanel({
                     <th
                       colSpan={6}
                       scope="colgroup"
-                      className="border-y border-slate-200 bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold font-medium tracking-tight text-slate-900"
+                      className="border-y border-border bg-muted/60 px-4 py-2 text-left text-xs font-semibold text-foreground"
                     >
                       <div className="flex items-center gap-2">
                         <FloorSelectCheckbox
@@ -455,15 +464,15 @@ export function BulkAssignmentPanel({
                         </label>
                       </td>
                       <td className={bodyCellClass}>
-                        <div className="num text-[16px] font-bold leading-none text-slate-900">
+                        <div className="text-base font-bold leading-none text-foreground">
                           {row.room.number}
                         </div>
                       </td>
                       <td className={bodyCellClass}>
-                        <div className="font-semibold text-slate-900">
+                        <div className="text-sm font-semibold text-foreground">
                           {row.room.typeCode}
                         </div>
-                        <div className="mt-1 text-[11px] text-slate-500">
+                        <div className="mt-0.5 text-xs text-muted-foreground">
                           {row.room.typeName}
                         </div>
                       </td>
@@ -483,7 +492,7 @@ export function BulkAssignmentPanel({
             })}
           </tbody>
         </table>
-      </div>
-    </section>
+        </CardContent>
+    </Card>
   );
 }

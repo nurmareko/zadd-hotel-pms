@@ -79,7 +79,7 @@ export function RoomStatusGrid({
     <div className="space-y-4">
       {floors.map((floor) => (
         <section key={floor.floor}>
-          <h2 className="border-b border-slate-200 bg-slate-50 px-1 pb-2 text-[11px] font-bold font-medium tracking-tight text-slate-600">
+          <h2 className="border-b border-border bg-muted/40 px-1 pb-2 text-xs font-semibold tracking-tight text-muted-foreground uppercase">
             Lantai {floor.floor}
           </h2>
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8">
@@ -89,7 +89,7 @@ export function RoomStatusGrid({
               return (
                 <article
                   key={room.id}
-                  className={`min-h-[92px] rounded-2xl border border-slate-200 bg-white shadow-sm p-2.5 transition-colors ${classes.card}`}
+                  className={`min-h-[92px] rounded-2xl border border-border bg-card p-2.5 transition-colors ${classes.card}`}
                 >
                   <Link href={room.href} className="block">
                     <div className="num text-[18px] font-bold leading-none text-slate-900">

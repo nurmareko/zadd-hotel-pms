@@ -10,6 +10,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -159,13 +160,13 @@ export default async function HkSupervisorPage({
   });
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-6 text-foreground">
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight">
             Supervisor Dashboard
           </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {formatDateWithWeekday(date)}
           </p>
         </div>
@@ -207,7 +208,7 @@ export default async function HkSupervisorPage({
       </div>
 
       <section className="mb-8">
-        <h3 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+        <h3 className="mb-3 text-xl font-semibold tracking-tight text-foreground">
           Live Status
         </h3>
         <div className="grid grid-cols-3 gap-3">
@@ -234,7 +235,7 @@ export default async function HkSupervisorPage({
       <RecentActivityFeed logs={recentLogs} />
 
       <section className="mb-8">
-        <h3 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+        <h3 className="mb-3 text-xl font-semibold tracking-tight text-foreground">
           Workload Forecast
         </h3>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
@@ -273,31 +274,31 @@ export default async function HkSupervisorPage({
 
       <Card className="mb-8 rounded-2xl overflow-hidden p-0">
         <CardHeader className="border-b border-border rounded-none px-5 py-4">
-          <CardTitle className="text-[16px] font-semibold tracking-tight">
+          <CardTitle className="text-base font-semibold tracking-tight">
             Housekeeper Workload
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 p-3 md:grid-cols-3">
+        <CardContent className="grid gap-2 p-4 md:grid-cols-3">
           {housekeepers.map((housekeeper) => (
             <Card
               key={housekeeper.id}
-              className="flex flex-row items-center justify-between gap-3 rounded-xl px-4 py-3 p-0"
+              className="flex flex-row items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[12px] font-semibold text-blue-700">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
                   {housekeeper.initials}
                 </span>
-                <span className="truncate text-[14px] font-medium text-foreground">
+                <span className="truncate text-sm font-medium text-foreground">
                   {housekeeper.name}
                 </span>
               </div>
-              <span className="num shrink-0 text-[18px] font-semibold text-foreground">
+              <span className="num shrink-0 text-lg font-semibold text-foreground">
                 {housekeeper.assignedCount}
               </span>
             </Card>
           ))}
           {housekeepers.length === 0 ? (
-            <p className="px-3 py-2 text-[12px] text-muted-foreground">
+            <p className="px-3 py-2 text-xs text-muted-foreground">
               Tidak ada member HK aktif.
             </p>
           ) : null}

@@ -104,27 +104,27 @@ export function InspectionPanel({
       <CardContent className="p-0">
       <form
         onSubmit={submitInspection}
-        className="space-y-3.5 p-3.5"
+        className="space-y-4 p-5"
       >
         <input type="hidden" name="roomId" value={roomId} />
-         <p className="text-[12px] leading-relaxed text-slate-600">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {cleaningSummary(latestCompletedCleaningSession)}
         </p>
 
         {latestCompletedCleaningSession && (latestCompletedCleaningSession.linenChanged || latestCompletedCleaningSession.towelChanged || latestCompletedCleaningSession.note) ? (
-          <div className="border border-slate-100 bg-slate-50 p-3 space-y-2 text-[12px]">
+          <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2 text-sm">
             <div>
-              <span className="text-[10px] font-bold font-medium tracking-tight text-slate-500">Amenities Diganti:</span>
-              <ul className="list-inside list-disc mt-0.5 space-y-0.5 font-inter italic text-slate-600">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amenities Diganti:</span>
+              <ul className="list-inside list-disc mt-1 space-y-0.5 text-muted-foreground">
                 <li>Linen / Seprei: {latestCompletedCleaningSession.linenChanged ? "YA" : "TIDAK"}</li>
                 <li>Handuk: {latestCompletedCleaningSession.towelChanged ? "YA" : "TIDAK"}</li>
               </ul>
             </div>
             {latestCompletedCleaningSession.note ? (
               <div>
-                <span className="text-[10px] font-bold font-medium tracking-tight text-slate-500">Catatan Housekeeper:</span>
-                <p className="mt-0.5 font-inter text-slate-600 italic">
-                  "{latestCompletedCleaningSession.note}"
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Catatan Housekeeper:</span>
+                <p className="mt-0.5 text-sm text-muted-foreground italic">
+                  &ldquo;{latestCompletedCleaningSession.note}&rdquo;
                 </p>
               </div>
             ) : null}
@@ -132,19 +132,19 @@ export function InspectionPanel({
         ) : null}
 
         <label className="block">
-          <span className="text-[10px] font-semibold font-medium tracking-tight text-slate-500">
+          <span className="text-xs font-medium text-muted-foreground">
             {isFailMode ? "Alasan kegagalan *" : "Catatan Inspeksi"}
           </span>
           <Textarea
             name="notes"
             placeholder="Catatan jika ada temuan saat inspeksi"
             aria-invalid={isFailMode && Boolean(error)}
-            className="mt-1 min-h-24 rounded-xl border-slate-300 bg-white text-[13px] text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
+            className="mt-1 min-h-24 rounded-xl"
           />
         </label>
 
         {error ? (
-          <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error}
           </p>
         ) : null}
@@ -154,21 +154,24 @@ export function InspectionPanel({
             type="submit"
             name="passed"
             value="true"
+            size="lg"
             disabled={isPending}
-            className="h-10 w-full rounded-xl bg-slate-900 shadow-sm text-[13px] font-medium text-white hover:bg-slate-800"
+            className="w-full rounded-xl"
           >
             <Check className="h-4 w-4" aria-hidden="true" />
-            Lulus Inspeksi (-&gt; VC)
+            Lulus Inspeksi (&rarr; VC)
           </Button>
           <Button
             type="submit"
             name="passed"
             value="false"
+            size="lg"
+            variant="outline"
             disabled={isPending}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white shadow-sm text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+            className="w-full rounded-xl"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-            Gagal Inspeksi (-&gt; VD)
+            Gagal Inspeksi (&rarr; VD)
           </Button>
         </div>
       </form>
