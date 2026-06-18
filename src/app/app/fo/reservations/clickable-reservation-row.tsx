@@ -32,7 +32,7 @@ export function ClickableReservationRow({
 
   return (
     <tr
-      className="cursor-pointer odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+      className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors"
       onClick={handleClick}
     >
       {children}

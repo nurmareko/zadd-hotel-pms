@@ -46,12 +46,12 @@ export function ArrivalList({
   allHref,
 }: ArrivalListProps) {
   return (
-    <section className="min-w-0 max-w-full border border-console-border bg-console-surface p-0">
-      <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+        <h2 className="text-base font-semibold text-slate-900">
           Expected Arrivals · Hari Ini
         </h2>
-        <span className="num text-[10px] text-slate-500">
+        <span className="text-sm font-medium text-slate-500">
           {totalCount} reservasi
         </span>
       </div>
@@ -68,22 +68,22 @@ export function ArrivalList({
           </colgroup>
           <thead>
             <tr>
-              <th className="bg-console-ink px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Reservasi
               </th>
-              <th className="bg-console-ink px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Tamu
               </th>
-              <th className="bg-console-ink px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Tipe
               </th>
-              <th className="bg-console-ink px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                 Malam
               </th>
-              <th className="bg-console-ink px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Status
               </th>
-              <th className="bg-console-ink px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                 {" "}
               </th>
             </tr>
@@ -93,31 +93,31 @@ export function ArrivalList({
               rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                  className="hover:bg-slate-50 even:bg-slate-50/50"
                 >
-                  <td className="border-b border-console-border-soft px-2 py-[9px]">
-                    <span className="num whitespace-nowrap font-semibold text-slate-900">
+                  <td className="border-b border-slate-100 px-4 py-3">
+                    <span className="whitespace-nowrap font-medium text-slate-900">
                       {row.reservationNo}
                     </span>
                   </td>
-                  <td className="border-b border-console-border-soft px-2 py-[9px]">
-                    <span className="whitespace-nowrap font-medium text-console-ink">
+                  <td className="border-b border-slate-100 px-4 py-3">
+                    <span className="whitespace-nowrap font-medium text-slate-900">
                       {row.guestLabel}
                     </span>
                   </td>
-                  <td className="border-b border-console-border-soft px-2 py-[9px] text-slate-600">
+                  <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
                     {row.roomTypeLabel}
                   </td>
-                  <td className="num border-b border-console-border-soft px-2 py-[9px] text-right">
+                  <td className="border-b border-slate-100 px-4 py-3 text-right">
                     {row.nights}
                   </td>
-                  <td className="border-b border-console-border-soft px-2 py-[9px]">
+                  <td className="border-b border-slate-100 px-4 py-3">
                     <ReservationStatusBadge status={row.status} />
                   </td>
-                  <td className="border-b border-console-border-soft px-2 py-[9px] text-right">
+                  <td className="border-b border-slate-100 px-4 py-3 text-right">
                     <Link
                       href={row.href}
-                      className="inline-flex h-7 items-center justify-center border border-console-border bg-console-surface px-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                      className="inline-flex h-8 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700"
                     >
                       Check-in
                     </Link>
@@ -126,7 +126,7 @@ export function ArrivalList({
               ))
             ) : (
               <tr>
-                <td className="px-3.5 py-3.5" colSpan={6}>
+                <td className="px-5 py-8" colSpan={6}>
                   <EmptyState
                     icon={CalendarCheck}
                     title="Tidak ada kedatangan hari ini"
@@ -140,8 +140,8 @@ export function ArrivalList({
       </div>
 
       {totalCount > limit ? (
-        <div className="border-t border-console-border bg-console-bg px-3.5 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.04em]">
-          <Link className="text-console-ink hover:underline" href={allHref}>
+        <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-right text-sm font-medium">
+          <Link className="text-emerald-600 hover:text-emerald-700 hover:underline" href={allHref}>
             Lihat semua →
           </Link>
         </div>

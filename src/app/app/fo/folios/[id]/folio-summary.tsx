@@ -21,12 +21,12 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className={strong ? "text-slate-900 font-semibold" : "text-slate-500"}>
         {label}
       </span>
       <span
-        className={`num text-right ${strong ? "text-[15px] font-semibold" : "font-medium text-console-ink"}`}
+        className={`text-right ${strong ? "text-base font-semibold text-slate-900" : "font-medium text-slate-700"}`}
       >
         {value}
       </span>
@@ -38,14 +38,14 @@ function balanceClassName(balance: number) {
   const roundedBalance = Math.round(balance);
 
   if (roundedBalance > 0) {
-    return "text-status-od-fg";
+    return "text-red-600";
   }
 
   if (roundedBalance < 0) {
-    return "text-status-vd-fg";
+    return "text-amber-600";
   }
 
-  return "text-status-vc-fg";
+  return "text-emerald-600";
 }
 
 export function FolioSummary({
@@ -58,11 +58,11 @@ export function FolioSummary({
   const canCheckOut = isOpen && reservationStatus === ReservationStatus.CHECKED_IN;
 
   return (
-    <section className="min-w-0 border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
         {"Saldo"}
       </div>
-      <div className="p-3.5 text-[13px]">
+      <div className="p-5 text-sm">
         <SummaryRow
           label="Total charges"
           value={formatIDR(totals.totalCharges)}
@@ -71,24 +71,24 @@ export function FolioSummary({
           label="Total payments"
           value={`-${formatIDR(totals.totalPaid)}`}
         />
-        <div className="my-2 border-t border-console-border-soft" />
-        <div className="flex items-center justify-between gap-3 py-1 text-[15px] font-semibold">
+        <div className="my-3 border-t border-slate-100" />
+        <div className="flex items-center justify-between gap-3 py-1.5 text-base font-semibold text-slate-900">
           <span>Saldo terhutang</span>
-          <span className={`num ${balanceClassName(totals.balance)}`}>
+          <span className={balanceClassName(totals.balance)}>
             {formatIDR(totals.balance)}
           </span>
         </div>
       </div>
-      <div className="border-t border-console-border bg-console-bg p-3.5">
+      <div className="border-t border-slate-200 bg-slate-50 p-5">
         {canCheckOut ? (
           <Link
             href={`/app/fo/check-out/${folioId}`}
-            className="inline-flex h-8 w-full items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className="inline-flex h-9 w-full items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
           >
             Lanjut ke Check-Out
           </Link>
         ) : (
-          <span className="block text-[11px] text-slate-500">
+          <span className="block text-xs text-slate-500">
             Check-out tersedia saat folio open dan reservasi checked-in.
           </span>
         )}

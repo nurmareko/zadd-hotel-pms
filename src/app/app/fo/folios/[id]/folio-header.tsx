@@ -65,9 +65,9 @@ function dateLabel(date: Date) {
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
+    <div className="flex items-center justify-between gap-3 py-1.5">
       <span className="text-slate-500">{label}</span>
-      <span className="num text-right font-medium text-console-ink">{value}</span>
+      <span className="text-right font-medium text-slate-900">{value}</span>
     </div>
   );
 }
@@ -104,30 +104,30 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
   );
 
   return (
-    <section className="min-w-0 border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
         {"Tamu"}
       </div>
-      <div className="p-3.5 text-[13px]">
+      <div className="p-5 text-sm">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-[14px] font-semibold leading-tight text-console-ink">
+          <h2 className="text-base font-semibold leading-tight text-slate-900">
             {reservation.guest.fullName}
           </h2>
           <FolioStatusBadge status={folio.status} />
         </div>
-        <div className="mt-1 text-[11px] text-slate-500">
+        <div className="mt-1 text-xs text-slate-500">
           {reservation.room?.number ?? "-"} / {reservation.roomType.name}
         </div>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-500">
-          <span className="border border-console-border-soft px-1.5 py-0.5">
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+          <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
             Tipe Reservasi: {reservationTypeLabels[reservation.reservationType]}
           </span>
-          <span className="border border-console-border-soft px-1.5 py-0.5">
+          <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
             Arrangement: {arrangementLabels[reservation.arrangementType]}
           </span>
         </div>
 
-        <div className="my-3 border-t border-console-border-soft" />
+        <div className="my-4 border-t border-slate-100" />
         <InfoRow label="Reservasi" value={reservation.reservationNo} />
         <InfoRow label="Telepon" value={reservation.guest.phone ?? "-"} />
         <InfoRow

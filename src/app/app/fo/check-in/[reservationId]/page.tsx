@@ -32,20 +32,19 @@ function ErrorState({
   message: string;
 }) {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Check-In
         </h1>
-        <p className="mt-1 text-[11px] text-slate-500">{title}</p>
+        <p className="mt-1 text-sm text-slate-500">{title}</p>
       </div>
 
-      <section className="border border-console-border bg-console-surface">
-        <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"Check-In Blocked"}
-        </div>
-        <div className="p-3.5 text-[12px] text-status-od-fg">{message}</div>
+      <section className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-red-800">
+          Check-In Blocked
+        </h2>
+        <div className="mt-2 text-sm text-red-600">{message}</div>
       </section>
     </main>
   );
@@ -176,14 +175,13 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
   const departureLabel = dateLabel(reservation.departureDate);
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Check-In · {reservation.guest.fullName}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {reservation.reservationNo} · {reservation.roomType.name} ·{" "}
             {arrivalLabel} → {departureLabel} ({nights} malam)
           </p>
@@ -192,16 +190,16 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <Link
             href={`/app/fo/reservations/${reservation.id}`}
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >
             Batal
           </Link>
           <a
             href={`/api/reservations/${reservation.id}/grc`}
             download
-            className="inline-flex h-8 items-center justify-center gap-2 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            <Download className="h-4 w-4" aria-hidden="true" />
             Cetak GRC
           </a>
         </div>

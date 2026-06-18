@@ -1,6 +1,9 @@
 .chartShell {
-  border: 1px solid var(--console-border);
-  background: var(--console-surface);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  overflow: hidden;
 }
 
 .scrollArea {
@@ -11,7 +14,7 @@
 
 .grid {
   position: relative;
-  background: var(--console-surface);
+  background: #ffffff;
 }
 
 .headerRow,
@@ -33,31 +36,31 @@
   z-index: 20;
   flex: 0 0 var(--room-label-width);
   width: var(--room-label-width);
-  border-right: 1px solid var(--console-border);
+  border-right: 1px solid #e2e8f0;
 }
 
 .headerLabelCell {
   z-index: 50;
-  border-bottom: 1px solid var(--console-border);
-  background: var(--console-ink);
-  color: var(--console-accent);
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
 }
 
 .dateHeaderCell {
   flex: 0 0 var(--column-width);
   width: var(--column-width);
-  border-right: 1px solid rgb(255 255 255 / 0.12);
-  border-bottom: 1px solid var(--console-border);
-  background: var(--console-ink);
-  color: var(--console-accent);
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
 }
 
 .dateHeaderWeekend {
-  background: #111827;
+  background: #f1f5f9;
 }
 
 .dateHeaderToday {
-  box-shadow: inset 0 -2px 0 var(--console-accent);
+  box-shadow: inset 0 -2px 0 #10b981;
 }
 
 .groupRow {
@@ -70,12 +73,12 @@
 }
 
 .groupLabelCell {
-  background: var(--slate-100);
+  background: #f1f5f9;
 }
 
 .roomLabelCell,
 .unallocatedLabelCell {
-  background: var(--console-surface);
+  background: #ffffff;
 }
 
 .roomLabelCellOutOfOrder {
@@ -84,19 +87,19 @@
       135deg,
       transparent 0,
       transparent 7px,
-      rgb(71 85 105 / 0.16) 7px,
-      rgb(71 85 105 / 0.16) 9px
+      rgba(71, 85, 105, 0.08) 7px,
+      rgba(71, 85, 105, 0.08) 9px
     ),
-    #cbd5e1;
-  color: var(--slate-800);
+    #e2e8f0;
+  color: #64748b;
 }
 
 .gridCell {
   flex: 0 0 var(--column-width);
   width: var(--column-width);
-  border-right: 1px solid var(--console-border-soft);
-  border-bottom: 1px solid var(--console-border-soft);
-  background: var(--console-surface);
+  border-right: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
 }
 
 .bookableCell {
@@ -105,12 +108,12 @@
 }
 
 .bookableCell:hover {
-  background: #eef2f7;
+  background: #f8fafc;
 }
 
 .bookableCell:focus-visible {
   z-index: 1;
-  outline: 2px solid var(--console-ink);
+  outline: 2px solid #10b981;
   outline-offset: -2px;
 }
 
@@ -119,15 +122,15 @@
 }
 
 .todayCell {
-  background: #ecfdf5;
+  background: #f0fdf4;
   box-shadow:
-    inset 1px 0 0 rgb(0 212 170 / 0.55),
-    inset -1px 0 0 rgb(0 212 170 / 0.55);
+    inset 1px 0 0 rgba(16, 185, 129, 0.2),
+    inset -1px 0 0 rgba(16, 185, 129, 0.2);
 }
 
 .groupCell {
-  background: var(--slate-100);
-  border-bottom-color: var(--console-border);
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
 }
 
 .unallocatedCell {
@@ -136,10 +139,10 @@
       -45deg,
       transparent 0,
       transparent 7px,
-      rgb(15 23 42 / 0.035) 7px,
-      rgb(15 23 42 / 0.035) 8px
+      rgba(15, 23, 42, 0.02) 7px,
+      rgba(15, 23, 42, 0.02) 8px
     ),
-    var(--console-surface);
+    #ffffff;
 }
 
 .unallocatedCell.bookableCell:hover {
@@ -148,10 +151,10 @@
       -45deg,
       transparent 0,
       transparent 7px,
-      rgb(15 23 42 / 0.045) 7px,
-      rgb(15 23 42 / 0.045) 8px
+      rgba(15, 23, 42, 0.03) 7px,
+      rgba(15, 23, 42, 0.03) 8px
     ),
-    #eef2f7;
+    #f8fafc;
 }
 
 .outOfOrderCell {
@@ -160,14 +163,14 @@
       135deg,
       transparent 0,
       transparent 7px,
-      rgb(51 65 85 / 0.22) 7px,
-      rgb(51 65 85 / 0.22) 9px
+      rgba(51, 65, 85, 0.15) 7px,
+      rgba(51, 65, 85, 0.15) 9px
     ),
-    #cbd5e1;
+    #e2e8f0;
 }
 
 .todayLabel {
-  color: #00d4aa;
+  color: #10b981;
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
@@ -179,14 +182,15 @@
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgb(51 65 85 / 0.55);
-  background: var(--slate-800);
-  padding: 2px 4px;
+  border: 1px solid #cbd5e1;
+  background: #64748b;
+  padding: 2px 6px;
   color: white;
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
+  border-radius: 4px;
 }
 
 @media (width < 768px) {
@@ -215,28 +219,23 @@
   align-items: center;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgb(0 0 0 / 0.24);
-  border-radius: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
   padding: 0 14px 0 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   text-decoration: none;
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.18),
-    0 1px 1px rgb(15 23 42 / 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   pointer-events: auto;
 }
 
 .reservationBar:hover {
-  filter: brightness(0.94);
-  outline: 1px solid rgb(10 14 26 / 0.46);
-  outline-offset: 0;
+  filter: brightness(0.92);
 }
 
 .reservationBar:focus-visible {
-  outline: 2px solid var(--console-ink);
+  outline: 2px solid #10b981;
   outline-offset: 1px;
 }
 
@@ -265,7 +264,8 @@
   display: inline-block;
   width: 20px;
   height: 10px;
-  border: 1px solid rgb(0 0 0 / 0.24);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
 }
 
 .legendSwatch::after {

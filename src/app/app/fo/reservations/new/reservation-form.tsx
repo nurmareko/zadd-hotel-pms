@@ -63,13 +63,13 @@ type ReservationFormProps = {
 };
 
 const fieldClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 const textareaClassName =
-  "min-h-20 rounded-none border-console-border bg-console-surface text-[12px]";
+  "min-h-20 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 const selectClassName =
-  "h-8 w-full rounded-none border border-console-border bg-console-surface px-2 text-[12px] outline-none focus:border-console-ink focus:ring-3 focus:ring-slate-500/20";
+  "h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
 const sectionTitleClassName =
-  "mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-500";
+  "mb-4 text-sm font-semibold tracking-tight text-slate-900";
 
 const reservationTypeOptions = [
   { value: "INDIVIDUAL", label: "Individual" },
@@ -125,14 +125,14 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between py-1 ${
-        strong ? "text-[14px] font-semibold" : "text-[13px]"
+      className={`flex items-center justify-between py-1.5 ${
+        strong ? "text-base font-semibold" : "text-sm"
       }`}
     >
-      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+      <span className={strong ? "text-slate-900" : "text-slate-500"}>
         {label}
       </span>
-      <span className="num text-right font-medium text-console-ink">
+      <span className="text-right font-medium text-slate-900">
         {value}
       </span>
     </div>
@@ -297,7 +297,7 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
-        <div className="border border-console-border bg-console-surface">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="p-5">
             <h2 className={sectionTitleClassName}>Data Tamu</h2>
             <div className="grid gap-3.5 md:grid-cols-2">
@@ -413,7 +413,7 @@ export function ReservationForm({
               </div>
             </div>
 
-            <div className="mt-5 border-t border-console-border-soft pt-5">
+            <div className="mt-6 border-t border-slate-100 pt-6">
               <h2 className={sectionTitleClassName}>Detail Reservasi</h2>
               <div className="grid gap-3.5 md:grid-cols-2">
                 <FormField
@@ -570,10 +570,10 @@ export function ReservationForm({
                 />
 
                 <div>
-                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  <div className="mb-2 text-xs font-semibold text-slate-500">
                     Jumlah Tamu
                     {selectedRoomType ? (
-                      <span className="ml-2 font-normal normal-case text-slate-500">
+                      <span className="ml-2 font-normal text-slate-500">
                         {totalGuests || 0}/{selectedRoomType.capacity} pax
                       </span>
                     ) : null}
@@ -643,7 +643,7 @@ export function ReservationForm({
                         </select>
                       </FormControl>
                       {arrangementHints[arrangementTypeValue] ? (
-                        <p className="mt-1 text-[10px] text-slate-500">
+                        <p className="mt-1 text-xs text-slate-500">
                           {arrangementHints[arrangementTypeValue]}
                         </p>
                       ) : null}
@@ -697,19 +697,19 @@ export function ReservationForm({
             </div>
 
             {actionError ? (
-              <p className="mt-4 border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+              <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {actionError}
               </p>
             ) : null}
           </div>
         </div>
 
-        <aside className="flex min-w-0 flex-col gap-3">
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <aside className="flex min-w-0 flex-col gap-4">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan Tarif"}
             </div>
-            <div className="p-3.5">
+            <div className="p-5">
               <SummaryRow
                 label="Tipe"
                 value={selectedRoomType?.name ?? "-"}
@@ -719,7 +719,7 @@ export function ReservationForm({
                 value={rateAmount ? formatIDR(rateAmount) : "-"}
               />
               <SummaryRow label="Jumlah malam" value={String(nights)} />
-              <div className="my-2 border-t border-console-border-soft" />
+              <div className="my-3 border-t border-slate-100" />
               <SummaryRow
                 label="Subtotal kamar"
                 value={
@@ -732,7 +732,7 @@ export function ReservationForm({
                   Number.isFinite(depositAmount) ? depositAmount : 0,
                 )}
               />
-              <div className="my-2 border-t border-console-border-soft" />
+              <div className="my-3 border-t border-slate-100" />
               <SummaryRow
                 label="Estimasi tagihan"
                 value={
@@ -740,26 +740,26 @@ export function ReservationForm({
                 }
                 strong
               />
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+              <p className="mt-2 text-xs leading-4 text-slate-500">
                 Pajak dan service charge akan dihitung saat check-out.
               </p>
             </div>
           </section>
 
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ketersediaan"}
             </div>
-            <div className="p-3.5 text-[13px]">
-              <div className="flex items-center gap-2 bg-status-vc-bg px-2.5 py-2 font-medium text-status-vc-fg">
-                <span className="h-2 w-2 bg-status-vc-pip" aria-hidden="true" />
+            <div className="p-5 text-sm">
+              <div className="flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 border border-emerald-100">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
                 <span>
                   {selectedRoomType
                     ? `${availableRoomCount} kamar ${selectedRoomType.name} tersedia`
                     : "Pilih tipe kamar"}
                 </span>
               </div>
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+              <p className="mt-2 text-xs leading-4 text-slate-500">
                 Reservasi dapat dibuat tanpa kamar fisik; kamar wajib dipilih
                 saat check-in.
               </p>
@@ -771,13 +771,13 @@ export function ReservationForm({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex h-8 items-center justify-center rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:cursor-wait disabled:opacity-70"
               >
                 {isSubmitting ? "Menyimpan..." : submitLabel}
               </button>
               <Link
                 href="/app/fo/reservations"
-                className="inline-flex h-8 items-center justify-center rounded-none border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
               >
                 Batal
               </Link>
