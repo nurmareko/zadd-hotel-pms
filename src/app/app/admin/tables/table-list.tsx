@@ -73,7 +73,7 @@ const statusClassNames: Record<TableStatus, string> = {
   OUT_OF_SERVICE: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddTableButton({ onClick }: { onClick: () => void }) {
   return (

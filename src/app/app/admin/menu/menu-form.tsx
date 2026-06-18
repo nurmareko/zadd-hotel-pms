@@ -63,7 +63,7 @@ const labelClassName =
 
 const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName = "h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 export function MenuForm({
   defaultValues,

@@ -129,7 +129,7 @@
     --popover: var(--console-surface);
     --popover-foreground: var(--console-ink);
     --primary: var(--console-ink);
-    --primary-foreground: var(--console-accent);
+    --primary-foreground: #ffffff;
     --secondary: var(--slate-100);
     --secondary-foreground: var(--console-ink);
     --muted: var(--slate-100);

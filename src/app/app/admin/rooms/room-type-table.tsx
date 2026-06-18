@@ -43,7 +43,7 @@ type RoomTypeTableProps = {
   rooms?: RoomRow[];
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddRoomTypeButton({ onClick }: { onClick: () => void }) {
   return (
