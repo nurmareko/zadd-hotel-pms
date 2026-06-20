@@ -30,13 +30,13 @@ export default async function NightReportPage({
 
   if (!latestAudit) {
     return (
-      <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+      <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
         <div className="mb-4">
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            
             Laporan Night Audit
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Laporan tersedia setelah night audit pertama selesai.
           </p>
         </div>
@@ -46,7 +46,7 @@ export default async function NightReportPage({
           description="Jalankan night audit terlebih dahulu untuk membuat laporan."
           action={
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               href="/app/acc/night-audit"
             >
               Jalankan Night Audit

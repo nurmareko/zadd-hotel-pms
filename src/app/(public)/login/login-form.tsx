@@ -85,7 +85,7 @@ export function LoginForm() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-700">
+                <FormLabel className="text-[13px] font-medium text-slate-700">
                   Username
                 </FormLabel>
                 <FormControl>
@@ -93,8 +93,8 @@ export function LoginForm() {
                     autoFocus
                     autoComplete="username"
                     disabled={isSubmitting}
-                    placeholder="username"
-                    className="h-10 rounded-none border-[#9ca3af] bg-white px-3 text-[13px] shadow-none placeholder:text-slate-400 focus-visible:border-console-accent focus-visible:ring-3 focus-visible:ring-console-accent/15 disabled:bg-slate-100"
+                    placeholder="Enter your username"
+                    className="h-11 rounded-xl border-slate-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:bg-slate-50"
                     {...field}
                   />
                 </FormControl>
@@ -108,7 +108,7 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-700">
+                <FormLabel className="text-[13px] font-medium text-slate-700">
                   Password
                 </FormLabel>
                 <FormControl>
@@ -116,8 +116,8 @@ export function LoginForm() {
                     type="password"
                     autoComplete="current-password"
                     disabled={isSubmitting}
-                    placeholder="password"
-                    className="h-10 rounded-none border-[#9ca3af] bg-white px-3 text-[13px] shadow-none placeholder:text-slate-400 focus-visible:border-console-accent focus-visible:ring-3 focus-visible:ring-console-accent/15 disabled:bg-slate-100"
+                    placeholder="Enter your password"
+                    className="h-11 rounded-xl border-slate-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:bg-slate-50"
                     {...field}
                   />
                 </FormControl>
@@ -139,7 +139,7 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="h-10 w-full rounded-none border-console-ink bg-console-ink text-[11px] font-semibold uppercase tracking-[0.08em] text-console-accent hover:bg-slate-800 hover:text-console-accent disabled:opacity-70"
+          className="h-11 w-full rounded-xl bg-blue-600 text-[14px] font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-70"
         >
           {isSubmitting ? (
             <>
@@ -150,17 +150,17 @@ export function LoginForm() {
               Memproses
             </>
           ) : (
-            "MASUK"
+            "Sign In"
           )}
         </Button>
 
-        <div className="border-t border-console-border-soft pt-4">
-          <div className="mb-3 flex items-baseline justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700">
-              Akun Demo
+        <div className="border-t border-slate-200 pt-6 mt-4">
+          <div className="mb-4 flex items-baseline justify-between">
+            <p className="text-[13px] font-medium text-slate-700">
+              Demo Accounts
             </p>
-            <p className="text-[10px] uppercase tracking-[0.06em] text-slate-400">
-              Klik untuk isi
+            <p className="text-[12px] text-slate-400">
+              Click to autofill
             </p>
           </div>
 
@@ -171,12 +171,12 @@ export function LoginForm() {
                 type="button"
                 onClick={() => fillDemoAccount(account)}
                 disabled={isSubmitting}
-                className="flex items-center justify-between gap-2 border border-console-border bg-console-surface px-2.5 py-2 text-left transition-colors hover:border-console-accent hover:bg-console-bg focus-visible:border-console-accent focus-visible:outline-none disabled:opacity-60"
+                className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-blue-500 hover:bg-slate-50 focus-visible:border-blue-500 focus-visible:outline-none disabled:opacity-60"
               >
-                <span className="truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink">
+                <span className="truncate text-[13px] font-medium text-slate-700">
                   {account.role}
                 </span>
-                <span className="shrink-0 text-[10px] tracking-[0.04em] text-slate-500">
+                <span className="shrink-0 text-[12px] text-slate-400">
                   {account.username}
                 </span>
               </button>

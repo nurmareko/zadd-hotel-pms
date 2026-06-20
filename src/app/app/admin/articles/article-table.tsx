@@ -6,6 +6,15 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -59,8 +68,7 @@ const typeClassNames: Record<ArticleType, string> = {
   MISC: "border-slate-400 bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddArticleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -123,17 +131,29 @@ export function ArticleTable({ articles }: ArticleTableProps) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Articles (Charge Codes)
-          </h1>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">
-            Daftar kode charge yang digunakan untuk posting line item folio.
-          </p>
+      <div className="mb-4">
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Articles</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Articles (Charge Codes)
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Daftar kode charge yang digunakan untuk posting line item folio.
+            </p>
+          </div>
+          <AddArticleButton onClick={() => setCreateOpen(true)} />
         </div>
-        <AddArticleButton onClick={() => setCreateOpen(true)} />
       </div>
 
       {articles.length === 0 ? (
@@ -142,22 +162,22 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           title="Belum ada article"
           description="Tambahkan charge code untuk posting folio dan billing."
           action={<AddArticleButton onClick={() => setCreateOpen(true)} />}
-          className="mt-8 min-h-56 bg-console-surface"
+          className="mt-8 min-h-56 bg-card"
         />
       ) : (
-        <section className="border border-console-border bg-console-surface">
-          <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
-            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 border border-console-border bg-white px-2.5 text-slate-500">
+        <section className="rounded-2xl border border-border bg-card">
+          <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
+            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-console-ink outline-none placeholder:text-slate-400"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
                 placeholder="Cari kode atau nama..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
-              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={typeFilter}
               onChange={(event) =>
                 setTypeFilter(event.target.value as ArticleType | "")
@@ -170,27 +190,27 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                 </option>
               ))}
             </select>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
+            <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
               <span className="num">{filteredArticles.length}</span> articles
             </span>
           </div>
           <div className="overflow-auto">
-            <Table className="min-w-[760px] border-collapse text-[12px]">
+            <Table className="min-w-[760px] border-collapse text-sm">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Code
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Nama
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Tipe
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Default Price
                   </TableHead>
-                  <TableHead className="w-16 bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -199,23 +219,23 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                 {filteredArticles.map((article) => (
                   <TableRow
                     key={article.id}
-                    className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                    className="odd:bg-card even:bg-slate-50 hover:bg-status-vc-bg"
                   >
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-mono text-[12px] font-semibold">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] font-medium text-sm font-semibold">
                       {article.code}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-semibold">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] font-semibold">
                       {article.name}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       <TypeBadge type={article.type} />
                     </TableCell>
-                    <TableCell className="num border-b border-console-border-soft px-3 py-[9px] text-right">
+                    <TableCell className="num border-b border-border/60 px-3 py-[9px] text-right">
                       {article.defaultPrice
                         ? formatIDR(article.defaultPrice)
                         : "-"}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-right">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] text-right">
                       <ArticleRowActions
                         article={article}
                         onDelete={setDeletingArticle}
@@ -228,7 +248,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="border-b border-console-border-soft px-3 py-3"
+                      className="border-b border-border/60 px-3 py-3"
                     >
                       <EmptyState
                         icon={SearchX}
@@ -245,12 +265,12 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Article"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Buat kode charge untuk workflow billing.
             </DialogDescription>
           </DialogHeader>
@@ -271,12 +291,12 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Article"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Perbarui kode charge yang tampil di workflow billing.
             </DialogDescription>
           </DialogHeader>
@@ -305,7 +325,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-none border-console-border">
+        <AlertDialogContent className="rounded-2xl border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus artikel?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -55,11 +55,11 @@ function FolioStatusBadge({ status }: { status: FolioStatus }) {
 
 export function FolioCharges({ status, lineItems }: FolioChargesProps) {
   return (
-    <section className="min-w-0 border border-console-border bg-console-surface">
-      <div className="flex items-center justify-between gap-3 bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        <h2>Biaya</h2>
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
+        <h2 className="text-sm font-semibold">Biaya</h2>
         <div className="flex items-center gap-2">
-          <span className="num text-[10px] text-slate-400">
+          <span className="text-xs font-medium text-slate-500">
             {lineItems.length} baris
           </span>
           <FolioStatusBadge status={status} />
@@ -72,29 +72,29 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
             icon={ReceiptText}
             title="Belum ada tagihan"
             description="Line item folio akan muncul setelah charge diposting."
-            className="m-3.5"
+            className="m-5"
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[720px] w-full border-collapse text-[12px]">
-              <thead className="bg-console-ink text-console-accent">
+            <table className="min-w-[720px] w-full border-collapse text-sm">
+              <thead>
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                     Date
                   </th>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                     Code
                   </th>
-                  <th className="min-w-64 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="min-w-64 bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                     Description
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                     Qty
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                     Unit Price
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                     Amount
                   </th>
                 </tr>
@@ -103,24 +103,24 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
                 {lineItems.map((lineItem) => (
                   <tr
                     key={lineItem.id}
-                    className="border-b border-console-border-soft odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                    className="border-b border-slate-100 hover:bg-slate-50 even:bg-slate-50/50 last:border-0"
                   >
-                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                       {postedAtLabel(lineItem.postedAt)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 font-medium text-console-ink">
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
                       {lineItem.article.code}
                     </td>
-                    <td className="px-3 py-2.5 font-medium text-console-ink">
+                    <td className="px-4 py-3 font-medium text-slate-900">
                       {descriptionLabel(lineItem)}
                     </td>
-                    <td className="num whitespace-nowrap px-3 py-2.5 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-slate-700">
                       {formatDecimalID(lineItem.quantity.toString())}
                     </td>
-                    <td className="num whitespace-nowrap px-3 py-2.5 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-slate-700">
                       {formatIDR(lineItem.unitPrice.toString())}
                     </td>
-                    <td className="num whitespace-nowrap px-3 py-2.5 text-right font-bold">
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-slate-900">
                       {formatIDR(lineItem.amount.toString())}
                     </td>
                   </tr>

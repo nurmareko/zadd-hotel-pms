@@ -5,8 +5,13 @@ import {
   ChevronRight,
   Printer,
 } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
+
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 import { formatDateWithWeekday, formatISODate } from "@/lib/format";
 import {
@@ -15,18 +20,21 @@ import {
 } from "@/lib/housekeeping-list-data";
 
 import { StatusPill } from "../room-status-grid";
+import { RoomFilterForm } from "./room-filter-form";
 import { SupervisorRoomStatusSelect } from "./supervisor-room-status-select";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
   date?: string | string[];
+  q?: string | string[];
+  status?: string | string[];
 };
 
 const headerCellClass =
-  "bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent";
+  "bg-white border-b border-slate-200 px-4 py-3 text-left text-[12px] font-medium text-slate-500";
 const bodyCellClass =
-  "border-b border-console-border-soft px-3 py-[9px] align-top";
+  "border-b border-slate-100 px-4 py-4 align-top";
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -55,16 +63,24 @@ function parseDateParam(value: string | undefined) {
   return parsed;
 }
 
-function dateHref(date: Date) {
-  return `/app/hk/rooms?date=${formatISO(date, {
-    representation: "date",
-  })}`;
+function buildQuery(params: {
+  date: Date;
+  q: string;
+  status: string;
+}) {
+  const p = new URLSearchParams();
+  p.set("date", formatISO(params.date, { representation: "date" }));
+  if (params.q) p.set("q", params.q);
+  if (params.status) p.set("status", params.status);
+  return `?${p.toString()}`;
 }
 
-function printHref(date: Date) {
-  return `/api/hk/daily-list?date=${formatISO(date, {
-    representation: "date",
-  })}`;
+function dateHref(params: { date: Date; q: string; status: string }) {
+  return `/app/hk/rooms${buildQuery(params)}`;
+}
+
+function printHref(params: { date: Date; q: string; status: string }) {
+  return `/api/hk/daily-list${buildQuery(params)}`;
 }
 
 function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
@@ -81,7 +97,7 @@ function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
       {row.reservationContexts.map((context) => (
         <span
           key={`${context.kind}-${context.reservationNo}`}
-          className="font-semibold text-console-ink"
+          className="font-semibold text-slate-900"
         >
           {context.guestName}
         </span>
@@ -100,11 +116,11 @@ function AssignmentCell({ row }: { row: HousekeepingListRow }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-console-border bg-console-bg text-[10px] font-bold text-console-ink">
+    <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-700">
         {row.assignedHousekeeper.initials}
       </span>
-      <span className="text-[12px] font-semibold text-console-ink">
+      <span className="text-[13px] font-medium text-slate-900">
         {row.assignedHousekeeper.name}
       </span>
     </div>
@@ -152,61 +168,83 @@ export default async function HkRoomsPage({
 }) {
   const params = await searchParams;
   const selectedDate = parseDateParam(firstParam(params.date));
-  const { date, rows } = await getHousekeepingListData(selectedDate);
+  const q = firstParam(params.q)?.trim() ?? "";
+  const statusParam = firstParam(params.status)?.trim() ?? "";
+  const status =
+    statusParam === "VC" ||
+    statusParam === "OC" ||
+    statusParam === "VD" ||
+    statusParam === "OD" ||
+    statusParam === "VCU" ||
+    statusParam === "OOO"
+      ? statusParam
+      : undefined;
+
+  const { date, rows } = await getHousekeepingListData(selectedDate, q, status);
   const groupedRows = groupRowsByFloor(rows);
 
+  const queryParams = { date, q, status: statusParam };
+
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
+      <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Kamar
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Worksheet Kamar
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {formatDateWithWeekday(date)} · {rows.length} kamar
           </p>
         </div>
 
         <nav aria-label="Tanggal kamar housekeeping" className="flex flex-wrap gap-2">
           <Link
-            href={dateHref(addDays(date, -1))}
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            href={dateHref({ ...queryParams, date: addDays(date, -1) })}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Sebelumnya
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            Prev
           </Link>
           <Link
-            href="/app/hk/rooms"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            href={dateHref({ ...queryParams, date: new Date() })}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Hari Ini
+            <CalendarDays className="h-4 w-4" aria-hidden="true" />
+            Today
           </Link>
           <Link
-            href={dateHref(addDays(date, 1))}
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            href={dateHref({ ...queryParams, date: addDays(date, 1) })}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            Berikutnya
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            Next
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
           <Link
-            href={printHref(date)}
+            href={printHref(queryParams)}
             target="_blank"
-            className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
           >
-            <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-            Cetak Daily List
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Print Daily List
           </Link>
         </nav>
       </div>
 
-      <section className="border border-console-border bg-console-surface">
-        <div className="border-b border-console-border bg-console-ink px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {formatISODate(date)} worksheet kamar supervisor
-        </div>
+      <section className="mb-4 rounded-2xl border border-border bg-card">
+        <RoomFilterForm
+          dateIso={formatISO(date, { representation: "date" })}
+          defaultQ={q}
+          defaultStatus={statusParam}
+        />
+      </section>
 
-        <div className="max-w-full overflow-auto">
+      <Card className="rounded-2xl overflow-hidden p-0">
+        <CardHeader className="border-b border-border rounded-none px-5 py-4">
+          <CardTitle className="text-[16px] font-semibold tracking-tight">
+            {formatISODate(date)} Supervisor Worksheet
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="max-w-full overflow-auto p-0">
           <table className="w-full min-w-[1180px] border-collapse text-[12px]">
             <caption className="sr-only">
               Worksheet kamar housekeeping supervisor berisi status kamar,
@@ -239,26 +277,29 @@ export default async function HkRoomsPage({
               {groupedRows.map(([floor, floorRows]) => (
                 <Fragment key={floor}>
                   <tr>
-                    <th
-                      colSpan={6}
-                      scope="colgroup"
-                      className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
-                    >
-                      Lantai {floor}
-                      <span className="ml-2 font-medium normal-case tracking-normal text-slate-500">
-                        · {floorRows.length} kamar
-                      </span>
-                    </th>
+                      <th
+                        colSpan={6}
+                        scope="colgroup"
+                        className="border-y border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-[13px] font-medium tracking-tight text-slate-900"
+                      >
+                        Lantai {floor}
+                        <span className="ml-2 font-normal text-slate-500">
+                          · {floorRows.length} kamar
+                        </span>
+                      </th>
                   </tr>
                   {floorRows.map((row) => (
                     <tr
                       key={row.room.id}
-                      className="odd:bg-white even:bg-console-bg hover:bg-status-vc-bg"
+                      className="odd:bg-white even:bg-slate-50 hover:bg-status-vc-bg"
                     >
                       <td className={bodyCellClass}>
-                        <div className="num text-[16px] font-bold leading-none text-console-ink">
+                        <Link
+                          href={`/app/hk/rooms/${row.room.id}`}
+                          className="num text-[16px] font-bold leading-none text-slate-900 hover:underline hover:text-blue-600"
+                        >
                           {row.room.number}
-                        </div>
+                        </Link>
                         <div className="mt-1 text-[11px] text-slate-500">
                           {row.room.typeName}
                         </div>
@@ -289,8 +330,8 @@ export default async function HkRoomsPage({
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </main>
   );
 }

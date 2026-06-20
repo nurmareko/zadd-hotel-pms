@@ -70,16 +70,16 @@ function occupantsLabel(adults: number, children: number) {
 }
 
 const headerCellClass =
-  "bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent";
+  "bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600";
 const numericHeaderCellClass =
-  "bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent";
+  "bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600";
 
 export function ReservationTable({ groups }: ReservationTableProps) {
   const hasRows = groups.length > 0;
 
   return (
     <div className="max-w-full overflow-auto">
-      <table className="w-full min-w-[1100px] border-collapse text-[12px]">
+      <table className="w-full min-w-[1100px] border-collapse text-sm">
         <caption className="sr-only">
           Daftar reservasi hotel dikelompokkan menurut tanggal check-in
         </caption>
@@ -125,7 +125,7 @@ export function ReservationTable({ groups }: ReservationTableProps) {
           ) : (
             <tr>
               <td
-                className="border-b border-console-border-soft px-3 py-3"
+                className="border-b border-slate-100 px-4 py-8"
                 colSpan={COLUMN_COUNT}
               >
                 <EmptyState
@@ -134,7 +134,7 @@ export function ReservationTable({ groups }: ReservationTableProps) {
                   description="Tidak ada reservasi yang cocok dengan filter Anda."
                   action={
                     <Link
-                      className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                      className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
                       href="/app/fo/reservations/new"
                     >
                       Buat Reservasi
@@ -157,10 +157,10 @@ function GroupRows({ group }: { group: ReservationGroup }) {
         <th
           colSpan={COLUMN_COUNT}
           scope="colgroup"
-          className="border-y border-console-border bg-[var(--slate-100)] px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-console-ink"
+          className="border-y border-slate-200 bg-slate-100/70 px-4 py-2 text-left text-xs font-semibold text-slate-700"
         >
           {formatDateWithWeekday(group.arrivalDate)}
-          <span className="ml-2 font-medium normal-case tracking-normal text-slate-500">
+          <span className="ml-2 font-normal text-slate-500">
             · {group.rows.length} reservasi
           </span>
         </th>
@@ -170,42 +170,42 @@ function GroupRows({ group }: { group: ReservationGroup }) {
 
         return (
           <ClickableReservationRow key={row.id} href={href}>
-            <td className="border-b border-console-border-soft px-3 py-[9px]">
+            <td className="border-b border-slate-100 px-4 py-3">
               <ReservationStatusBadge status={row.status} />
             </td>
-            <td className="border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
+            <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
               {row.guestName}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
+            <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
               {row.reservationNo}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px] text-slate-600">
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
               {occupantsLabel(row.adults, row.children)}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px]">
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
               {formatDateID(row.arrivalDate)}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px]">
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
               {formatDateID(row.departureDate)}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px] text-slate-500">
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
               {formatDateID(row.createdAt)}
             </td>
-            <td className="border-b border-console-border-soft px-3 py-[9px]">
+            <td className="border-b border-slate-100 px-4 py-3">
               {row.roomNumber ? (
-                <span className="num font-semibold text-console-ink">
+                <span className="font-semibold text-slate-900">
                   {row.roomNumber}
                 </span>
               ) : (
-                <span className="text-[11px] italic text-slate-400">
+                <span className="text-xs italic text-slate-400">
                   Belum dialokasikan
                 </span>
               )}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px] text-right">
+            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium text-slate-900">
               {formatIDR(row.total)}
             </td>
-            <td className="num border-b border-console-border-soft px-3 py-[9px] text-right">
+            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium text-slate-900">
               {row.outstanding === null ? (
                 <span className="text-slate-400">-</span>
               ) : (

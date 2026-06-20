@@ -24,14 +24,14 @@ function balanceClassName(balance: number) {
   const roundedBalance = Math.round(balance);
 
   if (roundedBalance > 0) {
-    return "text-status-od-fg";
+    return "text-red-600";
   }
 
   if (roundedBalance < 0) {
-    return "text-status-vd-fg";
+    return "text-amber-600";
   }
 
-  return "text-status-vc-fg";
+  return "text-emerald-600";
 }
 
 export function DepartureList({
@@ -41,12 +41,12 @@ export function DepartureList({
   allHref,
 }: DepartureListProps) {
   return (
-    <section className="min-w-0 max-w-full border border-console-border bg-console-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-console-border bg-console-surface px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+        <h2 className="text-base font-semibold text-slate-900">
           Departures · Hari Ini
         </h2>
-        <span className="num text-[10px] text-slate-500">
+        <span className="text-sm font-medium text-slate-500">
           {totalCount} reservasi
         </span>
       </div>
@@ -55,16 +55,16 @@ export function DepartureList({
         <table className="w-full min-w-[360px] border-collapse text-[12px]">
           <thead>
             <tr>
-              <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Kamar
               </th>
-              <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                 Tamu
               </th>
-              <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                 Saldo
               </th>
-              <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+              <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                 {" "}
               </th>
             </tr>
@@ -74,25 +74,25 @@ export function DepartureList({
           rows.map((row) => (
             <tr
               key={row.id}
-              className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+              className="hover:bg-slate-50 even:bg-slate-50/50"
             >
-              <td className="num border-b border-console-border-soft px-3 py-[9px] font-semibold text-console-ink">
+              <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
                 {row.roomLabel.replace("Room ", "")}
               </td>
-              <td className="border-b border-console-border-soft px-3 py-[9px] text-console-ink">
+              <td className="border-b border-slate-100 px-4 py-3 text-slate-900 font-medium">
                 {row.guestLabel}
               </td>
               <td
-                className={`num border-b border-console-border-soft px-3 py-[9px] text-right font-semibold ${balanceClassName(
+                className={`border-b border-slate-100 px-4 py-3 text-right font-semibold ${balanceClassName(
                   row.balance,
                 )}`}
               >
                 {row.balanceLabel}
               </td>
-              <td className="border-b border-console-border-soft px-3 py-[9px] text-right">
+              <td className="border-b border-slate-100 px-4 py-3 text-right">
                 <Link
                   href={row.href}
-                  className="inline-flex h-7 items-center justify-center border border-console-border bg-console-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700"
                 >
                   Check-out
                 </Link>
@@ -101,7 +101,7 @@ export function DepartureList({
           ))
         ) : (
           <tr>
-            <td className="px-3.5 py-3.5" colSpan={4}>
+            <td className="px-5 py-8" colSpan={4}>
               <EmptyState
                 icon={LogOut}
                 title="Tidak ada keberangkatan hari ini"
@@ -115,8 +115,8 @@ export function DepartureList({
       </div>
 
       {totalCount > limit ? (
-        <div className="border-t border-console-border bg-console-bg px-3.5 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.04em]">
-          <Link className="text-console-ink hover:underline" href={allHref}>
+        <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-right text-sm font-medium">
+          <Link className="text-emerald-600 hover:text-emerald-700 hover:underline" href={allHref}>
             Lihat semua →
           </Link>
         </div>

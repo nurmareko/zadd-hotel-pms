@@ -1,4 +1,4 @@
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatFixedPercent } from "@/lib/format";
 
 import { KpiCard } from "./kpi-card";
 
@@ -18,35 +18,40 @@ type TodaySnapshotProps = {
 
 export function TodaySnapshot({ snapshot }: TodaySnapshotProps) {
   return (
-    <section>
-      <div className="mb-2 border border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"HARI INI"}
-      </div>
+    <section className="space-y-4">
+      <h3 className="text-xl font-semibold tracking-tight text-foreground">
+        Snapshot Hari Ini
+      </h3>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard
           label="OKUPANSI"
-          value={`${snapshot.occupancyPercent}%`}
-          sub={`${snapshot.roomsOccupied} / ${snapshot.totalRooms} kamar terisi`}
+          value={formatFixedPercent(snapshot.occupancyPercent)}
+          sub="Berdasarkan physical rooms"
+          className="bg-blue-50/50 border-blue-100 [&_div:first-child]:text-blue-600 [&_div:nth-child(2)]:text-blue-900"
         />
         <KpiCard
-          label="TAMU IN-HOUSE"
-          value={snapshot.inHouseCount}
-          sub="Reservasi status CHECKED_IN"
+          label="KAMAR TERISI"
+          value={`${snapshot.roomsOccupied} / ${snapshot.totalRooms}`}
+          sub="Occupied / total rooms"
+          className="bg-indigo-50/50 border-indigo-100 [&_div:first-child]:text-indigo-600 [&_div:nth-child(2)]:text-indigo-900"
         />
         <KpiCard
           label="CHECK-IN HARI INI"
           value={snapshot.checkInCount}
-          sub="Arrival business date ini"
+          sub="Arrival pada business date"
+          className="bg-emerald-50/50 border-emerald-100 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
         />
         <KpiCard
           label="CHECK-OUT HARI INI"
           value={snapshot.checkOutCount}
-          sub="Departure business date ini"
+          sub="Departure pada business date"
+          className="bg-orange-50/50 border-orange-100 [&_div:first-child]:text-orange-600 [&_div:nth-child(2)]:text-orange-900"
         />
         <KpiCard
           label="PENDAPATAN BERJALAN"
           value={formatIDR(snapshot.runningRevenue)}
-          sub="Folio hari ini + F&B closed"
+          sub="Room + F&B belum diaudit"
+          className="bg-emerald-50/50 border-emerald-100 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
         />
       </div>
     </section>

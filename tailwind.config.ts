@@ -10,9 +10,6 @@ const monospaceStack = [
 const config = {
   theme: {
     extend: {
-      screens: {
-        desktop: { raw: "(min-width: 768px) and (pointer: fine)" },
-      },
       colors: {
         console: {
           bg: "var(--console-bg)",
@@ -43,6 +40,8 @@ const config = {
       fontFamily: {
         sans: monospaceStack,
         mono: monospaceStack,
+        inter: ["var(--font-plus-jakarta-sans)", "sans-serif"],
+        jakarta: ["var(--font-plus-jakarta-sans)", "sans-serif"],
       },
     },
   },

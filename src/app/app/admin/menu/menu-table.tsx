@@ -5,6 +5,15 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,8 +59,7 @@ type MenuTableProps = {
   items: MenuItemRow[];
 };
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddMenuItemButton({ onClick }: { onClick: () => void }) {
   return (
@@ -86,11 +94,11 @@ function KpiCard({
   delta: string;
 }) {
   return (
-    <section className="border border-console-border bg-console-surface p-3.5">
+    <section className="rounded-2xl border border-border bg-card p-3.5">
       <div className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
         [ {label} ]
       </div>
-      <div className="num mt-2 text-[22px] font-bold leading-tight text-console-ink">
+      <div className="num mt-2 text-[22px] font-bold leading-tight text-foreground">
         {value}
       </div>
       <div className="mt-1 text-[10px] text-slate-500">{delta}</div>
@@ -159,18 +167,30 @@ export function MenuTable({ items }: MenuTableProps) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            F&amp;B Menu
-          </h1>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">
-            Outlet: Hotel Restaurant (single outlet untuk MVP).
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <AddMenuItemButton onClick={() => setCreateOpen(true)} />
+      <div className="mb-4">
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Menu</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              F&amp;B Menu
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Outlet: Hotel Restaurant (single outlet untuk MVP).
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AddMenuItemButton onClick={() => setCreateOpen(true)} />
+          </div>
         </div>
       </div>
 
@@ -198,22 +218,22 @@ export function MenuTable({ items }: MenuTableProps) {
           title="Belum ada menu"
           description="Tambahkan item menu agar F&B dapat membuat order."
           action={<AddMenuItemButton onClick={() => setCreateOpen(true)} />}
-          className="mt-8 min-h-56 bg-console-surface"
+          className="mt-8 min-h-56 bg-card"
         />
       ) : (
-        <section className="border border-console-border bg-console-surface">
-          <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
-            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 border border-console-border bg-white px-2.5 text-slate-500">
+        <section className="rounded-2xl border border-border bg-card">
+          <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
+            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-console-ink outline-none placeholder:text-slate-400"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
                 placeholder="Cari menu..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
-              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
@@ -225,7 +245,7 @@ export function MenuTable({ items }: MenuTableProps) {
               ))}
             </select>
             <select
-              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
@@ -235,30 +255,30 @@ export function MenuTable({ items }: MenuTableProps) {
               <option value="active">Aktif</option>
               <option value="inactive">Nonaktif</option>
             </select>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
+            <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
               <span className="num">{filteredItems.length}</span> menu
             </span>
           </div>
           <div className="overflow-auto">
-            <Table className="min-w-[760px] border-collapse text-[12px]">
+            <Table className="min-w-[760px] border-collapse text-sm">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Code
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Nama Menu
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Kategori
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Harga
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Status
                   </TableHead>
-                  <TableHead className="w-16 bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -267,24 +287,24 @@ export function MenuTable({ items }: MenuTableProps) {
                 {filteredItems.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                    className="odd:bg-card even:bg-slate-50 hover:bg-status-vc-bg"
                   >
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-mono text-[12px] font-medium">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] font-medium text-sm font-medium">
                       {item.code}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-semibold">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] font-semibold">
                       {item.name}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       {item.category}
                     </TableCell>
-                    <TableCell className="num border-b border-console-border-soft px-3 py-[9px] text-right font-semibold">
+                    <TableCell className="num border-b border-border/60 px-3 py-[9px] text-right font-semibold">
                       {formatIDR(item.price)}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       <StatusBadge isActive={item.isActive} />
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-right">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] text-right">
                       <MenuItemActions
                         item={item}
                         onDelete={setDeletingItem}
@@ -297,7 +317,7 @@ export function MenuTable({ items }: MenuTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="border-b border-console-border-soft px-3 py-3"
+                      className="border-b border-border/60 px-3 py-3"
                     >
                       <EmptyState
                         icon={SearchX}
@@ -314,12 +334,12 @@ export function MenuTable({ items }: MenuTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Menu"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Buat menu untuk flow order F&amp;B.
             </DialogDescription>
           </DialogHeader>
@@ -340,12 +360,12 @@ export function MenuTable({ items }: MenuTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Menu"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Perbarui detail menu yang tampil untuk pengguna F&amp;B.
             </DialogDescription>
           </DialogHeader>
@@ -375,7 +395,7 @@ export function MenuTable({ items }: MenuTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-none border-console-border">
+        <AlertDialogContent className="rounded-2xl border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus menu?</AlertDialogTitle>
             <AlertDialogDescription>

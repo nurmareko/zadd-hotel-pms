@@ -13,6 +13,15 @@ import { FormEvent, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -62,11 +71,9 @@ type UserTableProps = {
 
 type SortDirection = "asc" | "desc" | null;
 
-const buttonClassName =
-  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 const roleClassNames: Record<RoleCode, string> = {
   FO: "border-blue-500 bg-status-oc-bg text-status-oc-fg",
@@ -223,18 +230,30 @@ export function UserTable({ users }: UserTableProps) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Pengelolaan Pengguna
-          </h1>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">
-            Kelola akun praktikum dan penetapan role.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <AddUserButton onClick={() => setCreateOpen(true)} />
+      <div className="mb-4">
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Pengguna</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Pengguna
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Kelola akun praktikum dan penetapan role.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AddUserButton onClick={() => setCreateOpen(true)} />
+          </div>
         </div>
       </div>
 
@@ -244,22 +263,22 @@ export function UserTable({ users }: UserTableProps) {
           title="Belum ada pengguna"
           description="Tambahkan akun untuk role operasional dan admin."
           action={<AddUserButton onClick={() => setCreateOpen(true)} />}
-          className="mt-8 min-h-56 bg-console-surface"
+          className="mt-8 min-h-56 bg-card"
         />
       ) : (
-        <section className="border border-console-border bg-console-surface">
-          <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
-            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 border border-console-border bg-white px-2.5 text-slate-500">
+        <section className="rounded-2xl border border-border bg-card">
+          <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
+            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-console-ink outline-none placeholder:text-slate-400"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
                 placeholder="Cari nama, username, atau email..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
-              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={roleFilter}
               onChange={(event) =>
                 setRoleFilter(event.target.value as RoleCode | "")
@@ -273,7 +292,7 @@ export function UserTable({ users }: UserTableProps) {
               <option value="ADMIN">ADMIN</option>
             </select>
             <select
-              className="h-8 border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none focus:border-console-ink"
+              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
@@ -283,16 +302,16 @@ export function UserTable({ users }: UserTableProps) {
               <option value="active">Aktif</option>
               <option value="inactive">Nonaktif</option>
             </select>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
+            <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
               <span className="num">{filteredUsers.length}</span> pengguna
             </span>
           </div>
           <div className="overflow-auto">
-            <Table className="min-w-[860px] border-collapse text-[12px]">
+            <Table className="min-w-[860px] border-collapse text-sm">
               <TableHeader>
                 <TableRow>
                   <TableHead
-                    className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent"
+                    className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary"
                     aria-sort={
                       nameSort === "asc"
                         ? "ascending"
@@ -303,7 +322,7 @@ export function UserTable({ users }: UserTableProps) {
                   >
                     <button
                       type="button"
-                      className="flex h-5 items-center gap-1.5 uppercase tracking-[0.08em] text-console-accent hover:text-white"
+                      className="flex h-5 items-center gap-1.5 uppercase tracking-[0.08em] text-primary hover:text-white"
                       onClick={toggleNameSort}
                       aria-label="Urutkan pengguna berdasarkan nama"
                     >
@@ -317,19 +336,19 @@ export function UserTable({ users }: UserTableProps) {
                       )}
                     </button>
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Username
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Email
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Role
                   </TableHead>
-                  <TableHead className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Status
                   </TableHead>
-                  <TableHead className="w-16 bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                  <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -338,31 +357,31 @@ export function UserTable({ users }: UserTableProps) {
                 {displayedUsers.map((user) => (
                   <TableRow
                     key={user.id}
-                    className="odd:bg-console-surface even:bg-console-bg hover:bg-status-vc-bg"
+                    className="odd:bg-card even:bg-slate-50 hover:bg-status-vc-bg"
                   >
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-7 w-7 items-center justify-center border border-console-border bg-slate-200 text-[10px] font-bold text-slate-700">
+                        <span className="flex h-7 w-7 items-center justify-center border border-border bg-slate-200 text-[10px] font-bold text-slate-700">
                           {userInitials(user.fullName)}
                         </span>
-                        <span className="font-semibold text-console-ink">
+                        <span className="font-semibold text-foreground">
                           {user.fullName}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] font-mono text-[12px] font-medium">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] font-medium text-sm font-medium">
                       {user.username}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-slate-500">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] text-slate-500">
                       {user.email ?? "-"}
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       <RoleBadge role={user.role} />
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px]">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px]">
                       <ActiveBadge isActive={user.isActive} />
                     </TableCell>
-                    <TableCell className="border-b border-console-border-soft px-3 py-[9px] text-right">
+                    <TableCell className="border-b border-border/60 px-3 py-[9px] text-right">
                       <UserRowActions
                         user={user}
                         onDelete={setDeletingUser}
@@ -376,7 +395,7 @@ export function UserTable({ users }: UserTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="border-b border-console-border-soft px-3 py-3"
+                      className="border-b border-border/60 px-3 py-3"
                     >
                       <EmptyState
                         icon={SearchX}
@@ -393,12 +412,12 @@ export function UserTable({ users }: UserTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Pengguna"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Buat akun pengguna dan tetapkan satu role modul.
             </DialogDescription>
           </DialogHeader>
@@ -419,12 +438,12 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Pengguna"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Perbarui detail akun dan role yang ditetapkan.
             </DialogDescription>
           </DialogHeader>
@@ -448,12 +467,12 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-md">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Reset Password"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Atur password baru untuk{" "}
               {resettingUser?.username ?? "pengguna ini"}.
             </DialogDescription>
@@ -472,10 +491,10 @@ export function UserTable({ users }: UserTableProps) {
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 placeholder="Minimal 6 karakter"
-                className="h-8 rounded-none border-console-border bg-console-surface text-[12px]"
+                className="h-8 rounded-none border-border bg-card text-sm"
               />
             </div>
-            <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
@@ -505,7 +524,7 @@ export function UserTable({ users }: UserTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-none border-console-border">
+        <AlertDialogContent className="rounded-2xl border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus pengguna?</AlertDialogTitle>
             <AlertDialogDescription>

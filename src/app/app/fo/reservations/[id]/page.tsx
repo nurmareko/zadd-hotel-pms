@@ -33,10 +33,10 @@ function toDateInputValue(date: Date) {
 
 function tabClassName(isActive: boolean) {
   return [
-    "inline-flex h-8 items-center justify-center border px-4 text-[11px] font-semibold uppercase tracking-[0.06em]",
+    "inline-flex h-9 items-center justify-center border px-4 text-sm font-medium rounded-md transition-colors",
     isActive
-      ? "border-console-ink bg-console-ink text-console-accent"
-      : "border-console-border bg-console-surface text-console-ink hover:border-console-ink hover:bg-console-bg",
+      ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm",
   ].join(" ");
 }
 
@@ -50,7 +50,7 @@ function ReservationTabs({
   return (
     <nav
       aria-label="Reservation detail tabs"
-      className="mb-4 flex items-center gap-2 border-b border-console-border pb-2"
+      className="mb-6 flex items-center gap-3 border-b border-slate-200 pb-4"
     >
       <Link
         href={`/app/fo/reservations/${reservationId}?tab=details`}
@@ -73,17 +73,16 @@ function ReservationTabs({
 function FolioPendingState() {
   return (
     <>
-      <div className="mb-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Guest Folio
         </h1>
       </div>
-      <section className="max-w-6xl border border-console-border bg-console-surface">
-        <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+      <section className="max-w-6xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
           {"Folio"}
         </div>
-        <p className="p-3.5 text-[12px] text-slate-500">
+        <p className="p-5 text-sm text-slate-500">
           Folio dibuat saat check-in.
         </p>
       </section>
@@ -199,17 +198,16 @@ export default async function ReservationDetailPage({
   );
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
       <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
       {activeTab === "details" ? (
         <>
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-                <span className="text-console-accent">▸ </span>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Reservation Form
               </h1>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-sm text-slate-500">
                 {reservation.reservationNo} ·{" "}
                 {reservation.status.replace("_", " ")} ·{" "}
                 {reservation.guest.fullName}

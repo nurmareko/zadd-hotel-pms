@@ -43,8 +43,7 @@ type RoomTypeTableProps = {
   rooms?: RoomRow[];
 };
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddRoomTypeButton({ onClick }: { onClick: () => void }) {
   return (
@@ -87,9 +86,9 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
 
   return (
     <>
-      <section className="border border-console-border bg-console-surface">
-        <div className="flex flex-col gap-3 bg-console-ink px-3.5 py-3 text-console-accent sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.08em]">
+      <section className="rounded-2xl border border-border bg-card">
+        <div className="flex flex-col gap-3 bg-card px-3.5 py-3 text-primary sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-[0.08em]">
             {"Tipe Kamar"}
           </h2>
           <AddRoomTypeButton onClick={() => setCreateOpen(true)} />
@@ -108,15 +107,15 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
             {roomTypes.map((roomType) => (
               <article
                 key={roomType.id}
-                className="border border-console-border bg-console-surface"
+                className="rounded-2xl border border-border bg-card"
               >
                 <div className="p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-mono text-[11px] font-semibold text-slate-500">
+                      <div className="font-mono text-sm font-semibold text-slate-500">
                         {roomType.code}
                       </div>
-                      <h3 className="mt-0.5 text-[16px] font-semibold text-console-ink">
+                      <h3 className="mt-0.5 text-[16px] font-semibold text-foreground">
                         {roomType.name}
                       </h3>
                     </div>
@@ -128,12 +127,12 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
                   </div>
 
                   {roomType.description ? (
-                    <p className="mt-3 line-clamp-2 text-[12px] leading-5 text-slate-500">
+                    <p className="mt-3 line-clamp-2 text-sm leading-5 text-slate-500">
                       {roomType.description}
                     </p>
                   ) : null}
 
-                  <div className="my-3 border-t border-console-border-soft" />
+                  <div className="my-3 border-t border-border/60" />
 
                   <div className="grid gap-1 text-[13px]">
                     <div className="flex items-center justify-between gap-3">
@@ -163,12 +162,12 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       </section>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Tipe Kamar"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Buat tipe kamar untuk inventory dan reservasi.
             </DialogDescription>
           </DialogHeader>
@@ -189,12 +188,12 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-lg">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+            <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Tipe Kamar"}
             </DialogTitle>
-            <DialogDescription className="text-[11px] text-slate-400">
+            <DialogDescription className="text-sm text-slate-400">
               Perbarui detail tipe kamar dan tarif default.
             </DialogDescription>
           </DialogHeader>
@@ -221,7 +220,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-none border-console-border">
+        <AlertDialogContent className="rounded-2xl border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus tipe kamar?</AlertDialogTitle>
             <AlertDialogDescription>

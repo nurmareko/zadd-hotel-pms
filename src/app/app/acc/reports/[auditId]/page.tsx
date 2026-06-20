@@ -1,4 +1,12 @@
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -64,14 +72,24 @@ export default async function NightAuditReportPage({
   }
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Laporan Night Audit
+          <Breadcrumb className="mb-2">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/app/acc">Accounting</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Riwayat Laporan</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Laporan Night Audit #{audit.id}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {businessDateLabel(audit.businessDate)} · dijalankan{" "}
             {dateTimeLabel(audit.runAt)} oleh {audit.runBy.fullName}
           </p>
@@ -79,7 +97,7 @@ export default async function NightAuditReportPage({
         <div className="flex flex-col gap-2 sm:flex-row">
           <ReportActions auditId={audit.id} />
           <Link
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             href="/app/acc"
           >
             Kembali

@@ -14,7 +14,7 @@ export default async function ArticlesPage() {
   });
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <ArticleTable
         articles={articles.map((article) => ({
           ...article,

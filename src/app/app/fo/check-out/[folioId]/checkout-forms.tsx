@@ -23,7 +23,7 @@ type CompleteCheckoutFormProps = {
 };
 
 const fieldClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 function defaultAmount(balance: number) {
   return Number.isInteger(balance) ? String(balance) : balance.toFixed(2);
@@ -66,13 +66,13 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
   }
 
   return (
-    <form id="final-payment-form" onSubmit={onSubmit} className="p-3.5">
+    <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
       <input type="hidden" name="folioId" value={folioId} />
       <input type="hidden" name="method" value={method} />
 
-      <div className="grid gap-3.5 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Jumlah
           </span>
           <Input
@@ -86,19 +86,19 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Metode
           </span>
-          <div className="mt-1 grid grid-cols-3 gap-1.5">
+          <div className="mt-1 grid grid-cols-3 gap-2">
             {paymentMethods.map((paymentMethod) => (
               <button
                 key={paymentMethod}
                 type="button"
                 onClick={() => setMethod(paymentMethod)}
-                className={`h-8 border px-2 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+                className={`h-9 rounded-md border text-xs font-semibold transition-colors ${
                   method === paymentMethod
-                    ? "border-console-ink bg-console-ink text-console-accent"
-                    : "border-console-border bg-console-surface text-console-ink hover:border-console-ink hover:bg-console-bg"
+                    ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 {paymentMethod}
@@ -108,7 +108,7 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </label>
 
         <label className="block sm:col-span-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Referensi Pembayaran
             {method === PaymentMethod.TRANSFER ? " / Required" : ""}
           </span>
@@ -121,18 +121,18 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
       </div>
 
       {actionError ? (
-        <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {actionError}
         </p>
       ) : null}
 
-      <div className="mt-3.5 flex justify-end border-t border-console-border pt-3.5">
+      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
         <Button
           type="submit"
           disabled={isPending}
-          className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          className="h-9 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 shadow-sm transition-colors disabled:opacity-50"
         >
-          <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+          <CreditCard className="h-4 w-4" aria-hidden="true" />
           {isPending ? "Recording..." : "Record Payment & Continue"}
         </Button>
       </div>
@@ -180,63 +180,63 @@ export function CompleteCheckoutForm({
   }
 
   return (
-    <form id="complete-checkout-form" onSubmit={onSubmit} className="p-3.5">
+    <form id="complete-checkout-form" onSubmit={onSubmit} className="p-5">
       <input type="hidden" name="folioId" value={folioId} />
 
       {isCreditBalance ? (
-        <div className="mb-3 flex items-start gap-2 border border-status-vd-pip bg-status-vd-bg p-3 text-[12px] text-status-vd-fg">
-          <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div>
-            <div className="font-semibold">Refund harus dikembalikan</div>
+            <div className="font-semibold text-sm">Refund harus dikembalikan</div>
             <div className="mt-1">{refundDueNote(balance)}</div>
           </div>
         </div>
       ) : null}
 
-      <div className="space-y-1">
-        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+      <div className="space-y-2">
+        <label className="flex items-start gap-3 py-2 text-sm text-slate-800 cursor-pointer">
           <input
             type="checkbox"
             checked={roomStatusConfirmed}
             onChange={(event) => setRoomStatusConfirmed(event.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
-            <span className="block font-medium">
+            <span className="block font-semibold text-slate-900">
               Set status kamar → Vacant Dirty (VD)
             </span>
-            <span className="block text-[11px] text-slate-500">
+            <span className="block text-xs text-slate-500 mt-0.5">
               Otomatis dikirim ke Housekeeping.
             </span>
           </span>
         </label>
 
-        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+        <label className="flex items-start gap-3 py-2 text-sm text-slate-800 cursor-pointer">
           <input
             name="confirmed"
             type="checkbox"
             checked={folioCloseConfirmed}
             onChange={(event) => setFolioCloseConfirmed(event.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
-            <span className="block font-medium">Tutup folio</span>
-            <span className="block text-[11px] text-slate-500">
+            <span className="block font-semibold text-slate-900">Tutup folio</span>
+            <span className="block text-xs text-slate-500 mt-0.5">
               Charge tidak dapat ditambahkan setelah folio ditutup.
             </span>
           </span>
         </label>
 
-        <label className="flex items-start gap-2 py-1.5 text-[12px] text-console-ink">
+        <label className="flex items-start gap-3 py-2 text-sm text-slate-800 cursor-pointer">
           <input
             type="checkbox"
             checked={pdfConfirmed}
             onChange={(event) => setPdfConfirmed(event.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded-none border-console-border"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
-            <span className="block font-medium">Buat PDF tagihan</span>
-            <span className="block text-[11px] text-slate-500">
+            <span className="block font-semibold text-slate-900">Buat PDF tagihan</span>
+            <span className="block text-xs text-slate-500 mt-0.5">
               File tersedia setelah konfirmasi.
             </span>
           </span>
@@ -244,18 +244,18 @@ export function CompleteCheckoutForm({
       </div>
 
       {actionError ? (
-        <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {actionError}
         </p>
       ) : null}
 
-      <div className="mt-3.5 flex justify-end border-t border-console-border pt-3.5">
+      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
         <Button
           type="submit"
           disabled={!confirmed || isPending}
-          className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:border-console-border disabled:bg-console-bg disabled:text-slate-400"
+          className="h-9 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
         >
-          <Check className="h-3.5 w-3.5" aria-hidden="true" />
+          <Check className="h-4 w-4" aria-hidden="true" />
           {isPending ? "Completing..." : "Complete Check-Out"}
         </Button>
       </div>

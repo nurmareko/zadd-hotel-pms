@@ -82,15 +82,15 @@ export function SignaturePadField({
 
   return (
     <div>
-      <div className="border border-console-border bg-white p-1">
+      <div className="rounded-lg border border-slate-300 bg-white p-1 overflow-hidden shadow-inner">
         <canvas
           ref={canvasRef}
           aria-label="Area tanda tangan tamu"
           className="block h-36 w-full touch-none"
         />
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <p className="text-[11px] text-slate-500">
+      <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+        <p className="text-xs text-slate-500">
           {value
             ? "Tanda tangan sudah direkam. Gunakan Hapus untuk mengulang."
             : "Tamu menandatangani area di atas dengan jari atau mouse."}
@@ -99,7 +99,7 @@ export function SignaturePadField({
           type="button"
           onClick={clearSignature}
           disabled={!value}
-          className="h-7 shrink-0 border border-console-border bg-console-surface px-2.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg disabled:cursor-not-allowed disabled:opacity-45"
+          className="h-8 shrink-0 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-45"
         >
           Hapus
         </button>

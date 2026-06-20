@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { todayDateOnly } from "@/lib/date-only";
 import { formatCompactDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -37,17 +38,15 @@ function etaFromNotes(notes: string | null) {
 
 function HousekeeperDeniedPanel() {
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"Tugas Housekeeper"}
-        </h2>
-      </div>
-      <p className="p-3.5 text-[12px] leading-relaxed text-slate-600">
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+        <CardTitle className="text-base font-semibold">Tugas Housekeeper</CardTitle>
+      </CardHeader>
+      <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">
         Kamar ini tidak masuk daftar tugas Anda hari ini. Aksi pembersihan hanya
         tersedia untuk housekeeper yang ditugaskan.
-      </p>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -157,6 +156,9 @@ export default async function HKRoomDetailPage({
           startedAt: latestCompletedCleaningSession.startedAt,
           finishedAt: latestCompletedCleaningSession.finishedAt,
           housekeeperName: latestCompletedCleaningSession.housekeeper.fullName,
+          note: latestLog?.newStatus === RoomStatus.VCU ? latestLog.note : null,
+          linenChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.linenChanged : false,
+          towelChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.towelChanged : false,
         }
       : null;
   const activeSessionBelongsToCurrentUser =
@@ -197,7 +199,7 @@ export default async function HKRoomDetailPage({
       : null;
 
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 md:px-6 md:py-6 text-slate-900">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
         <RoomHeader
           roomNumber={room.number}
@@ -250,6 +252,7 @@ export default async function HKRoomDetailPage({
                   : null
               }
               workContext={workContext}
+              isTurnover={room.status === RoomStatus.VD}
             />
             <RoomHistory logs={room.housekeepingLogs.slice(0, 5)} />
           </>

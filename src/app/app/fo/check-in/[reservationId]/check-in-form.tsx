@@ -79,9 +79,9 @@ type CheckInFormProps = {
 };
 
 const fieldClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 const selectClassName =
-  "h-8 w-full rounded-none border border-console-border bg-console-surface px-2 text-[12px] outline-none focus:border-console-ink focus:ring-3 focus:ring-slate-500/20";
+  "h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
 
 function SummaryRow({
   label,
@@ -94,14 +94,14 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between py-1 ${
-        strong ? "font-semibold" : ""
+      className={`flex items-center justify-between py-1.5 ${
+        strong ? "font-semibold text-slate-900" : "text-sm text-slate-500"
       }`}
     >
-      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+      <span>
         {label}
       </span>
-      <span className="num text-right font-medium text-console-ink">
+      <span className="text-right font-medium text-slate-900">
         {value}
       </span>
     </div>
@@ -257,19 +257,19 @@ export function CheckInForm({
         />
 
         <div className="flex min-w-0 flex-col gap-4">
-          <section className="border border-console-border bg-console-surface">
-            <div className="flex items-center justify-between gap-3 bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              <h2>1. Pilih Kamar</h2>
-              <span className="text-[10px] text-slate-400">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
+              <h2 className="text-sm font-semibold">1. Pilih Kamar</h2>
+              <span className="text-xs font-medium text-slate-500">
                 Tipe: {roomTypeName}
               </span>
             </div>
-            <div className="p-3.5">
-              <div className="mb-2.5 flex items-center gap-2">
+            <div className="p-5">
+              <div className="mb-4 flex items-center gap-2">
                 <select
                   value={floorFilter}
                   onChange={(event) => setFloorFilter(event.target.value)}
-                  className="h-8 w-[120px] rounded-none border border-console-border bg-console-surface px-2 text-[12px] outline-none focus:border-console-ink focus:ring-3 focus:ring-slate-500/20"
+                  className="h-9 w-[140px] rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
                 >
                   <option value="">Semua lantai</option>
                   {floors.map((floor) => (
@@ -279,7 +279,7 @@ export function CheckInForm({
                   ))}
                 </select>
                 <span className="flex-1" />
-                <span className="text-[12px] text-slate-500">
+                <span className="text-sm font-medium text-slate-500">
                   {availableRoomsCount} kamar tersedia
                 </span>
               </div>
@@ -302,16 +302,16 @@ export function CheckInForm({
                             type="button"
                             disabled={!room.isAvailable}
                             onClick={() => field.onChange(String(room.id))}
-                            className={`flex h-16 flex-col items-center justify-center gap-0.5 border px-2 text-center disabled:cursor-not-allowed disabled:opacity-45 ${
+                            className={`flex h-16 flex-col items-center justify-center gap-0.5 rounded-lg border px-2 text-center disabled:cursor-not-allowed disabled:opacity-45 transition-colors ${
                               selected
-                                ? "border-console-ink bg-console-ink text-white"
-                                : "border-console-border bg-console-surface text-console-ink hover:border-console-ink hover:bg-console-bg"
+                                ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                                : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                             }`}
                           >
-                            <span className="text-[15px] font-semibold">
+                            <span className="text-base font-semibold">
                               {room.number}
                             </span>
-                            <span className="text-[10px] opacity-80">
+                            <span className="text-xs opacity-80">
                               Lt. {room.floor} · {room.status}
                             </span>
                           </button>
@@ -319,7 +319,7 @@ export function CheckInForm({
                       })}
                     </div>
                     {assignedRoomId ? (
-                      <p className="mt-2 text-[11px] text-slate-500">
+                      <p className="mt-2 text-xs text-slate-500">
                         Room was pre-assigned. You can change it before
                         completing check-in.
                       </p>
@@ -331,11 +331,11 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"GUEST INFORMATION"}
             </div>
-            <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
+            <div className="grid gap-4 p-5 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="guestFullName"
@@ -429,16 +429,16 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"2. Guest Registration Card (GRC)"}
             </div>
-            <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
+            <div className="grid gap-4 p-5 md:grid-cols-2">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                <div className="text-xs font-semibold text-slate-500">
                   Nama Lengkap
                 </div>
-                <div className="mt-1 flex h-8 items-center border border-console-border bg-console-bg px-2 text-[12px] font-medium text-console-ink">
+                <div className="mt-1 flex h-9 items-center rounded-md border border-slate-300 bg-slate-50 px-3 text-sm font-medium text-slate-700">
                   {guestName}
                 </div>
               </div>
@@ -516,10 +516,10 @@ export function CheckInForm({
                   name="arrivalConfirmation"
                   render={({ field }) => (
                     <FormItem>
-                      <label className="flex gap-2 text-[12px] leading-5 text-console-ink">
+                      <label className="flex gap-2 text-sm leading-5 text-slate-800 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="mt-1 h-3.5 w-3.5 rounded-none border-console-border"
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                           checked={field.value}
                           onChange={(event) =>
                             field.onChange(event.target.checked)
@@ -538,13 +538,13 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"3. Deposit & Pembayaran Awal"}
             </div>
-            <div className="grid gap-3.5 p-3.5 md:grid-cols-2">
+            <div className="grid gap-4 p-5 md:grid-cols-2">
               {depositNote ? (
-                <p className="text-[11px] text-slate-500 md:col-span-2">
+                <p className="text-xs text-slate-500 md:col-span-2">
                   {depositNote}
                 </p>
               ) : null}
@@ -629,18 +629,18 @@ export function CheckInForm({
           </section>
 
           {actionError || form.formState.errors.root?.message ? (
-            <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+            <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               {actionError ?? form.formState.errors.root?.message}
             </p>
           ) : null}
         </div>
 
         <aside className="min-w-0">
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan"}
             </div>
-            <div className="p-3.5 text-[13px]">
+            <div className="p-5 text-sm">
               <SummaryRow label="Reservasi" value={reservationNo} strong />
               <SummaryRow label="Tamu" value={guestName} />
               <SummaryRow label="Tipe" value={roomTypeName} />
@@ -656,7 +656,7 @@ export function CheckInForm({
                 value={`${arrivalLabel} → ${departureLabel}`}
               />
               <SummaryRow label="Malam" value={String(nights)} />
-              <div className="my-2 border-t border-console-border-soft" />
+              <div className="my-3 border-t border-slate-100" />
               <SummaryRow label="Subtotal kamar" value={formatIDR(totalStay)} />
               <SummaryRow
                 label="Deposit awal"
@@ -665,14 +665,14 @@ export function CheckInForm({
                 )}
               />
             </div>
-            <div className="border-t border-console-border bg-console-bg px-3.5 py-3 text-[12px] text-slate-600">
+            <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
               Folio akan otomatis dibuka setelah check-in.
             </div>
-            <div className="border-t border-console-border bg-console-surface p-3.5">
+            <div className="border-t border-slate-200 bg-white p-5">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-8 w-full rounded-none border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:cursor-wait disabled:opacity-70"
+                className="h-9 w-full rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:cursor-wait disabled:opacity-70"
               >
                 {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
               </button>

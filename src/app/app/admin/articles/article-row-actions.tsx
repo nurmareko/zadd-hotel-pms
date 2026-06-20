@@ -31,7 +31,7 @@ export function ArticleRowActions({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-none text-console-ink hover:bg-console-bg"
+            className="h-8 w-8 rounded-none text-foreground hover:bg-slate-50"
             aria-label={`Actions for ${article.name}`}
           />
         }

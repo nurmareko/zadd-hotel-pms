@@ -26,19 +26,18 @@ function ErrorState({
 }) {
   return (
     <>
-      <div className="mb-4">
-        <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-          <span className="text-console-accent">▸ </span>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Guest Folio
         </h1>
-        <p className="mt-1 text-[11px] text-slate-500">{title}</p>
+        <p className="mt-1 text-sm text-slate-500">{title}</p>
       </div>
 
-      <section className="border border-console-border bg-console-surface">
-        <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"Folio Blocked"}
-        </div>
-        <div className="p-3.5 text-[12px] text-status-od-fg">{message}</div>
+      <section className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-red-800">
+          Folio Blocked
+        </h2>
+        <div className="mt-2 text-sm text-red-600">{message}</div>
       </section>
     </>
   );
@@ -122,13 +121,12 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Guest Folio · {folio.reservation.guest.fullName}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {folio.folioNo} · Kamar {folio.reservation.room?.number ?? "-"} (
             {folio.reservation.roomType.name}) ·{" "}
             {stayRangeLabel(

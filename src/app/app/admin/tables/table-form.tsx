@@ -65,20 +65,17 @@ const emptyValues: RestaurantTableFormInput = {
   notes: null,
 };
 
-const inputClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+const inputClassName = "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 const textareaClassName =
-  "min-h-20 rounded-none border-console-border bg-console-surface text-[12px] focus-visible:border-console-ink";
+  "min-h-20 rounded-none border-border bg-card text-sm focus-visible:border-primary";
 
 const labelClassName =
   "text-[10px] font-semibold uppercase tracking-[0.06em]";
 
-const buttonClassName =
-  "h-8 rounded-none border-console-border bg-console-surface px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg";
+const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName =
-  "h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 hover:text-console-accent";
+const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 export function RestaurantTableForm({
   defaultValues,
@@ -279,7 +276,7 @@ export function RestaurantTableForm({
           )}
         />
 
-        <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"

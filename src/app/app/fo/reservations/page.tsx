@@ -196,28 +196,27 @@ export default async function ReservationListPage({
   };
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Daftar Reservasi
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             Dikelompokkan menurut tanggal check-in.
           </p>
         </div>
 
         <Link
           href="/app/fo/reservations/new"
-          className="inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm"
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Tambah Reservasi
         </Link>
       </div>
 
-      <section className="border border-console-border bg-console-surface">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <ReservationFilters
           filters={filters}
           resultCount={reservations.length}

@@ -1,6 +1,8 @@
 import type { HousekeepingLog, RoomStatus, User } from "@prisma/client";
 import { History } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCompactMonthDayTimeID } from "@/lib/format";
 
@@ -34,28 +36,27 @@ function logSecondaryLine(log: HistoryLog) {
 
 export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"Riwayat"}
-        </h2>
-      </div>
-
-      {logs.length === 0 ? (
-        <EmptyState
-          icon={History}
-          title="Belum ada riwayat kamar"
-          description="Perubahan status dan aktivitas pembersihan kamar akan muncul di sini."
-          className="m-3.5"
-        />
-      ) : (
-        <div className="max-h-[420px] overflow-y-auto">
-          {logs.map((log) => (
-            <HistoryRow key={log.id} log={log} />
-          ))}
-        </div>
-      )}
-    </section>
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+        <CardTitle className="text-base font-semibold">Riwayat</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {logs.length === 0 ? (
+          <EmptyState
+            icon={History}
+            title="Belum ada riwayat kamar"
+            description="Perubahan status dan aktivitas pembersihan kamar akan muncul di sini."
+            className="m-4"
+          />
+        ) : (
+          <div className="max-h-[420px] overflow-y-auto">
+            {logs.map((log) => (
+              <HistoryRow key={log.id} log={log} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -63,19 +64,29 @@ function HistoryRow({ log }: { log: HistoryLog }) {
   const secondaryLine = logSecondaryLine(log);
 
   return (
-    <div className="grid gap-1 border-t border-console-border-soft px-3.5 py-3 text-[12px] first:border-t-0 sm:grid-cols-[108px_110px_minmax(0,1fr)] sm:items-start">
-      <div className="num text-[11px] text-slate-500">
+    <div className="grid gap-1 border-t border-border/60 px-5 py-3 text-sm first:border-t-0 sm:grid-cols-[108px_110px_minmax(0,1fr)] sm:items-start">
+      <div className="text-xs text-muted-foreground">
         {formatCompactMonthDayTimeID(log.updatedAt)}
       </div>
-      <div className="truncate font-medium text-console-ink">
+      <div className="truncate text-sm font-medium text-foreground">
         {log.updatedBy.fullName}
       </div>
-      <div className="min-w-0 text-slate-600">
-        <span>{logDescription(log)}</span>
+      <div className="min-w-0 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">{logDescription(log)}</span>
         {secondaryLine ? (
-          <span className="block pt-0.5 text-[11px] text-slate-500">
+          <span className="block pt-0.5 text-xs text-muted-foreground">
             {secondaryLine}
           </span>
+        ) : null}
+        {log.linenChanged || log.towelChanged ? (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {log.linenChanged && (
+              <Badge variant="secondary" className="text-xs rounded-full">Linen</Badge>
+            )}
+            {log.towelChanged && (
+              <Badge variant="secondary" className="text-xs rounded-full">Handuk</Badge>
+            )}
+          </div>
         ) : null}
       </div>
     </div>

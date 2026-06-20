@@ -6,7 +6,7 @@ import {
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-console-bg px-4 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 text-slate-900 md:px-6 md:py-5">
       <PageHeaderSkeleton titleWidth="w-72" subtitleWidth="w-44" />
 
       <KpiStripSkeleton
@@ -15,10 +15,10 @@ export default function Loading() {
       />
 
       <section className="mt-4">
-        <div className="sticky top-[57px] z-10 border-b border-console-border bg-console-bg md:top-0">
+        <div className="sticky top-[57px] z-10 border-b border-slate-200 bg-slate-50 md:top-0">
           <div className="flex">
-            <Skeleton className="h-11 flex-1 border-b-2 border-console-border" />
-            <Skeleton className="h-11 flex-1 border-b-2 border-console-border" />
+            <Skeleton className="h-11 flex-1 border-b-2 border-slate-200" />
+            <Skeleton className="h-11 flex-1 border-b-2 border-slate-200" />
           </div>
         </div>
 
@@ -27,7 +27,7 @@ export default function Loading() {
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton
                 key={index}
-                className="h-11 w-24 shrink-0 border border-console-border"
+                className="h-11 w-24 shrink-0 border border-slate-200"
               />
             ))}
           </div>
@@ -36,7 +36,7 @@ export default function Loading() {
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={index}
-                className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 border border-console-border bg-console-surface p-3"
+                className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-3"
               >
                 <div className="min-w-0">
                   <div className="flex items-end gap-2">
@@ -48,7 +48,7 @@ export default function Loading() {
                     <Skeleton className="h-3 w-20" />
                   </div>
                 </div>
-                <Skeleton className="h-9 w-20 self-center border border-console-border" />
+                <Skeleton className="h-9 w-20 self-center border border-slate-200" />
               </div>
             ))}
           </div>

@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 @config "../../tailwind.config.ts";
 
+@custom-variant desktop (@media (min-width: 768px) and (pointer: fine));
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -43,24 +45,27 @@
   --color-console-accent: var(--console-accent);
   --color-console-border: var(--console-border);
   --color-console-border-soft: var(--console-border-soft);
-  --color-status-vc-bg: var(--emerald-50);
-  --color-status-vc-fg: var(--emerald-700);
-  --color-status-vc-pip: var(--emerald-500);
-  --color-status-oc-bg: var(--blue-50);
-  --color-status-oc-fg: var(--blue-700);
-  --color-status-oc-pip: var(--blue-500);
+  --color-status-vc-bg: var(--blue-50);
+  --color-status-vc-fg: var(--blue-700);
+  --color-status-vc-pip: var(--blue-500);
+  --color-status-oc-bg: var(--emerald-50);
+  --color-status-oc-fg: var(--emerald-700);
+  --color-status-oc-pip: var(--emerald-500);
   --color-status-vd-bg: var(--amber-50);
   --color-status-vd-fg: var(--amber-600);
   --color-status-vd-pip: var(--amber-500);
-  --color-status-vcu-bg: var(--yellow-50);
-  --color-status-vcu-fg: var(--yellow-700);
-  --color-status-vcu-pip: var(--yellow-500);
-  --color-status-od-bg: var(--red-50);
-  --color-status-od-fg: var(--red-600);
-  --color-status-od-pip: var(--red-500);
-  --color-status-ooo-bg: var(--slate-100);
-  --color-status-ooo-fg: var(--slate-600);
-  --color-status-ooo-pip: var(--slate-500);
+  --color-status-vcu-bg: var(--purple-50);
+  --color-status-vcu-fg: var(--purple-700);
+  --color-status-vcu-pip: var(--purple-500);
+  --color-status-od-bg: var(--orange-50);
+  --color-status-od-fg: var(--orange-700);
+  --color-status-od-pip: var(--orange-500);
+  --color-status-ooo-bg: var(--red-50);
+  --color-status-ooo-fg: var(--red-600);
+  --color-status-ooo-pip: var(--red-500);
+  --color-status-oos-bg: var(--slate-100);
+  --color-status-oos-fg: var(--slate-600);
+  --color-status-oos-pip: var(--slate-500);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -68,12 +73,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --font-sans: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas,
-    monospace;
+  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas,
     monospace;
-  --font-heading: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas,
-    monospace;
+  --font-heading: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -105,8 +108,14 @@
     --red-50: #fef2f2;
     --red-500: #ef4444;
     --red-600: #dc2626;
+    --purple-50: #f5f3ff;
+    --purple-500: #8b5cf6;
+    --purple-700: #6d28d9;
+    --orange-50: #fff7ed;
+    --orange-500: #f97316;
+    --orange-700: #c2410c;
 
-    --console-bg: #f6f7f8;
+    --console-bg: #f8fafc;
     --console-surface: #ffffff;
     --console-ink: #0a0e1a;
     --console-accent: #00d4aa;
@@ -120,7 +129,7 @@
     --popover: var(--console-surface);
     --popover-foreground: var(--console-ink);
     --primary: var(--console-ink);
-    --primary-foreground: var(--console-accent);
+    --primary-foreground: #ffffff;
     --secondary: var(--slate-100);
     --secondary-foreground: var(--console-ink);
     --muted: var(--slate-100);
@@ -156,8 +165,7 @@
   }
 
   body {
-    font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas,
-      monospace;
+    font-family: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
     background: var(--console-bg);
     color: var(--console-ink);
   }

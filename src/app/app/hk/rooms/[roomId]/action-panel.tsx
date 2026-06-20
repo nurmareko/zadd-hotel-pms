@@ -1,5 +1,6 @@
 import { RoomStatus } from "@prisma/client";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActiveCleaningPanel } from "./active-cleaning-panel";
 import { InspectionPanel } from "./inspection-panel";
 
@@ -14,28 +15,23 @@ type ActionPanelProps = {
     startedAt: Date;
     finishedAt: Date;
     housekeeperName: string;
+    note?: string | null;
+    linenChanged?: boolean;
+    towelChanged?: boolean;
   } | null;
   assignedHousekeeperName: string | null;
 };
 
-function CardHeader({ children }: { children: string }) {
+function InfoCard({ title, children }: { title: string; children: string }) {
   return (
-    <div className="bg-console-ink px-3.5 py-3">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
+    <Card className="rounded-2xl p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+        <CardTitle className="text-base font-semibold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">
         {children}
-      </h2>
-    </div>
-  );
-}
-
-function CalmCard({ title, children }: { title: string; children: string }) {
-  return (
-    <section className="border border-console-border bg-console-surface">
-      <CardHeader>{title}</CardHeader>
-      <div className="p-3.5 text-[12px] leading-relaxed text-slate-600">
-        {children}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -57,11 +53,11 @@ export function ActionPanel({
 
   if (status === RoomStatus.VD || status === RoomStatus.OD) {
     return (
-      <CalmCard title="Menunggu Pembersihan">
+      <InfoCard title="Menunggu Pembersihan">
         {assignedHousekeeperName
           ? `Kamar masuk antrean pembersihan dan ditugaskan ke ${assignedHousekeeperName}.`
           : "Kamar masuk antrean pembersihan dan belum memiliki petugas hari ini."}
-      </CalmCard>
+      </InfoCard>
     );
   }
 
@@ -76,15 +72,15 @@ export function ActionPanel({
 
   if (status === RoomStatus.OOO) {
     return (
-      <CalmCard title="Aksi">
+      <InfoCard title="Aksi">
         Kamar sedang diperbaiki. Hubungi admin untuk mengembalikan status.
-      </CalmCard>
+      </InfoCard>
     );
   }
 
   return (
-    <CalmCard title="Aksi">
+    <InfoCard title="Aksi">
       Kamar dalam kondisi baik. Tidak ada aksi yang diperlukan.
-    </CalmCard>
+    </InfoCard>
   );
 }

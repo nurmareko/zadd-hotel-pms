@@ -49,7 +49,7 @@ type RecordPaymentDialogProps = {
 };
 
 const fieldClassName =
-  "h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+  "h-10 rounded-lg border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 
 function defaultAmount(balance: number) {
   if (balance <= 0) {
@@ -139,15 +139,15 @@ export function RecordPaymentDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-none border border-console-border bg-console-surface p-0 text-console-ink sm:max-w-md">
-          <DialogHeader className="bg-console-ink px-3.5 py-3">
-            <DialogTitle className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-              {"Catat Pembayaran"}
+        <DialogContent className="rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+          <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
+            <DialogTitle className="text-lg font-semibold text-slate-900">
+              Catat Pembayaran
             </DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5 p-3.5">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
               <input
                 type="hidden"
                 value={folioId}
@@ -159,7 +159,7 @@ export function RecordPaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Jumlah</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Jumlah</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -180,22 +180,22 @@ export function RecordPaymentDialog({
                 name="method"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Metode</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Metode</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger className="h-8 w-full rounded-none border-console-border bg-console-surface text-[12px]">
+                        <SelectTrigger className="h-10 w-full rounded-lg border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
                           <SelectValue placeholder="Pilih metode" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent
                         align="start"
-                        className="rounded-none border-console-border"
+                        className="rounded-lg border border-slate-200 bg-white shadow-md"
                       >
                         {paymentMethods.map((paymentMethod) => (
                           <SelectItem
                             key={paymentMethod}
                             value={paymentMethod}
-                            className="rounded-none text-[12px]"
+                            className="rounded-md text-sm cursor-pointer"
                           >
                             {paymentMethod}
                           </SelectItem>
@@ -212,7 +212,7 @@ export function RecordPaymentDialog({
                 name="reference"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">
                       Reference{method === PaymentMethod.TRANSFER ? " / Required" : ""}
                     </FormLabel>
                     <FormControl>
@@ -228,12 +228,12 @@ export function RecordPaymentDialog({
               />
 
               {actionError ? (
-                <p className="border border-red-500 bg-status-od-bg px-3 py-2 text-[12px] text-status-od-fg">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                   {actionError}
                 </p>
               ) : null}
 
-              <div className="flex flex-col-reverse gap-2 border-t border-console-border pt-3.5 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
