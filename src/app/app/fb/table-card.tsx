@@ -2,7 +2,9 @@ import { TableLocation, TableStatus } from "@prisma/client";
 import { differenceInMinutes } from "date-fns";
 import Link from "next/link";
 
-import { TableStatusBadge, tableStatusLabels } from "./status-badge";
+import { StatusBadge } from "@/components/status-badge";
+
+import { tableStatusLabels } from "./status-badge";
 import { TableStatusPopover } from "./table-status-popover";
 
 export type TableCardOrder = {
@@ -32,21 +34,23 @@ type TableCardProps = {
 
 const statusCardStyles: Record<TableStatus, string> = {
   AVAILABLE:
-    "border-status-vc-pip bg-status-vc-bg text-status-vc-fg hover:bg-emerald-50",
+    "border-status-vc-pip bg-white hover:border-status-vc-pip hover:bg-status-vc-bg",
   OCCUPIED:
-    "border-status-oc-pip bg-status-oc-bg text-status-oc-fg hover:bg-blue-50",
+    "border-status-oc-pip bg-white hover:border-status-oc-pip hover:bg-status-oc-bg",
   RESERVED:
-    "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
+    "border-status-vd-pip bg-white hover:border-status-vd-pip hover:bg-status-vd-bg",
   OUT_OF_SERVICE:
-    "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg opacity-75",
+    "border-status-oos-pip bg-white opacity-75 hover:border-status-oos-pip hover:bg-status-oos-bg",
 };
 
 export const floorTableStatusStyles: Record<TableStatus, string> = {
   AVAILABLE:
-    "border-emerald-700 bg-emerald-50 text-emerald-950 hover:bg-emerald-100",
-  OCCUPIED: "border-blue-700 bg-blue-50 text-blue-950 hover:bg-blue-100",
-  RESERVED: "border-amber-700 bg-amber-50 text-amber-950",
-  OUT_OF_SERVICE: "border-slate-700 bg-slate-100 text-slate-950 opacity-80",
+    "border-status-vc-pip bg-status-vc-bg text-status-vc-fg hover:bg-status-vc-bg/80",
+  OCCUPIED:
+    "border-status-oc-pip bg-status-oc-bg text-status-oc-fg hover:bg-status-oc-bg/80",
+  RESERVED: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
+  OUT_OF_SERVICE:
+    "border-status-oos-pip bg-status-oos-bg text-status-oos-fg opacity-80",
 };
 
 function elapsedLabel(openedAt: Date) {
@@ -79,17 +83,20 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
   const cardContent = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <div className="text-[24px] font-bold leading-none tracking-normal">
+        <div className="text-2xl font-bold leading-none text-slate-900">
           {table.number}
         </div>
-        <TableStatusBadge status={table.status} />
+        <StatusBadge
+          className={floorTableStatusStyles[table.status]}
+          label={tableStatusLabels[table.status]}
+        />
       </div>
-      <div className="mt-2 text-[11px] font-medium text-slate-600">
+      <div className="mt-2 text-sm font-medium text-slate-600">
         Kapasitas {table.capacity}
       </div>
       {activeOrder ? (
-        <div className="mt-3 border-t border-current/20 pt-2 text-[11px] text-slate-700">
-          <div className="font-semibold text-console-ink">{activeOrder.orderNo}</div>
+        <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
+          <div className="font-semibold text-slate-900">{activeOrder.orderNo}</div>
           <div className="mt-1 text-slate-500">
             <span className="num">{activeOrder.items.length}</span> item ·{" "}
             <span className="num">{activeOrder.guestCount}</span> tamu ·{" "}
@@ -97,11 +104,11 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
           </div>
         </div>
       ) : table.status === TableStatus.RESERVED ? (
-        <div className="mt-3 border-t border-current/20 pt-2 text-[11px] text-slate-600">
+        <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
           {table.notes ?? "Reservasi meja dicatat manual untuk MVP."}
         </div>
       ) : table.status === TableStatus.OUT_OF_SERVICE ? (
-        <div className="mt-3 border-t border-current/20 pt-2 text-[11px] text-slate-600">
+        <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
           {table.notes ?? "Meja tidak tersedia."}
         </div>
       ) : null}
@@ -112,17 +119,17 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
       <span className="num text-[17px] font-bold leading-none">
         {table.number}
       </span>
-      <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em]">
+      <span className="mt-1 text-[10px] font-semibold">
         {table.capacity} pax
       </span>
-      <span className="mt-1 h-1.5 w-1.5 bg-current" aria-hidden="true" />
+      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
       <span className="sr-only">{tableStatusLabels[table.status]}</span>
     </div>
   );
   const className =
     variant === "floor"
-      ? `block h-full w-full border-2 text-left shadow-[2px_2px_0_#111827] transition ${floorTableStatusStyles[table.status]}`
-      : `block min-h-[126px] border border-l-4 p-3 text-left transition ${statusCardStyles[table.status]}`;
+      ? `block h-full w-full rounded-2xl border text-left shadow-sm transition ${floorTableStatusStyles[table.status]}`
+      : `block min-h-[126px] rounded-2xl border p-4 text-left shadow-sm transition ${statusCardStyles[table.status]}`;
   const content = variant === "floor" ? floorContent : cardContent;
 
   if (!href) {

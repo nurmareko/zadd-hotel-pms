@@ -107,30 +107,30 @@ export function TableStatusPopover({
       {isOpen ? (
         <div
           aria-label={`Aksi meja ${tableNumber}`}
-          className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 border border-console-border bg-console-ink p-2 text-console-accent shadow-[3px_3px_0_#22c55e]"
+          className="absolute left-0 top-[calc(100%+8px)] z-30 w-60 rounded-2xl border border-gray-200 bg-white p-3 text-slate-900 shadow-lg"
           id={panelId}
           role="dialog"
         >
-          <div className="mb-2 border-b border-console-accent/30 pb-1.5 text-[10px] font-bold uppercase tracking-[0.08em]">
+          <div className="mb-3 border-b border-gray-100 pb-2 text-sm font-semibold text-slate-900">
             {isReserved ? "Meja Dipesan" : "Tidak Tersedia"}
           </div>
 
           {isReserved ? (
             <div className="grid gap-2">
               {noteText ? (
-                <p className="border border-console-accent/30 bg-slate-950 px-2.5 py-2 text-[11px] leading-4 text-slate-200">
+                <p className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
                   {noteText}
                 </p>
               ) : null}
               <Link
-                className="inline-flex h-8 items-center border border-console-accent bg-console-accent px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:bg-white focus:outline-none focus:ring-2 focus:ring-white"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
                 href={`/app/fb/orders/new?tableId=${tableId}`}
                 ref={seatGuestsRef}
               >
                 Dudukkan Tamu
               </Link>
               <button
-                className="inline-flex h-8 items-center border border-console-accent/60 bg-console-ink px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:border-console-accent hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 type="button"
@@ -141,12 +141,12 @@ export function TableStatusPopover({
           ) : (
             <div className="grid gap-2">
               {noteText ? (
-                <p className="border border-console-accent/30 bg-slate-950 px-2.5 py-2 text-[11px] leading-4 text-slate-200">
+                <p className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
                   {noteText}
                 </p>
               ) : null}
               <button
-                className="inline-flex h-8 items-center border border-console-accent bg-console-accent px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:bg-white focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-status-ooo-pip bg-status-ooo-pip px-3 text-sm font-semibold text-white transition-colors hover:bg-status-ooo-fg focus:outline-none focus:ring-2 focus:ring-status-ooo-bg disabled:opacity-50"
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 ref={setAvailableRef}
