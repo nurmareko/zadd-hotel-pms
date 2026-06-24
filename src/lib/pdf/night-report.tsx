@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   },
   blockHeader: {
     backgroundColor: "#0a0e1a",
-    color: "#00d4aa",
+    color: "#22c55e",
     paddingHorizontal: 8,
     paddingVertical: 5,
     fontSize: 8,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     backgroundColor: "#0a0e1a",
-    color: "#00d4aa",
+    color: "#22c55e",
   },
   totalText: {
     fontSize: 12,

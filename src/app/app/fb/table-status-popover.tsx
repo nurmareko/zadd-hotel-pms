@@ -107,7 +107,7 @@ export function TableStatusPopover({
       {isOpen ? (
         <div
           aria-label={`Aksi meja ${tableNumber}`}
-          className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 border border-console-border bg-console-ink p-2 text-console-accent shadow-[3px_3px_0_#00d4aa]"
+          className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 border border-console-border bg-console-ink p-2 text-console-accent shadow-[3px_3px_0_#22c55e]"
           id={panelId}
           role="dialog"
         >

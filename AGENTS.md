@@ -81,7 +81,7 @@ praktikum. Students rotate through 5 operational roles
   is for server components and route handlers only. Do not import auth.ts from proxy.ts.
 - NextAuth v5 credentials failure returns HTTP 200 with `result.error`, not a
   4xx response. Client login code must check both `result.error` and `result.url`.
-- The app uses the V2 design system: Inter typography, soft enterprise surfaces,
+- The app uses the V2 design system: Plus Jakarta Sans typography, soft enterprise surfaces,
   rounded cards, subtle shadows, Lucide icons, and consistent status chips. See docs/design.md.
 
 ## Mockup Workflow

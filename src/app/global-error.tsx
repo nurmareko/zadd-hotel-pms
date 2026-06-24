@@ -95,7 +95,7 @@ export default function GlobalError({
                 marginTop: 16,
                 border: "1px solid #0a0e1a",
                 background: "#0a0e1a",
-                color: "#00d4aa",
+                color: "#22c55e",
                 padding: "0 12px",
                 fontFamily: "inherit",
                 fontSize: 11,

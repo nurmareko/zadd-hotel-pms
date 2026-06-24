@@ -2,7 +2,7 @@ import { Prisma, type LostFoundStatus } from "@prisma/client";
 import { Archive, CheckCircle2, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";

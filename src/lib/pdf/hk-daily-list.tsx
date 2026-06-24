@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     backgroundColor: "#0a0e1a",
-    color: "#00d4aa",
+    color: "#22c55e",
     paddingHorizontal: 8,
     paddingVertical: 5,
     fontSize: 8,
