@@ -52,11 +52,16 @@ export function PasswordForm() {
   }
 
   return (
-    <section className="overflow-hidden border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"GANTI PASSWORD"}
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 px-5 py-4">
+        <h2 className="text-[16px] font-semibold text-slate-900">
+          Ganti Password
+        </h2>
+        <p className="mt-1 text-[13px] leading-5 text-slate-500">
+          Perbarui password akun untuk menjaga akses tetap aman.
+        </p>
       </div>
-      <div className="px-3.5 py-4">
+      <div className="px-5 py-5">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -64,14 +69,14 @@ export function PasswordForm() {
               name="currentPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  <FormLabel className="text-[13px] font-medium text-slate-700">
                     Password saat ini
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       autoComplete="current-password"
-                      className="rounded-none border-console-border bg-console-surface text-[13px] focus-visible:border-console-ink"
+                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -85,14 +90,14 @@ export function PasswordForm() {
               name="newPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  <FormLabel className="text-[13px] font-medium text-slate-700">
                     Password baru
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       autoComplete="new-password"
-                      className="rounded-none border-console-border bg-console-surface text-[13px] focus-visible:border-console-ink"
+                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -106,14 +111,14 @@ export function PasswordForm() {
               name="confirmNewPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                  <FormLabel className="text-[13px] font-medium text-slate-700">
                     Konfirmasi password baru
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       autoComplete="new-password"
-                      className="rounded-none border-console-border bg-console-surface text-[13px] focus-visible:border-console-ink"
+                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -122,11 +127,11 @@ export function PasswordForm() {
               )}
             />
 
-            <div className="flex justify-end border-t border-console-border pt-4">
+            <div className="flex justify-end border-t border-gray-200 pt-4">
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="h-8 rounded-none border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                className="h-10 rounded-xl border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800"
               >
                 {form.formState.isSubmitting
                   ? "Menyimpan..."

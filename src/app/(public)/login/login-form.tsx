@@ -94,7 +94,7 @@ export function LoginForm() {
                     autoComplete="username"
                     disabled={isSubmitting}
                     placeholder="Enter your username"
-                    className="h-11 rounded-xl border-slate-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:bg-slate-50"
+                    className="h-10 rounded-xl border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
                 </FormControl>
@@ -117,7 +117,7 @@ export function LoginForm() {
                     autoComplete="current-password"
                     disabled={isSubmitting}
                     placeholder="Enter your password"
-                    className="h-11 rounded-xl border-slate-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 disabled:bg-slate-50"
+                    className="h-10 rounded-xl border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
                 </FormControl>
@@ -130,7 +130,7 @@ export function LoginForm() {
         {error ? (
           <div
             role="alert"
-            className="border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-600"
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700"
           >
             {error}
           </div>
@@ -139,12 +139,12 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="h-11 w-full rounded-xl bg-blue-600 text-[14px] font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-70"
+          className="h-10 w-full rounded-xl border border-slate-900 bg-slate-900 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-70"
         >
           {isSubmitting ? (
             <>
               <span
-                className="size-3 animate-spin border border-console-accent border-t-transparent"
+                className="size-3 animate-spin rounded-full border border-white border-t-transparent"
                 aria-hidden="true"
               />
               Memproses
@@ -154,7 +154,7 @@ export function LoginForm() {
           )}
         </Button>
 
-        <div className="border-t border-slate-200 pt-6 mt-4">
+        <div className="mt-4 border-t border-gray-200 pt-6">
           <div className="mb-4 flex items-baseline justify-between">
             <p className="text-[13px] font-medium text-slate-700">
               Demo Accounts
@@ -171,7 +171,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => fillDemoAccount(account)}
                 disabled={isSubmitting}
-                className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-blue-500 hover:bg-slate-50 focus-visible:border-blue-500 focus-visible:outline-none disabled:opacity-60"
+                className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-gray-300 hover:bg-slate-50 focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:opacity-60"
               >
                 <span className="truncate text-[13px] font-medium text-slate-700">
                   {account.role}

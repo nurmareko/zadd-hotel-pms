@@ -58,19 +58,18 @@ export default async function ProfilePage() {
   const role = user.roles[0]?.role;
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
-      <div className="mx-auto max-w-[600px]">
-        <div className="mb-4">
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+    <main className="min-h-screen bg-slate-50 px-4 py-5 font-jakarta text-slate-900 md:px-6 md:py-6">
+      <div className="mx-auto max-w-[760px]">
+        <div className="mb-5">
+          <h1 className="text-[32px] font-bold leading-tight text-slate-900">
             Profil
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-2 text-[14px] leading-6 text-slate-500">
             Kelola informasi akun Anda
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <AccountCard
             fullName={user.fullName}
             username={user.username}
