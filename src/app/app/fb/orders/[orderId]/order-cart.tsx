@@ -49,13 +49,14 @@ export function OrderCart({ order, settings }: OrderCartProps) {
   ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
-    <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-2">
-        <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"KERANJANG ORDER"}
+    <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
+      <div className="border-b border-gray-200 px-5 py-4">
+        <div className="text-base font-semibold text-slate-900">
+          Keranjang Order
         </div>
-        <div className="mt-1 text-[11px] text-slate-300">
-          {order.locationLabel} · {order.guestCount} pax · {order.orderNo}
+        <div className="mt-1 text-sm text-slate-500">
+          {order.locationLabel} · <span className="num">{order.guestCount}</span>{" "}
+          pax · <span className="font-semibold text-slate-700">{order.orderNo}</span>
         </div>
       </div>
 
@@ -70,7 +71,7 @@ export function OrderCart({ order, settings }: OrderCartProps) {
         <div>
           {itemsByGuest.map(([guestNumber, guestItems]) => (
             <section key={guestNumber}>
-              <div className="border-b border-console-border-soft bg-console-bg px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">
+              <div className="border-b border-gray-100 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-700">
                 {fbOrderGuestLabel(guestNumber)}
               </div>
               {guestItems.map((item) => (
@@ -81,10 +82,10 @@ export function OrderCart({ order, settings }: OrderCartProps) {
         </div>
       )}
 
-      <div className="border-t border-console-border bg-console-bg p-3.5 text-[13px]">
+      <div className="border-t border-gray-200 bg-slate-50 p-5 text-sm">
         <div className="flex items-center justify-between py-1">
           <span className="text-slate-600">Subtotal</span>
-          <span className="num font-semibold text-console-ink">
+          <span className="num font-semibold text-slate-900">
             {formatIDR(order.subtotal)}
           </span>
         </div>
@@ -93,7 +94,7 @@ export function OrderCart({ order, settings }: OrderCartProps) {
             <span className="text-slate-600">
               Service {Number(settings.serviceChargePercent)}%
             </span>
-            <span className="num text-console-ink">
+            <span className="num text-slate-900">
               {formatIDR(order.serviceCharge)}
             </span>
           </div>
@@ -101,15 +102,15 @@ export function OrderCart({ order, settings }: OrderCartProps) {
         {shouldShowAmount(order.tax) ? (
           <div className="flex items-center justify-between py-1">
             <span className="text-slate-600">PPN {Number(settings.taxPercent)}%</span>
-            <span className="num text-console-ink">{formatIDR(order.tax)}</span>
+            <span className="num text-slate-900">{formatIDR(order.tax)}</span>
           </div>
         ) : null}
-        <div className="mt-2 border-t border-console-border pt-2">
+        <div className="mt-3 border-t border-gray-200 pt-3">
           <div className="flex items-center justify-between">
-            <span className="text-[14px] font-bold uppercase tracking-[0.04em] text-console-ink">
+            <span className="text-sm font-semibold text-slate-900">
               Total
             </span>
-            <span className="num text-[20px] font-bold text-console-ink">
+            <span className="num text-2xl font-bold text-slate-900">
               {formatIDR(order.total)}
             </span>
           </div>

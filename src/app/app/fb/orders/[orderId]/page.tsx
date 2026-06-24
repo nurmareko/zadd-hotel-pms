@@ -6,6 +6,7 @@ import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+import { OrderStatusBadge } from "../../status-badge";
 import { MenuBrowse } from "./menu-browse";
 import { OrderCart } from "./order-cart";
 
@@ -75,18 +76,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
             Captain Order · {locationLabel}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
-            Order #{order.orderNo} ·{" "}
-            <span className="num">{order.guestCount}</span> pax ·{" "}
-            <span className="num">{itemCount}</span> item ·{" "}
-            {formatIDR(computedTotals.total.toString())}
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+            <span>
+              Order{" "}
+              <span className="font-semibold text-slate-700">
+                {order.orderNo}
+              </span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              <span className="num">{order.guestCount}</span> pax ·{" "}
+              <span className="num">{itemCount}</span> item ·{" "}
+              {formatIDR(computedTotals.total.toString())}
+            </span>
+            <OrderStatusBadge status={order.status} />
           </p>
         </div>
       </div>

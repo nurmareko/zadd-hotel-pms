@@ -85,24 +85,24 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
   }
 
   return (
-    <div className="grid gap-2 border-b border-console-border-soft p-3.5">
+    <div className="grid gap-3 border-b border-gray-100 p-4">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-semibold text-console-ink">
+          <div className="truncate text-sm font-semibold text-slate-900">
             {item.name}
           </div>
-          <div className="num mt-1 text-[11px] text-slate-500">
+          <div className="num mt-1 text-xs text-slate-500">
             {formatIDR(item.unitPrice)} · {item.category}
           </div>
           {!item.isAvailable ? (
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-status-vd-fg">
+            <div className="mt-1 inline-flex h-6 items-center rounded-full border border-status-vd-pip bg-status-vd-bg px-2.5 text-xs font-semibold text-status-vd-fg">
               Item tidak tersedia
             </div>
           ) : null}
         </div>
         <button
           aria-label={`Remove ${item.name}`}
-          className="inline-flex size-7 items-center justify-center border border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg disabled:opacity-50"
+          className="inline-flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
           disabled={!canEdit || isPending}
           onClick={removeItem}
           title={`Remove ${item.name}`}
@@ -113,10 +113,10 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex h-8 items-center border border-console-border bg-white">
+        <div className="inline-flex h-9 items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <button
             aria-label={`Decrease ${item.name}`}
-            className="inline-flex h-full w-8 items-center justify-center text-console-ink hover:bg-console-bg disabled:opacity-50"
+            className="inline-flex h-full w-9 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
             disabled={!canEdit || isPending}
             onClick={() => changeQuantity(item.quantity - 1)}
             title={`Decrease ${item.name}`}
@@ -124,12 +124,12 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
           >
             <Minus aria-hidden="true" className="size-3.5" />
           </button>
-          <span className="num w-9 border-x border-console-border text-center text-[12px] font-semibold">
+          <span className="num w-10 border-x border-gray-200 text-center text-sm font-semibold text-slate-900">
             {item.quantity}
           </span>
           <button
             aria-label={`Increase ${item.name}`}
-            className="inline-flex h-full w-8 items-center justify-center text-console-ink hover:bg-console-bg disabled:opacity-50"
+            className="inline-flex h-full w-9 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
             disabled={!canEdit || isPending}
             onClick={() => changeQuantity(item.quantity + 1)}
             title={`Increase ${item.name}`}
@@ -138,13 +138,13 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
             <Plus aria-hidden="true" className="size-3.5" />
           </button>
         </div>
-        <div className="num text-right text-[13px] font-bold text-console-ink">
+        <div className="num text-right text-sm font-bold text-slate-900">
           {formatIDR(item.amount)}
         </div>
       </div>
 
       <input
-        className="h-8 w-full border border-console-border bg-white px-2 text-[12px] text-console-ink outline-none placeholder:text-slate-400 focus:border-console-ink disabled:bg-slate-100"
+        className="h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
         disabled={!canEdit || isPending}
         maxLength={255}
         onBlur={saveNotes}

@@ -45,22 +45,22 @@ export function MenuItemCard({
   }
 
   return (
-    <article className="grid min-h-[126px] gap-3 border border-console-border bg-white p-3">
+    <article className="grid min-h-[132px] gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-gray-300">
       <div>
-        <div className="text-[13px] font-semibold leading-5 text-console-ink">
+        <div className="text-sm font-semibold leading-5 text-slate-900">
           {item.name}
         </div>
-        <div className="num mt-1 text-[12px] text-slate-600">
+        <div className="num mt-1 text-sm font-semibold text-slate-700">
           {formatIDR(item.price)}
         </div>
       </div>
       <div className="flex items-end justify-between gap-2">
-        <span className="inline-flex h-5 items-center border border-console-border bg-console-bg px-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+        <span className="inline-flex h-6 items-center rounded-full border border-gray-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-600">
           {item.category}
         </span>
         <button
           aria-label={`Add ${item.name}`}
-          className="inline-flex h-8 items-center gap-1.5 border border-console-ink bg-console-ink px-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
           disabled={disabled || isPending}
           onClick={handleAdd}
           title={`Add ${item.name}`}
