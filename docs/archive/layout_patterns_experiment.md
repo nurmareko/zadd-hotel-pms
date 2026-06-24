@@ -1,4 +1,6 @@
-# ZADD Hotel PMS Layout Patterns
+ARCHIVED — merged into docs/design.md (V2)
+
+# ZADD Hotel Management Layout Patterns
 
 ## Dashboard Structure
 

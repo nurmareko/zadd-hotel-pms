@@ -1,4 +1,6 @@
-# ZADD Hotel PMS Design System V2
+ARCHIVED — merged into docs/design.md (V2)
+
+# ZADD Hotel Management Design System V2
 
 Version: 2.0
 
@@ -6,7 +8,7 @@ Version: 2.0
 
 # Overview
 
-Brainery PMS is a modern hospitality operating system.
+ZADD Hotel Management is a modern hospitality operating system.
 
 This design system replaces the legacy Console design language.
 
@@ -60,7 +62,7 @@ Decoration never takes priority over information.
 
 ## Action First
 
-Users open Brainery PMS to complete tasks.
+Users open ZADD Hotel Management to complete tasks.
 
 Every page should make the next action obvious.
 
