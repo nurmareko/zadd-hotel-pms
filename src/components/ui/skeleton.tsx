@@ -8,7 +8,7 @@ export function Skeleton({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse bg-console-border-soft", className)}
+      className={cn("animate-pulse rounded-xl bg-slate-200", className)}
       {...props}
     />
   );
@@ -44,7 +44,7 @@ export function PageHeaderSkeleton({
             <Skeleton
               key={index}
               className={cn(
-                "h-8 border border-console-border",
+                "h-10 rounded-xl border border-gray-200 bg-slate-100",
                 index === 0 ? "w-28" : "w-32",
               )}
             />
@@ -67,7 +67,7 @@ export function KpiStripSkeleton({
       {Array.from({ length: count }).map((_, index) => (
         <section
           key={index}
-          className="border border-console-border bg-console-surface p-3.5"
+          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
         >
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-2 h-7 w-20" />
@@ -94,14 +94,17 @@ export function TableSkeleton({
   return (
     <div className={cn("overflow-auto", className)}>
       <table
-        className="w-full border-collapse text-[12px]"
+        className="w-full border-collapse font-jakarta text-[12px]"
         style={{ minWidth }}
       >
         <thead>
           <tr>
             {Array.from({ length: cols }).map((_, index) => (
-              <th key={index} className="bg-console-ink px-3 py-2">
-                <Skeleton className="h-3 w-20 bg-console-border" />
+              <th
+                key={index}
+                className="border-b border-gray-200 bg-slate-50 px-3.5 py-3"
+              >
+                <Skeleton className="h-3 w-20 bg-slate-200" />
               </th>
             ))}
           </tr>
@@ -110,12 +113,12 @@ export function TableSkeleton({
           {Array.from({ length: rows }).map((_, rowIndex) => (
             <tr
               key={rowIndex}
-              className="odd:bg-console-surface even:bg-console-bg"
+              className="odd:bg-white even:bg-slate-50/70"
             >
               {Array.from({ length: cols }).map((_, colIndex) => (
                 <td
                   key={colIndex}
-                  className="border-b border-console-border-soft px-3 py-[9px]"
+                  className="border-b border-gray-100 px-3.5 py-[11px]"
                 >
                   <Skeleton
                     className={cn(
@@ -144,12 +147,15 @@ export function CardSkeleton({
 }) {
   return (
     <section
-      className={cn("border border-console-border bg-console-surface", className)}
+      className={cn(
+        "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm",
+        className,
+      )}
     >
-      <div className="bg-console-ink px-3.5 py-3">
-        <Skeleton className={cn("h-3 bg-console-border", titleWidth)} />
+      <div className="border-b border-gray-100 bg-white px-5 py-4">
+        <Skeleton className={cn("h-3 bg-slate-200", titleWidth)} />
       </div>
-      <div className="space-y-3 p-3.5">
+      <div className="space-y-3 px-5 py-4">
         {Array.from({ length: rows }).map((_, index) => (
           <div key={index} className="flex items-center justify-between gap-4">
             <Skeleton className="h-4 w-32 max-w-[55%]" />
@@ -169,12 +175,12 @@ export function FilterBarSkeleton({
   showCount?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-console-border bg-console-surface p-3.5 lg:flex-row lg:items-center">
-      <Skeleton className="h-8 w-full border border-console-border sm:w-[280px]" />
+    <div className="flex flex-col gap-2 border-b border-gray-200 bg-white p-5 lg:flex-row lg:items-center">
+      <Skeleton className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100 sm:w-[280px]" />
       {Array.from({ length: fields }).map((_, index) => (
         <Skeleton
           key={index}
-          className="h-8 w-full border border-console-border sm:w-[140px]"
+          className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100 sm:w-[140px]"
         />
       ))}
       {showCount ? (
@@ -195,13 +201,13 @@ export function TabStripSkeleton({
   className?: string;
 }) {
   return (
-    <div className={cn("border-b border-console-border", className)}>
+    <div className={cn("border-b border-gray-200", className)}>
       <nav className="flex gap-5" aria-label="Memuat tab">
         {Array.from({ length: count }).map((_, index) => (
           <Skeleton
             key={index}
             className={cn(
-              "h-9 border-b-2 border-console-border",
+              "h-10 rounded-t-xl border-b-2 border-gray-200 bg-slate-100",
               index === 0 ? "w-24" : "w-32",
             )}
           />
@@ -233,7 +239,7 @@ export function AdminTableLoadingSkeleton({
   minWidth?: string;
 }) {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-5 py-4 font-jakarta text-slate-900 md:px-6 md:py-5">
       <PageHeaderSkeleton
         titleWidth={titleWidth}
         subtitleWidth={subtitleWidth}
@@ -248,7 +254,7 @@ export function AdminTableLoadingSkeleton({
       {tabCount > 0 ? (
         <TabStripSkeleton count={tabCount} className="mb-4" />
       ) : null}
-      <section className="border border-console-border bg-console-surface">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <FilterBarSkeleton fields={filterFields} />
         <TableSkeleton rows={rows} cols={cols} minWidth={minWidth} />
       </section>

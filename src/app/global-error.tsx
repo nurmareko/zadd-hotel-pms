@@ -20,10 +20,10 @@ export default function GlobalError({
         style={{
           minHeight: "100vh",
           margin: 0,
-          background: "#f6f7f8",
-          color: "#0a0e1a",
+          background: "#F8FAFC",
+          color: "#0F172A",
           fontFamily:
-            'ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace',
+            '"Plus Jakarta Sans", var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif',
         }}
       >
         <main
@@ -46,31 +46,40 @@ export default function GlobalError({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px dashed #d1d5db",
-              background: "#ffffff",
+              border: "1px solid #E5E7EB",
+              borderRadius: 16,
+              background: "#FFFFFF",
               padding: "40px 24px",
               boxSizing: "border-box",
               textAlign: "center",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
             }}
           >
             <div
               aria-hidden="true"
               style={{
-                color: "#94a3b8",
-                fontSize: 20,
+                width: 48,
+                height: 48,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 16,
+                background: "#FEF3C7",
+                color: "#B45309",
+                fontSize: 22,
                 fontWeight: 700,
                 lineHeight: 1,
               }}
             >
-              [!]
+              !
             </div>
             <h1
               style={{
-                margin: "12px 0 0",
-                fontSize: 12,
+                margin: "20px 0 0",
+                color: "#0F172A",
+                fontSize: 24,
                 fontWeight: 700,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
+                lineHeight: 1.2,
               }}
             >
               Sistem tidak dapat dimuat
@@ -78,10 +87,10 @@ export default function GlobalError({
             <p
               style={{
                 maxWidth: 448,
-                margin: "6px 0 0",
-                color: "#64748b",
-                fontSize: 11,
-                lineHeight: "20px",
+                margin: "8px 0 0",
+                color: "#64748B",
+                fontSize: 14,
+                lineHeight: "24px",
               }}
             >
               Terjadi gangguan pada tampilan utama. Muat ulang halaman untuk
@@ -91,18 +100,19 @@ export default function GlobalError({
               type="button"
               onClick={() => window.location.reload()}
               style={{
-                height: 32,
-                marginTop: 16,
-                border: "1px solid #0a0e1a",
-                background: "#0a0e1a",
-                color: "#22c55e",
-                padding: "0 12px",
+                height: 40,
+                marginTop: 24,
+                border: "1px solid #0F172A",
+                borderRadius: 12,
+                background: "#0F172A",
+                color: "#FFFFFF",
+                padding: "0 16px",
                 fontFamily: "inherit",
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: 600,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
+                lineHeight: "40px",
                 cursor: "pointer",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
               }}
             >
               Muat ulang
