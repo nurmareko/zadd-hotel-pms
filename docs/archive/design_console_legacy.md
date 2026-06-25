@@ -6,7 +6,7 @@ Visual conventions for ZADD Hotel Management, derived from the **Console** theme
 
 The Console direction is intentional: terminal-density, monospace everywhere, neon-on-dark sidebar. It reads as "professional internal tool" rather than consumer SaaS, fits the operational nature of a PMS, and ages well — utilitarian designs don't go out of fashion the way trend-driven ones do.
 
-Reference mockups: `docs/mockups/`. When in doubt, open the mockup.
+Reference mockups: `docs/archive/mockups_console_legacy/`.
 
 ---
 
@@ -234,7 +234,7 @@ Most visually complex screen in the app. Lock these conventions in for implement
 - **Container:** bordered card with `padding: 0`, internal horizontal and vertical scroll, `max-height: 560px` below 768px and `656px` from 768px upward.
 - **Scroll behavior:** both horizontal and vertical, sticky cells stay anchored
 
-Reference: open the design canvas in `docs/mockups/`.
+Reference: open the archived design canvas in `docs/archive/mockups_console_legacy/`.
 
 ---
 

@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "docs/mockups/**",
+    "docs/archive/mockups_console_legacy/**",
   ]),
 ]);
 
