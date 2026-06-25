@@ -381,48 +381,55 @@ flowchart TD
     end
 
     subgraph S[System]
-        S1[Compute folio totals<br/>INCLUDE: Verify Zero-Balance]
-        S2[Insert Payment record]
-        S3[Recompute folio totals]
-        S4{Balance now ≤ 0?}
-        S5[Re-verify folio status<br/>and reservation status]
-        S6{Statuses valid?}
-        S7[Begin transaction]
-        S8[Update Folio:<br/>status CLOSED<br/>closedAt: now]
-        S9[Update Reservation:<br/>status CHECKED_OUT]
-        S10[Update Room: status VD]
-        S11[Commit transaction]
-        S12[Render PDF bill]
-        S13[Show error:<br/>balance still positive]
-        S14[Show error:<br/>state changed elsewhere]
+        S1[Post pending stay-charge<br/>catch-up shortfall]
+        S2[Compute folio totals<br/>INCLUDE: Verify Zero-Balance]
+        S3[Post catch-up idempotently;<br/>insert Payment record]
+        S4[Recompute folio totals]
+        S5{Balance now ≤ 0?}
+        S6[Post catch-up again<br/>idempotently]
+        S7[Recompute folio totals]
+        S8{Balance ≤ 0?}
+        S9[Re-verify folio status<br/>and reservation status]
+        S10{Statuses valid?}
+        S11[Begin transaction]
+        S12[Update Folio:<br/>status CLOSED<br/>closedAt: now]
+        S13[Update Reservation:<br/>status CHECKED_OUT]
+        S14[Update Room: status VD]
+        S15[Commit transaction]
+        S16[Render PDF bill]
+        S17[Show error:<br/>balance still positive]
+        S18[Show error:<br/>state changed elsewhere]
     end
 
     End([Reservation CHECKED_OUT<br/>Room available for HK])
 
-    Start --> R1 --> R2 --> S1 --> R3
+    Start --> R1 --> R2 --> S1 --> S2 --> R3
     R3 --> R4
-    R4 -->|Yes| R5 --> G1 --> R6 --> S2 --> S3 --> S4
-    S4 -->|No| R5
-    S4 -->|Yes| R7
+    R4 -->|Yes| R5 --> G1 --> R6 --> S3 --> S4 --> S5
+    S5 -->|No| R5
+    S5 -->|Yes| R7
     R4 -->|No| R7
-    R7 --> R8 --> S5 --> S6
-    S6 -->|No| S14
-    S6 -->|Yes| S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> R9 --> R10 --> G2 --> End
+    R7 --> R8 --> S6 --> S7 --> S8
+    S8 -->|No| S17 --> R5
+    S8 -->|Yes| S9 --> S10
+    S10 -->|No| S18
+    S10 -->|Yes| S11 --> S12 --> S13 --> S14 --> S15 --> S16 --> R9 --> R10 --> G2 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style R4 fill:#fffbeb
-    style S4 fill:#fffbeb
-    style S6 fill:#fffbeb
-    style S7 fill:#eff6ff
+    style S5 fill:#fffbeb
+    style S8 fill:#fffbeb
+    style S10 fill:#fffbeb
     style S11 fill:#eff6ff
-    style S13 fill:#fef2f2
-    style S14 fill:#fef2f2
+    style S15 fill:#eff6ff
+    style S17 fill:#fef2f2
+    style S18 fill:#fef2f2
 ```
 
 **Key logic:**
 
-- **«include» Verify Zero-Balance:** the verification runs whenever check-out is attempted. It's not an optional step — every check-out triggers it. The diagram shows this as the first system action after Click Check Out.
+- **«include» Verify Zero-Balance:** the verification runs whenever check-out is attempted. Before judging the balance, the server posts any pending stay-charge shortfall the night audit has not posted yet. Those charges are committed up front, so a blocked check-out leaves the true outstanding balance visible.
 - **Payment iteration loop:** if balance is positive after first payment, the system computes again and may require another payment. This handles the case where multiple payment methods are needed (e.g., partial cash + partial card).
 - **Three state changes in commit:** Folio close, Reservation flip, Room flip. The PDF generation happens AFTER commit — it's a side effect, not part of the transactional state change.
 - **Acceptable credit balance:** if balance is negative (overpayment), check-out proceeds without further payment. The credit is recorded as a known accounting state — it doesn't block the guest leaving.
@@ -592,19 +599,19 @@ flowchart TD
 
 **Use case:** UC-AC-01 Jalankan Night Audit
 **Actors:** Accounting staff (Night Auditor), System
-**Trigger:** End of business day (per hotel_settings.night_audit_time, typically 23:00)
-**Precondition:** All F&B orders for the day are closed, no pending operations
-**Note:** This diagram represents the target workflow. Business-date advancement, cutoff enforcement, open-order blocking, and audit states beyond COMPLETED are in progress; arrangement-driven posting, snapshot capture, and duplicate-audit block are the currently-working parts.
+**Trigger:** Accounting runs the audit for the current WIB (`Asia/Jakarta`) hotel date
+**Precondition:** Accounting user is authenticated; required posting articles and in-house folios are valid
+**Note:** This diagram represents the shipped workflow. The app uses the live WIB business date, stores one completed audit per `business_date`, treats open F&B orders as warnings, and does not persist an "advance business date" step.
 
 ```mermaid
 flowchart TD
-    Start([End of business day reached])
+    Start([Night audit for current<br/>WIB business date])
 
     subgraph A[Accountant]
         A1[Open Night Audit screen]
-        A2[Review prerequisite checklist]
-        A3{All checks pass?}
-        A4[Resolve blocking issues<br/>e.g. close open F&B orders]
+        A2[Review checklist,<br/>warnings, and preview]
+        A3{Blocking errors?}
+        A4[Resolve blocking errors]
         A5[Click Run Night Audit]
         A6[Wait for completion]
         A7[Open Night Report]
@@ -613,49 +620,49 @@ flowchart TD
     end
 
     subgraph S[System]
-        S1[Run prerequisite checks:<br/>any open F&B orders?<br/>any unresolved issues?]
-        S2[Show blocking issues with<br/>links to resolve]
-        S3[Begin transaction]
-        S4[Loop: for each<br/>CHECKED_IN reservation]
-        S5[Read arrangementType]
-        S6{Arrangement type?}
-        S7[Post ROOM-CHARGE line item]
-        S8[Post ROOM-CHARGE + BREAKFAST<br/>line items]
-        S9[Post ROOM-CHARGE + BREAKFAST<br/>+ COFFEE-BREAK + LUNCH + DINNER<br/>line items]
-        S10[Aggregate revenue by article type]
-        S11[Compute occupancy rate<br/>OC rooms / non-OOO rooms]
-        S12[Compute occupancy and revenue metrics]
-        S13[Create NightAudit record<br/>status COMPLETED<br/>snapshot fields:<br/>room_revenue, fb_revenue,<br/>occupancy, counts, totals]
-        S14[Advance business date]
-        S15[Commit transaction]
-        S16[Render Night Report]
-        S17[Render report as PDF]
+        S1[Resolve current WIB date<br/>and check existing audit]
+        S2{Audit already exists?}
+        S3[Show already audited;<br/>post nothing]
+        S4[Build plan:<br/>validate articles/folios,<br/>count open F&B warnings]
+        S5[Show blocking errors<br/>with warnings preserved]
+        S6[Begin serializable transaction]
+        S7[Loop: for each<br/>CHECKED_IN open folio]
+        S8[Re-read folio line items<br/>inside transaction]
+        S9[Compute stay-charge shortfall:<br/>expected nights − already posted<br/>per article]
+        S10[Create only missing<br/>ROOM/arrangement lines]
+        S11[Aggregate revenue snapshot<br/>from actual postings + day totals]
+        S12[Create NightAudit record<br/>status COMPLETED<br/>unique business_date]
+        S13[Commit transaction]
+        S14[Render Night Report]
+        S15[Render report as PDF]
     end
 
     End([Day closed,<br/>report archived])
 
-    Start --> A1 --> A2 --> S1 --> A3
-    A3 -->|No| S2 --> A4 --> A2
-    A3 -->|Yes| A5 --> S3 --> S4 --> S5 --> S6
-    S6 -->|RO| S7 --> S4
-    S6 -->|RB| S8 --> S4
-    S6 -->|FBM| S9 --> S4
-    S4 -.->|All processed| S10 --> S11 --> S12 --> S13 --> S14 --> S15 --> A6 --> A7 --> S16 --> A8 --> S17 --> A9 --> End
+    Start --> A1 --> S1 --> S2
+    S2 -->|Yes| S3
+    S2 -->|No| S4 --> A2 --> A3
+    A3 -->|Yes| S5 --> A4 --> A2
+    A3 -->|No| A5 --> S6 --> S7 --> S8 --> S9 --> S10 --> S7
+    S7 -.->|All processed| S11 --> S12 --> S13 --> A6 --> A7 --> S14 --> A8 --> S15 --> A9 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style A3 fill:#fffbeb
-    style S6 fill:#fffbeb
-    style S3 fill:#eff6ff
-    style S15 fill:#eff6ff
-    style S2 fill:#fef2f2
+    style S2 fill:#fffbeb
+    style S6 fill:#eff6ff
+    style S13 fill:#eff6ff
+    style S3 fill:#f1f5f9
+    style S5 fill:#fef2f2
 ```
 
 **Key logic:**
 
-- **Atomic across all in-house guests:** every CHECKED_IN reservation's auto-posting happens in one transaction. If posting fails for any guest midway, the entire night audit rolls back. This prevents partial-audit states where some guests were charged and others weren't.
-- **Arrangement-driven posting:** the system reads each reservation's `arrangementType` and posts the corresponding articles. The article prices come from each article's `defaultPrice`. The room rate comes from the reservation's `rateAmount` (snapshot at booking).
-- **Idempotency consideration:** running night audit twice for the same business date would post duplicate charges. The system prevents this by checking the NightAudit record before running — if today's business date already has a COMPLETED audit, the operation is rejected. (Implementation detail handled in AC-02.)
+- **WIB business date:** the audit date and timestamp windows are derived from `Asia/Jakarta`, not the server-local calendar date. The app does not store or advance a separate business-date pointer.
+- **Atomic across all in-house guests:** every CHECKED_IN reservation's auto-posting happens in one serializable transaction. Each open folio's line items are re-read inside that transaction before posting.
+- **Shortfall-based arrangement posting:** the system reads each reservation's `arrangementType` and posts only the difference between expected nights and already-posted line items per article. If a prior night was missed, the next audit backfills the shortfall; if checkout already posted the catch-up, the audit posts nothing for that folio.
+- **Duplicate-audit lock:** `night_audit.business_date` is unique. Running the same WIB business date again is blocked before posting, and a concurrent duplicate fails on the unique constraint and rolls back.
+- **Open F&B order warnings:** open F&B orders appear in the audit warnings, but they do not block execution.
 - **Report snapshot:** the NightAudit record stores explicit snapshot fields (`room_revenue`, `fb_revenue`, occupancy, counts, totals). This freezes the report at the moment of audit completion. Even if reservations are later edited or folios modified, the night report shows the state as it was at audit time. This is important for accounting compliance.
 
 ---

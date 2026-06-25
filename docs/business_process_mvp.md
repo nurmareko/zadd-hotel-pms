@@ -154,36 +154,43 @@ How a CHECKED_IN stay becomes a CHECKED_OUT historical record. Includes the zero
 flowchart TD
     A([Departure day]) --> B[Receptionist opens<br/>guest folio]
     B --> C[Click Check Out]
-    C --> D[System computes<br/>folio totals]
-    D --> E{Balance?}
+    C --> D[Post pending stay-charge<br/>catch-up shortfall]
+    D --> E[System computes<br/>folio totals]
+    E --> F{Balance?}
 
-    E -->|Positive<br/>Owes money| F[Show Final Payment<br/>form]
-    E -->|Zero<br/>Settled| H[Show Confirm<br/>checkbox]
-    E -->|Negative<br/>Credit| H
+    F -->|Positive<br/>Owes money| G[Show Final Payment<br/>form]
+    F -->|Zero<br/>Settled| I[Show Confirm<br/>checkbox]
+    F -->|Negative<br/>Credit| I
 
-    F --> G[Receptionist records<br/>final payment]
-    G --> H
+    G --> H[Receptionist records<br/>final payment]
+    H --> I
 
-    H --> I[Receptionist ticks:<br/>guest has left, room verified]
-    I --> J[Atomic transaction:<br/>close folio, complete stay]
-    J --> K[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
-    K --> L[Generate PDF bill]
-    L --> M([Guest leaves])
-    M --> N[Housekeeping notified;<br/>Kalender reflects VD]
-    N --> O([Room cleaning cycle])
+    I --> J[Receptionist ticks:<br/>guest has left, room verified]
+    J --> K[Post catch-up again<br/>idempotently and recheck balance]
+    K --> L{Balance ≤ 0?}
+    L -->|No| G
+    L -->|Yes| M[Atomic transaction:<br/>close folio, complete stay]
+    M --> N[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
+    N --> O[Generate PDF bill]
+    O --> P([Guest leaves])
+    P --> Q[Housekeeping notified;<br/>Kalender reflects VD]
+    Q --> R([Room cleaning cycle])
 
     style A fill:#ecfdf5
-    style E fill:#fffbeb
-    style J fill:#eff6ff
-    style K fill:#eff6ff
-    style O fill:#ecfdf5
+    style F fill:#fffbeb
+    style L fill:#fffbeb
+    style M fill:#eff6ff
+    style N fill:#eff6ff
+    style R fill:#ecfdf5
 ```
 
-**Zero-balance gate:** the Confirm Check-Out button is disabled until the balance is zero or credit. Receptionist cannot finalize check-out with money still owed — the system enforces this constraint, not policy.
+**Stay-charge catch-up before the gate:** when check-out or final payment is attempted, the server posts any pending room/arrangement stay-charge shortfall the night audit has not posted yet, then recomputes the folio. The shortfall poster is shared with Night Audit and is idempotent, so already-posted nights are not duplicated.
+
+**Zero-balance gate:** the Confirm Check-Out button is disabled until the balance is zero or credit. The server also posts the catch-up charges again idempotently and rechecks the balance before closing the folio. Positive rounded balance blocks checkout and leaves the newly posted charges visible for settlement through the existing payment flow; there is no auto-pay.
+
+**Whole-folio balance:** the balance covers all folio line items and payments: room/arrangement charges, F&B charged to room, manual or miscellaneous charges, service/tax calculation, and recorded payments.
 
 **Why credit is acceptable:** if the guest overpaid (rare but happens with deposit + low actual usage), the credit is recorded but doesn't block check-out. A small overpayment isn't worth holding the guest at the desk; the credit becomes a known accounting item resolved later.
-
-**MVP simplification:** room charges are posted by Night Audit, not by Check-out. If a guest checks out before Night Audit has posted the room charge, the folio can show a credit balance from the deposit. The Check-out screen labels that state as a refund due and allows checkout; it does not post room charges itself.
 
 ---
 
@@ -286,39 +293,47 @@ flowchart TD
 
 ## 8. Daily Close / Night Audit Process
 
-End-of-business-day procedure run by Accounting. Locks the day's transactions, posts room charges, and generates the consolidated report.
+Daily-close procedure run by Accounting for the current WIB (`Asia/Jakarta`) hotel date. It posts stay-charge shortfalls, stores a one-per-business-date snapshot, and generates the consolidated report.
 
 ```mermaid
 flowchart TD
-    A([End of business day<br/>e.g. 23:00 cutoff]) --> B[Accountant opens<br/>Night Audit screen]
-    B --> C[System checks prerequisites]
-    C --> D{All ready?}
-    D -->|No| E[Show blocking issues<br/>e.g. open orders]
-    E --> F[Accountant resolves]
-    F --> C
-    D -->|Yes| G[Click Run Night Audit]
+    A([Current WIB<br/>business date]) --> B[Accountant opens<br/>Night Audit screen]
+    B --> C[System builds plan:<br/>duplicate audit check,<br/>blocking validation,<br/>open-order warnings]
+    C --> D{Audit already<br/>completed?}
+    D -->|Yes| E[Show completed audit;<br/>post nothing]
+    D -->|No| F{Blocking errors?}
+    F -->|Yes| G[Show blocking issues]
+    G --> H[Accountant resolves]
+    H --> C
+    F -->|No| I[Click Run Night Audit]
 
-    G --> H[Begin transaction]
-    H --> I[For each CHECKED_IN<br/>reservation:]
-    I --> J[Read arrangementType]
-    J --> K[Auto-post corresponding<br/>articles to folio]
-    K --> L[Accumulate revenue<br/>by article type]
-    L --> M[Compute occupancy<br/>and other metrics]
-    M --> N[Create NightAudit row<br/>status: COMPLETED]
-    N --> O[Business date advances]
-    O --> P([Night Report ready])
-    P --> Q[Accountant exports<br/>PDF report]
+    I --> J[Begin serializable<br/>transaction]
+    J --> K[For each CHECKED_IN<br/>open folio:]
+    K --> L[Re-read line items<br/>inside transaction]
+    L --> M[Post only shortfall:<br/>expected nights − already posted<br/>per article]
+    M --> K
+    K -.->|All processed| N[Accumulate revenue<br/>from actual postings]
+    N --> O[Compute occupancy<br/>and other metrics]
+    O --> P[Create NightAudit row<br/>status: COMPLETED<br/>unique business_date]
+    P --> Q[Commit transaction]
+    Q --> R([Night Report ready])
+    R --> S[Accountant exports<br/>PDF report]
 
     style A fill:#ecfdf5
-    style G fill:#fffbeb
-    style H fill:#eff6ff
-    style P fill:#eff6ff
-    style Q fill:#f1f5f9
+    style D fill:#fffbeb
+    style F fill:#fffbeb
+    style I fill:#fffbeb
+    style J fill:#eff6ff
+    style Q fill:#eff6ff
+    style R fill:#eff6ff
+    style S fill:#f1f5f9
 ```
 
-**Atomic across all in-house guests:** if night audit fails midway, the whole transaction rolls back. Half-audited days are worse than no audit at all.
+**WIB business date and unique lock:** the audit business date is the current hotel date in `Asia/Jakarta`, not the server-local calendar date. `night_audit.business_date` is unique; re-running the same business date is blocked and posts nothing. The app does not persist or advance a separate business-date pointer.
 
-**The "business date" concept:** real hotels operate on a business date that differs from the calendar date for a few hours each night. A check-in at 02:00 might still belong to yesterday's business date if night audit hasn't run yet. For MVP simplicity, we treat business date as the current calendar date — but the architecture supports the proper concept if needed later.
+**Atomic shortfall posting:** if night audit fails midway, the whole transaction rolls back. Inside the serializable transaction, the system re-reads each open folio's line items and posts only the per-article shortfall between expected nights and already-posted stay charges. A missed prior night is therefore backfilled by the next run; a folio already caught up by checkout receives no duplicate lines.
+
+**Open F&B order warnings:** open F&B orders are surfaced as warnings for the accountant to review, but they do not block the audit from running.
 
 ---
 

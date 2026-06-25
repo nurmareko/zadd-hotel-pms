@@ -17,7 +17,7 @@ Supports the guest lifecycle from booking to final payment.
 - **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, capture the guest's required digital signature on screen, save `signatureDataUrl` and `signedAt`, embed the signature in the GRC PDF, and auto-open the folio.
 - **Guest Folio** — line-item charges, manual charge posting by staff, payment recording (cash, transfer, card), and post-check-in GRC printing.
 - **Reservation detail** — Details and Folio tabs keep reservation operations and folio access together.
-- **Check-out** — zero-balance verification, final payment processing, and auto-update of room status to Vacant Dirty.
+- **Check-out** — posts any pending stay-charge shortfall the night audit has not posted yet, verifies the full folio balance (room, F&B charge-to-room, and misc), blocks positive balances for settlement through the existing payment flow, and auto-updates room status to Vacant Dirty after completion.
 - **Room cleaning request** — Front Office can mark an in-house room as `Occupied Dirty` (`OC → OD`) for mid-stay cleaning.
 - **Bill printing** — guest bill is downloadable as PDF for archiving or physical printing.
 - **Tipe Reservasi** — categorization for reporting: Individual, Company, Government, OTA, Walk-in.
@@ -55,10 +55,10 @@ Shipped point-of-sale operations for the hotel restaurant.
 
 ## Accounting
 
-In progress — screens shipped, full workflow being completed. The spec below keeps the intended daily-close workflow; advanced behaviors are planned/in-progress where noted.
+Shipped daily-close workflow for the current WIB hotel date.
 
-- **Accounting dashboard** — `/app/acc` shows today's night audit status, running revenue snapshot, and audit history. Unprocessed-posting indicator is planned/in-progress.
-- **Night Audit** — `/app/acc/night-audit` includes prerequisite checklist, daily-close execution, and arrangement-driven posting to guest folios. Business-date advancement/locking, open-F&B-order handling, audit-time cutoff enforcement, and audit lifecycle states beyond COMPLETED remain planned/in-progress.
+- **Accounting dashboard** — `/app/acc` shows the current WIB business-date night audit status, running revenue snapshot, audit history, and pending Night Audit indicator.
+- **Night Audit** — `/app/acc/night-audit` runs for the current WIB (`Asia/Jakarta`) business date, blocks duplicate audits through the unique `business_date` lock, posts only stay-charge shortfalls per article so missed nights are backfilled without double-posting, treats open F&B orders as warnings, and stores the completed revenue/occupancy snapshot. There is no persisted business-date advancement step.
 - **Night Report** — `/app/acc/reports/[auditId]` shows the consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
 
 ## Admin

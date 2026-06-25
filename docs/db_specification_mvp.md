@@ -659,7 +659,7 @@ Lost & Found is text-only in the MVP. Records may be room-specific or public-are
 | in_house_count | INT | NOT NULL | In-house guest count snapshot |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
 
-> **ACC module in progress** — the night-audit data model may expand as the workflow is completed.
+> **Night Audit lock**: `business_date` is unique for the shipped daily-close flow. The app stores the completed snapshot for the WIB hotel date and relies on this constraint to prevent duplicate audits for the same business date.
 
 ### `payment`
 
