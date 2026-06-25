@@ -78,7 +78,7 @@ Managed by the supervising lecturer. Master data only.
 Shared access features used by all role workspaces.
 
 - **Role-based login** — credentials login routes each user to the correct FO/HK/FB/ACC/Admin workspace.
-- **Console-themed login** — login screen follows the Console theme and exposes direct demo-account buttons.
+- **V2 login** — login screen uses the V2 design system: light enterprise surfaces, Plus Jakarta Sans typography, soft shadows, branded "ZADD Hotel Management", and direct demo-account buttons.
 - **Self-service profile** — authenticated users can view account/role metadata and change their own password.
 - **Responsive navigation** — desktop sidebar and one shared mobile bottom tab bar for all roles, including coarse-pointer tablets. The only navigation badge is ACC's pending Night Audit indicator.
 - **Hotel-timezone dates** — all operational "today" calculations use WIB (`Asia/Jakarta`).
@@ -116,4 +116,4 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Visual floor plan | Housekeeping / Front Office | MVP uses lists/grids; spatial floor-map UI is a later visualization layer. |
 | Adult/child discrepancy report | Housekeeping / Front Office | HK person-count capture was removed; discrepancy reporting needs a dedicated workflow. |
 | Cross-stay guest database | Front Office | Guest data is kept per reservation in the MVP. |
-| Cross-module admin monitoring dashboard | Admin | Admins can access each module manually through a combined-role account. |
+| Cross-module admin monitoring dashboard | Admin | The app is single-role: ADMIN covers master data, users, and settings only and has no operational-module access. A lecturer who needs operational access uses a separate per-role account. |

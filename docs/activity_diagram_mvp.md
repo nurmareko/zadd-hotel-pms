@@ -540,7 +540,7 @@ flowchart TD
 - **HousekeepingLog is the audit trail:** every room-status change appends a `housekeeping_log` row with old status, new status, actor, timestamp, and optional status note. It is not the source for active timer state.
 - **Occupied-room loop:** FO can request cleaning from an in-house reservation detail, changing the room from `OC → OD`. When HK stops cleaning an occupied room, the room returns directly to `OC`.
 - **Vacant-room inspection:** stopping cleaning for a vacant dirty room changes `VD → VCU`. Inspection then approves `VCU → VC` or rejects `VCU → VD`.
-- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true` and to ADMIN. Housekeepers clean only their operational worklist.
+- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true`. ADMIN has no HK access. Housekeepers clean only their operational worklist.
 - **Manual override:** supervisors can bypass the normal clean/inspect path from Supervisor Rooms when operations require it; the override still writes the status audit.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
 - **Kalender sync:** every status change revalidates Front Office views. The FO receptionist sees room status updates without maintaining a separate room-status widget on Dashboard.
@@ -602,7 +602,7 @@ flowchart TD
 **Key logic:**
 
 - **Text-only custody log:** Lost & Found stores text description, optional room, found-by user, status, returned timestamp, and resolution. It does not store photos or create maintenance work.
-- **Shared access:** HK logs found items, FO searches when guests ask, and HK supervisor/ADMIN can resolve returned items.
+- **Shared access:** HK logs found items, FO searches when guests ask, and the HK supervisor can resolve returned items.
 - **Operationally independent:** marking an item returned does not change room status, reservation status, or folio state.
 
 ---

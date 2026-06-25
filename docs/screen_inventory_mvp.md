@@ -2,6 +2,8 @@
 
 Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 29 screens total across 4 operational modules + admin + shared.
 
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes — e.g. FO Reservation Form / Detail (FO-04) covers reservation create, edit, and view. Pure redirect routes (`/app/hk` role landing, `/app/hk/list` → Supervisor Rooms, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens, so they are not counted. The total stays at 29 under this rule.
+
 ---
 
 ## 1. Top-Level Architecture (MVP)
@@ -91,6 +93,8 @@ The application is built as a **single Next.js app** with four operational areas
 | AC-02 | Night Audit | Page | Pre-check list → "Run Night Audit" button → progress → result |
 | AC-03 | Night Report | Page | Consolidated report: revenue breakdown, occupancy, guest list, transactions. Export PDF. |
 
+AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report` is the nav/empty-state entry point for AC-03: it redirects to the latest audit's report when one exists (or to `/app/acc/reports/[auditId]` when an `auditId` is passed), and renders the "no audit yet" empty state otherwise. It is a redirect/empty-state surface of AC-03, not a separate screen, so it is not counted in the 29.
+
 **Cut from original**: Report Center, Revenue Distribution Report, Guest Segment Statistics, Guest List Report (all consolidated into AC-03), Manual Bill + List (use Folio line items), standalone Folio Payment page (handled in FO-06).
 
 ### 3.5 Admin (6 screens)
@@ -155,7 +159,7 @@ Build these seven before opening Stitch / Claude Design:
 |---|---|---|
 | DataTable | FO-03, FB-01 history tab, AD-01..05 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
 | FormShell | all forms | shadcn `Form` + `zod` |
-| StatusBadge | Kalender, HK dashboard, reservation status | Room palette: VC emerald, OC blue, VD amber, OD red, VCU yellow-amber, OOO slate. Reservation palette: confirmed orange `#f97316`, checked-in emerald `#047857`, checked-out slate `#64748b`; Kalender's unallocated lane is blue `#2563eb`. |
+| StatusBadge | Kalender, HK dashboard, reservation status | Locked room palette (see docs/design.md): VC green `#22C55E`, OC blue `#3B82F6`, VD amber `#F59E0B`, OD orange `#F97316`, VCU purple `#8B5CF6`, OOO red `#EF4444`, OOS gray `#64748B`. Reservation palette: confirmed amber `#F59E0B`, checked-in green `#22C55E`, checked-out gray `#64748B`; Kalender's unallocated lane is blue `#3B82F6`. |
 | Dialog | cancellation, destructive Admin actions, compact CRUD forms | shadcn `Dialog` / `AlertDialog`, reused |
 | PDFButton | bills, reports | Wrapper around a print-to-PDF route |
 | NavShell | every authenticated page | Sidebar desktop + one bottom tab bar for all roles on mobile and coarse-pointer tablets |
