@@ -254,38 +254,53 @@ flowchart TD
 
 ## 7. Food & Beverage Process
 
-Point-of-sale flow for the hotel restaurant. The order can be paid directly or charged to a guest's folio.
+Point-of-sale flow for the hotel restaurant and in-house room service. Dine-in orders occupy a restaurant table; room-service orders are tableless and attach to the guest's open folio at creation.
 
 ```mermaid
 flowchart TD
-    A([Guest sits at table]) --> B[Waiter opens<br/>Captain Order]
-    B --> C[Add menu items,<br/>quantities, kitchen notes]
-    C --> D[Submit order<br/>status: OPEN]
-    D --> E[Kitchen prepares]
-    E --> F[Guest finishes meal]
-    F --> G[Waiter generates bill]
-    G --> H[System computes:<br/>subtotal + SC + tax]
-    H --> I{Payment method?}
+    A([Guest requests F&B]) --> B{Service type?}
+    B -->|Dine-in| C[Waiter selects table<br/>and guest count]
+    B -->|Room Service| D[Waiter enters room number<br/>and guest count]
+    D --> E[System validates:<br/>CHECKED_IN guest + OPEN folio]
+    E --> F{Valid in-house folio?}
+    F -->|No| G[Reject room-service order]
+    F -->|Yes| H[Create tableless order<br/>chargedFolioId attached]
+    C --> I[Create dine-in order<br/>and occupy table]
+    H --> J[Add menu items,<br/>quantities, kitchen notes]
+    I --> J
+    J --> K[Submit order<br/>status: OPEN]
+    K --> L[Kitchen prepares]
+    L --> M[Guest finishes meal]
+    M --> N[Waiter generates bill]
+    N --> O[System computes:<br/>subtotal + SC + tax]
+    O --> P{Payment method?}
 
-    I -->|Cash| J[Receive cash,<br/>create Payment row<br/>fb_order_id set]
-    I -->|Charge to Room| K[Identify in-house guest<br/>by room number]
-    K --> L{Guest in-house?}
-    L -->|Yes| M[Post line item to folio<br/>fb_order_id link preserved]
-    L -->|No| N[Reject: must be<br/>in-house to charge]
-    N --> I
+    P -->|Cash/card/transfer| Q[Create Payment row<br/>fb_order_id set]
+    P -->|Charge to Room| R[Resolve folio:<br/>room lookup for dine-in,<br/>attached folio for room service]
+    R --> S{Guest in-house?}
+    S -->|Yes| T[Post one line item to folio<br/>fb_order_id link preserved]
+    S -->|No| U[Reject: must be<br/>in-house to charge]
+    U --> P
 
-    J --> O[Order status: CLOSED]
-    M --> O
-    O --> P[PDF receipt generated]
-    P --> Q([Guest leaves])
+    Q --> V[Order status: CLOSED]
+    T --> V
+    V --> W[Free table if dine-in]
+    W --> X[PDF receipt generated]
+    X --> Y([Guest leaves])
 
     style A fill:#ecfdf5
-    style I fill:#fffbeb
-    style M fill:#eff6ff
-    style Q fill:#f1f5f9
+    style B fill:#fffbeb
+    style F fill:#fffbeb
+    style P fill:#fffbeb
+    style T fill:#eff6ff
+    style Y fill:#f1f5f9
 ```
 
-**Cross-module integration:** Charge-to-Room is the most important non-FO touchpoint. F&B writes a line item directly into a guest's folio, and the folio's running balance immediately reflects it. The receptionist at check-out sees F&B charges aggregated with all other charges — no manual reconciliation needed.
+**Room-service creation:** `/app/fb/orders/new?service=room-service` asks for a room number and guest count, validates that the room has a CHECKED_IN reservation with an OPEN folio, and creates an OPEN `ROOM_SERVICE` order with no table and `chargedFolioId` attached. A room with no in-house guest is rejected before the order opens.
+
+**Shared order/bill/payment flow:** after creation, dine-in and room-service orders use the same menu, bill, payment, and receipt screens. The floor plan stays table-only; room-service orders appear in the order list/detail as `Room Service · Kamar X · Guest Y` and do not occupy or free restaurant tables.
+
+**Cross-module integration:** Charge-to-Room is the most important non-FO touchpoint. F&B writes one line item directly into a guest's folio, and the folio's running balance immediately reflects it. For room service, the payment screen defaults to the attached folio; cash, card, and transfer remain available. The receptionist at check-out sees F&B charges aggregated with all other charges — no manual reconciliation needed.
 
 **Polymorphic Payment:** the `payment` table records both folio payments and F&B-direct payments. Exactly one of `folio_id` or `fb_order_id` is set per row; this is enforced at the database level.
 
@@ -344,15 +359,17 @@ Detailed view of how F&B and Front Office data converge through the folio. This 
 ```mermaid
 flowchart LR
     subgraph FB[Food & Beverage Module]
-        A[FB Order opened] --> B[Items added]
+        A[FB Order opened:<br/>dine-in table or<br/>room-service attached folio] --> B[Items added]
         B --> C[Bill generated]
         C --> D{Payment method?}
-        D -->|Charge to Room| E[Capture room number]
+        D -->|Dine-in Charge to Room| E[Capture room number]
+        D -->|Room Service Charge to Room| L[Use attached chargedFolioId]
     end
 
     subgraph FOLIO[Shared: Folio Module]
         F[Lookup in-house<br/>reservation by room] --> G[Verify folio<br/>is OPEN]
         G --> H[Insert FolioLineItem<br/>with fb_order_id]
+        L --> G
     end
 
     subgraph FO[Front Office Module]
@@ -370,7 +387,9 @@ flowchart LR
 
 **Why this matters:** without this integration, the receptionist at check-out would need to manually reconcile every F&B receipt against the guest's stay. With it, the F&B charge appears on the folio the moment it's posted — and the running balance updates automatically.
 
-**The link preserved:** the FolioLineItem stores `fb_order_id`, creating a trace back to the originating F&B order. If a guest disputes a charge, the receptionist can navigate from the folio line directly to the F&B order detail and resolve the question without leaving the system.
+**The link preserved:** the FolioLineItem stores `fb_order_id`, creating a trace back to the originating F&B order. Charge-to-room creates one linked folio line for the paid order total. If a guest disputes a charge, the receptionist can navigate from the folio line directly to the F&B order detail and resolve the question without leaving the system.
+
+**Revenue counting:** Night Audit counts closed F&B orders as F&B revenue and excludes folio line items with `fb_order_id` from other folio revenue, so charge-to-room F&B is not double-counted.
 
 ---
 

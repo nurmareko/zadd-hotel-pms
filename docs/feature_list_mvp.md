@@ -45,12 +45,13 @@ Role-aware for mobile housekeepers and supervisor control.
 
 ## Food & Beverage
 
-Shipped point-of-sale operations for the hotel restaurant.
+Shipped point-of-sale operations for the hotel restaurant and in-house room service.
 
-- **Floor plan + order list** — `/app/fb` shows a per-location spatial floor plan with Indoor/Outdoor/Private tabs derived from `TableLocation`, positioned table tiles colored by status, active orders, daily order list, and entry point for creating orders. RESERVED and OUT_OF_SERVICE tables expose status actions from the floor (seat guests → order, release reservation, set available) and display their note.
-- **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review.
+- **Floor plan + order list** — `/app/fb` shows a table-only per-location spatial floor plan with Indoor/Outdoor/Private tabs derived from `TableLocation`, positioned table tiles colored by status, active orders, daily order list, and entry points for dine-in and room-service orders. RESERVED and OUT_OF_SERVICE tables expose status actions from the floor (seat guests → order, release reservation, set available) and display their note. Room-service orders do not occupy a table and appear in the order list as `Room Service · Kamar X · Guest Y`.
+- **New room-service order** — `/app/fb/orders/new?service=room-service` validates a room number against a CHECKED_IN reservation with an OPEN folio, rejects rooms without an in-house guest, then creates a tableless `ROOM_SERVICE` order with `chargedFolioId` attached.
+- **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review for both dine-in and room-service orders.
 - **Bill processing** — `/app/fb/orders/[orderId]/bill` calculates subtotal, service charge, and tax based on hotel settings.
-- **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room (posting the F&B total to the guest's folio), including target guest selection by room number.
+- **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room. Dine-in charge-to-room looks up the target guest by room number; room-service payment defaults to the attached folio. Charge-to-room posts one linked F&B folio line item.
 - **Receipt printing** — F&B receipt is downloadable as PDF.
 
 ## Accounting
@@ -95,7 +96,7 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Add room to existing reservation | Front Office | Requires multi-room reservation workflow and billing allocation. |
 | Multi-outlet F&B | F&B | One outlet (hotel restaurant) is enough for the early praktikum. |
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
-| Room Service + Banquet | F&B | New order types beyond the restaurant POS; requires schema and workflow expansion. |
+| Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |
 | Dynamic rate plans with date validity and segment | Front Office | MVP uses a fixed rate per room type. |
 | Multi-role per account | Auth | Each praktikum account is limited to one role to simplify access control. |
 | GM/Manager role hierarchy | Auth | Management hierarchy and cross-module oversight roles are outside the current role model. |

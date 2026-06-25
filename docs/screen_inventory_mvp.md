@@ -75,11 +75,11 @@ The application is built as a **single Next.js app** with four operational areas
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FB-01 | Table Picker + Daily Summary | Page | Per-location spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers |
-| FB-01A | New Order | Page | `/app/fb/orders/new`: select available table and guest count to create order |
-| FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes |
+| FB-01 | Table Picker + Daily Summary | Page | Per-location table-only spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers; order list includes dine-in and room-service orders |
+| FB-01A | New Order | Page | `/app/fb/orders/new`: dine-in mode selects available/reserved table + guest count; `/app/fb/orders/new?service=room-service` validates room → in-house guest → OPEN folio and creates a tableless folio-attached order |
+| FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes; header labels room-service orders with room and guest instead of table |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
-| FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. For CTR, pick the in-house guest by room number. |
+| FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. Dine-in CTR picks the in-house guest by room number; room-service CTR uses the attached folio by default while direct payment methods remain available. |
 
 **Cut from original**: Dashboard (merged into FB-01), Order History (tab inside FB-01), Print Bill modal (PDF button on FB-03).
 

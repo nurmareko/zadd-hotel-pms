@@ -226,8 +226,8 @@ flowchart TD
 
 **Use case:** UC-FB-01 Create Captain Order, UC-FB-02 Process F&B Bill, UC-FB-03 Proses Pembayaran F&B
 **Actors:** F&B staff (Waiter), System
-**Trigger:** Guest sits at a restaurant table or waiter opens a new order
-**Precondition:** Table is AVAILABLE or an existing OPEN order is selected
+**Trigger:** Guest sits at a restaurant table, an in-house guest requests room service, or waiter opens an existing order
+**Precondition:** Dine-in table is AVAILABLE/RESERVED, or room-service room has a CHECKED_IN reservation with an OPEN folio
 
 ```mermaid
 flowchart TD
@@ -238,7 +238,9 @@ flowchart TD
         W2{Use existing order?}
         W3[Select occupied table<br/>or order from list]
         W4[Open Create Order<br/>/app/fb/orders/new]
-        W5[Select available table<br/>and guest count]
+        W21{Service type?}
+        W5[Select available/reserved table<br/>and guest count]
+        W22[Choose Room Service<br/>and enter room number + guest count]
         W6[Open order detail<br/>/app/fb/orders/orderId]
         W7[Add menu items<br/>Captain Order]
         W8[Adjust quantities<br/>and kitchen notes]
@@ -249,19 +251,19 @@ flowchart TD
         W13[Enter cash tendered]
         W14[Enter card reference]
         W15[Enter transfer reference]
-        W16[Enter guest room number]
+        W16[Enter guest room number<br/>or use attached folio]
         W17[Submit payment]
         W18[Download/print receipt]
-        W19[Serve guest / close table]
+        W19[Serve guest / close table if dine-in]
         W20[Show error to waiter]
     end
 
     subgraph S[System]
-        S1[Load table grid<br/>and active orders]
+        S1[Load table-only floor plan<br/>and active orders]
         S2[Validate table availability<br/>and guest count]
         S3{Table available?}
         S4[Begin transaction]
-        S5[Create FBOrder<br/>status OPEN]
+        S5[Create DINE_IN FBOrder<br/>status OPEN]
         S6[Update RestaurantTable<br/>status OCCUPIED]
         S7[Commit transaction]
         S8[Load menu and order cart]
@@ -281,22 +283,29 @@ flowchart TD
         S20[Create Payment row<br/>method CASH<br/>fb_order_id set]
         S21[Create Payment row<br/>method CARD<br/>reference saved]
         S22[Create Payment row<br/>method TRANSFER<br/>reference saved]
-        S23[Lookup room and<br/>CHECKED_IN reservation]
+        S23[Resolve charge-to-room folio:<br/>room lookup or attached folio]
         S24{Open folio found?}
-        S25[Insert FolioLineItem<br/>articleId: F&B charge<br/>fb_order_id linked]
+        S25[Insert one FolioLineItem<br/>articleId: F&B charge<br/>fb_order_id linked]
         S26[Update FBOrder:<br/>status CLOSED<br/>payment_method set]
-        S27[Update RestaurantTable<br/>status AVAILABLE]
+        S27[Update RestaurantTable<br/>status AVAILABLE if table exists]
         S28[Commit transaction]
         S29[Generate F&B receipt PDF]
         S30[Show error:<br/>table/order/payment invalid]
         S31[Show error:<br/>room not found,<br/>no in-house guest,<br/>or folio closed]
+        S34[Lookup room,<br/>CHECKED_IN reservation,<br/>and OPEN folio]
+        S35{Room service<br/>folio valid?}
+        S36[Create tableless FBOrder:<br/>serviceType ROOM_SERVICE<br/>chargedFolioId set]
     end
 
-    End([Order CLOSED<br/>table AVAILABLE])
+    End([Order CLOSED<br/>table freed if dine-in])
 
     Start --> W1 --> S1 --> W2
     W2 -->|Yes| W3 --> W6
-    W2 -->|No| W4 --> W5 --> S2 --> S3
+    W2 -->|No| W4 --> W21
+    W21 -->|Dine-in| W5 --> S2 --> S3
+    W21 -->|Room Service| W22 --> S4 --> S34 --> S35
+    S35 -->|No| S31 --> W20
+    S35 -->|Yes| S36 --> S7 --> W6
     S3 -->|No| S30 --> W20
     S3 -->|Yes| S4 --> S5 --> S6 --> S7 --> W6
     W6 --> S8 --> W7 --> W8 --> S9 --> S10 --> W9 --> W10 --> S11 --> S12
@@ -324,12 +333,14 @@ flowchart TD
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style W2 fill:#fffbeb
+    style W21 fill:#fffbeb
     style W12 fill:#fffbeb
     style S3 fill:#fffbeb
     style S12 fill:#fffbeb
     style S19 fill:#fffbeb
     style S24 fill:#fffbeb
     style S33 fill:#fffbeb
+    style S35 fill:#fffbeb
     style S4 fill:#eff6ff
     style S7 fill:#eff6ff
     style S13 fill:#eff6ff
@@ -343,11 +354,12 @@ flowchart TD
 **Key logic:**
 
 - **Route coverage:** the shipped flow moves through `/app/fb`, `/app/fb/orders/new`, `/app/fb/orders/[orderId]`, `/app/fb/orders/[orderId]/bill`, and `/app/fb/orders/[orderId]/payment`.
-- **Table locking at order creation:** the system validates the selected table and creates the OPEN FBOrder in one transaction, then marks the RestaurantTable OCCUPIED. This prevents two waiters from opening competing orders on the same table.
+- **Dine-in table locking at order creation:** the system validates the selected table and creates the OPEN `DINE_IN` FBOrder in one transaction, then marks the RestaurantTable OCCUPIED. This prevents two waiters from opening competing orders on the same table.
+- **Room-service order creation:** `/app/fb/orders/new?service=room-service` validates room number → CHECKED_IN reservation → OPEN folio inside the create transaction, then creates an OPEN `ROOM_SERVICE` FBOrder with `tableId`/`tableNo` null and `chargedFolioId` set. Rooms without an in-house guest or open folio are rejected.
 - **Captain Order before billing:** menu items are stored as FBOrderItem rows while the order is OPEN. The bill cannot be generated until at least one item exists.
 - **Bill locks totals:** confirming the bill computes subtotal, service charge, tax, and total from hotel settings, then changes the order from OPEN to BILLED. Payment is only allowed from BILLED state.
-- **Four payment paths:** cash, card, and transfer create Payment rows linked to the FBOrder. Charge-to-room validates an in-house guest and OPEN folio, then creates a FolioLineItem with `fb_order_id` linked to the originating order.
-- **Close and free table:** successful payment updates FBOrder to CLOSED and frees the RestaurantTable back to AVAILABLE. Receipt PDF generation happens after the transactional state change.
+- **Four payment paths:** cash, card, and transfer create Payment rows linked to the FBOrder. Charge-to-room validates an in-house guest and OPEN folio for dine-in, or uses the already-attached folio for room service, then creates one FolioLineItem with `fb_order_id` linked to the originating order.
+- **Close and free table:** successful payment updates FBOrder to CLOSED and frees the RestaurantTable back to AVAILABLE only when the order has a table. Room-service orders are tableless and do not affect the floor plan. Receipt PDF generation happens after the transactional state change.
 
 ---
 
