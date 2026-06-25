@@ -368,7 +368,7 @@ export function NavShell({
       <aside className="fixed inset-y-0 left-0 hidden w-[260px] flex-col border-r border-slate-200 bg-white px-4 py-5 desktop:flex">
         {/* Brand header */}
         <div className="mb-5 flex items-center gap-2.5 border-b border-slate-100 pb-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[13px] font-bold text-white">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-[13px] font-bold text-white">
             Z
           </div>
           <div>
@@ -431,7 +431,7 @@ export function NavShell({
           <Button
             type="button"
             variant="ghost"
-            className="mt-3 w-full justify-start gap-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-3 h-10 rounded-xl"
+            className="mt-3 w-full justify-start gap-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-3 h-10 rounded-md"
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
             <LogOut size={18} aria-hidden="true" />

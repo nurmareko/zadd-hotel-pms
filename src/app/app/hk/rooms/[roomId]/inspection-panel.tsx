@@ -95,8 +95,8 @@ export function InspectionPanel({
   }
 
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border rounded-t-2xl px-5 py-4">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border rounded-t-lg px-5 py-4">
         <CardTitle className="text-[16px] font-semibold tracking-tight">
           Menunggu Inspeksi
         </CardTitle>
@@ -112,7 +112,7 @@ export function InspectionPanel({
         </p>
 
         {latestCompletedCleaningSession && (latestCompletedCleaningSession.linenChanged || latestCompletedCleaningSession.towelChanged || latestCompletedCleaningSession.note) ? (
-          <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2 text-sm">
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2 text-sm">
             <div>
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amenities Diganti:</span>
               <ul className="list-inside list-disc mt-1 space-y-0.5 text-muted-foreground">
@@ -139,7 +139,7 @@ export function InspectionPanel({
             name="notes"
             placeholder="Catatan jika ada temuan saat inspeksi"
             aria-invalid={isFailMode && Boolean(error)}
-            className="mt-1 min-h-24 rounded-xl"
+            className="mt-1 min-h-24 rounded-md"
           />
         </label>
 
@@ -156,7 +156,7 @@ export function InspectionPanel({
             value="true"
             size="lg"
             disabled={isPending}
-            className="w-full rounded-xl"
+            className="w-full rounded-md"
           >
             <Check className="h-4 w-4" aria-hidden="true" />
             Lulus Inspeksi (&rarr; VC)
@@ -168,7 +168,7 @@ export function InspectionPanel({
             size="lg"
             variant="outline"
             disabled={isPending}
-            className="w-full rounded-xl"
+            className="w-full rounded-md"
           >
             <X className="h-4 w-4" aria-hidden="true" />
             Gagal Inspeksi (&rarr; VD)

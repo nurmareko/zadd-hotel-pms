@@ -1,386 +1,521 @@
-# Design System
+# ZADD Hotel Management Design System V2
 
-Visual conventions for ZADD Hotel Management, derived from the **Console** theme of our reference mockups.
+Version: 2.0
 
-The Console direction is intentional: terminal-density, monospace everywhere, neon-on-dark sidebar. It reads as "professional internal tool" rather than consumer SaaS, fits the operational nature of a PMS, and ages well — utilitarian designs don't go out of fashion the way trend-driven ones do.
+This is the single canonical visual and interaction design source for ZADD Hotel Management. It replaces the legacy Console language and merges the prior V2 experiment notes into one system for product design, implementation, and AI-agent generation.
 
-Reference mockups: `docs/mockups/`. When in doubt, open the mockup.
+ZADD Hotel Management is a modern hospitality operating platform. It should feel calm, professional, organized, premium, efficient, trustworthy, and modern. It should never feel like a terminal interface, developer console, dark admin template, retro PMS, cyberpunk dashboard, or generic Bootstrap admin screen.
 
----
+Reference influences: Mews PMS, Cloudbeds, Linear, Stripe Dashboard, and Notion. Use those as directional references for clarity and polish, not as templates to copy.
 
-## Core principles
+Console's structure and behavior are preserved; its fixed pixel measurements are not. Measurements flow to V2's responsive spacing system rather than Console's pinned values.
 
-1. **Density over decoration.** This is a screen people stare at all day. Tight rows, small badges, generous information per pixel. No oversized cards, no excessive whitespace, no gradients.
-2. **Monospace everywhere.** Every glyph in the app — including buttons, labels, and headings — uses a monospace font. This is the most distinctive choice in the design language; do not break it.
-3. **Square corners.** All elements have `border-radius: 0`. No rounded buttons, no rounded cards, no pill badges.
-4. **Neon green as accent, deep navy as anchor.** The accent color (`#00d4aa`) appears only on dark surfaces (sidebar, table headers, primary buttons). It never appears on light surfaces as a fill.
-5. **Uppercase for navigation, labels, and headers.** Body text and data values stay in normal case.
+## Design Principles
 
----
+### Information First
 
-## Color tokens
+Visual design exists to improve operational clarity. Decoration never takes priority over information, and color is used to communicate status or action rather than mood.
 
-Define once in `src/app/globals.css`, reference everywhere. Tailwind 4 utilities are bridged through the `@theme inline` block in that file.
+### Action First
 
-### Slate base
+Users open ZADD Hotel Management to complete work. Every page should make the current situation understandable within 3 seconds and the next useful action identifiable within 5 seconds.
 
-```css
---slate-50:  #f8fafc;
---slate-100: #f1f5f9;
---slate-200: #e2e8f0;
---slate-300: #cbd5e1;
---slate-400: #94a3b8;
---slate-500: #64748b;
---slate-600: #475569;
---slate-700: #334155;
---slate-800: #1e293b;
---slate-900: #0f172a;
---slate-950: #020617;
-```
+### Hospitality First
 
-### Console-specific
+Interfaces should feel purpose-built for hotel operations. Use workflow-specific layouts for front office, housekeeping, F&B, accounting, and admin instead of generic SaaS screens when a hospitality pattern is clearer.
 
-```css
---console-bg:         #f6f7f8;  /* page background */
---console-surface:    #ffffff;  /* cards, inputs, table body */
---console-ink:        #0a0e1a;  /* primary text + sidebar bg + primary button bg */
---console-accent:     #00d4aa;  /* neon green — accent only */
---console-border:     #d1d5db;  /* card and input borders */
---console-border-soft:#e5e7eb;  /* table row separators */
-```
+### Modern Operational Software
 
-### Status palette
+The system should be full-width, responsive, efficient, and comfortable for long shifts. It uses structured hierarchy, bright surfaces, tight-radius cards, subtle shadows, Plus Jakarta Sans typography, Lucide icons, and consistent status chips.
 
-Used for room status (RoomStatus enum), reservation status, payment status, folio status.
+## Layout System
 
-| Status         | Background  | Text        | Pip         |
-|----------------|-------------|-------------|-------------|
-| VC / paid / checked-in     | `#ecfdf5` (emerald-50) | `#047857` (emerald-700) | `#10b981` (emerald-500) |
-| OC / open / confirmed      | `#eff6ff` (blue-50)    | `#1d4ed8` (blue-700)    | `#3b82f6` (blue-500)    |
-| VD / unpaid                | `#fffbeb` (amber-50)   | `#d97706` (amber-600)   | `#f59e0b` (amber-500)   |
-| VCU                        | `#fefce8` (yellow-50)  | `#a16207` (yellow-700)  | `#eab308` (yellow-500)  |
-| OD / cancelled             | `#fef2f2` (red-50)     | `#dc2626` (red-600)     | `#ef4444` (red-500)     |
-| OOO / closed / checked-out | `#f1f5f9` (slate-100)  | `#475569` (slate-600)   | `#64748b` (slate-500)   |
+### Page Width
 
-Add to your CSS variable block:
+Pages use the available viewport width. Do not add artificial max-width constraints to operational screens such as dashboards, worksheets, Tape Chart, room boards, and tables.
 
-```css
---emerald-50: #ecfdf5;  --emerald-500: #10b981;  --emerald-700: #047857;
---blue-50:    #eff6ff;  --blue-500:    #3b82f6;  --blue-700:    #1d4ed8;
---amber-50:   #fffbeb;  --amber-500:   #f59e0b;  --amber-600:   #d97706;
---yellow-50:  #fefce8;  --yellow-500:  #eab308;  --yellow-700:  #a16207;
---red-50:     #fef2f2;  --red-500:     #ef4444;  --red-600:     #dc2626;
-```
+### Page Padding
 
----
+Use consistent page padding by breakpoint:
+
+| Viewport | Padding |
+|---|---:|
+| Desktop | 24px |
+| Tablet | 20px |
+| Mobile | 16px |
+
+### Gaps And Rhythm
+
+Use generous spacing between sections and compact spacing inside related content.
+
+| Element | Desktop | Mobile |
+|---|---:|---:|
+| Section gap | 24px | 16px |
+| Card gap | 16px | 12px |
+| Card padding | 20px | 16px |
+| Form field gap | 14-16px | 14px |
+| Page header bottom gap | 16px | 14px |
+| Table cell padding | 12px 14px | 10px 12px |
+
+Avoid new spacing scales unless the pattern is documented here.
+
+### Dashboard Order
+
+Every dashboard follows this order:
+
+1. KPI summary
+2. Priority actions
+3. Operational content
+4. Supporting data
+5. History
+
+Never place history above current tasks or primary actions.
+
+### Detail Page Order
+
+Detail pages follow this order:
+
+1. Header
+2. Primary action
+3. Status
+4. Information blocks
+5. History
+
+## Surface System
+
+### App Background
+
+The app background is `#F8FAFC`. Avoid pure white page backgrounds; the slight tint reduces visual fatigue during long shifts.
+
+### Cards
+
+Cards are the primary layout unit for grouped operational information.
+
+| Property | Value |
+|---|---|
+| Background | `#FFFFFF` |
+| Border | `1px solid #E5E7EB` |
+| Radius | 8px |
+| Shadow | Soft only: `0 1px 2px rgba(0,0,0,0.05)`, optionally `0 4px 8px rgba(0,0,0,0.04)` |
+| Padding | 20px desktop, 16px mobile |
+
+Every card has a header, content, and optional actions. Do not use dark inverted card headers. Do not use thick borders or heavy shadows.
+
+### Modals And Popovers
+
+Modals use white backgrounds, 10px radius, and a larger soft shadow. Popovers should feel connected to the triggering control, stay compact, and preserve the same soft border and structured surface language.
+
+### Radius Scale
+
+Corners should feel rigid-but-modern: tighter and more operational than soft consumer UI, while avoiding Console's hard 0px corners. Status chips are the intentional exception because the fully pill shape keeps status readable at a glance.
+
+| Use | Radius |
+|---|---:|
+| Small components | 4px |
+| Buttons / inputs | 6px |
+| Cards | 8px |
+| Modals | 10px |
+| Max | 12px |
+| Status chips | 999px |
+
+### Empty States
+
+Empty states should explain the situation and point to the next useful action. Do not leave a blank region or only show "No data."
+
+Example: "No rooms assigned today. Enjoy your shift."
 
 ## Typography
 
-**Font stack:**
+### Font Family
+
+Use Plus Jakarta Sans as the primary typeface with a standard sans-serif fallback. This matches the font loaded by the app through `next/font/google`.
+
 ```css
-font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+font-family: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
 ```
 
-The whole app is monospace. There is no separate display font.
+Avoid monospace typography except for rare technical identifiers where alignment is required. Typography should feel neutral and disappear behind the content.
 
-**Scale:**
+### Type Scale
 
-| Use                       | Size    | Weight | Notes                                    |
-|---------------------------|---------|--------|------------------------------------------|
-| Page H1                   | 20px    | 700    | uppercase, tracking-[0.02em], `▸ ` prefix in accent |
-| Card / section header     | 11px    | 700    | uppercase, tracking-[0.08em], `// ` prefix |
-| KPI value                 | 22px    | 700    | tabular nums                             |
-| Body text / table cells   | 12-13px | 400-500| normal case                              |
-| Buttons                   | 11px    | 600    | uppercase, tracking-[0.04em]             |
-| Form labels               | 10px    | 600    | uppercase, tracking-[0.06em]             |
-| Table headers             | 10px    | 600    | uppercase, tracking-[0.08em]             |
-| Badges                    | 10px    | 600    | tracking-[0.06em]                        |
-| Group / KPI labels        | 9-9.5px | 600    | uppercase, tracking-[0.10em]             |
-| Breadcrumbs               | 11px    | 500    | uppercase, tracking-[0.05em]             |
+| Use | Size | Weight | Notes |
+|---|---:|---:|---|
+| Page title | 32px | 700 | Clear screen title |
+| Section title | 20px | 600 | Major content grouping |
+| Card title | 16px | 600 | Card header label |
+| Body | 14px | 400 | Default readable content |
+| Small text | 12px | 500 | Metadata and helper text |
+| Status labels | 12px | 600 | Chips and compact labels |
 
-Use tabular numerals on all numeric columns and KPIs:
+Use tabular numerals for KPI values, money, dates in aligned columns, room counts, availability counts, and numeric table columns:
 
 ```css
 .num { font-variant-numeric: tabular-nums; }
 ```
 
-**Tracking rule:** uppercase elements get positive tracking (0.04–0.10em). Body text and data values get 0.
+Letter spacing should usually be 0. Do not rely on uppercase tracking as a dominant style.
 
----
+## Color System
 
-## Spacing rhythm
+Color communicates status, action, and hierarchy. It should not be decorative.
 
-Standard density (matches `data-density="standard"` in mockup):
+### Neutral Tokens
 
-```
-content padding       20px 24px
-card padding          14px
-card header padding   12px 14px
-table row padding     9px 12px
-table header padding  8px 12px
-button height         32px
-button padding        0 12px
-page header bottom    16px
-form field gap        14-16px
-card-to-card gap      12px
-```
+| Token | Hex | Usage |
+|---|---|---|
+| Background | `#F8FAFC` | App background |
+| Surface | `#FFFFFF` | Cards, modals, inputs, tables |
+| Border | `#E5E7EB` | Card and table borders |
+| Border Strong | `#D1D5DB` | Inputs and stronger separators |
+| Text | `#0F172A` | Primary text |
+| Muted | `#64748B` | Secondary text and unavailable states |
+| Soft Active | `#F1F5F9` | Sidebar active item and light selected states |
 
-Apply as actual values. Do not introduce new spacing tokens without updating this list.
+### Operational Tokens
 
----
+| Token | Hex | Meaning |
+|---|---|---|
+| Green | `#22C55E` | Clean, ready, sellable, success |
+| Blue | `#3B82F6` | Occupied, active, informational |
+| Amber | `#F59E0B` | Vacant dirty, pending, waiting |
+| Orange | `#F97316` | Occupied dirty, distinct warm warning |
+| Purple | `#8B5CF6` | Inspection and special process |
+| Red | `#EF4444` | Out of order, urgent, failed operation |
+| Gray | `#64748B` | Inactive, unavailable, archived |
 
-## Layout chrome
+### Room Status Palette
+
+This table is locked. Use these exact meanings and colors across room boards, Tape Chart room labels, filters, legends, chips, and reports.
+
+| Code | Status | Color | Hex |
+|---|---|---|---|
+| VC | Vacant Clean | Green | #22C55E |
+| OC | Occupied Clean | Blue | #3B82F6 |
+| VD | Vacant Dirty | Amber | #F59E0B |
+| OD | Occupied Dirty | Orange | #F97316 |
+| VCU | Vacant Clean Uninspected | Purple | #8B5CF6 |
+| OOO | Out Of Order | Red | #EF4444 |
+| OOS | Out Of Service | Gray | #64748B |
+
+Color meanings are:
+
+- Green = clean, ready, sellable
+- Blue = occupied, active, informational
+- Amber = vacant dirty, pending
+- Orange = occupied dirty, distinct from vacant dirty
+- Purple = inspection, special process
+- Red = out of order, urgent
+- Gray = inactive, unavailable
+
+### Status Chip Tints
+
+Status chips should use pastel backgrounds with saturated text and/or a small color dot. Keep chips consistent across modules.
+
+| Color | Background | Text |
+|---|---|---|
+| Green | `#DCFCE7` | `#166534` |
+| Blue | `#DBEAFE` | `#1D4ED8` |
+| Amber | `#FEF3C7` | `#B45309` |
+| Orange | `#FFEDD5` | `#C2410C` |
+| Purple | `#EDE9FE` | `#6D28D9` |
+| Red | `#FEE2E2` | `#B91C1C` |
+| Gray | `#F1F5F9` | `#475569` |
+
+## Navigation Chrome
 
 ### Sidebar
 
-- Width: 240px desktop, fixed; not collapsible
-- Background: `--console-ink` (`#0a0e1a`)
-- Default text: `#6b7280`
-- Hover/active text: `--console-accent` (`#00d4aa`)
-- Active link: transparent background + left indicator `box-shadow: inset 2px 0 0 #00d4aa`
-- Group labels: 9px, uppercase, tracking-[0.12em], color `#4b5563`
-- Nav items: 12px, uppercase, tracking-[0.04em]
-- Desktop nav items include Lucide icons (14px) before the label.
+Desktop navigation uses a white sidebar with a subtle right border.
 
-**Brand mark:** square outlined neon `[Z]` or similar — see mockup. Top-left of sidebar.
+| Property | Value |
+|---|---|
+| Width | 260px |
+| Background | `#FFFFFF` |
+| Border | `1px solid #E5E7EB` |
+| Icon library | Lucide |
+| Icon size | 18px |
+| Active item background | `#F1F5F9` |
+| Active item text | `#0F172A` |
+| Active indicator | Left accent border |
 
-### Top bar
+Keep labels concise and role-scoped. Icons support recognition but should not become decoration.
 
-- Mobile/coarse-pointer shell only; desktop identity and logout live in the fixed sidebar.
-- Sticky white background with `1px solid #d1d5db` bottom border.
-- Neon `[Z]` brand mark plus account identity and role on the left; logout icon action on the right.
+### Mobile And Coarse Pointer Navigation
 
-### Page header
+The desktop sidebar appears only on desktop/fine-pointer layouts. Coarse-pointer tablets keep the mobile UI.
 
-- H1 with `▸ ` prefix in accent color
-- Subtitle: 11px, slate-500, normal case
-- Actions cluster top-right of header row
+Mobile uses a top bar plus a role-scoped bottom navigation:
 
----
+- Top bar: white background, subtle bottom border, clear account or role context, and a logout/profile action.
+- Bottom nav: white tab bar with a top border and icon-plus-label cells.
+- Overflow: show at most 5 slots. If more destinations exist, the final slot becomes "Lainnya" and opens a bottom-sheet menu.
+- Tap targets: at least 44px by 44px.
+- Cards stack vertically with 12px gaps.
+- Critical primary actions remain visible and should not be hidden behind menus.
 
-## Component conventions
+## Components
+
+### Page Headers
+
+Page headers contain a clear title, an optional concise subtitle, and a right-aligned action cluster on desktop. On mobile, actions may wrap under the title but the primary action must remain visible.
+
+Use plain descriptive titles. Do not use decorative prefixes, dark header strips, or terminal-style labels.
 
 ### Buttons
 
-| State        | Background     | Border         | Text          |
-|--------------|----------------|----------------|---------------|
-| Default      | white          | `#9ca3af`      | `#0a0e1a`     |
-| Default hover| `#f6f7f8`      | `#0a0e1a`      | `#0a0e1a`     |
-| Primary      | `#0a0e1a`      | `#0a0e1a`      | `#00d4aa`     |
-| Primary hover| `#1f2937`      | `#1f2937`      | `#00d4aa`     |
-| Danger       | red-600 fill   | red-600        | white         |
+| Variant | Background | Border | Text | Radius | Height |
+|---|---|---|---|---:|---:|
+| Primary | `#0F172A` | `#0F172A` | `#FFFFFF` | 6px | 40px |
+| Secondary | `#FFFFFF` | `#E5E7EB` | `#0F172A` | 6px | 40px |
+| Danger | `#EF4444` | `#EF4444` | `#FFFFFF` | 6px | 40px |
 
-All buttons: 11px, uppercase, tracking-[0.04em], weight 600, border-radius 0, height 32px.
+Buttons should use clear labels and Lucide icons when the icon improves recognition. Avoid crowded toolbars; prefer contextual action placement.
 
-### Cards
+### Inputs
 
-- White background, `1px solid #d1d5db`, square corners, no shadow
-- Card header (when present): inverted — `background: #0a0e1a; color: #00d4aa;` with `// ` prefix on title
-- Card footer: `background: #f6f7f8; border-top: 1px solid #d1d5db; font-size: 11px;`
+| Property | Value |
+|---|---|
+| Height | 40px |
+| Radius | 6px |
+| Background | `#FFFFFF` |
+| Border | `#D1D5DB` |
+| Focus | Blue ring with a soft shadow |
+
+Labels sit above fields, are short, and use the normal sans-serif typography. Group related fields and keep form actions close to the form.
+
+### Status Chips
+
+Status chips are compact, highly recognizable, and consistent across modules.
+
+| Property | Value |
+|---|---|
+| Height | 24px desktop, slightly larger where thumb readability requires it |
+| Radius | 999px |
+| Font size | 12px |
+| Weight | 600 |
+
+Prefer chips over coloring entire cards or table rows. Use the locked room-status palette for room states.
+
+### KPI Cards
+
+KPI cards sit at the top of dashboards and answer the "what is happening now?" question.
+
+Structure:
+
+1. Label
+2. Metric
+3. Description or context
+
+Example:
+
+- Label: Occupancy
+- Metric: 82%
+- Description: 131 / 160 rooms
+
+KPI values use tabular numerals. Cards use 8px radius and 20px padding on desktop.
 
 ### Tables
 
-- Border-collapse, full width
-- **Header row:** `background: #0a0e1a; color: #00d4aa;` (yes, dark header). 10px uppercase, tracking-[0.08em].
-- Body rows: white, with `nth-child(even)` getting `background: #f6f7f8` (zebra)
-- Row hover: `background: #ecfdf5` (mint-green tint, signals interactivity)
-- Row separator: `1px solid #e5e7eb`
-- Cell font: 12-13px, normal case
-- Numeric columns get `class="num"` — tabular numerals + right alignment
+Tables are operational tools, not static reports. They should be scannable, comfortable, and interactive when the workflow requires it.
 
-### Form fields
+Use:
 
-- Input: white, `1px solid #9ca3af`, square corners, monospace
-- Focus: border becomes `--console-ink`, soft ring `box-shadow: 0 0 0 3px rgba(15,23,42,0.08)`
-- Label: above input, 10px uppercase, tracking-[0.06em]
-- Field gap: 14-18px
+- Soft separators
+- Minimal borders
+- Comfortable row heights
+- Sticky headers only when useful for long operational tables
+- Tabular numerals and right alignment for numeric columns
+- Inline chips for statuses
+- Clear row actions
 
-### Badges
+Avoid:
 
-- Border-radius: 0 (square)
-- Padding: `0 5px`, height 20px
-- Font: 10px, monospace, tracking-[0.06em]
-- Pip dot: 6×6px, square, status-colored
+- Dark table headers
+- Excessive grid lines
+- Dense spreadsheet appearance
+- Global sticky header styles that affect every table unintentionally
 
-### KPIs
+Sticky headers are scoped per table. Tape Chart is the special case where both the header row and first column remain anchored during scrolling.
 
-- Label: 9.5px, tracking-[0.1em], slate-600, wrapped in `[ ` `]` — e.g. `[ TOTAL REVENUE ]`
-- Value: 22px, weight 700, tabular nums
-- Delta: 10px
+### Card Pattern
 
-### Tabs
+Cards contain a header, content, and optional actions. They are useful for room tasks, dashboard sections, summary groups, and compact workflow units.
 
-- Underline-style (no pill background)
-- Tab text: 11px, uppercase, tracking-[0.06em]
-- Active tab: 2px underline in `--console-ink` (or accent if on dark surface)
+Example structure for HK:
 
----
+- Room 307
+- VD chip
+- Guest arriving 14:00
+- Primary action: Start Cleaning
 
-## Tape Chart specifics (FO-02)
+## Responsive And Mobile Philosophy
 
-Most visually complex screen in the app. Lock these conventions in for implementation:
+Mobile users may be walking, standing, or carrying equipment. Design for quick interactions rather than exploration.
 
-- **Grid skeleton:** room-type-grouped rows × date columns. Each collapsible room-type header shows room count and OOO count, followed by physical-room rows and an `Unallocated` row.
-- **Sticky first column:** 192px wide; room rows show room number, floor, and current room status. OOO rows use a grey striped treatment and are not bookable.
-- **Sticky header row:** 44px high; day-of-week (or `Today`) above date. Date columns are 80px wide.
-- **Row heights:** room rows are 32px; room-type group headers are 36px. The unallocated row uses one 32px lane minimum and grows by 32px for overlapping reservations.
-- **Reservation bars:** absolute-positioned overlays spanning arrival to departure boundaries, centered on date columns. Bars are 24px high (`32px` row minus `4px` vertical margin on each side), square-cornered, and show the guest name with ellipsis overflow.
-- **Reservation bar palette:** confirmed orange `#f97316`, checked-in emerald `#047857`, checked-out slate `#64748b`, unallocated blue `#2563eb`.
-- **Checkout marker:** when the departure boundary is visible in the current window, add a centered inward-facing white notch on the bar's right edge: `border-top: 5px solid transparent`, `border-bottom: 5px solid transparent`, and `border-right: 7px solid rgb(255 255 255 / 0.88)`. Do not show a notch when the bar is clipped because checkout falls outside the visible window.
-- **Empty cells:** physical-room and unallocated-lane cells are links to create a reservation with room or room-type and arrival date prefilled. OOO cells remain non-interactive.
-- **Legend bar above grid:** four reservation bars (Confirmed, Checked-in, Checked-out, Unallocated), the checkout-notch swatch, `Greyed rows = Out of Order`, and room/day count on the right.
-- **Container:** bordered card with `padding: 0`, internal horizontal and vertical scroll, `max-height: 560px` below 768px and `656px` from 768px upward.
-- **Scroll behavior:** both horizontal and vertical, sticky cells stay anchored
+Responsive behavior:
 
-Reference: open the design canvas in `docs/mockups/`.
+| Viewport | Layout |
+|---|---|
+| Desktop | Multi-column where it improves comparison |
+| Tablet | Two-column where content supports it |
+| Mobile | Single-column, natural stacking |
 
----
+Avoid horizontal scrolling on ordinary content. Tape Chart remains horizontally scrollable on desktop because a date grid is inherently wider than the viewport. F&B floor plans should scale to preserve the full physical-room layout on tablet and mobile.
 
-## F&B floor plan specifics (FB-01 / AD-05)
+## Role-Specific Design Language
 
-The F&B floor plan and Admin layout editor use the shared constants in `src/lib/restaurant-table-layout.ts`.
+### Housekeeping
 
-- **Canvas:** 900×560px, dashed console-border outline, `bg-console-bg`, wrapped in an overflow-auto container.
-- **Table tile:** 72×72px, absolute-positioned by `RestaurantTable.posX` / `posY`.
-- **Layout margin:** 20px.
-- **Layout gap:** 28px.
-- **Drag grid:** 20px increments in the Admin layout editor.
-- **Location tabs:** one tab per `TableLocation` value: INDOOR, OUTDOOR, PRIVATE.
-- **Legend:** shown above the floor canvas, one status badge per `TableStatus`.
+Housekeeping is task-oriented, not report-oriented. A housekeeper should always know what room needs attention next.
 
-F&B floor tile colors are verified against `src/app/app/fb/table-card.tsx`:
+Priority order:
 
-| TableStatus | Background | Text | Border | Notes |
-|---|---|---|---|---|
-| AVAILABLE | `#ecfdf5` (emerald-50) | `#022c22` (emerald-950) | `#047857` (emerald-700) | Hover `#d1fae5` (emerald-100) |
-| OCCUPIED | `#eff6ff` (blue-50) | `#172554` (blue-950) | `#1d4ed8` (blue-700) | Hover `#dbeafe` (blue-100) |
-| RESERVED | `#fffbeb` (amber-50) | `#451a03` (amber-950) | `#b45309` (amber-700) | Opens table-action popover |
-| OUT_OF_SERVICE | `#f1f5f9` (slate-100) | `#020617` (slate-950) | `#334155` (slate-700) | `opacity-80`, opens table-action popover |
+1. Room number
+2. Room status
+3. Primary action
+4. Guest context
+5. Notes
+6. History
 
-Status badges elsewhere in F&B use the shared status token palette from `src/app/app/fb/status-badge.tsx`.
+HK surface guidance:
 
----
-
-## Mobile and coarse-pointer navigation
-
-HK screens remain mobile-first, but the responsive navigation applies to every module. The desktop sidebar appears only at `min-width: 768px` with a fine pointer; coarse-pointer tablets keep the mobile UI.
-
-- Top bar: white, `1px solid #d1d5db` bottom, account identity and logout action
-- Bottom nav: one role-scoped white tab bar across all modules, with top border and icon-and-label cells
-- Overflow: show at most 5 slots; the final slot becomes `Lainnya` when additional destinations need a bottom-sheet menu
-- Cards stack vertically with 12px gap
-- Tap targets minimum 44×44px
-- Status pills slightly larger here (24px tall vs 20px desktop) for thumb readability
-
----
-
-## Housekeeping surfaces
-
-HK is role-aware:
-
-- `/app/hk` is only a redirect. HK members land on `/app/hk/clean`; HK supervisors and ADMIN land on `/app/hk/supervisor`.
-- `/app/hk/clean` (Kamar Saya) stays mobile-first and optimized for thumb use while walking corridors.
-- `/app/hk/rooms/[id]` is the shared room detail. It should keep housekeeper controls prominent on mobile and supervisor inspection/history controls clear on wider screens.
+- `/app/hk` redirects by role and should not be treated as a standalone destination.
+- `/app/hk/clean` is "Kamar Saya": mobile-first, thumb-friendly, and optimized for corridor work.
+- `/app/hk/rooms/[id]` is the shared room detail. Keep housekeeper controls prominent on mobile; keep supervisor inspection and history controls clear on wider screens.
 - `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
 - `/app/hk/list` is retired and redirects to `/app/hk/rooms`; do not design a standalone Daily List route.
-- `/app/hk/lost-found` is text-only in the MVP. Use compact search/filter/table patterns, not media galleries or photo upload controls.
+- `/app/hk/lost-found` is text-only in MVP. Use compact search, filter, and table patterns, not galleries or photo upload controls.
 
-Keep the room-status palette consistent everywhere: VC emerald, OC blue, VD amber, OD red, VCU yellow-amber, OOO slate.
+### Front Office
 
----
+Front Office is guest-oriented. Staff should immediately see who is arriving, who is departing, and what rooms are available.
 
-## Implementation hand-off
+Priority order:
 
-### `src/app/globals.css`
+1. Arrivals
+2. Departures
+3. Availability
+4. Guest information
+5. Billing
+6. Reports
 
-Define raw tokens under `@layer base`, then expose Tailwind 4 utility aliases through `@theme inline`:
+### F&B
 
-```css
-@theme inline {
-  --color-console-bg: var(--console-bg);
-  --color-console-surface: var(--console-surface);
-  --color-console-ink: var(--console-ink);
-  --color-console-accent: var(--console-accent);
-  --color-console-border: var(--console-border);
-  --color-console-border-soft: var(--console-border-soft);
-  --color-status-vc-bg: var(--emerald-50);
-  --color-status-vc-fg: var(--emerald-700);
-  --color-status-vc-pip: var(--emerald-500);
-  /* ...etc, all shared status aliases... */
-  --font-sans: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-}
+F&B screens should prioritize current service state, table availability, active orders, and clear next actions. Use floor plans for spatial decisions and tables/lists for operational follow-through.
 
-@layer base {
-  :root {
-    /* slate */
-    --slate-50: #f8fafc;
-    --slate-100: #f1f5f9;
-    /* ...etc, all slate stops... */
+### Accounting And Admin
 
-    /* status */
-    --emerald-50: #ecfdf5; --emerald-500: #10b981; --emerald-700: #047857;
-    --blue-50: #eff6ff;    --blue-500: #3b82f6;    --blue-700: #1d4ed8;
-    --amber-50: #fffbeb;   --amber-500: #f59e0b;   --amber-600: #d97706;
-    --yellow-50: #fefce8;  --yellow-500: #eab308;  --yellow-700: #a16207;
-    --red-50: #fef2f2;     --red-500: #ef4444;     --red-600: #dc2626;
+Accounting and admin screens should be calm, dense enough for repeated work, and explicit about state. Prefer tables, filters, status chips, and contextual actions over decorative summary sections.
 
-    /* console theme */
-    --console-bg: #f6f7f8;
-    --console-surface: #ffffff;
-    --console-ink: #0a0e1a;
-    --console-accent: #00d4aa;
-    --console-border: #d1d5db;
-    --console-border-soft: #e5e7eb;
-  }
+## Operational Screen Patterns
 
-  body {
-    font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-    background: var(--console-bg);
-    color: var(--console-ink);
-  }
+### Tape Chart
 
-  .num { font-variant-numeric: tabular-nums; }
-}
-```
+Tape Chart is the most visually complex Front Office screen. Preserve its operational mechanics while expressing it with V2 surfaces, tight-radius elements, Plus Jakarta Sans typography, soft borders, and status chips.
 
-### `tailwind.config.ts`
+Required structure:
 
-Keep the custom `desktop` breakpoint pointer-aware. Color utilities such as `bg-console-ink` and `text-status-vc-fg` are exposed by `@theme inline` in `globals.css`. Existing compatibility extensions remain in this config, but add new Tailwind 4 token aliases to `globals.css` first.
+- Grid skeleton: room-type-grouped rows by date columns.
+- Each collapsible room-type header shows room count and OOO count, followed by physical-room rows and an `Unallocated` row.
+- Sticky first column: sized for room number, floor, and current room status using the locked status palette; follow the V2 spacing rhythm instead of Console's fixed width.
+- Sticky header row: show day-of-week or `Today` above the date; follow the V2 spacing rhythm instead of Console's fixed height.
+- Date columns: sized for readable dates and reservation alignment; use responsive V2 spacing rather than fixed Console cell widths.
+- Row heights: room rows, room-type group headers, and unallocated lanes use the compact V2 rhythm and grow only when overlapping reservations require additional lanes.
+- Reservation bars: absolute-positioned overlays spanning arrival to departure boundaries, centered on date columns. Bars use V2 tight-radius corners, compact vertical padding, and guest names with ellipsis overflow.
+- Checkout marker: when the departure boundary is visible, show a compact rounded marker on the bar's trailing edge. Use either a rounded triangular tab or a thin rounded accent in the departure/OOO tone. Do not use a sharp Console notch, and do not show a marker when checkout is clipped outside the visible window.
+- Empty cells: physical-room and unallocated-lane cells link to create a reservation with room or room-type and arrival date prefilled.
+- OOO cells: non-interactive and visually unavailable using the locked red OOO status and a quiet unavailable treatment.
+- Legend: show reservation states, checkout marker, unavailable room treatment, and room/day count above the grid.
+- Container: card surface with no dark header and internal scrolling.
+- Scroll behavior: horizontal and vertical scrolling are expected on desktop because the date grid is inherently wide; sticky cells stay anchored.
 
-```ts
-theme: {
-  extend: {
-    screens: {
-      desktop: { raw: "(min-width: 768px) and (pointer: fine)" },
-    },
-    fontFamily: {
-      sans: ['ui-monospace', '"JetBrains Mono"', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
-      mono: ['ui-monospace', '"JetBrains Mono"', '"SF Mono"', 'Menlo', 'Consolas', 'monospace'],
-    },
-  },
-}
-```
+Reservation bar colors:
 
-`sans` and `mono` both pointing at monospace is intentional — every text element gets monospace by default, no exceptions.
+| Reservation state | Color |
+|---|---|
+| Confirmed | Amber `#F59E0B` |
+| Checked-in | Green `#22C55E` |
+| Checked-out | Gray `#64748B` |
+| Unallocated | Blue `#3B82F6` |
 
-### Existing screens
+### F&B Floor Plan And Table Layout Editor
 
-Existing screens consume the shared Console tokens and utility aliases. When adding a visual pattern, extend the shared token set rather than introducing a screen-local palette without documenting it.
+The F&B floor plan and Admin table-layout editor share the same spatial model. Preserve the positioning behavior while restyling with V2 surfaces.
 
----
+Required structure:
 
-## What this doc does NOT cover
+- Canvas: preserve a stable logical coordinate system so table positions mirror the physical room.
+- Table tile: absolute-positioned by `RestaurantTable.posX` and `RestaurantTable.posY`; size follows the V2 spacing rhythm while staying large enough for table number and status.
+- Layout margin and gap: follow V2 spacing while preserving the spatial relationship between tables.
+- Tablet and mobile: scale the full canvas proportionally to fit the viewport. Do not require horizontal pan or scroll because the whole floor plan must remain legible as a map of the room.
+- Admin layout editor: drag-to-reposition remains desktop-first. On mobile, the floor plan is view/scale only; editing is desktop.
+- Location tabs: one tab per `TableLocation` value: `INDOOR`, `OUTDOOR`, `PRIVATE`.
+- Legend: show one status chip per `TableStatus` above the floor canvas.
 
-- Animation / motion (none for MVP — instant transitions only)
-- Dark mode (not in MVP)
-- Print styles (handled per-screen for PDF outputs)
-- Iconography beyond what mockups show (use Lucide React, sized 14–16px to match the dense layout)
+Table status colors:
 
----
+| TableStatus | Color |
+|---|---|
+| AVAILABLE | Green `#22C55E` |
+| OCCUPIED | Blue `#3B82F6` |
+| RESERVED | Amber `#F59E0B` |
+| OUT_OF_SERVICE | Gray `#64748B` |
 
-## When to update this doc
+Use tight-radius table tiles, soft borders, clear labels, and status chips. Do not use dashed Console borders, horizontal mobile panning, or dark/inverted headers.
 
-- A new screen introduces a visual pattern not listed here → document it here, don't reinvent in the next screen
-- A token value changes → update here AND in `globals.css`; update `tailwind.config.ts` too when the change affects its breakpoint or compatibility extensions
-- A teammate proposes a deviation → discuss in team chat, decide once, document the decision
+## Icons
+
+Use Lucide icons. Icons support understanding and should stay simple, line-based, and restrained. Avoid icon overload and decorative icon-only areas without clear affordances.
+
+## Shadows
+
+Shadows are very soft and professional. The interface should feel grounded, not floating dramatically. Avoid heavy shadows, glassmorphism, and gradient-heavy surfaces.
+
+## AI Agent Generation Rules
+
+When generating or retrofitting UI, always prefer:
+
+- Cards over panels
+- Soft hierarchy over hard borders
+- Whitespace over separators where the relationship stays clear
+- Status chips over colored containers
+- Contextual actions over crowded toolbars
+- Hospitality-specific workflows over generic admin layouts
+- Modern SaaS patterns over legacy PMS layouts
+
+Always use:
+
+- Plus Jakarta Sans typography
+- Lucide icons
+- Soft shadows
+- Tight-radius cards
+- Pastel status chips
+- The locked room-status palette
+
+Never use:
+
+- Monospace typography as the app default
+- Square corners as a system style
+- Terminal aesthetics
+- Neon green themes
+- Dark admin templates
+- Dense spreadsheet styling
+- Heavy gradients
+- Glassmorphism
+- Dark table or card headers
+
+The final result should feel like a premium hotel operating platform built in 2026.
+
+## Settled Responsive Decisions
+
+Tape Chart preserves Console's structure and behavior: sticky first column and header, grouped rows, reservation bars, checkout marker, and legend. It does not preserve Console's exact fixed pixel measurements. Row heights and cell widths follow the V2 spacing rhythm, while the chart remains horizontally scrollable on desktop because date grids are inherently wide.
+
+The checkout marker is a compact V2 marker, not a sharp notch. Use a rounded triangular tab or a thin rounded accent on the reservation bar's trailing edge in the departure/OOO tone.
+
+The F&B floor plan scales proportionally on tablet and mobile so the whole room remains visible and legible. Do not introduce horizontal pan or scroll for the floor plan on smaller screens. The drag-to-reposition editor remains desktop-first; mobile is view/scale only.
+
+The mobile top bar keeps a minimal brand mark. Logout moves into a profile or identity action: tapping the avatar or identity opens a sheet containing logout. Primary navigation stays in the 5-slot bottom nav.
+
+## Maintenance
+
+Update this document when a new screen introduces a visual pattern, a token changes, or a teammate proposes a reusable deviation. Archived files under `docs/archive/` are history only and are not active guidance.

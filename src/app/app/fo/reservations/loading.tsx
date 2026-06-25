@@ -13,7 +13,7 @@ export default function Loading() {
         actionCount={1}
       />
 
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <section className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <FilterBarSkeleton fields={3} />
         <TableSkeleton rows={8} cols={10} minWidth="1100px" />
       </section>

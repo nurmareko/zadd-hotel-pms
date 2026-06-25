@@ -12,10 +12,8 @@ import { TodaySnapshot, type TodaySnapshotData } from "./today-snapshot";
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -168,7 +166,7 @@ export default async function AccountingDashboardPage() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <AuditHistory rows={historyRows} />
-        <Card className="rounded-2xl p-0 h-fit border border-border">
+        <Card className="rounded-lg p-0 h-fit border border-border">
           <CardHeader className="border-b border-border px-5 py-4 rounded-none bg-card">
             <CardTitle className="text-base font-semibold tracking-tight text-foreground">Ringkasan</CardTitle>
           </CardHeader>

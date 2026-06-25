@@ -1,4 +1,6 @@
-# ZADD Hotel PMS Visual Language
+ARCHIVED — merged into docs/design.md (V2)
+
+# ZADD Hotel Management Visual Language
 
 ## Overall Aesthetic
 

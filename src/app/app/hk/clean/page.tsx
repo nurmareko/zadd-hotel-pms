@@ -120,7 +120,7 @@ function CleanRoomCard({ room }: { room: CleanRoom }) {
     <Link
       href={`/app/hk/rooms/${room.id}`}
       className={cn(
-        "flex h-full flex-col gap-3 rounded-2xl border p-5 transition-colors",
+        "flex h-full flex-col gap-3 rounded-lg border p-5 transition-colors",
         groupInfo.cardClasses
       )}
     >
@@ -170,7 +170,7 @@ function CleanGroupSection({
       </div>
 
       {rooms.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border bg-card px-3 py-6 text-center text-sm italic text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border bg-card px-3 py-6 text-center text-sm italic text-muted-foreground">
           {emptyLabel}
         </p>
       ) : (
@@ -207,7 +207,7 @@ export default async function MyRoomsPage() {
       </div>
 
       {totalRooms === 0 ? (
-        <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           Belum ada kamar yang ditugaskan untuk Anda hari ini.
         </p>
       ) : (

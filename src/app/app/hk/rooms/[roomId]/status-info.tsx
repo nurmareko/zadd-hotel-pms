@@ -66,8 +66,8 @@ export function StatusInfo({
   upcomingReservation,
 }: StatusInfoProps) {
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
         <CardTitle className="text-base font-semibold">Status Saat Ini</CardTitle>
       </CardHeader>
       <CardContent className="p-0">

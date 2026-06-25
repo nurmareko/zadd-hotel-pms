@@ -10,7 +10,7 @@ type KpiCardProps = {
 
 export function KpiCard({ label, value, sub, className }: KpiCardProps) {
   return (
-    <Card className={cn("rounded-2xl p-5 gap-2 border border-border", className)}>
+    <Card className={cn("rounded-lg p-5 gap-2 border border-border", className)}>
       <div className="text-xs font-semibold tracking-tight text-muted-foreground uppercase">
         {label}
       </div>

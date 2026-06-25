@@ -2,7 +2,7 @@ import { Prisma, type LostFoundStatus } from "@prisma/client";
 import { Archive, CheckCircle2, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +25,7 @@ type SearchParams = {
 };
 
 const fieldClass =
-  "h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none";
+  "h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none";
 const headerCellClass =
   "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
 const bodyCellClass =
@@ -109,7 +109,7 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
       />
       <Button
         type="submit"
-        className="h-10 w-fit rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
+        className="h-10 w-fit rounded-md border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
         variant="outline"
       >
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -121,7 +121,7 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
 
 function LostFoundCard({ item }: { item: LostFoundRow }) {
   return (
-    <Card className="rounded-2xl p-3">
+    <Card className="rounded-lg p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
           <Archive
@@ -237,7 +237,7 @@ export default async function LostFoundPage({
         </div>
       </div>
 
-        <Card className="mb-4 rounded-2xl overflow-hidden p-0">
+        <Card className="mb-4 rounded-lg overflow-hidden p-0">
           <form
             action="/app/hk/lost-found"
             method="get"
@@ -253,7 +253,7 @@ export default async function LostFoundPage({
                 name="q"
                 defaultValue={q}
                 placeholder="Cari deskripsi..."
-                className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none"
+                className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none"
               />
             </div>
             <input
@@ -272,7 +272,7 @@ export default async function LostFoundPage({
               <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
               <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
             </select>
-            <Button type="submit" variant="outline" size="default" className="rounded-lg h-10">
+            <Button type="submit" variant="outline" size="default" className="rounded-md h-10">
               <Search className="h-4 w-4" aria-hidden="true" />
               Cari
             </Button>
@@ -303,7 +303,7 @@ export default async function LostFoundPage({
                 </option>
               ))}
             </select>
-            <Button type="submit" className="rounded-xl h-10 px-4">
+            <Button type="submit" className="rounded-md h-10 px-4">
               <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               Tambah Barang
             </Button>
@@ -312,7 +312,7 @@ export default async function LostFoundPage({
 
       <section className="space-y-2 md:hidden">
         {items.length === 0 ? (
-          <p className="rounded-2xl border border-border bg-card px-3 py-8 text-center text-sm italic text-muted-foreground">
+          <p className="rounded-lg border border-border bg-card px-3 py-8 text-center text-sm italic text-muted-foreground">
             Tidak ada barang Lost &amp; Found yang cocok dengan filter.
           </p>
         ) : (
@@ -320,7 +320,7 @@ export default async function LostFoundPage({
         )}
       </section>
 
-      <Card className="hidden overflow-hidden rounded-2xl md:block p-0">
+      <Card className="hidden overflow-hidden rounded-lg md:block p-0">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full border-collapse text-[12px]">
             <thead>

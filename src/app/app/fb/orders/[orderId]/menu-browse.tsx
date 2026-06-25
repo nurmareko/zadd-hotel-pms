@@ -51,18 +51,18 @@ export function MenuBrowse({
   }, [activeCategory, menuItems, query]);
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="flex flex-col gap-3 border-b border-console-border bg-console-ink px-3.5 py-2 md:flex-row md:items-center md:justify-between">
-        <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"PILIH MENU"}
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="text-base font-semibold text-slate-900">
+          Pilih Menu
         </div>
         <div className="relative w-full md:max-w-[240px]">
           <Search
             aria-hidden="true"
-            className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
           />
           <input
-            className="h-8 w-full border border-slate-600 bg-white py-1 pl-7 pr-2 text-[12px] text-console-ink outline-none placeholder:text-slate-400 focus:border-console-accent"
+            className="h-10 w-full rounded-md border border-gray-300 bg-white py-1 pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari menu..."
             type="search"
@@ -70,8 +70,8 @@ export function MenuBrowse({
           />
         </div>
       </div>
-      <div className="flex flex-wrap gap-3 border-b border-console-border px-3.5 py-3">
-        <div className="mr-1 flex items-center text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 px-5 py-3">
+        <div className="mr-1 flex items-center text-sm font-semibold text-slate-600">
           Tamu
         </div>
         {guestNumbers.map((guestNumber) => {
@@ -79,10 +79,10 @@ export function MenuBrowse({
 
           return (
             <button
-              className={`h-7 border px-2 text-[11px] font-semibold uppercase tracking-[0.04em] ${
+              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
                 active
-                  ? "border-console-ink bg-console-ink text-console-accent"
-                  : "border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg"
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-gray-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
               }`}
               key={guestNumber}
               onClick={() => setActiveGuest(guestNumber)}
@@ -93,16 +93,16 @@ export function MenuBrowse({
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-3 border-b border-console-border px-3.5 py-3">
+      <div className="flex flex-wrap gap-4 border-b border-gray-200 px-5 py-3">
         {categoryTabs.map((category) => {
           const active = activeCategory === category;
 
           return (
             <button
-              className={`border-b-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+              className={`border-b-2 pb-2 text-sm font-semibold transition-colors ${
                 active
-                  ? "border-console-ink text-console-ink"
-                  : "border-transparent text-slate-500 hover:text-console-ink"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
               key={category}
               onClick={() => setActiveCategory(category)}
@@ -125,7 +125,7 @@ export function MenuBrowse({
           className="m-3.5"
         />
       ) : (
-        <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-3 p-4 sm:grid-cols-2 2xl:grid-cols-3">
           {filteredItems.map((item) => (
             <MenuItemCard
               item={item}

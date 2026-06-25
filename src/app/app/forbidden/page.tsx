@@ -1,26 +1,30 @@
 import Link from "next/link";
 import { Home, ShieldAlert } from "lucide-react";
 
-import { EmptyState } from "@/components/ui/empty-state";
-
 const homeLinkClassName =
-  "inline-flex h-8 items-center justify-center gap-1.5 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent transition-colors hover:bg-slate-800";
+  "inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800";
 
 export default function AppForbiddenPage() {
   return (
-    <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-console-bg p-6">
-      <EmptyState
-        icon={ShieldAlert}
-        title="Akses ditolak"
-        description="Kode 403. Akun Anda tidak memiliki izin untuk membuka modul ini. Kembali ke dashboard sesuai peran untuk melanjutkan."
-        className="min-h-[280px] w-full max-w-xl border-console-border bg-console-surface px-6 py-10"
-        action={
+    <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-50 p-6 font-jakarta text-slate-900">
+      <section className="flex min-h-[280px] w-full max-w-xl flex-col items-center justify-center rounded-lg border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
+        <div className="flex size-12 items-center justify-center rounded-lg bg-red-50 text-red-600">
+          <ShieldAlert size={22} aria-hidden="true" />
+        </div>
+        <h1 className="mt-5 text-[24px] font-bold leading-tight text-slate-900">
+          Akses ditolak
+        </h1>
+        <p className="mt-2 max-w-md text-[14px] leading-6 text-slate-500">
+          Kode 403. Akun Anda tidak memiliki izin untuk membuka modul ini.
+          Kembali ke dashboard sesuai peran untuk melanjutkan.
+        </p>
+        <div className="mt-6">
           <Link href="/app" className={homeLinkClassName}>
-            <Home size={14} aria-hidden="true" />
+            <Home size={16} aria-hidden="true" />
             Ke dashboard
           </Link>
-        }
-      />
+        </div>
+      </section>
     </main>
   );
 }

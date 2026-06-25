@@ -47,16 +47,16 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
   }
 
   return (
-    <form className="grid gap-4 p-4" onSubmit={handleSubmit}>
+    <form className="grid gap-4 p-5" onSubmit={handleSubmit}>
       <div>
         <label
-          className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600"
+          className="mb-1.5 block text-sm font-semibold text-slate-700"
           htmlFor="table-number"
         >
-          Table #
+          Table
         </label>
         <input
-          className="h-8 w-full border border-console-border bg-slate-100 px-2.5 text-[12px] font-semibold text-console-ink outline-none"
+          className="h-10 w-full rounded-md border border-gray-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           id="table-number"
           readOnly
           value={`${table.number} · kapasitas ${table.capacity}`}
@@ -64,13 +64,13 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
       </div>
       <div>
         <label
-          className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600"
+          className="mb-1.5 block text-sm font-semibold text-slate-700"
           htmlFor="guest-count"
         >
           Jumlah Tamu
         </label>
         <input
-          className="h-8 w-full border border-console-border bg-white px-2.5 text-[12px] text-console-ink outline-none focus:border-console-ink"
+          className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           id="guest-count"
           inputMode="numeric"
           min={1}
@@ -80,9 +80,9 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           value={guestCount}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-console-border pt-4">
+      <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
         <button
-          className="h-8 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:opacity-50"
+          className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
           disabled={isPending}
           type="submit"
         >

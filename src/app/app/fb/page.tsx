@@ -135,27 +135,26 @@ export default async function FBLandingPage({
     );
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
             Daftar Meja
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {shiftLabel(now)} · <span className="num">{activeGuestCount}</span>{" "}
             tamu aktif
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb/orders/new?service=room-service"
           >
             New Room Service Order
           </Link>
           <Link
-            className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             href="/app/fb/orders/new"
           >
             Mulai Order Baru
@@ -165,44 +164,44 @@ export default async function FBLandingPage({
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label="AKTIF"
+          label="Aktif"
           value={activeTableCount}
           sub={`${activeTableCount} meja occupied`}
         />
         <KpiCard
-          label="TERSEDIA"
+          label="Tersedia"
           value={availableTableCount}
           sub={`${availableTableCount} meja siap pakai`}
         />
         <KpiCard
-          label="ORDER BERJALAN"
+          label="Order Berjalan"
           value={openOrderCount}
           sub={`${activeGuestCount} tamu dalam order open`}
         />
         <KpiCard
-          label="PENDAPATAN HARI INI"
+          label="Pendapatan Hari Ini"
           value={formatIDR(todayRevenue)}
           sub="Order closed hari ini"
         />
       </div>
 
-      <div className="mt-4 border-b border-console-border">
+      <div className="mt-4 border-b border-gray-200">
         <nav className="flex gap-5" aria-label="F&B tabs">
           <Link
-            className={`border-b-2 px-0 pb-2 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+            className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
               activeTab === "floor"
-                ? "border-console-ink text-console-ink"
-                : "border-transparent text-slate-500 hover:text-console-ink"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
             href="/app/fb"
           >
             Floor Plan
           </Link>
           <Link
-            className={`border-b-2 px-0 pb-2 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+            className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
               activeTab === "orders"
-                ? "border-console-ink text-console-ink"
-                : "border-transparent text-slate-500 hover:text-console-ink"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
             href="/app/fb?tab=orders"
           >

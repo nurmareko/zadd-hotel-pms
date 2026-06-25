@@ -58,7 +58,7 @@ export function FolioSummary({
   const canCheckOut = isOpen && reservationStatus === ReservationStatus.CHECKED_IN;
 
   return (
-    <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
         {"Saldo"}
       </div>

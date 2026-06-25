@@ -257,7 +257,7 @@ export function CheckInForm({
         />
 
         <div className="flex min-w-0 flex-col gap-4">
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
               <h2 className="text-sm font-semibold">1. Pilih Kamar</h2>
               <span className="text-xs font-medium text-slate-500">
@@ -331,7 +331,7 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"GUEST INFORMATION"}
             </div>
@@ -429,7 +429,7 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"2. Guest Registration Card (GRC)"}
             </div>
@@ -538,7 +538,7 @@ export function CheckInForm({
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"3. Deposit & Pembayaran Awal"}
             </div>
@@ -636,7 +636,7 @@ export function CheckInForm({
         </div>
 
         <aside className="min-w-0">
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan"}
             </div>

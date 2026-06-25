@@ -49,7 +49,7 @@ type RecordPaymentDialogProps = {
 };
 
 const fieldClassName =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
+  "h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 
 function defaultAmount(balance: number) {
   if (balance <= 0) {
@@ -139,7 +139,7 @@ export function RecordPaymentDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+        <DialogContent className="rounded-[10px] border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               Catat Pembayaran
@@ -183,7 +183,7 @@ export function RecordPaymentDialog({
                     <FormLabel className="text-sm font-medium text-slate-700">Metode</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger className="h-10 w-full rounded-lg border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
+                        <SelectTrigger className="h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
                           <SelectValue placeholder="Pilih metode" />
                         </SelectTrigger>
                       </FormControl>

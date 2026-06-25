@@ -53,12 +53,12 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-4 border-b border-console-border-soft py-1.5 ${
-        strong ? "text-[15px] font-bold uppercase tracking-[0.04em]" : ""
+      className={`flex items-center justify-between gap-4 border-b border-gray-100 py-2 ${
+        strong ? "pt-3 text-base font-bold" : "text-sm"
       }`}
     >
       <span className="text-slate-600">{label}</span>
-      <span className={`num text-console-ink ${strong ? "text-[20px]" : ""}`}>
+      <span className={`num text-slate-900 ${strong ? "text-2xl" : ""}`}>
         {value}
       </span>
     </div>
@@ -79,25 +79,30 @@ export function BillView({ order, settings, totals }: BillViewProps) {
   ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"TAGIHAN"}
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 px-5 py-4">
+        <div className="text-base font-semibold text-slate-900">
+          Tagihan
+        </div>
+        <div className="mt-1 text-sm text-slate-500">
+          Detail bill dan ringkasan pembayaran order.
+        </div>
       </div>
 
-      <div className="p-4">
-        <div className="border-b border-console-ink pb-3">
-          <div className="text-[18px] font-bold uppercase tracking-[0.02em] text-console-ink">
+      <div className="p-4 md:p-5">
+        <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
+          <div className="text-xl font-bold text-slate-900">
             {settings.hotelName}
           </div>
-          <div className="mt-1 max-w-2xl text-[11px] leading-5 text-slate-500">
+          <div className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
             {settings.address ?? "-"}
           </div>
-          <div className="mt-3 text-[12px] font-bold uppercase tracking-[0.08em]">
+          <div className="mt-4 text-sm font-semibold text-slate-700">
             Bill / Tagihan
           </div>
         </div>
 
-        <div className="grid gap-x-5 gap-y-2 border-b border-console-border py-3 text-[12px] sm:grid-cols-2">
+        <div className="grid gap-x-5 gap-y-3 border-b border-gray-100 py-4 text-sm sm:grid-cols-2">
           <BillMeta label="Order #" value={order.orderNo} />
           <BillMeta label="Lokasi" value={order.locationLabel} />
           <BillMeta label="Jumlah Tamu" value={`${order.guestCount} pax`} />
@@ -106,19 +111,19 @@ export function BillView({ order, settings, totals }: BillViewProps) {
         </div>
 
         <div className="mt-4 overflow-auto">
-          <table className="min-w-[760px] w-full border-collapse text-[12px]">
+          <table className="min-w-[760px] w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="bg-console-ink px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold text-slate-600">
                   Item
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-600">
                   Qty
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-600">
                   Harga Satuan
                 </th>
-                <th className="bg-console-ink px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-console-accent">
+                <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-600">
                   Jumlah
                 </th>
               </tr>
@@ -126,7 +131,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
             <tbody>
               {order.items.length === 0 ? (
                 <tr>
-                  <td className="border-b border-console-border-soft px-3 py-3" colSpan={4}>
+                  <td className="border-b border-gray-100 px-3 py-3" colSpan={4}>
                     <EmptyState
                       icon={ReceiptText}
                       title="Order masih kosong"
@@ -138,7 +143,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
                 itemsByGuest.flatMap(([guestNumber, items]) => [
                   <tr key={`guest-${guestNumber}`}>
                     <td
-                      className="border-b border-console-border-soft bg-console-bg px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                      className="border-b border-gray-100 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-600"
                       colSpan={4}
                     >
                       {fbOrderGuestLabel(guestNumber)}
@@ -146,26 +151,26 @@ export function BillView({ order, settings, totals }: BillViewProps) {
                   </tr>,
                   ...items.map((item) => (
                     <tr
-                      className="border-b border-console-border-soft odd:bg-white even:bg-console-bg"
+                      className="border-b border-gray-100 odd:bg-white even:bg-slate-50/70"
                       key={item.id}
                     >
-                      <td className="px-3 py-2 align-top">
-                        <div className="font-semibold text-console-ink">
+                      <td className="px-3.5 py-3 align-top">
+                        <div className="font-semibold text-slate-900">
                           {item.name}
                         </div>
                         {item.notes ? (
-                          <div className="mt-1 max-w-[520px] whitespace-pre-wrap break-words text-[11px] italic leading-5 text-status-vd-fg">
+                          <div className="mt-1 max-w-[520px] whitespace-pre-wrap break-words text-xs italic leading-5 text-status-vd-fg">
                             {item.notes}
                           </div>
                         ) : null}
                       </td>
-                      <td className="num px-3 py-2 text-right align-top text-slate-700">
+                      <td className="num px-3.5 py-3 text-right align-top text-slate-700">
                         {item.quantity}
                       </td>
-                      <td className="num px-3 py-2 text-right align-top text-slate-700">
+                      <td className="num px-3.5 py-3 text-right align-top text-slate-700">
                         {formatIDR(item.unitPrice)}
                       </td>
-                      <td className="num px-3 py-2 text-right align-top font-semibold text-console-ink">
+                      <td className="num px-3.5 py-3 text-right align-top font-semibold text-slate-900">
                         {formatIDR(item.amount)}
                       </td>
                     </tr>
@@ -176,7 +181,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
           </table>
         </div>
 
-        <div className="ml-auto mt-4 w-full max-w-sm text-[12px]">
+        <div className="ml-auto mt-5 w-full max-w-sm rounded-lg border border-gray-200 bg-slate-50 px-4 py-3">
           <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
           {shouldShowPercentRow(settings.serviceChargePercent) ? (
             <SummaryRow
@@ -202,10 +207,10 @@ export function BillView({ order, settings, totals }: BillViewProps) {
 function BillMeta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+      <div className="text-xs font-medium text-slate-500">
         {label}
       </div>
-      <div className="num mt-1 font-semibold text-console-ink">{value}</div>
+      <div className="num mt-1 font-semibold text-slate-900">{value}</div>
     </div>
   );
 }

@@ -58,7 +58,7 @@ export function SupervisorStatusOverride({
           onChange={(event) =>
             setSelectedStatus(event.target.value as RoomStatus)
           }
-          className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm px-1.5 py-1 text-[10px] font-semibold text-slate-900"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white shadow-sm px-1.5 py-1 text-[10px] font-semibold text-slate-900"
         >
           {allRoomStatuses.map((roomStatus) => (
             <option key={roomStatus} value={roomStatus}>
@@ -70,7 +70,7 @@ export function SupervisorStatusOverride({
           type="submit"
           aria-label={`Simpan perubahan status kamar ${roomNumber}`}
           disabled={isPending || selectedStatus === status}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center border rounded-xl bg-blue-600 border-blue-600 shadow-sm text-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center border rounded-md bg-blue-600 border-blue-600 shadow-sm text-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
         </button>

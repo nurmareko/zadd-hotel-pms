@@ -6,7 +6,7 @@ import {
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <PageHeaderSkeleton
         titleWidth="w-64"
         subtitleWidth="w-[360px]"
@@ -15,12 +15,13 @@ export default function Loading() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-3">
-          <section className="border border-console-border bg-console-surface">
-            <div className="bg-console-ink px-3.5 py-3">
-              <Skeleton className="h-3 w-36 bg-console-border" />
+          <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="mt-2 h-3 w-64 max-w-full" />
             </div>
-            <div className="grid gap-3 p-3.5">
-              <div className="border border-console-border bg-console-bg p-3">
+            <div className="grid gap-3 p-4 md:p-5">
+              <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="mt-2 h-8 w-48" />
               </div>
@@ -28,34 +29,35 @@ export default function Loading() {
                 {Array.from({ length: 4 }).map((_, index) => (
                   <Skeleton
                     key={index}
-                    className="h-20 border border-console-border"
+                    className="h-24 rounded-lg border border-gray-200 bg-slate-100"
                   />
                 ))}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Skeleton className="h-8 border border-console-border" />
-                <Skeleton className="h-8 border border-console-border" />
+                <Skeleton className="h-10 rounded-md border border-gray-200 bg-slate-100" />
+                <Skeleton className="h-10 rounded-md border border-gray-200 bg-slate-100" />
               </div>
             </div>
           </section>
           <CardSkeleton rows={3} titleWidth="w-32" />
         </div>
 
-        <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:self-start">
-          <div className="bg-console-ink px-3.5 py-2">
-            <Skeleton className="h-3 w-36 bg-console-border" />
+        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="mt-2 h-3 w-52" />
           </div>
-          <div className="space-y-3 p-3.5">
+          <div className="space-y-3 p-5">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between gap-3 border-b border-console-border-soft pb-2"
+                className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2"
               >
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className={index === 3 ? "h-7 w-32" : "h-4 w-24"} />
               </div>
             ))}
-            <Skeleton className="h-16 border border-console-border" />
+            <Skeleton className="h-16 rounded-lg border border-gray-200 bg-slate-100" />
           </div>
         </aside>
       </div>

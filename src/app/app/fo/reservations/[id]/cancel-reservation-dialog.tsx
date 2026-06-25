@@ -53,7 +53,7 @@ export function CancelReservationDialog({
       >
         Batalkan Reservasi
       </AlertDialogTrigger>
-      <AlertDialogContent className="rounded-xl border border-slate-200">
+      <AlertDialogContent className="rounded-[10px] border border-slate-200">
         <AlertDialogHeader>
           <AlertDialogTitle>
             Yakin batalkan reservasi {reservationNo}?

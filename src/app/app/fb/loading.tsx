@@ -7,15 +7,15 @@ import {
 
 function FloorPlanGroupSkeleton() {
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-2">
-        <Skeleton className="h-3 w-28 bg-console-border" />
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 px-5 py-4">
+        <Skeleton className="h-4 w-28" />
       </div>
-      <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
+      <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
-            className="min-h-[126px] border border-l-4 border-console-border bg-console-surface p-3"
+            className="min-h-[126px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <Skeleton className="h-7 w-16" />
@@ -32,7 +32,7 @@ function FloorPlanGroupSkeleton() {
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <PageHeaderSkeleton
         titleWidth="w-40"
         subtitleWidth="w-44"

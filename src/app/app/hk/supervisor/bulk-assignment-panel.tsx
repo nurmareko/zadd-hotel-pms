@@ -321,7 +321,7 @@ export function BulkAssignmentPanel({
   const controlsDisabled = isPending || housekeepers.length === 0;
 
   return (
-    <Card className="rounded-2xl overflow-hidden p-0">
+    <Card className="rounded-lg overflow-hidden p-0">
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -340,7 +340,7 @@ export function BulkAssignmentPanel({
                 value={housekeeperId}
                 onChange={onHousekeeperChange}
                 disabled={controlsDisabled}
-                className="h-9 min-w-[250px] rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-9 min-w-[250px] rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {housekeepers.length === 0 ? (
                   <option value="">Tidak ada member HK</option>
@@ -359,7 +359,7 @@ export function BulkAssignmentPanel({
                 size="lg"
                 onClick={assignSelected}
                 disabled={controlsDisabled || selectedCount === 0}
-                className="rounded-lg px-4"
+                className="rounded-md px-4"
               >
                 <UserCheck className="h-4 w-4 mr-1.5" aria-hidden="true" />
                 {pendingAction === "assign"
@@ -372,7 +372,7 @@ export function BulkAssignmentPanel({
                 variant="outline"
                 onClick={unassignSelected}
                 disabled={isPending || selectedCount === 0}
-                className="rounded-lg px-4"
+                className="rounded-md px-4"
               >
                 <Trash2 className="h-4 w-4 mr-1.5" aria-hidden="true" />
                 {pendingAction === "unassign"

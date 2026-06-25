@@ -396,7 +396,7 @@ function TapeChartLegend({
   dayCount: number;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-500 shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-500 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         <span>Legenda:</span>
         {legendItems.map((item) => (

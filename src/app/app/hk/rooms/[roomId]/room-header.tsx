@@ -32,7 +32,7 @@ export function RoomHeader({ roomNumber, roomTypeName, status }: RoomHeaderProps
       </nav>
 
       {/* Room Identity Card */}
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-4">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-5 py-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Kamar {roomNumber}

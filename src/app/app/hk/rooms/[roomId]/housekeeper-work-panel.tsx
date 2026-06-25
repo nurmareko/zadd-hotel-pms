@@ -121,15 +121,15 @@ export function HousekeeperWorkPanel({
   }
 
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border rounded-t-2xl px-5 py-4">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border rounded-t-lg px-5 py-4">
         <CardTitle className="text-[16px] font-semibold tracking-tight">
           Tugas Housekeeper
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3.5 p-3.5">
         {workContext ? (
-          <div className="rounded-xl border border-border bg-muted/40 p-3">
+          <div className="rounded-lg border border-border bg-muted/40 p-3">
             <div className="text-xs font-medium text-muted-foreground">
               {workContext.label}
             </div>
@@ -149,13 +149,13 @@ export function HousekeeperWorkPanel({
             ) : null}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+          <p className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
             Tidak ada catatan reservasi aktif untuk kamar ini.
           </p>
         )}
 
         {activeCleaningSession ? (
-          <div className="space-y-4 rounded-xl border border-border bg-muted/40 p-4">
+          <div className="space-y-4 rounded-lg border border-border bg-muted/40 p-4">
             <div className="text-xs font-medium text-muted-foreground text-center">
               Berlangsung · dimulai {formatTimeID(activeCleaningSession.startedAt)}
             </div>
@@ -199,7 +199,7 @@ export function HousekeeperWorkPanel({
                     value={cleaningNote}
                     onChange={(e) => setCleaningNote(e.target.value)}
                     maxLength={500}
-                    className="min-h-16 rounded-xl"
+                    className="min-h-16 rounded-md"
                   />
                 </div>
 
@@ -208,7 +208,7 @@ export function HousekeeperWorkPanel({
                   size="lg"
                   disabled={isPending || (isTurnover && (!linenChanged || !towelChanged))}
                   onClick={handleFinishCleaning}
-                  className="w-full rounded-xl"
+                  className="w-full rounded-md"
                 >
                   <Square className="h-4 w-4" aria-hidden="true" />
                   {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}
@@ -224,7 +224,7 @@ export function HousekeeperWorkPanel({
             size="lg"
             disabled={isPending}
             onClick={() => runRoomAction(startCleaning, "Pembersihan dimulai")}
-            className="w-full rounded-xl"
+            className="w-full rounded-md"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
             {isPending ? "Memulai..." : "Mulai Bersihkan"}
@@ -232,7 +232,7 @@ export function HousekeeperWorkPanel({
         ) : null}
 
         {!activeCleaningSession && !canStart ? (
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
             <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
             {latestCompletedCleaningSession
               ? `Selesai ${formatTimeID(latestCompletedCleaningSession.finishedAt)}`
@@ -261,7 +261,7 @@ export function HousekeeperWorkPanel({
             maxLength={500}
             placeholder={`Deskripsi barang di kamar ${roomNumber}`}
             aria-invalid={Boolean(foundItemError)}
-            className="min-h-16 rounded-xl"
+            className="min-h-16 rounded-md"
           />
           {foundItemError ? (
             <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -273,7 +273,7 @@ export function HousekeeperWorkPanel({
             size="lg"
             variant="outline"
             disabled={isFoundItemPending}
-            className="w-full rounded-xl"
+            className="w-full rounded-md"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
             {isFoundItemPending ? "Menyimpan..." : "Simpan barang temuan"}

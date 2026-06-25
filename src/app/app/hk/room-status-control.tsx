@@ -67,7 +67,7 @@ export function RoomStatusControl({
         type="submit"
         aria-label={`Simpan status kamar ${roomNumber}`}
         disabled={isPending || selectedStatus === status}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center border rounded-xl bg-blue-600 border-blue-600 shadow-sm text-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center border rounded-md bg-blue-600 border-blue-600 shadow-sm text-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Save className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

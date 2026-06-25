@@ -34,11 +34,11 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="grid gap-1 border-b border-console-border-soft py-2.5 last:border-b-0 sm:grid-cols-[190px_1fr] sm:gap-4">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+    <div className="grid gap-1 border-b border-gray-200 py-3 last:border-b-0 sm:grid-cols-[190px_1fr] sm:gap-4">
+      <dt className="text-[13px] font-medium text-slate-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-[13px] font-medium text-console-ink">
+      <dd className="min-w-0 text-[14px] font-semibold text-slate-900">
         {value}
       </dd>
     </div>
@@ -55,11 +55,14 @@ export function AccountCard({
   lastLoginLabel,
 }: AccountCardProps) {
   return (
-    <section className="overflow-hidden border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"AKUN"}
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 px-5 py-4">
+        <h2 className="text-[16px] font-semibold text-slate-900">Akun</h2>
+        <p className="mt-1 text-[13px] leading-5 text-slate-500">
+          Ringkasan identitas dan sesi pengguna.
+        </p>
       </div>
-      <dl className="px-3.5 py-2">
+      <dl className="px-5 py-2">
         <InfoRow label="Nama Lengkap" value={fullName} />
         <InfoRow label="Username" value={username} />
         <InfoRow label="Email" value={email ?? "—"} />

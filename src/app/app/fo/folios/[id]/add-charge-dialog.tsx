@@ -50,9 +50,9 @@ type AddChargeDialogProps = {
 };
 
 const fieldClassName =
-  "h-10 rounded-lg border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
+  "h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 const selectClassName =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
+  "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
 
 function resultErrorMessage(error: unknown) {
   return typeof error === "string" ? error : "Unable to post charge";
@@ -144,7 +144,7 @@ export function AddChargeDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+        <DialogContent className="rounded-[10px] border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               Tambah Charge
@@ -263,7 +263,7 @@ export function AddChargeDialog({
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Total Harga
                 </div>
-                <div className="mt-1 flex h-10 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-right text-sm font-bold tabular-nums text-slate-950">
+                <div className="mt-1 flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-right text-sm font-bold tabular-nums text-slate-950">
                   {formatIDR(amount)}
                 </div>
               </div>

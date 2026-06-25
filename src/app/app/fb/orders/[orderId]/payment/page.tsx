@@ -38,14 +38,14 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 border-b border-console-border-soft py-1.5 ${
-        strong ? "text-[15px] font-bold uppercase tracking-[0.04em]" : ""
+      className={`flex items-center justify-between gap-3 border-b border-gray-100 py-2 ${
+        strong ? "pt-3 text-base font-bold" : "text-sm"
       }`}
     >
-      <span className={strong ? "text-console-ink" : "text-slate-500"}>
+      <span className={strong ? "text-slate-900" : "text-slate-500"}>
         {label}
       </span>
-      <span className={`num text-console-ink ${strong ? "text-[22px]" : ""}`}>
+      <span className={`num text-slate-900 ${strong ? "text-2xl" : ""}`}>
         {value}
       </span>
     </div>
@@ -113,13 +113,15 @@ function ClosedState({
   locationLabel: string;
 }) {
   return (
-    <section className="border border-status-vc-pip bg-status-vc-bg">
-      <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"SUDAH DIBAYAR"}
+    <section className="overflow-hidden rounded-lg border border-status-vc-pip bg-status-vc-bg shadow-sm">
+      <div className="border-b border-status-vc-pip/60 bg-white/70 px-5 py-4">
+        <div className="text-base font-semibold text-status-vc-fg">
+          Sudah Dibayar
+        </div>
       </div>
-      <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg">
+      <div className="grid gap-3 p-5 text-sm text-status-vc-fg">
         <div>
-          <div className="text-[15px] font-bold uppercase tracking-[0.04em]">
+          <div className="text-base font-bold">
             Order sudah ditutup
           </div>
           <div className="mt-1 leading-5">
@@ -139,7 +141,7 @@ function ClosedState({
           </div>
         </div>
         {paymentMethod === PaymentMethod.CASH && cashDetails ? (
-          <div className="grid gap-1 border border-status-vc-pip bg-white px-3 py-2 text-console-ink sm:grid-cols-2">
+          <div className="grid gap-2 rounded-lg border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
             <div>
               <span className="text-slate-500">Uang diterima</span>{" "}
               <span className="num font-semibold">
@@ -156,13 +158,13 @@ function ClosedState({
         ) : null}
         <div className="flex flex-col gap-2 border-t border-status-vc-pip pt-3 sm:flex-row">
           <a
-            className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             href={`/api/fb-orders/${orderId}/receipt`}
           >
             Cetak Struk
           </a>
           <Link
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb"
           >
             Kembali ke Daftar Meja
@@ -242,14 +244,13 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
   const latestCashDetails = cashDetailsFromReference(latestPayment?.reference);
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Pembayaran — {order.orderNo}
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
+            Pembayaran · {order.orderNo}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
             pax · Dibuka {openedAtLabel}
           </p>
@@ -258,7 +259,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
       </div>
 
       {order.status === FBOrderStatus.VOIDED ? (
-        <div className="mb-4 border border-status-od-pip bg-status-od-bg px-3.5 py-3 text-[12px] font-semibold text-status-od-fg">
+        <div className="mb-4 rounded-lg border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
           Order ini sudah dibatalkan. Pembayaran tidak tersedia untuk order
           voided.
         </div>
@@ -309,16 +310,21 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               icon={CircleSlash}
               title="Tidak ada aksi pembayaran"
               description="Order voided tidak memiliki aksi pembayaran. Gunakan daftar order untuk kembali ke area F&B."
-              className="bg-console-surface"
+              className="rounded-lg border border-gray-200 bg-white shadow-sm"
             />
           ) : null}
         </div>
 
-        <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:self-start">
-          <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"RINGKASAN BILL"}
+        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <div className="text-base font-semibold text-slate-900">
+              Ringkasan Bill
+            </div>
+            <div className="mt-1 text-sm text-slate-500">
+              Total tagihan untuk penyelesaian pembayaran.
+            </div>
           </div>
-          <div className="p-3.5 text-[12px]">
+          <div className="p-5">
             <SummaryRow
               label="Subtotal"
               value={formatIDR(totals.subtotal.toString())}
@@ -340,14 +346,14 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               value={formatIDR(totals.total.toString())}
               strong
             />
-            <div className="mt-3 border border-console-border bg-console-bg px-3 py-2">
+            <div className="mt-4 rounded-lg border border-gray-200 bg-slate-50 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500">Jumlah tagihan</span>
-                <span className="num font-bold text-console-ink">
+                <span className="num font-bold text-slate-900">
                   {formatIDR(totals.total.toString())}
                 </span>
               </div>
-              <div className="mt-1 text-[11px] text-slate-500">
+              <div className="mt-1 text-xs text-slate-500">
                 {order.items.length} item · Kasir {order.waitedBy.fullName}
               </div>
             </div>

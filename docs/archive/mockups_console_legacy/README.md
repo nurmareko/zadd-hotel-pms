@@ -1,3 +1,5 @@
+These files are the superseded Console-theme design reference artifacts exported from the original design canvas. They are kept here for project history only; the canonical UI system is now V2 in `docs/design.md`.
+
 # Mockup Reference Note
 
 The files in this folder are historical design references from early ideation - not the current spec, implementation contract, or source of truth.

@@ -18,7 +18,7 @@ export default function Loading() {
 
         <aside className="space-y-3">
           <CardSkeleton rows={5} titleWidth="w-24" />
-          <section className="rounded-2xl border border-border bg-card p-3.5">
+          <section className="rounded-lg border border-border bg-card p-3.5">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end lg:flex-col-reverse">
               <Skeleton className="h-8 border border-border sm:w-24 lg:w-full" />
               <Skeleton className="h-8 border border-border sm:w-24 lg:w-full" />

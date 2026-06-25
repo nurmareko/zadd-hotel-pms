@@ -6,7 +6,7 @@ export default function Loading() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
         <header className="space-y-3">
           <Skeleton className="h-8 w-40" />
-          <div className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-3.5">
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white shadow-sm p-3.5">
             <div className="min-w-0">
               <Skeleton className="h-6 w-32" />
               <Skeleton className="mt-2 h-3 w-40" />
@@ -18,7 +18,7 @@ export default function Loading() {
         <CardSkeleton rows={4} titleWidth="w-32" />
         <CardSkeleton rows={3} titleWidth="w-28" />
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="bg-slate-900 px-3.5 py-3">
             <Skeleton className="h-3 w-24 bg-slate-200" />
           </div>

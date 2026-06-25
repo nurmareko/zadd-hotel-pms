@@ -40,7 +40,7 @@ function logSecondaryLine(log: FeedLog) {
 
 export function RecentActivityFeed({ logs }: { logs: FeedLog[] }) {
   return (
-    <Card className="mb-4 rounded-2xl overflow-hidden p-0">
+    <Card className="mb-4 rounded-lg overflow-hidden p-0">
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <CardTitle className="text-base font-semibold">
           Aktivitas Terkini (Global)

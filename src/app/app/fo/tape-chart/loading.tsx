@@ -27,7 +27,7 @@ export default function Loading() {
       </div>
 
       <div
-        className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
         style={{ maxHeight: 520, padding: 0 }}
       >
         <div style={{ maxHeight: 520, overflow: "auto" }}>

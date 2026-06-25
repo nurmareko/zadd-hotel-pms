@@ -26,7 +26,7 @@ function CompletedState({
   audit: NonNullable<Awaited<ReturnType<typeof buildNightAuditPlan>>["existingAudit"]>;
 }) {
   return (
-    <section className="border border-emerald-200 bg-emerald-50/50 rounded-2xl overflow-hidden">
+    <section className="border border-emerald-200 bg-emerald-50/50 rounded-lg overflow-hidden">
       <div className="border-b border-emerald-200 bg-emerald-100/50 px-5 py-4 text-xs font-bold uppercase tracking-[0.08em] text-emerald-900">
         {"COMPLETED"}
       </div>
@@ -42,13 +42,13 @@ function CompletedState({
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               href={`/app/acc/reports/${audit.id}`}
             >
               Lihat Laporan
             </Link>
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
               href="/app/acc"
             >
               Kembali
@@ -56,7 +56,7 @@ function CompletedState({
           </div>
         </div>
 
-        <aside className="border border-emerald-200 bg-white rounded-xl p-4 text-sm text-foreground">
+        <aside className="border border-emerald-200 bg-white rounded-lg p-4 text-sm text-foreground">
           <div className="flex items-center justify-between gap-3 border-b border-border py-2">
             <span className="text-muted-foreground">Pendapatan Kamar</span>
             <span className="num font-semibold">{formatIDR(audit.roomRevenue)}</span>
@@ -116,7 +116,7 @@ export default async function NightAuditPage() {
           </p>
         </div>
         <Link
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           href="/app/acc"
         >
           Kembali

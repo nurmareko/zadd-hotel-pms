@@ -7,7 +7,7 @@ import {
 
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <PageHeaderSkeleton
         titleWidth="w-56"
         subtitleWidth="w-[360px]"
@@ -15,12 +15,12 @@ export default function Loading() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="border border-console-border bg-console-surface p-3.5">
-          <div className="border-b border-console-border pb-3">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="border-b border-gray-100 pb-4">
             <Skeleton className="h-5 w-44" />
             <Skeleton className="mt-2 h-3 w-72 max-w-full" />
           </div>
-          <div className="grid gap-x-5 gap-y-2 border-b border-console-border py-3 sm:grid-cols-2">
+          <div className="grid gap-x-5 gap-y-3 border-b border-gray-100 py-4 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex justify-between gap-3">
                 <Skeleton className="h-3 w-20" />
@@ -29,7 +29,7 @@ export default function Loading() {
             ))}
           </div>
           <TableSkeleton rows={6} cols={4} minWidth="760px" />
-          <div className="ml-auto mt-3 w-full max-w-xs space-y-2 border-t border-console-border-soft pt-3">
+          <div className="ml-auto mt-4 w-full max-w-xs space-y-2 rounded-lg border border-gray-200 bg-slate-50 p-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex justify-between gap-3">
                 <Skeleton className="h-4 w-24" />

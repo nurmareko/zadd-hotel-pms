@@ -216,7 +216,7 @@ export default async function ReservationListPage({
         </Link>
       </div>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <ReservationFilters
           filters={filters}
           resultCount={reservations.length}

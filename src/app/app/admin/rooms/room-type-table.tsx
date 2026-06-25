@@ -43,7 +43,7 @@ type RoomTypeTableProps = {
   rooms?: RoomRow[];
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddRoomTypeButton({ onClick }: { onClick: () => void }) {
   return (
@@ -86,7 +86,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
 
   return (
     <>
-      <section className="rounded-2xl border border-border bg-card">
+      <section className="rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-3 bg-card px-3.5 py-3 text-primary sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-bold uppercase tracking-[0.08em]">
             {"Tipe Kamar"}
@@ -107,7 +107,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
             {roomTypes.map((roomType) => (
               <article
                 key={roomType.id}
-                className="rounded-2xl border border-border bg-card"
+                className="rounded-lg border border-border bg-card"
               >
                 <div className="p-3.5">
                   <div className="flex items-start justify-between gap-3">
@@ -162,8 +162,8 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       </section>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Tipe Kamar"}
             </DialogTitle>
@@ -188,8 +188,8 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Tipe Kamar"}
             </DialogTitle>
@@ -220,7 +220,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl border-border">
+        <AlertDialogContent className="rounded-[10px] border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus tipe kamar?</AlertDialogTitle>
             <AlertDialogDescription>

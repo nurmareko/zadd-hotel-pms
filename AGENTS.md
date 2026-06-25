@@ -35,8 +35,8 @@ praktikum. Students rotate through 5 operational roles
 - docs/screen_inventory_mvp.md   — screen-by-screen specs
 - docs/db_specification_mvp.md   — table-level data model
 - docs/use_case_narrative_mvp.md — use case diagram narrative
-- docs/design.md      — visual conventions (Console theme)
-- docs/mockups/       — reference design files, not application code
+- docs/design.md      — canonical V2 design system
+- docs/archive/mockups_console_legacy/ — archived Console mockups, historical only
 - prisma/schema.prisma           — source of truth for data model
 
 ## Commands
@@ -72,8 +72,8 @@ praktikum. Students rotate through 5 operational roles
   causes avoidable re-renders.
 - Sticky table headers are scoped per table. Do not put `position: sticky` on
   global `.tbl` header styles; Tape Chart is the valid special case.
-- Status badge palette: VC emerald, OC blue, VD amber, OD red,
-  VCU yellow-amber, OOO slate.
+- Status badge palette: VC green, OC blue, VD amber, OD orange,
+  VCU purple, OOO red, OOS gray. See docs/design.md.
 - Prisma is pinned to v6.x. Do NOT upgrade to Prisma 7 — it has breaking
   changes (config file, driver adapters) that don't fit this project.
 - NextAuth uses the split-config pattern: src/auth.config.ts (Edge-safe, no DB/bcrypt)
@@ -81,14 +81,15 @@ praktikum. Students rotate through 5 operational roles
   is for server components and route handlers only. Do not import auth.ts from proxy.ts.
 - NextAuth v5 credentials failure returns HTTP 200 with `result.error`, not a
   4xx response. Client login code must check both `result.error` and `result.url`.
-- The app uses the Console theme: monospace everywhere, square corners, neon green
-  (#00d4aa) accent on dark surfaces only, density-first layouts. See docs/design.md.
+- The app uses the V2 design system: Plus Jakarta Sans typography, soft enterprise surfaces,
+  rounded cards, subtle shadows, Lucide icons, and consistent status chips. See docs/design.md.
 
-## Mockup Workflow
-- Mockup files live in `docs/mockups/` and are reference files, not application code.
-- ESLint ignores `docs/mockups/**`; do not import mockup files into the app.
-- Before retrofitting a screen, read the relevant mockup file first.
-- Retrofit one screen at a time: study → compare → report → apply → verify → commit.
+## Archived Console Mockups
+- Console-era mockup files live in `docs/archive/mockups_console_legacy/` and are
+  historical reference artifacts, not application code.
+- ESLint ignores `docs/archive/mockups_console_legacy/**`; do not import these
+  archived files into the app.
+- For current UI work, use the canonical V2 design system in docs/design.md.
 
 ## Module Ownership
 - HK, FB, and ACC modules have designated teammate owners from the team kickoff plan.

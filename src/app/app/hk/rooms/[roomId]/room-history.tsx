@@ -36,8 +36,8 @@ function logSecondaryLine(log: HistoryLog) {
 
 export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
         <CardTitle className="text-base font-semibold">Riwayat</CardTitle>
       </CardHeader>
       <CardContent className="p-0">

@@ -1,5 +1,5 @@
 import { FBOrderStatus, TableStatus } from "@prisma/client";
-import { Table2 } from "lucide-react";
+import { ArrowLeft, BedDouble, Table2, Utensils } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -47,14 +47,13 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
     table?.status === TableStatus.RESERVED;
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
             {isRoomService ? "Room Service Order" : "Captain Order"}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {isRoomService
               ? "Validasi kamar in-house sebelum membuat order tanpa meja."
               : "Konfirmasi meja dan jumlah tamu sebelum membuat order."}
@@ -63,39 +62,42 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
         <div className="flex flex-col gap-2 sm:flex-row">
           {isRoomService ? (
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href="/app/fb/orders/new"
             >
+              <Utensils aria-hidden="true" className="size-4" />
               Dine In
             </Link>
           ) : (
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href="/app/fb/orders/new?service=room-service"
             >
+              <BedDouble aria-hidden="true" className="size-4" />
               Room Service
             </Link>
           )}
           <Link
-            className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb"
           >
+            <ArrowLeft aria-hidden="true" className="size-4" />
             Kembali
           </Link>
         </div>
       </div>
 
       {isRoomService ? (
-        <section className="max-w-xl border border-console-border bg-console-surface">
-          <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"ROOM SERVICE"}
+        <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
+            Room Service
           </div>
           <RoomServiceForm />
         </section>
       ) : table ? (
-        <section className="max-w-xl border border-console-border bg-console-surface">
-          <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"KONFIRMASI ORDER"}
+        <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
+            Konfirmasi Order
           </div>
           {canCreateOrder ? (
             <ConfirmForm
@@ -106,19 +108,19 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
               }}
             />
           ) : (
-            <div className="p-4 text-[13px] text-slate-600">
-              <div className="font-semibold text-console-ink">
+            <div className="p-5 text-sm text-slate-600">
+              <div className="font-semibold text-slate-900">
                 Meja {table.number} tidak tersedia untuk order baru.
               </div>
               {table.orders[0] ? (
                 <Link
-                  className="mt-3 inline-flex h-8 items-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+                  className="mt-3 inline-flex h-10 items-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
                   href={`/app/fb/orders/${table.orders[0].id}`}
                 >
                   Buka {table.orders[0].orderNo}
                 </Link>
               ) : (
-                <p className="mt-2 text-[12px] text-slate-500">
+                <p className="mt-2 text-sm text-slate-500">
                   Pilih meja available dari Floor Plan untuk memulai order.
                 </p>
               )}
@@ -126,9 +128,9 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           )}
         </section>
       ) : (
-        <section className="border border-console-border bg-console-surface">
-          <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-            {"PILIH MEJA AVAILABLE"}
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
+            Pilih Meja Available
           </div>
           {availableTables.length === 0 ? (
             <EmptyState
@@ -138,17 +140,20 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
               className="m-3.5"
             />
           ) : (
-            <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
               {availableTables.map((availableTable) => (
                 <Link
-                  className="border border-l-4 border-status-vc-pip bg-status-vc-bg p-3 text-status-vc-fg hover:bg-emerald-50"
+                  className="rounded-lg border border-gray-200 bg-white p-4 text-slate-700 shadow-sm transition-colors hover:border-status-vc-pip hover:bg-status-vc-bg"
                   href={`/app/fb/orders/new?tableId=${availableTable.id}`}
                   key={availableTable.id}
                 >
-                  <div className="text-[22px] font-bold text-console-ink">
+                  <div className="text-2xl font-bold text-slate-900">
                     {availableTable.number}
                   </div>
-                  <div className="mt-2 text-[11px] text-slate-600">
+                  <div className="mt-2 inline-flex h-6 items-center rounded-full border border-status-vc-pip bg-status-vc-bg px-2.5 text-xs font-semibold text-status-vc-fg">
+                    Available
+                  </div>
+                  <div className="mt-2 text-sm text-slate-500">
                     Kapasitas {availableTable.capacity}
                   </div>
                 </Link>

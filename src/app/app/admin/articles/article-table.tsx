@@ -68,7 +68,7 @@ const typeClassNames: Record<ArticleType, string> = {
   MISC: "border-slate-400 bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddArticleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -165,7 +165,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           className="mt-8 min-h-56 bg-card"
         />
       ) : (
-        <section className="rounded-2xl border border-border bg-card">
+        <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
             <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
@@ -265,8 +265,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Article"}
             </DialogTitle>
@@ -291,8 +291,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Article"}
             </DialogTitle>
@@ -325,7 +325,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl border-border">
+        <AlertDialogContent className="rounded-[10px] border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus artikel?</AlertDialogTitle>
             <AlertDialogDescription>

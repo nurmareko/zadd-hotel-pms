@@ -23,7 +23,7 @@ export function AuditStatusBanner({
 }: AuditStatusBannerProps) {
   if (todayAudit) {
     return (
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 text-emerald-900">
+      <section className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-5 text-emerald-900">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -49,7 +49,7 @@ export function AuditStatusBanner({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-2">
+    <section className="rounded-lg border border-border bg-card p-2">
       <EmptyState
         icon={ClipboardCheck}
         title="Night audit belum dijalankan"

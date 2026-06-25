@@ -17,7 +17,7 @@ export type InspectionInboxRow = {
 
 export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
   return (
-    <Card className="mb-4 rounded-2xl overflow-hidden p-0">
+    <Card className="mb-4 rounded-lg overflow-hidden p-0">
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base font-semibold">

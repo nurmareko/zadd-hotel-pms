@@ -33,7 +33,7 @@ function ErrorState({
         <p className="mt-1 text-sm text-slate-500">{title}</p>
       </div>
 
-      <section className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
+      <section className="rounded-lg border border-red-200 bg-red-50 p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-red-800">
           Folio Blocked
         </h2>
