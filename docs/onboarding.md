@@ -144,11 +144,11 @@ Navigation badges are intentionally small in scope: `GET /api/nav-badges` serves
 
 Housekeeping routes are role-aware:
 
-- `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors and ADMIN land on `/app/hk/supervisor`.
+- `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors land on `/app/hk/supervisor`. ADMIN has no HK access.
 - `/app/hk/clean` is My Rooms / Kamar Saya for assigned housekeeper work.
 - `/app/hk/rooms/[id]` is the shared room detail. Housekeepers clean/log; supervisors inspect/history/status.
 - `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. `/app/hk/list` is retired and redirects here.
-- `/app/hk/lost-found` is shared by HK, FO, and ADMIN for text-only item custody.
+- `/app/hk/lost-found` is shared by HK and FO only for text-only item custody.
 
 Housekeeping data has two separate responsibilities: `CleaningSession` is the source for assignment, timer, finish, and inspection; `HousekeepingLog` is the audit trail for room-status changes. Reservation comments are not duplicated for HK: `Reservation.notes` is the canonical note, editable by FO and read-only to HK.
 
@@ -222,7 +222,7 @@ The modules touch each other in a few specific places. These are the integration
 - **F&B → FO**: "Charge to Room" in F&B Payment (FB-04) writes a line item to the guest's folio from `src/app/app/fb/orders/[orderId]/actions.ts`.
 - **FO → HK**: Check-out (FO-07) auto-sets room status to `VD`; an in-house cleaning request from reservation detail sets `OC → OD`.
 - **HK → FO**: Kalender (FO-02) displays the status HK updates. Room-status changes revalidate cross-module views through `src/lib/revalidate-room-status.ts`.
-- **HK ↔ FO**: Lost & Found lets HK log text-only items and FO search when guests ask. Returning an item is an HK supervisor/ADMIN resolution action.
+- **HK ↔ FO**: Lost & Found lets HK log text-only items and FO search when guests ask. Returning an item is an HK supervisor resolution action.
 - **Everything → ACC**: Night Audit (AC-02) reads across all modules. Accounting owner is the last to build, because they need the other three modules producing data.
 
 When a cross-module seam comes up, don't design it on your own branch. Open a team chat discussion, team lead writes the shared code, all four modules consume it.

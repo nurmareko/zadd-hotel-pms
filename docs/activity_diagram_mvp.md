@@ -226,8 +226,8 @@ flowchart TD
 
 **Use case:** UC-FB-01 Create Captain Order, UC-FB-02 Process F&B Bill, UC-FB-03 Proses Pembayaran F&B
 **Actors:** F&B staff (Waiter), System
-**Trigger:** Guest sits at a restaurant table or waiter opens a new order
-**Precondition:** Table is AVAILABLE or an existing OPEN order is selected
+**Trigger:** Guest sits at a restaurant table, an in-house guest requests room service, or waiter opens an existing order
+**Precondition:** Dine-in table is AVAILABLE/RESERVED, or room-service room has a CHECKED_IN reservation with an OPEN folio
 
 ```mermaid
 flowchart TD
@@ -238,7 +238,9 @@ flowchart TD
         W2{Use existing order?}
         W3[Select occupied table<br/>or order from list]
         W4[Open Create Order<br/>/app/fb/orders/new]
-        W5[Select available table<br/>and guest count]
+        W21{Service type?}
+        W5[Select available/reserved table<br/>and guest count]
+        W22[Choose Room Service<br/>and enter room number + guest count]
         W6[Open order detail<br/>/app/fb/orders/orderId]
         W7[Add menu items<br/>Captain Order]
         W8[Adjust quantities<br/>and kitchen notes]
@@ -249,19 +251,19 @@ flowchart TD
         W13[Enter cash tendered]
         W14[Enter card reference]
         W15[Enter transfer reference]
-        W16[Enter guest room number]
+        W16[Enter guest room number<br/>or use attached folio]
         W17[Submit payment]
         W18[Download/print receipt]
-        W19[Serve guest / close table]
+        W19[Serve guest / close table if dine-in]
         W20[Show error to waiter]
     end
 
     subgraph S[System]
-        S1[Load table grid<br/>and active orders]
+        S1[Load table-only floor plan<br/>and active orders]
         S2[Validate table availability<br/>and guest count]
         S3{Table available?}
         S4[Begin transaction]
-        S5[Create FBOrder<br/>status OPEN]
+        S5[Create DINE_IN FBOrder<br/>status OPEN]
         S6[Update RestaurantTable<br/>status OCCUPIED]
         S7[Commit transaction]
         S8[Load menu and order cart]
@@ -281,22 +283,29 @@ flowchart TD
         S20[Create Payment row<br/>method CASH<br/>fb_order_id set]
         S21[Create Payment row<br/>method CARD<br/>reference saved]
         S22[Create Payment row<br/>method TRANSFER<br/>reference saved]
-        S23[Lookup room and<br/>CHECKED_IN reservation]
+        S23[Resolve charge-to-room folio:<br/>room lookup or attached folio]
         S24{Open folio found?}
-        S25[Insert FolioLineItem<br/>articleId: F&B charge<br/>fb_order_id linked]
+        S25[Insert one FolioLineItem<br/>articleId: F&B charge<br/>fb_order_id linked]
         S26[Update FBOrder:<br/>status CLOSED<br/>payment_method set]
-        S27[Update RestaurantTable<br/>status AVAILABLE]
+        S27[Update RestaurantTable<br/>status AVAILABLE if table exists]
         S28[Commit transaction]
         S29[Generate F&B receipt PDF]
         S30[Show error:<br/>table/order/payment invalid]
         S31[Show error:<br/>room not found,<br/>no in-house guest,<br/>or folio closed]
+        S34[Lookup room,<br/>CHECKED_IN reservation,<br/>and OPEN folio]
+        S35{Room service<br/>folio valid?}
+        S36[Create tableless FBOrder:<br/>serviceType ROOM_SERVICE<br/>chargedFolioId set]
     end
 
-    End([Order CLOSED<br/>table AVAILABLE])
+    End([Order CLOSED<br/>table freed if dine-in])
 
     Start --> W1 --> S1 --> W2
     W2 -->|Yes| W3 --> W6
-    W2 -->|No| W4 --> W5 --> S2 --> S3
+    W2 -->|No| W4 --> W21
+    W21 -->|Dine-in| W5 --> S2 --> S3
+    W21 -->|Room Service| W22 --> S4 --> S34 --> S35
+    S35 -->|No| S31 --> W20
+    S35 -->|Yes| S36 --> S7 --> W6
     S3 -->|No| S30 --> W20
     S3 -->|Yes| S4 --> S5 --> S6 --> S7 --> W6
     W6 --> S8 --> W7 --> W8 --> S9 --> S10 --> W9 --> W10 --> S11 --> S12
@@ -324,12 +333,14 @@ flowchart TD
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style W2 fill:#fffbeb
+    style W21 fill:#fffbeb
     style W12 fill:#fffbeb
     style S3 fill:#fffbeb
     style S12 fill:#fffbeb
     style S19 fill:#fffbeb
     style S24 fill:#fffbeb
     style S33 fill:#fffbeb
+    style S35 fill:#fffbeb
     style S4 fill:#eff6ff
     style S7 fill:#eff6ff
     style S13 fill:#eff6ff
@@ -343,11 +354,12 @@ flowchart TD
 **Key logic:**
 
 - **Route coverage:** the shipped flow moves through `/app/fb`, `/app/fb/orders/new`, `/app/fb/orders/[orderId]`, `/app/fb/orders/[orderId]/bill`, and `/app/fb/orders/[orderId]/payment`.
-- **Table locking at order creation:** the system validates the selected table and creates the OPEN FBOrder in one transaction, then marks the RestaurantTable OCCUPIED. This prevents two waiters from opening competing orders on the same table.
+- **Dine-in table locking at order creation:** the system validates the selected table and creates the OPEN `DINE_IN` FBOrder in one transaction, then marks the RestaurantTable OCCUPIED. This prevents two waiters from opening competing orders on the same table.
+- **Room-service order creation:** `/app/fb/orders/new?service=room-service` validates room number → CHECKED_IN reservation → OPEN folio inside the create transaction, then creates an OPEN `ROOM_SERVICE` FBOrder with `tableId`/`tableNo` null and `chargedFolioId` set. Rooms without an in-house guest or open folio are rejected.
 - **Captain Order before billing:** menu items are stored as FBOrderItem rows while the order is OPEN. The bill cannot be generated until at least one item exists.
 - **Bill locks totals:** confirming the bill computes subtotal, service charge, tax, and total from hotel settings, then changes the order from OPEN to BILLED. Payment is only allowed from BILLED state.
-- **Four payment paths:** cash, card, and transfer create Payment rows linked to the FBOrder. Charge-to-room validates an in-house guest and OPEN folio, then creates a FolioLineItem with `fb_order_id` linked to the originating order.
-- **Close and free table:** successful payment updates FBOrder to CLOSED and frees the RestaurantTable back to AVAILABLE. Receipt PDF generation happens after the transactional state change.
+- **Four payment paths:** cash, card, and transfer create Payment rows linked to the FBOrder. Charge-to-room validates an in-house guest and OPEN folio for dine-in, or uses the already-attached folio for room service, then creates one FolioLineItem with `fb_order_id` linked to the originating order.
+- **Close and free table:** successful payment updates FBOrder to CLOSED and frees the RestaurantTable back to AVAILABLE only when the order has a table. Room-service orders are tableless and do not affect the floor plan. Receipt PDF generation happens after the transactional state change.
 
 ---
 
@@ -381,48 +393,55 @@ flowchart TD
     end
 
     subgraph S[System]
-        S1[Compute folio totals<br/>INCLUDE: Verify Zero-Balance]
-        S2[Insert Payment record]
-        S3[Recompute folio totals]
-        S4{Balance now ≤ 0?}
-        S5[Re-verify folio status<br/>and reservation status]
-        S6{Statuses valid?}
-        S7[Begin transaction]
-        S8[Update Folio:<br/>status CLOSED<br/>closedAt: now]
-        S9[Update Reservation:<br/>status CHECKED_OUT]
-        S10[Update Room: status VD]
-        S11[Commit transaction]
-        S12[Render PDF bill]
-        S13[Show error:<br/>balance still positive]
-        S14[Show error:<br/>state changed elsewhere]
+        S1[Post pending stay-charge<br/>catch-up shortfall]
+        S2[Compute folio totals<br/>INCLUDE: Verify Zero-Balance]
+        S3[Post catch-up idempotently;<br/>insert Payment record]
+        S4[Recompute folio totals]
+        S5{Balance now ≤ 0?}
+        S6[Post catch-up again<br/>idempotently]
+        S7[Recompute folio totals]
+        S8{Balance ≤ 0?}
+        S9[Re-verify folio status<br/>and reservation status]
+        S10{Statuses valid?}
+        S11[Begin transaction]
+        S12[Update Folio:<br/>status CLOSED<br/>closedAt: now]
+        S13[Update Reservation:<br/>status CHECKED_OUT]
+        S14[Update Room: status VD]
+        S15[Commit transaction]
+        S16[Render PDF bill]
+        S17[Show error:<br/>balance still positive]
+        S18[Show error:<br/>state changed elsewhere]
     end
 
     End([Reservation CHECKED_OUT<br/>Room available for HK])
 
-    Start --> R1 --> R2 --> S1 --> R3
+    Start --> R1 --> R2 --> S1 --> S2 --> R3
     R3 --> R4
-    R4 -->|Yes| R5 --> G1 --> R6 --> S2 --> S3 --> S4
-    S4 -->|No| R5
-    S4 -->|Yes| R7
+    R4 -->|Yes| R5 --> G1 --> R6 --> S3 --> S4 --> S5
+    S5 -->|No| R5
+    S5 -->|Yes| R7
     R4 -->|No| R7
-    R7 --> R8 --> S5 --> S6
-    S6 -->|No| S14
-    S6 -->|Yes| S7 --> S8 --> S9 --> S10 --> S11 --> S12 --> R9 --> R10 --> G2 --> End
+    R7 --> R8 --> S6 --> S7 --> S8
+    S8 -->|No| S17 --> R5
+    S8 -->|Yes| S9 --> S10
+    S10 -->|No| S18
+    S10 -->|Yes| S11 --> S12 --> S13 --> S14 --> S15 --> S16 --> R9 --> R10 --> G2 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style R4 fill:#fffbeb
-    style S4 fill:#fffbeb
-    style S6 fill:#fffbeb
-    style S7 fill:#eff6ff
+    style S5 fill:#fffbeb
+    style S8 fill:#fffbeb
+    style S10 fill:#fffbeb
     style S11 fill:#eff6ff
-    style S13 fill:#fef2f2
-    style S14 fill:#fef2f2
+    style S15 fill:#eff6ff
+    style S17 fill:#fef2f2
+    style S18 fill:#fef2f2
 ```
 
 **Key logic:**
 
-- **«include» Verify Zero-Balance:** the verification runs whenever check-out is attempted. It's not an optional step — every check-out triggers it. The diagram shows this as the first system action after Click Check Out.
+- **«include» Verify Zero-Balance:** the verification runs whenever check-out is attempted. Before judging the balance, the server posts any pending stay-charge shortfall the night audit has not posted yet. Those charges are committed up front, so a blocked check-out leaves the true outstanding balance visible.
 - **Payment iteration loop:** if balance is positive after first payment, the system computes again and may require another payment. This handles the case where multiple payment methods are needed (e.g., partial cash + partial card).
 - **Three state changes in commit:** Folio close, Reservation flip, Room flip. The PDF generation happens AFTER commit — it's a side effect, not part of the transactional state change.
 - **Acceptable credit balance:** if balance is negative (overpayment), check-out proceeds without further payment. The credit is recorded as a known accounting state — it doesn't block the guest leaving.
@@ -521,7 +540,7 @@ flowchart TD
 - **HousekeepingLog is the audit trail:** every room-status change appends a `housekeeping_log` row with old status, new status, actor, timestamp, and optional status note. It is not the source for active timer state.
 - **Occupied-room loop:** FO can request cleaning from an in-house reservation detail, changing the room from `OC → OD`. When HK stops cleaning an occupied room, the room returns directly to `OC`.
 - **Vacant-room inspection:** stopping cleaning for a vacant dirty room changes `VD → VCU`. Inspection then approves `VCU → VC` or rejects `VCU → VD`.
-- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true` and to ADMIN. Housekeepers clean only their operational worklist.
+- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true`. ADMIN has no HK access. Housekeepers clean only their operational worklist.
 - **Manual override:** supervisors can bypass the normal clean/inspect path from Supervisor Rooms when operations require it; the override still writes the status audit.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
 - **Kalender sync:** every status change revalidates Front Office views. The FO receptionist sees room status updates without maintaining a separate room-status widget on Dashboard.
@@ -583,7 +602,7 @@ flowchart TD
 **Key logic:**
 
 - **Text-only custody log:** Lost & Found stores text description, optional room, found-by user, status, returned timestamp, and resolution. It does not store photos or create maintenance work.
-- **Shared access:** HK logs found items, FO searches when guests ask, and HK supervisor/ADMIN can resolve returned items.
+- **Shared access:** HK logs found items, FO searches when guests ask, and the HK supervisor can resolve returned items.
 - **Operationally independent:** marking an item returned does not change room status, reservation status, or folio state.
 
 ---
@@ -592,19 +611,19 @@ flowchart TD
 
 **Use case:** UC-AC-01 Jalankan Night Audit
 **Actors:** Accounting staff (Night Auditor), System
-**Trigger:** End of business day (per hotel_settings.night_audit_time, typically 23:00)
-**Precondition:** All F&B orders for the day are closed, no pending operations
-**Note:** This diagram represents the target workflow. Business-date advancement, cutoff enforcement, open-order blocking, and audit states beyond COMPLETED are in progress; arrangement-driven posting, snapshot capture, and duplicate-audit block are the currently-working parts.
+**Trigger:** Accounting runs the audit for the current WIB (`Asia/Jakarta`) hotel date
+**Precondition:** Accounting user is authenticated; required posting articles and in-house folios are valid
+**Note:** This diagram represents the shipped workflow. The app uses the live WIB business date, stores one completed audit per `business_date`, treats open F&B orders as warnings, and does not persist an "advance business date" step.
 
 ```mermaid
 flowchart TD
-    Start([End of business day reached])
+    Start([Night audit for current<br/>WIB business date])
 
     subgraph A[Accountant]
         A1[Open Night Audit screen]
-        A2[Review prerequisite checklist]
-        A3{All checks pass?}
-        A4[Resolve blocking issues<br/>e.g. close open F&B orders]
+        A2[Review checklist,<br/>warnings, and preview]
+        A3{Blocking errors?}
+        A4[Resolve blocking errors]
         A5[Click Run Night Audit]
         A6[Wait for completion]
         A7[Open Night Report]
@@ -613,49 +632,49 @@ flowchart TD
     end
 
     subgraph S[System]
-        S1[Run prerequisite checks:<br/>any open F&B orders?<br/>any unresolved issues?]
-        S2[Show blocking issues with<br/>links to resolve]
-        S3[Begin transaction]
-        S4[Loop: for each<br/>CHECKED_IN reservation]
-        S5[Read arrangementType]
-        S6{Arrangement type?}
-        S7[Post ROOM-CHARGE line item]
-        S8[Post ROOM-CHARGE + BREAKFAST<br/>line items]
-        S9[Post ROOM-CHARGE + BREAKFAST<br/>+ COFFEE-BREAK + LUNCH + DINNER<br/>line items]
-        S10[Aggregate revenue by article type]
-        S11[Compute occupancy rate<br/>OC rooms / non-OOO rooms]
-        S12[Compute occupancy and revenue metrics]
-        S13[Create NightAudit record<br/>status COMPLETED<br/>snapshot fields:<br/>room_revenue, fb_revenue,<br/>occupancy, counts, totals]
-        S14[Advance business date]
-        S15[Commit transaction]
-        S16[Render Night Report]
-        S17[Render report as PDF]
+        S1[Resolve current WIB date<br/>and check existing audit]
+        S2{Audit already exists?}
+        S3[Show already audited;<br/>post nothing]
+        S4[Build plan:<br/>validate articles/folios,<br/>count open F&B warnings]
+        S5[Show blocking errors<br/>with warnings preserved]
+        S6[Begin serializable transaction]
+        S7[Loop: for each<br/>CHECKED_IN open folio]
+        S8[Re-read folio line items<br/>inside transaction]
+        S9[Compute stay-charge shortfall:<br/>expected nights − already posted<br/>per article]
+        S10[Create only missing<br/>ROOM/arrangement lines]
+        S11[Aggregate revenue snapshot<br/>from actual postings + day totals]
+        S12[Create NightAudit record<br/>status COMPLETED<br/>unique business_date]
+        S13[Commit transaction]
+        S14[Render Night Report]
+        S15[Render report as PDF]
     end
 
     End([Day closed,<br/>report archived])
 
-    Start --> A1 --> A2 --> S1 --> A3
-    A3 -->|No| S2 --> A4 --> A2
-    A3 -->|Yes| A5 --> S3 --> S4 --> S5 --> S6
-    S6 -->|RO| S7 --> S4
-    S6 -->|RB| S8 --> S4
-    S6 -->|FBM| S9 --> S4
-    S4 -.->|All processed| S10 --> S11 --> S12 --> S13 --> S14 --> S15 --> A6 --> A7 --> S16 --> A8 --> S17 --> A9 --> End
+    Start --> A1 --> S1 --> S2
+    S2 -->|Yes| S3
+    S2 -->|No| S4 --> A2 --> A3
+    A3 -->|Yes| S5 --> A4 --> A2
+    A3 -->|No| A5 --> S6 --> S7 --> S8 --> S9 --> S10 --> S7
+    S7 -.->|All processed| S11 --> S12 --> S13 --> A6 --> A7 --> S14 --> A8 --> S15 --> A9 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style A3 fill:#fffbeb
-    style S6 fill:#fffbeb
-    style S3 fill:#eff6ff
-    style S15 fill:#eff6ff
-    style S2 fill:#fef2f2
+    style S2 fill:#fffbeb
+    style S6 fill:#eff6ff
+    style S13 fill:#eff6ff
+    style S3 fill:#f1f5f9
+    style S5 fill:#fef2f2
 ```
 
 **Key logic:**
 
-- **Atomic across all in-house guests:** every CHECKED_IN reservation's auto-posting happens in one transaction. If posting fails for any guest midway, the entire night audit rolls back. This prevents partial-audit states where some guests were charged and others weren't.
-- **Arrangement-driven posting:** the system reads each reservation's `arrangementType` and posts the corresponding articles. The article prices come from each article's `defaultPrice`. The room rate comes from the reservation's `rateAmount` (snapshot at booking).
-- **Idempotency consideration:** running night audit twice for the same business date would post duplicate charges. The system prevents this by checking the NightAudit record before running — if today's business date already has a COMPLETED audit, the operation is rejected. (Implementation detail handled in AC-02.)
+- **WIB business date:** the audit date and timestamp windows are derived from `Asia/Jakarta`, not the server-local calendar date. The app does not store or advance a separate business-date pointer.
+- **Atomic across all in-house guests:** every CHECKED_IN reservation's auto-posting happens in one serializable transaction. Each open folio's line items are re-read inside that transaction before posting.
+- **Shortfall-based arrangement posting:** the system reads each reservation's `arrangementType` and posts only the difference between expected nights and already-posted line items per article. If a prior night was missed, the next audit backfills the shortfall; if checkout already posted the catch-up, the audit posts nothing for that folio.
+- **Duplicate-audit lock:** `night_audit.business_date` is unique. Running the same WIB business date again is blocked before posting, and a concurrent duplicate fails on the unique constraint and rolls back.
+- **Open F&B order warnings:** open F&B orders appear in the audit warnings, but they do not block execution.
 - **Report snapshot:** the NightAudit record stores explicit snapshot fields (`room_revenue`, `fb_revenue`, occupancy, counts, totals). This freezes the report at the moment of audit completion. Even if reservations are later edited or folios modified, the night report shows the state as it was at audit time. This is important for accounting compliance.
 
 ---

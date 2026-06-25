@@ -22,7 +22,7 @@ function canUseHkSupervisorRoute(session: {
     isSupervisor?: boolean;
   };
 }) {
-  return session.user?.role === "ADMIN" || isHkSupervisor(session);
+  return isHkSupervisor(session);
 }
 
 export const proxy = auth((request) => {
@@ -34,7 +34,7 @@ export const proxy = auth((request) => {
   }
 
   if (routeMatches(pathname, "/app/hk/lost-found")) {
-    if (!["HK", "FO", "ADMIN"].includes(session.user.role)) {
+    if (!["HK", "FO"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }
 
@@ -42,7 +42,7 @@ export const proxy = auth((request) => {
   }
 
   if (pathname === "/app/hk") {
-    if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+    if (session.user.role !== "HK") {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }
 
@@ -72,7 +72,7 @@ export const proxy = auth((request) => {
   }
 
   if (routeMatches(pathname, "/app/hk/rooms")) {
-    if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+    if (session.user.role !== "HK") {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }
 

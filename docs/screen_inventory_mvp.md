@@ -2,6 +2,8 @@
 
 Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 29 screens total across 4 operational modules + admin + shared.
 
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes — e.g. FO Reservation Form / Detail (FO-04) covers reservation create, edit, and view. Pure redirect routes (`/app/hk` role landing, `/app/hk/list` → Supervisor Rooms, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens, so they are not counted. The total stays at 29 under this rule.
+
 ---
 
 ## 1. Top-Level Architecture (MVP)
@@ -65,9 +67,9 @@ The application is built as a **single Next.js app** with four operational areas
 | HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: role-aware detail. Housekeepers start/finish cleaning, add status notes, log found items, and see the live timer. Supervisors inspect VCU rooms, view history, and review status context. |
 | HK-03 | Supervisor Rooms | Page | `/app/hk/rooms`: merged status overview and daily worksheet with current room status, inline supervisor status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
 | HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
-| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK/Admin, and returned-item resolution. |
+| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK, and returned-item resolution. |
 
-`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, HK supervisors and ADMIN land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
+`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 
@@ -75,11 +77,11 @@ The application is built as a **single Next.js app** with four operational areas
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FB-01 | Table Picker + Daily Summary | Page | Per-location spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers |
-| FB-01A | New Order | Page | `/app/fb/orders/new`: select available table and guest count to create order |
-| FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes |
+| FB-01 | Table Picker + Daily Summary | Page | Per-location table-only spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers; order list includes dine-in and room-service orders |
+| FB-01A | New Order | Page | `/app/fb/orders/new`: dine-in mode selects available/reserved table + guest count; `/app/fb/orders/new?service=room-service` validates room → in-house guest → OPEN folio and creates a tableless folio-attached order |
+| FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes; header labels room-service orders with room and guest instead of table |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
-| FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. For CTR, pick the in-house guest by room number. |
+| FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. Dine-in CTR picks the in-house guest by room number; room-service CTR uses the attached folio by default while direct payment methods remain available. |
 
 **Cut from original**: Dashboard (merged into FB-01), Order History (tab inside FB-01), Print Bill modal (PDF button on FB-03).
 
@@ -90,6 +92,8 @@ The application is built as a **single Next.js app** with four operational areas
 | AC-01 | Accounting Dashboard | Page | Today's NA status, revenue summary, un-flushed postings count |
 | AC-02 | Night Audit | Page | Pre-check list → "Run Night Audit" button → progress → result |
 | AC-03 | Night Report | Page | Consolidated report: revenue breakdown, occupancy, guest list, transactions. Export PDF. |
+
+AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report` is the nav/empty-state entry point for AC-03: it redirects to the latest audit's report when one exists (or to `/app/acc/reports/[auditId]` when an `auditId` is passed), and renders the "no audit yet" empty state otherwise. It is a redirect/empty-state surface of AC-03, not a separate screen, so it is not counted in the 29.
 
 **Cut from original**: Report Center, Revenue Distribution Report, Guest Segment Statistics, Guest List Report (all consolidated into AC-03), Manual Bill + List (use Folio line items), standalone Folio Payment page (handled in FO-06).
 
@@ -155,7 +159,7 @@ Build these seven before opening Stitch / Claude Design:
 |---|---|---|
 | DataTable | FO-03, FB-01 history tab, AD-01..05 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
 | FormShell | all forms | shadcn `Form` + `zod` |
-| StatusBadge | Kalender, HK dashboard, reservation status | Room palette: VC emerald, OC blue, VD amber, OD red, VCU yellow-amber, OOO slate. Reservation palette: confirmed orange `#f97316`, checked-in emerald `#047857`, checked-out slate `#64748b`; Kalender's unallocated lane is blue `#2563eb`. |
+| StatusBadge | Kalender, HK dashboard, reservation status | Locked room palette (see docs/design.md): VC green `#22C55E`, OC blue `#3B82F6`, VD amber `#F59E0B`, OD orange `#F97316`, VCU purple `#8B5CF6`, OOO red `#EF4444`, OOS gray `#64748B`. Reservation palette: confirmed amber `#F59E0B`, checked-in green `#22C55E`, checked-out gray `#64748B`; Kalender's unallocated lane is blue `#3B82F6`. |
 | Dialog | cancellation, destructive Admin actions, compact CRUD forms | shadcn `Dialog` / `AlertDialog`, reused |
 | PDFButton | bills, reports | Wrapper around a print-to-PDF route |
 | NavShell | every authenticated page | Sidebar desktop + one bottom tab bar for all roles on mobile and coarse-pointer tablets |

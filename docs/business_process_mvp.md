@@ -154,36 +154,43 @@ How a CHECKED_IN stay becomes a CHECKED_OUT historical record. Includes the zero
 flowchart TD
     A([Departure day]) --> B[Receptionist opens<br/>guest folio]
     B --> C[Click Check Out]
-    C --> D[System computes<br/>folio totals]
-    D --> E{Balance?}
+    C --> D[Post pending stay-charge<br/>catch-up shortfall]
+    D --> E[System computes<br/>folio totals]
+    E --> F{Balance?}
 
-    E -->|Positive<br/>Owes money| F[Show Final Payment<br/>form]
-    E -->|Zero<br/>Settled| H[Show Confirm<br/>checkbox]
-    E -->|Negative<br/>Credit| H
+    F -->|Positive<br/>Owes money| G[Show Final Payment<br/>form]
+    F -->|Zero<br/>Settled| I[Show Confirm<br/>checkbox]
+    F -->|Negative<br/>Credit| I
 
-    F --> G[Receptionist records<br/>final payment]
-    G --> H
+    G --> H[Receptionist records<br/>final payment]
+    H --> I
 
-    H --> I[Receptionist ticks:<br/>guest has left, room verified]
-    I --> J[Atomic transaction:<br/>close folio, complete stay]
-    J --> K[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
-    K --> L[Generate PDF bill]
-    L --> M([Guest leaves])
-    M --> N[Housekeeping notified;<br/>Kalender reflects VD]
-    N --> O([Room cleaning cycle])
+    I --> J[Receptionist ticks:<br/>guest has left, room verified]
+    J --> K[Post catch-up again<br/>idempotently and recheck balance]
+    K --> L{Balance ≤ 0?}
+    L -->|No| G
+    L -->|Yes| M[Atomic transaction:<br/>close folio, complete stay]
+    M --> N[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
+    N --> O[Generate PDF bill]
+    O --> P([Guest leaves])
+    P --> Q[Housekeeping notified;<br/>Kalender reflects VD]
+    Q --> R([Room cleaning cycle])
 
     style A fill:#ecfdf5
-    style E fill:#fffbeb
-    style J fill:#eff6ff
-    style K fill:#eff6ff
-    style O fill:#ecfdf5
+    style F fill:#fffbeb
+    style L fill:#fffbeb
+    style M fill:#eff6ff
+    style N fill:#eff6ff
+    style R fill:#ecfdf5
 ```
 
-**Zero-balance gate:** the Confirm Check-Out button is disabled until the balance is zero or credit. Receptionist cannot finalize check-out with money still owed — the system enforces this constraint, not policy.
+**Stay-charge catch-up before the gate:** when check-out or final payment is attempted, the server posts any pending room/arrangement stay-charge shortfall the night audit has not posted yet, then recomputes the folio. The shortfall poster is shared with Night Audit and is idempotent, so already-posted nights are not duplicated.
+
+**Zero-balance gate:** the Confirm Check-Out button is disabled until the balance is zero or credit. The server also posts the catch-up charges again idempotently and rechecks the balance before closing the folio. Positive rounded balance blocks checkout and leaves the newly posted charges visible for settlement through the existing payment flow; there is no auto-pay.
+
+**Whole-folio balance:** the balance covers all folio line items and payments: room/arrangement charges, F&B charged to room, manual or miscellaneous charges, service/tax calculation, and recorded payments.
 
 **Why credit is acceptable:** if the guest overpaid (rare but happens with deposit + low actual usage), the credit is recorded but doesn't block check-out. A small overpayment isn't worth holding the guest at the desk; the credit becomes a known accounting item resolved later.
-
-**MVP simplification:** room charges are posted by Night Audit, not by Check-out. If a guest checks out before Night Audit has posted the room charge, the folio can show a credit balance from the deposit. The Check-out screen labels that state as a refund due and allows checkout; it does not post room charges itself.
 
 ---
 
@@ -247,38 +254,53 @@ flowchart TD
 
 ## 7. Food & Beverage Process
 
-Point-of-sale flow for the hotel restaurant. The order can be paid directly or charged to a guest's folio.
+Point-of-sale flow for the hotel restaurant and in-house room service. Dine-in orders occupy a restaurant table; room-service orders are tableless and attach to the guest's open folio at creation.
 
 ```mermaid
 flowchart TD
-    A([Guest sits at table]) --> B[Waiter opens<br/>Captain Order]
-    B --> C[Add menu items,<br/>quantities, kitchen notes]
-    C --> D[Submit order<br/>status: OPEN]
-    D --> E[Kitchen prepares]
-    E --> F[Guest finishes meal]
-    F --> G[Waiter generates bill]
-    G --> H[System computes:<br/>subtotal + SC + tax]
-    H --> I{Payment method?}
+    A([Guest requests F&B]) --> B{Service type?}
+    B -->|Dine-in| C[Waiter selects table<br/>and guest count]
+    B -->|Room Service| D[Waiter enters room number<br/>and guest count]
+    D --> E[System validates:<br/>CHECKED_IN guest + OPEN folio]
+    E --> F{Valid in-house folio?}
+    F -->|No| G[Reject room-service order]
+    F -->|Yes| H[Create tableless order<br/>chargedFolioId attached]
+    C --> I[Create dine-in order<br/>and occupy table]
+    H --> J[Add menu items,<br/>quantities, kitchen notes]
+    I --> J
+    J --> K[Submit order<br/>status: OPEN]
+    K --> L[Kitchen prepares]
+    L --> M[Guest finishes meal]
+    M --> N[Waiter generates bill]
+    N --> O[System computes:<br/>subtotal + SC + tax]
+    O --> P{Payment method?}
 
-    I -->|Cash| J[Receive cash,<br/>create Payment row<br/>fb_order_id set]
-    I -->|Charge to Room| K[Identify in-house guest<br/>by room number]
-    K --> L{Guest in-house?}
-    L -->|Yes| M[Post line item to folio<br/>fb_order_id link preserved]
-    L -->|No| N[Reject: must be<br/>in-house to charge]
-    N --> I
+    P -->|Cash/card/transfer| Q[Create Payment row<br/>fb_order_id set]
+    P -->|Charge to Room| R[Resolve folio:<br/>room lookup for dine-in,<br/>attached folio for room service]
+    R --> S{Guest in-house?}
+    S -->|Yes| T[Post one line item to folio<br/>fb_order_id link preserved]
+    S -->|No| U[Reject: must be<br/>in-house to charge]
+    U --> P
 
-    J --> O[Order status: CLOSED]
-    M --> O
-    O --> P[PDF receipt generated]
-    P --> Q([Guest leaves])
+    Q --> V[Order status: CLOSED]
+    T --> V
+    V --> W[Free table if dine-in]
+    W --> X[PDF receipt generated]
+    X --> Y([Guest leaves])
 
     style A fill:#ecfdf5
-    style I fill:#fffbeb
-    style M fill:#eff6ff
-    style Q fill:#f1f5f9
+    style B fill:#fffbeb
+    style F fill:#fffbeb
+    style P fill:#fffbeb
+    style T fill:#eff6ff
+    style Y fill:#f1f5f9
 ```
 
-**Cross-module integration:** Charge-to-Room is the most important non-FO touchpoint. F&B writes a line item directly into a guest's folio, and the folio's running balance immediately reflects it. The receptionist at check-out sees F&B charges aggregated with all other charges — no manual reconciliation needed.
+**Room-service creation:** `/app/fb/orders/new?service=room-service` asks for a room number and guest count, validates that the room has a CHECKED_IN reservation with an OPEN folio, and creates an OPEN `ROOM_SERVICE` order with no table and `chargedFolioId` attached. A room with no in-house guest is rejected before the order opens.
+
+**Shared order/bill/payment flow:** after creation, dine-in and room-service orders use the same menu, bill, payment, and receipt screens. The floor plan stays table-only; room-service orders appear in the order list/detail as `Room Service · Kamar X · Guest Y` and do not occupy or free restaurant tables.
+
+**Cross-module integration:** Charge-to-Room is the most important non-FO touchpoint. F&B writes one line item directly into a guest's folio, and the folio's running balance immediately reflects it. For room service, the payment screen defaults to the attached folio; cash, card, and transfer remain available. The receptionist at check-out sees F&B charges aggregated with all other charges — no manual reconciliation needed.
 
 **Polymorphic Payment:** the `payment` table records both folio payments and F&B-direct payments. Exactly one of `folio_id` or `fb_order_id` is set per row; this is enforced at the database level.
 
@@ -286,39 +308,47 @@ flowchart TD
 
 ## 8. Daily Close / Night Audit Process
 
-End-of-business-day procedure run by Accounting. Locks the day's transactions, posts room charges, and generates the consolidated report.
+Daily-close procedure run by Accounting for the current WIB (`Asia/Jakarta`) hotel date. It posts stay-charge shortfalls, stores a one-per-business-date snapshot, and generates the consolidated report.
 
 ```mermaid
 flowchart TD
-    A([End of business day<br/>e.g. 23:00 cutoff]) --> B[Accountant opens<br/>Night Audit screen]
-    B --> C[System checks prerequisites]
-    C --> D{All ready?}
-    D -->|No| E[Show blocking issues<br/>e.g. open orders]
-    E --> F[Accountant resolves]
-    F --> C
-    D -->|Yes| G[Click Run Night Audit]
+    A([Current WIB<br/>business date]) --> B[Accountant opens<br/>Night Audit screen]
+    B --> C[System builds plan:<br/>duplicate audit check,<br/>blocking validation,<br/>open-order warnings]
+    C --> D{Audit already<br/>completed?}
+    D -->|Yes| E[Show completed audit;<br/>post nothing]
+    D -->|No| F{Blocking errors?}
+    F -->|Yes| G[Show blocking issues]
+    G --> H[Accountant resolves]
+    H --> C
+    F -->|No| I[Click Run Night Audit]
 
-    G --> H[Begin transaction]
-    H --> I[For each CHECKED_IN<br/>reservation:]
-    I --> J[Read arrangementType]
-    J --> K[Auto-post corresponding<br/>articles to folio]
-    K --> L[Accumulate revenue<br/>by article type]
-    L --> M[Compute occupancy<br/>and other metrics]
-    M --> N[Create NightAudit row<br/>status: COMPLETED]
-    N --> O[Business date advances]
-    O --> P([Night Report ready])
-    P --> Q[Accountant exports<br/>PDF report]
+    I --> J[Begin serializable<br/>transaction]
+    J --> K[For each CHECKED_IN<br/>open folio:]
+    K --> L[Re-read line items<br/>inside transaction]
+    L --> M[Post only shortfall:<br/>expected nights − already posted<br/>per article]
+    M --> K
+    K -.->|All processed| N[Accumulate revenue<br/>from actual postings]
+    N --> O[Compute occupancy<br/>and other metrics]
+    O --> P[Create NightAudit row<br/>status: COMPLETED<br/>unique business_date]
+    P --> Q[Commit transaction]
+    Q --> R([Night Report ready])
+    R --> S[Accountant exports<br/>PDF report]
 
     style A fill:#ecfdf5
-    style G fill:#fffbeb
-    style H fill:#eff6ff
-    style P fill:#eff6ff
-    style Q fill:#f1f5f9
+    style D fill:#fffbeb
+    style F fill:#fffbeb
+    style I fill:#fffbeb
+    style J fill:#eff6ff
+    style Q fill:#eff6ff
+    style R fill:#eff6ff
+    style S fill:#f1f5f9
 ```
 
-**Atomic across all in-house guests:** if night audit fails midway, the whole transaction rolls back. Half-audited days are worse than no audit at all.
+**WIB business date and unique lock:** the audit business date is the current hotel date in `Asia/Jakarta`, not the server-local calendar date. `night_audit.business_date` is unique; re-running the same business date is blocked and posts nothing. The app does not persist or advance a separate business-date pointer.
 
-**The "business date" concept:** real hotels operate on a business date that differs from the calendar date for a few hours each night. A check-in at 02:00 might still belong to yesterday's business date if night audit hasn't run yet. For MVP simplicity, we treat business date as the current calendar date — but the architecture supports the proper concept if needed later.
+**Atomic shortfall posting:** if night audit fails midway, the whole transaction rolls back. Inside the serializable transaction, the system re-reads each open folio's line items and posts only the per-article shortfall between expected nights and already-posted stay charges. A missed prior night is therefore backfilled by the next run; a folio already caught up by checkout receives no duplicate lines.
+
+**Open F&B order warnings:** open F&B orders are surfaced as warnings for the accountant to review, but they do not block the audit from running.
 
 ---
 
@@ -329,15 +359,17 @@ Detailed view of how F&B and Front Office data converge through the folio. This 
 ```mermaid
 flowchart LR
     subgraph FB[Food & Beverage Module]
-        A[FB Order opened] --> B[Items added]
+        A[FB Order opened:<br/>dine-in table or<br/>room-service attached folio] --> B[Items added]
         B --> C[Bill generated]
         C --> D{Payment method?}
-        D -->|Charge to Room| E[Capture room number]
+        D -->|Dine-in Charge to Room| E[Capture room number]
+        D -->|Room Service Charge to Room| L[Use attached chargedFolioId]
     end
 
     subgraph FOLIO[Shared: Folio Module]
         F[Lookup in-house<br/>reservation by room] --> G[Verify folio<br/>is OPEN]
         G --> H[Insert FolioLineItem<br/>with fb_order_id]
+        L --> G
     end
 
     subgraph FO[Front Office Module]
@@ -355,7 +387,9 @@ flowchart LR
 
 **Why this matters:** without this integration, the receptionist at check-out would need to manually reconcile every F&B receipt against the guest's stay. With it, the F&B charge appears on the folio the moment it's posted — and the running balance updates automatically.
 
-**The link preserved:** the FolioLineItem stores `fb_order_id`, creating a trace back to the originating F&B order. If a guest disputes a charge, the receptionist can navigate from the folio line directly to the F&B order detail and resolve the question without leaving the system.
+**The link preserved:** the FolioLineItem stores `fb_order_id`, creating a trace back to the originating F&B order. Charge-to-room creates one linked folio line for the paid order total. If a guest disputes a charge, the receptionist can navigate from the folio line directly to the F&B order detail and resolve the question without leaving the system.
+
+**Revenue counting:** Night Audit counts closed F&B orders as F&B revenue and excludes folio line items with `fb_order_id` from other folio revenue, so charge-to-room F&B is not double-counted.
 
 ---
 

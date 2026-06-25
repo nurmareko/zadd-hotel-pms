@@ -65,8 +65,7 @@ export default async function HKRoomDetailPage({
   const { today } = todayDateOnly();
   const session = await auth();
   const currentUserId = Number(session?.user.id);
-  const canInspect =
-    session?.user.role === "ADMIN" || isHkSupervisor(session);
+  const canInspect = isHkSupervisor(session);
   const isHousekeeperMember =
     session?.user.role === "HK" && !isHkSupervisor(session);
   const [room, activeCleaningSession, latestCompletedCleaningSession, assignment] =

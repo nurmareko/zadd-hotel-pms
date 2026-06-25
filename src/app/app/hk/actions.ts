@@ -35,10 +35,7 @@ function isSerializationConflict(error: unknown) {
 }
 
 function isSupervisorSession(session: Session | null) {
-  return Boolean(
-    session?.user &&
-      (session.user.role === "ADMIN" || isHkSupervisor(session)),
-  );
+  return Boolean(session?.user && isHkSupervisor(session));
 }
 
 export async function updateRoomStatus(
@@ -46,7 +43,7 @@ export async function updateRoomStatus(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
+  if (session?.user.role !== "HK") {
     return { ok: false, error: "Tidak berwenang" };
   }
 

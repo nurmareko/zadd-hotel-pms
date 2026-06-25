@@ -39,10 +39,7 @@ function dateOnlyFromISO(value: string) {
 }
 
 function isSupervisorSession(session: Session | null) {
-  return Boolean(
-    session?.user &&
-      (session.user.role === "ADMIN" || isHkSupervisor(session)),
-  );
+  return Boolean(session?.user && isHkSupervisor(session));
 }
 
 function housekeeperSections(

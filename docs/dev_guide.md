@@ -21,7 +21,7 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
 
-**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. For HK, `User.isSupervisor` unlocks supervisor pages/actions while the role remains `HK`; ADMIN can access HK supervisor screens. A user with role FO cannot access operational HK routes except `/app/hk/lost-found` search — other HK routes return 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
+**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. For HK, `User.isSupervisor` unlocks supervisor pages/actions while the role remains `HK`; ADMIN has no Housekeeping access at all. A user with role FO cannot access operational HK routes except `/app/hk/lost-found` search — other HK routes return 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
 To reset all data and re-seed: `npm run db:reset` (drops everything, re-runs migrations + seed).
 
@@ -137,12 +137,12 @@ AGENTS.md                     ← AI tool context
 
 Housekeeping route map:
 
-- `/app/hk` — role-based redirect; HK members go to `/app/hk/clean`, HK supervisors and ADMIN go to `/app/hk/supervisor`.
+- `/app/hk` — role-based redirect; HK members go to `/app/hk/clean`, HK supervisors go to `/app/hk/supervisor`. ADMIN has no HK access.
 - `/app/hk/clean` — My Rooms / Kamar Saya housekeeper worklist.
 - `/app/hk/rooms/[id]` — shared role-aware room detail.
 - `/app/hk/rooms` — supervisor rooms worksheet and merged status board; `/app/hk/list` is retired and redirects here.
 - `/app/hk/supervisor` — supervisor dashboard with forecast, bulk assignment, VCU inbox, and KPIs.
-- `/app/hk/lost-found` — text-only Lost & Found log/search/return flow for HK, FO, and ADMIN.
+- `/app/hk/lost-found` — text-only Lost & Found log/search/return flow for HK and FO only.
 
 Housekeeping data model:
 

@@ -17,7 +17,7 @@ Supports the guest lifecycle from booking to final payment.
 - **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, capture the guest's required digital signature on screen, save `signatureDataUrl` and `signedAt`, embed the signature in the GRC PDF, and auto-open the folio.
 - **Guest Folio** — line-item charges, manual charge posting by staff, payment recording (cash, transfer, card), and post-check-in GRC printing.
 - **Reservation detail** — Details and Folio tabs keep reservation operations and folio access together.
-- **Check-out** — zero-balance verification, final payment processing, and auto-update of room status to Vacant Dirty.
+- **Check-out** — posts any pending stay-charge shortfall the night audit has not posted yet, verifies the full folio balance (room, F&B charge-to-room, and misc), blocks positive balances for settlement through the existing payment flow, and auto-updates room status to Vacant Dirty after completion.
 - **Room cleaning request** — Front Office can mark an in-house room as `Occupied Dirty` (`OC → OD`) for mid-stay cleaning.
 - **Bill printing** — guest bill is downloadable as PDF for archiving or physical printing.
 - **Tipe Reservasi** — categorization for reporting: Individual, Company, Government, OTA, Walk-in.
@@ -29,8 +29,8 @@ Supports the guest lifecycle from booking to final payment.
 
 Role-aware for mobile housekeepers and supervisor control.
 
-- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors/ADMIN to the supervisor dashboard.
-- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN can access supervisor HK screens.
+- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors to the supervisor dashboard.
+- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN does not access HK operational screens.
 - **My Rooms / Kamar Saya** — `/app/hk/clean` is the housekeeper worklist, grouped by assigned room need and linked to shared room detail.
 - **Shared room detail** — `/app/hk/rooms/[id]` adapts by role. Housekeepers start/finish cleaning, see the live timer, add a status note, and log found items. Supervisors inspect rooms, view status/history, and review cleaning context.
 - **Supervisor Rooms** — `/app/hk/rooms` merges the former status board and daily list into one worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` redirects here.
@@ -40,25 +40,26 @@ Role-aware for mobile housekeepers and supervisor control.
 - **VCU inspection workflow** — vacant cleaning follows `VD → VCU → VC` on pass or `VCU → VD` on rejection; occupied-room cleaning follows `OD → OC`.
 - **Supervisor status override** — supervisors can manually change a room's current status from the Supervisor Rooms page; each override creates a status audit.
 - **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context.
-- **Lost & Found** — `/app/hk/lost-found` supports text-only item logging, FO/HK/Admin search, and returned-item resolution.
+- **Lost & Found** — `/app/hk/lost-found` supports text-only item logging, FO/HK search, and returned-item resolution.
 - **FO sync** — HK actions revalidate HK screens and Front Office room/tape-chart views.
 
 ## Food & Beverage
 
-Shipped point-of-sale operations for the hotel restaurant.
+Shipped point-of-sale operations for the hotel restaurant and in-house room service.
 
-- **Floor plan + order list** — `/app/fb` shows a per-location spatial floor plan with Indoor/Outdoor/Private tabs derived from `TableLocation`, positioned table tiles colored by status, active orders, daily order list, and entry point for creating orders. RESERVED and OUT_OF_SERVICE tables expose status actions from the floor (seat guests → order, release reservation, set available) and display their note.
-- **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review.
+- **Floor plan + order list** — `/app/fb` shows a table-only per-location spatial floor plan with Indoor/Outdoor/Private tabs derived from `TableLocation`, positioned table tiles colored by status, active orders, daily order list, and entry points for dine-in and room-service orders. RESERVED and OUT_OF_SERVICE tables expose status actions from the floor (seat guests → order, release reservation, set available) and display their note. Room-service orders do not occupy a table and appear in the order list as `Room Service · Kamar X · Guest Y`.
+- **New room-service order** — `/app/fb/orders/new?service=room-service` validates a room number against a CHECKED_IN reservation with an OPEN folio, rejects rooms without an in-house guest, then creates a tableless `ROOM_SERVICE` order with `chargedFolioId` attached.
+- **Order detail / menu + cart** — `/app/fb/orders/[orderId]` supports menu selection, quantity, kitchen notes, and cart review for both dine-in and room-service orders.
 - **Bill processing** — `/app/fb/orders/[orderId]/bill` calculates subtotal, service charge, and tax based on hotel settings.
-- **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room (posting the F&B total to the guest's folio), including target guest selection by room number.
+- **Payment** — `/app/fb/orders/[orderId]/payment` supports cash, card, transfer, and charge-to-room. Dine-in charge-to-room looks up the target guest by room number; room-service payment defaults to the attached folio. Charge-to-room posts one linked F&B folio line item.
 - **Receipt printing** — F&B receipt is downloadable as PDF.
 
 ## Accounting
 
-In progress — screens shipped, full workflow being completed. The spec below keeps the intended daily-close workflow; advanced behaviors are planned/in-progress where noted.
+Shipped daily-close workflow for the current WIB hotel date.
 
-- **Accounting dashboard** — `/app/acc` shows today's night audit status, running revenue snapshot, and audit history. Unprocessed-posting indicator is planned/in-progress.
-- **Night Audit** — `/app/acc/night-audit` includes prerequisite checklist, daily-close execution, and arrangement-driven posting to guest folios. Business-date advancement/locking, open-F&B-order handling, audit-time cutoff enforcement, and audit lifecycle states beyond COMPLETED remain planned/in-progress.
+- **Accounting dashboard** — `/app/acc` shows the current WIB business-date night audit status, running revenue snapshot, audit history, and pending Night Audit indicator.
+- **Night Audit** — `/app/acc/night-audit` runs for the current WIB (`Asia/Jakarta`) business date, blocks duplicate audits through the unique `business_date` lock, posts only stay-charge shortfalls per article so missed nights are backfilled without double-posting, treats open F&B orders as warnings, and stores the completed revenue/occupancy snapshot. There is no persisted business-date advancement step.
 - **Night Report** — `/app/acc/reports/[auditId]` shows the consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
 
 ## Admin
@@ -77,7 +78,7 @@ Managed by the supervising lecturer. Master data only.
 Shared access features used by all role workspaces.
 
 - **Role-based login** — credentials login routes each user to the correct FO/HK/FB/ACC/Admin workspace.
-- **Console-themed login** — login screen follows the Console theme and exposes direct demo-account buttons.
+- **V2 login** — login screen uses the V2 design system: light enterprise surfaces, Plus Jakarta Sans typography, soft shadows, branded "ZADD Hotel Management", and direct demo-account buttons.
 - **Self-service profile** — authenticated users can view account/role metadata and change their own password.
 - **Responsive navigation** — desktop sidebar and one shared mobile bottom tab bar for all roles, including coarse-pointer tablets. The only navigation badge is ACC's pending Night Audit indicator.
 - **Hotel-timezone dates** — all operational "today" calculations use WIB (`Asia/Jakarta`).
@@ -95,7 +96,7 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Add room to existing reservation | Front Office | Requires multi-room reservation workflow and billing allocation. |
 | Multi-outlet F&B | F&B | One outlet (hotel restaurant) is enough for the early praktikum. |
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
-| Room Service + Banquet | F&B | New order types beyond the restaurant POS; requires schema and workflow expansion. |
+| Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |
 | Dynamic rate plans with date validity and segment | Front Office | MVP uses a fixed rate per room type. |
 | Multi-role per account | Auth | Each praktikum account is limited to one role to simplify access control. |
 | GM/Manager role hierarchy | Auth | Management hierarchy and cross-module oversight roles are outside the current role model. |
@@ -115,4 +116,4 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Visual floor plan | Housekeeping / Front Office | MVP uses lists/grids; spatial floor-map UI is a later visualization layer. |
 | Adult/child discrepancy report | Housekeeping / Front Office | HK person-count capture was removed; discrepancy reporting needs a dedicated workflow. |
 | Cross-stay guest database | Front Office | Guest data is kept per reservation in the MVP. |
-| Cross-module admin monitoring dashboard | Admin | Admins can access each module manually through a combined-role account. |
+| Cross-module admin monitoring dashboard | Admin | The app is single-role: ADMIN covers master data, users, and settings only and has no operational-module access. A lecturer who needs operational access uses a separate per-role account. |

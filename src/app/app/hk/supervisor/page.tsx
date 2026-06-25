@@ -112,10 +112,7 @@ export default async function HkSupervisorPage({
 }) {
   const session = await auth();
 
-  if (
-    !session?.user ||
-    (session.user.role !== "ADMIN" && !isHkSupervisor(session))
-  ) {
+  if (!session?.user || !isHkSupervisor(session)) {
     redirect("/app/forbidden");
   }
 

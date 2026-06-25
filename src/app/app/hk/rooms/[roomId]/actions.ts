@@ -44,10 +44,7 @@ async function requireHousekeeperMember() {
 async function requireInspectionUser() {
   const session = await auth();
 
-  if (
-    !session?.user ||
-    (session.user.role !== "ADMIN" && !isHkSupervisor(session))
-  ) {
+  if (!session?.user || !isHkSupervisor(session)) {
     return null;
   }
 

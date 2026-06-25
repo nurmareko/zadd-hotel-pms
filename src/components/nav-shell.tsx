@@ -197,29 +197,6 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
         { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
       ],
     },
-    {
-      label: "Housekeeping",
-      links: [
-        {
-          label: "HK Supervisor",
-          href: "/app/hk/supervisor",
-          icon: Gauge,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Kamar",
-          href: "/app/hk/rooms",
-          icon: BedDouble,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Lost & Found",
-          href: "/app/hk/lost-found",
-          icon: Archive,
-          activeMatch: "exact",
-        },
-      ],
-    },
   ],
 };
 
