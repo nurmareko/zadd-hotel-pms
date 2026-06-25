@@ -3,7 +3,7 @@ import {
   ReservationStatus,
   type ArticleType,
 } from "@prisma/client";
-import { AlertTriangle, Check, CheckCircle2, Download, Undo2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -397,15 +397,6 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
           >
             Batal
           </Link>
-          <button
-            type="submit"
-            form="complete-checkout-form"
-            disabled={isClosed || !isCheckoutAllowed || hasBalanceDue}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-          >
-            <Check className="h-4 w-4" aria-hidden="true" />
-            Konfirmasi Check-out
-          </button>
         </div>
       </div>
 
