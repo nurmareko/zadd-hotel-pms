@@ -56,7 +56,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           Table
         </label>
         <input
-          className="h-10 w-full rounded-xl border border-gray-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="h-10 w-full rounded-md border border-gray-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           id="table-number"
           readOnly
           value={`${table.number} · kapasitas ${table.capacity}`}
@@ -70,7 +70,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           Jumlah Tamu
         </label>
         <input
-          className="h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           id="guest-count"
           inputMode="numeric"
           min={1}
@@ -82,7 +82,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
         <button
-          className="h-10 rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
+          className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
           disabled={isPending}
           type="submit"
         >

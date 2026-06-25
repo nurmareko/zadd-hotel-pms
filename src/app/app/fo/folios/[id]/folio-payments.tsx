@@ -41,7 +41,7 @@ function PaymentBadge({ method }: { method: PaymentMethod }) {
 
 export function FolioPayments({ payments }: FolioPaymentsProps) {
   return (
-    <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
         <h2 className="text-sm font-semibold">Pembayaran</h2>
         <span className="text-xs font-medium text-slate-500">

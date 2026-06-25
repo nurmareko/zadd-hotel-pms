@@ -17,7 +17,7 @@ function ArrangementBadge({
   count: number;
 }) {
   return (
-    <div className="border border-blue-100 bg-blue-50/50 rounded-2xl p-4">
+    <div className="border border-blue-100 bg-blue-50/50 rounded-lg p-4">
       <div className="text-[10px] font-semibold uppercase tracking-[0.10em] text-blue-600">
         {arrangement}
       </div>
@@ -42,7 +42,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
   return (
     <div className="grid gap-4">
       {plan.warnings.length > 0 ? (
-        <section className="border border-amber-200 bg-amber-50 rounded-2xl p-4 text-sm text-amber-900">
+        <section className="border border-amber-200 bg-amber-50 rounded-lg p-4 text-sm text-amber-900">
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-amber-800">
             Peringatan
           </div>
@@ -55,7 +55,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
       ) : null}
 
       {plan.blockingErrors.length > 0 ? (
-        <section className="border border-red-200 bg-red-50 rounded-2xl p-4 text-sm text-red-900">
+        <section className="border border-red-200 bg-red-50 rounded-lg p-4 text-sm text-red-900">
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-red-800">
             Audit belum bisa dijalankan
           </div>
@@ -67,8 +67,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
         </section>
       ) : null}
 
-      <section className="border border-border bg-card rounded-2xl">
-        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-2xl">
+      <section className="border border-border bg-card rounded-lg">
+        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
           {"PRE-RUN SUMMARY"}
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -155,7 +155,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
             </div>
           </div>
 
-          <aside className="border border-border rounded-xl bg-slate-50 p-4 text-sm">
+          <aside className="border border-border rounded-lg bg-slate-50 p-4 text-sm">
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
               Snapshot
             </div>
@@ -188,8 +188,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
         </div>
       </section>
 
-      <section className="border border-border bg-card rounded-2xl">
-        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-2xl">
+      <section className="border border-border bg-card rounded-lg">
+        <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
           {"POSTING ARTICLES"}
         </div>
         <div className="overflow-auto">

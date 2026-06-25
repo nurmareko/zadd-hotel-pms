@@ -61,7 +61,7 @@ const statusClassNames: Record<RoomStatus, string> = {
   OOO: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddRoomButton({
   disabled,
@@ -142,7 +142,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
 
   return (
     <>
-      <section className="rounded-2xl border border-border bg-card">
+      <section className="rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-3 border-b border-border bg-card px-3.5 py-3 text-primary sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-bold uppercase tracking-[0.08em]">
             {"Daftar Kamar"}
@@ -259,8 +259,8 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
       </section>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Kamar"}
             </DialogTitle>
@@ -286,8 +286,8 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Kamar"}
             </DialogTitle>
@@ -316,7 +316,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl border-border">
+        <AlertDialogContent className="rounded-[10px] border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus kamar?</AlertDialogTitle>
             <AlertDialogDescription>

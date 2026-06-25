@@ -15,13 +15,13 @@ export default function Loading() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-3">
-          <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-5 py-4">
               <Skeleton className="h-4 w-36" />
               <Skeleton className="mt-2 h-3 w-64 max-w-full" />
             </div>
             <div className="grid gap-3 p-4 md:p-5">
-              <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+              <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="mt-2 h-8 w-48" />
               </div>
@@ -29,20 +29,20 @@ export default function Loading() {
                 {Array.from({ length: 4 }).map((_, index) => (
                   <Skeleton
                     key={index}
-                    className="h-24 rounded-2xl border border-gray-200 bg-slate-100"
+                    className="h-24 rounded-lg border border-gray-200 bg-slate-100"
                   />
                 ))}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Skeleton className="h-10 rounded-xl border border-gray-200 bg-slate-100" />
-                <Skeleton className="h-10 rounded-xl border border-gray-200 bg-slate-100" />
+                <Skeleton className="h-10 rounded-md border border-gray-200 bg-slate-100" />
+                <Skeleton className="h-10 rounded-md border border-gray-200 bg-slate-100" />
               </div>
             </div>
           </section>
           <CardSkeleton rows={3} titleWidth="w-32" />
         </div>
 
-        <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
           <div className="border-b border-gray-100 px-5 py-4">
             <Skeleton className="h-4 w-36" />
             <Skeleton className="mt-2 h-3 w-52" />
@@ -57,7 +57,7 @@ export default function Loading() {
                 <Skeleton className={index === 3 ? "h-7 w-32" : "h-4 w-24"} />
               </div>
             ))}
-            <Skeleton className="h-16 rounded-2xl border border-gray-200 bg-slate-100" />
+            <Skeleton className="h-16 rounded-lg border border-gray-200 bg-slate-100" />
           </div>
         </aside>
       </div>

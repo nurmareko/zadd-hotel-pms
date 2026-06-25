@@ -49,7 +49,7 @@ export function OrderCart({ order, settings }: OrderCartProps) {
   ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
-    <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
+    <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto">
       <div className="border-b border-gray-200 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
           Keranjang Order

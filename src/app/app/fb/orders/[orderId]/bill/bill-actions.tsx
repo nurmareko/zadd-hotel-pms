@@ -79,7 +79,7 @@ export function BillActions({
   }
 
   return (
-    <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+    <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
           Aksi Bill
@@ -92,7 +92,7 @@ export function BillActions({
         {status === "OPEN" ? (
           <>
             <button
-              className="h-10 rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
               disabled={!hasItems || isPending}
               onClick={handleConfirmBill}
               type="button"
@@ -100,12 +100,12 @@ export function BillActions({
               {isPending ? "Memproses..." : "Konfirmasi & Cetak Bill"}
             </button>
             {!hasItems ? (
-              <p className="rounded-xl border border-status-od-pip bg-status-od-bg px-3 py-2 text-sm font-medium leading-5 text-status-od-fg">
+              <p className="rounded-lg border border-status-od-pip bg-status-od-bg px-3 py-2 text-sm font-medium leading-5 text-status-od-fg">
                 Order kosong, tidak bisa ditagih.
               </p>
             ) : null}
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href={`/app/fb/orders/${orderId}`}
             >
               Kembali ke Order
@@ -116,13 +116,13 @@ export function BillActions({
         {status === "BILLED" ? (
           <>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
               href={`/app/fb/orders/${orderId}/payment`}
             >
               Lanjut ke Pembayaran
             </Link>
             <button
-              className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               onClick={handleReprint}
               type="button"
             >
@@ -130,13 +130,13 @@ export function BillActions({
             </button>
             <AlertDialog>
               <AlertDialogTrigger
-                className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+                className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
                 disabled={isPending}
                 type="button"
               >
                 Buka Kembali Order
               </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-xl border border-gray-200 bg-white shadow-xl">
+              <AlertDialogContent className="rounded-[10px] border border-gray-200 bg-white shadow-xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Buka kembali order?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -150,7 +150,7 @@ export function BillActions({
                     Batal
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+                    className="rounded-md bg-slate-900 text-white hover:bg-slate-800"
                     disabled={isPending}
                     onClick={handleReopen}
                     type="button"
@@ -165,7 +165,7 @@ export function BillActions({
 
         {status === "CLOSED" ? (
           <button
-            className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             onClick={handleReprint}
             type="button"
           >

@@ -59,7 +59,7 @@ type MenuTableProps = {
   items: MenuItemRow[];
 };
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddMenuItemButton({ onClick }: { onClick: () => void }) {
   return (
@@ -94,7 +94,7 @@ function KpiCard({
   delta: string;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-3.5">
+    <section className="rounded-lg border border-border bg-card p-3.5">
       <div className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
         [ {label} ]
       </div>
@@ -221,7 +221,7 @@ export function MenuTable({ items }: MenuTableProps) {
           className="mt-8 min-h-56 bg-card"
         />
       ) : (
-        <section className="rounded-2xl border border-border bg-card">
+        <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
             <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
@@ -334,8 +334,8 @@ export function MenuTable({ items }: MenuTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Menu"}
             </DialogTitle>
@@ -360,8 +360,8 @@ export function MenuTable({ items }: MenuTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-2xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-2xl">
+        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Menu"}
             </DialogTitle>
@@ -395,7 +395,7 @@ export function MenuTable({ items }: MenuTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl border-border">
+        <AlertDialogContent className="rounded-[10px] border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus menu?</AlertDialogTitle>
             <AlertDialogDescription>

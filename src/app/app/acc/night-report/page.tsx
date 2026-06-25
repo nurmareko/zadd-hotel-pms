@@ -46,7 +46,7 @@ export default async function NightReportPage({
           description="Jalankan night audit terlebih dahulu untuk membuat laporan."
           action={
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               href="/app/acc/night-audit"
             >
               Jalankan Night Audit

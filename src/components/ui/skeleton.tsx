@@ -8,7 +8,7 @@ export function Skeleton({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-xl bg-slate-200", className)}
+      className={cn("animate-pulse rounded-lg bg-slate-200", className)}
       {...props}
     />
   );
@@ -44,7 +44,7 @@ export function PageHeaderSkeleton({
             <Skeleton
               key={index}
               className={cn(
-                "h-10 rounded-xl border border-gray-200 bg-slate-100",
+                "h-10 rounded-md border border-gray-200 bg-slate-100",
                 index === 0 ? "w-28" : "w-32",
               )}
             />
@@ -67,7 +67,7 @@ export function KpiStripSkeleton({
       {Array.from({ length: count }).map((_, index) => (
         <section
           key={index}
-          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+          className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
         >
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-2 h-7 w-20" />
@@ -148,7 +148,7 @@ export function CardSkeleton({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm",
+        "overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm",
         className,
       )}
     >
@@ -176,11 +176,11 @@ export function FilterBarSkeleton({
 }) {
   return (
     <div className="flex flex-col gap-2 border-b border-gray-200 bg-white p-5 lg:flex-row lg:items-center">
-      <Skeleton className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100 sm:w-[280px]" />
+      <Skeleton className="h-10 w-full rounded-md border border-gray-200 bg-slate-100 sm:w-[280px]" />
       {Array.from({ length: fields }).map((_, index) => (
         <Skeleton
           key={index}
-          className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100 sm:w-[140px]"
+          className="h-10 w-full rounded-md border border-gray-200 bg-slate-100 sm:w-[140px]"
         />
       ))}
       {showCount ? (
@@ -207,7 +207,7 @@ export function TabStripSkeleton({
           <Skeleton
             key={index}
             className={cn(
-              "h-10 rounded-t-xl border-b-2 border-gray-200 bg-slate-100",
+              "h-10 rounded-t-lg border-b-2 border-gray-200 bg-slate-100",
               index === 0 ? "w-24" : "w-32",
             )}
           />
@@ -254,7 +254,7 @@ export function AdminTableLoadingSkeleton({
       {tabCount > 0 ? (
         <TabStripSkeleton count={tabCount} className="mb-4" />
       ) : null}
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <FilterBarSkeleton fields={filterFields} />
         <TableSkeleton rows={rows} cols={cols} minWidth={minWidth} />
       </section>

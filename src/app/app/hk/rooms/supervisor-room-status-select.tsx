@@ -61,7 +61,7 @@ export function SupervisorRoomStatusSelect({
           value={selectedStatus}
           disabled={isPending}
           onChange={(event) => applyStatus(event.target.value as RoomStatus)}
-          className="h-8 w-full appearance-none rounded-lg border border-border bg-background px-2 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-wait disabled:opacity-50"
+          className="h-8 w-full appearance-none rounded-md border border-border bg-background px-2 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-wait disabled:opacity-50"
         >
           {allRoomStatuses.map((roomStatus) => (
             <option key={roomStatus} value={roomStatus}>

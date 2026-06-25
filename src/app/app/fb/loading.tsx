@@ -7,7 +7,7 @@ import {
 
 function FloorPlanGroupSkeleton() {
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4">
         <Skeleton className="h-4 w-28" />
       </div>
@@ -15,7 +15,7 @@ function FloorPlanGroupSkeleton() {
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
-            className="min-h-[126px] rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+            className="min-h-[126px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <Skeleton className="h-7 w-16" />

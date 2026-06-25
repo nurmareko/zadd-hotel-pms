@@ -36,7 +36,7 @@ export default function Loading() {
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={index}
-                className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-3"
+                className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-slate-200 bg-white shadow-sm p-3"
               >
                 <div className="min-w-0">
                   <div className="flex items-end gap-2">

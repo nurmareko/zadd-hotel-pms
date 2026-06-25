@@ -68,9 +68,9 @@ const inputClassName = "flex h-9 w-full rounded-md border border-input bg-transp
 const labelClassName =
   "text-[10px] font-semibold uppercase tracking-[0.06em]";
 
-const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
+const buttonClassName = "h-9 rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function isRoleCode(value: unknown): value is RoleCode {
   return roleCodes.some((role) => role === value);

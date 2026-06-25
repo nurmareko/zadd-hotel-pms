@@ -199,21 +199,21 @@ export default async function HkRoomsPage({
         <nav aria-label="Tanggal kamar housekeeping" className="flex flex-wrap gap-2">
           <Link
             href={dateHref({ ...queryParams, date: addDays(date, -1) })}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             Prev
           </Link>
           <Link
             href={dateHref({ ...queryParams, date: new Date() })}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
             Today
           </Link>
           <Link
             href={dateHref({ ...queryParams, date: addDays(date, 1) })}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             Next
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -221,7 +221,7 @@ export default async function HkRoomsPage({
           <Link
             href={printHref(queryParams)}
             target="_blank"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <Printer className="h-4 w-4" aria-hidden="true" />
             Print Daily List
@@ -229,7 +229,7 @@ export default async function HkRoomsPage({
         </nav>
       </div>
 
-      <section className="mb-4 rounded-2xl border border-border bg-card">
+      <section className="mb-4 rounded-lg border border-border bg-card">
         <RoomFilterForm
           dateIso={formatISO(date, { representation: "date" })}
           defaultQ={q}
@@ -237,7 +237,7 @@ export default async function HkRoomsPage({
         />
       </section>
 
-      <Card className="rounded-2xl overflow-hidden p-0">
+      <Card className="rounded-lg overflow-hidden p-0">
         <CardHeader className="border-b border-border rounded-none px-5 py-4">
           <CardTitle className="text-[16px] font-semibold tracking-tight">
             {formatISODate(date)} Supervisor Worksheet

@@ -79,7 +79,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
   ).sort(([firstGuest], [secondGuest]) => firstGuest - secondGuest);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
           Tagihan
@@ -90,7 +90,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
       </div>
 
       <div className="p-4 md:p-5">
-        <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
           <div className="text-xl font-bold text-slate-900">
             {settings.hotelName}
           </div>
@@ -181,7 +181,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
           </table>
         </div>
 
-        <div className="ml-auto mt-5 w-full max-w-sm rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
+        <div className="ml-auto mt-5 w-full max-w-sm rounded-lg border border-gray-200 bg-slate-50 px-4 py-3">
           <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
           {shouldShowPercentRow(settings.serviceChargePercent) ? (
             <SummaryRow

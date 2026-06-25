@@ -64,14 +64,14 @@ export function RoomFilterForm({
           defaultValue={defaultQ}
           onChange={(e) => updateFilters("q", e.target.value, true)}
           placeholder="Cari kamar..."
-          className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3.5 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none"
+          className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3.5 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none"
         />
       </div>
       <select
         name="status"
         defaultValue={defaultStatus}
         onChange={(e) => updateFilters("status", e.target.value)}
-        className="h-10 w-full rounded-xl border border-border bg-background px-3.5 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none sm:w-[180px]"
+        className="h-10 w-full rounded-md border border-border bg-background px-3.5 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none sm:w-[180px]"
       >
         <option value="">Semua Status</option>
         <option value="VC">VC - Vacant Clean</option>

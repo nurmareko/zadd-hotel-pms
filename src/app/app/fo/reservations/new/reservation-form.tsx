@@ -297,7 +297,7 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="p-5">
             <h2 className={sectionTitleClassName}>Data Tamu</h2>
             <div className="grid gap-3.5 md:grid-cols-2">
@@ -705,7 +705,7 @@ export function ReservationForm({
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4">
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan Tarif"}
             </div>
@@ -746,7 +746,7 @@ export function ReservationForm({
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ketersediaan"}
             </div>

@@ -6,10 +6,10 @@ import {
 
 function MenuGridSkeleton() {
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
         <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100 md:max-w-[240px]" />
+        <Skeleton className="h-10 w-full rounded-md border border-gray-200 bg-slate-100 md:max-w-[240px]" />
       </div>
       <div className="flex flex-wrap gap-3 border-b border-gray-100 px-5 py-3">
         {Array.from({ length: 5 }).map((_, index) => (
@@ -23,14 +23,14 @@ function MenuGridSkeleton() {
         {Array.from({ length: 9 }).map((_, index) => (
           <article
             key={index}
-            className="grid min-h-[126px] gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+            className="grid min-h-[126px] gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-5 w-16" />
             </div>
             <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-10 w-full rounded-xl border border-gray-200 bg-slate-100" />
+            <Skeleton className="h-10 w-full rounded-md border border-gray-200 bg-slate-100" />
           </article>
         ))}
       </div>

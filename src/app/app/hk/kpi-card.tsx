@@ -6,7 +6,7 @@ type KpiCardProps = {
 
 export function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3.5">
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm p-3.5">
       <div className="text-[9.5px] font-semibold font-medium tracking-tight text-slate-600">
         [ {label} ]
       </div>

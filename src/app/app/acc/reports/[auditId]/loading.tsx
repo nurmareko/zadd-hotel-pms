@@ -13,7 +13,7 @@ export default function Loading() {
         actionCount={2}
       />
 
-      <section className="border border-border bg-card rounded-2xl">
+      <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border p-3.5">
           <Skeleton className="h-5 w-64" />
           <Skeleton className="mt-2 h-3 w-[420px] max-w-full" />

@@ -93,7 +93,7 @@ function ForecastCard({
 }) {
   const styles = forecastVariantStyles[variant];
   return (
-    <Card className={cn("rounded-2xl p-5 gap-2 transition-colors", styles.card)}>
+    <Card className={cn("rounded-lg p-5 gap-2 transition-colors", styles.card)}>
       <div className={cn("text-xs font-semibold tracking-tight uppercase", styles.label)}>
         {label}
       </div>
@@ -191,21 +191,21 @@ export default async function HkSupervisorPage({
         >
           <Link
             href={dateHref(addDays(date, -1))}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             Prev
           </Link>
           <Link
             href="/app/hk/supervisor"
-            className={cn(buttonVariants({ variant: "default", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "default", size: "lg" }), "rounded-md")}
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
             Today
           </Link>
           <Link
             href={dateHref(addDays(date, 1))}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             Next
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -213,7 +213,7 @@ export default async function HkSupervisorPage({
           <Link
             href={printHref(date)}
             target="_blank"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-xl")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <Printer className="h-4 w-4" aria-hidden="true" />
             Print Daily List
@@ -295,7 +295,7 @@ export default async function HkSupervisorPage({
         </div>
       </section>
 
-      <Card className="mb-8 rounded-2xl overflow-hidden p-0">
+      <Card className="mb-8 rounded-lg overflow-hidden p-0">
         <CardHeader className="border-b border-border rounded-none px-5 py-4">
           <CardTitle className="text-base font-semibold tracking-tight">
             Housekeeper Workload
@@ -305,7 +305,7 @@ export default async function HkSupervisorPage({
           {housekeepers.map((housekeeper) => (
             <Card
               key={housekeeper.id}
-              className="flex flex-row items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
+              className="flex flex-row items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">

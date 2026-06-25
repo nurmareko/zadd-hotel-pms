@@ -41,9 +41,9 @@ const textareaClassName =
 const labelClassName =
   "text-[10px] font-semibold uppercase tracking-[0.06em]";
 
-const buttonClassName = "h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
+const buttonClassName = "h-9 rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
-const primaryButtonClassName = "h-9 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
+const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function Section({
   title,
@@ -53,7 +53,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-card">
+    <section className="rounded-lg border border-border bg-card">
       <div className="bg-card px-3.5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-primary">
         {title}
       </div>
@@ -275,7 +275,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
         </div>
 
         <aside className="space-y-3">
-          <section className="rounded-2xl border border-border bg-card">
+          <section className="rounded-lg border border-border bg-card">
             <div className="bg-card px-3.5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Preview"}
             </div>
@@ -310,7 +310,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
             </div>
           </section>
 
-          <div className="flex flex-col-reverse gap-2 rounded-2xl border border-border bg-card p-3.5 sm:flex-row sm:justify-end lg:flex-col-reverse">
+          <div className="flex flex-col-reverse gap-2 rounded-lg border border-border bg-card p-3.5 sm:flex-row sm:justify-end lg:flex-col-reverse">
             <Button
               type="button"
               variant="outline"

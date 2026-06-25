@@ -31,7 +31,7 @@ export default function Loading() {
       </section>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="border border-border bg-card rounded-2xl">
+        <section className="border border-border bg-card rounded-lg">
           <div className="bg-accent/50 px-3.5 py-3">
             <Skeleton className="h-3 w-36 bg-muted" />
           </div>

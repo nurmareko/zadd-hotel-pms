@@ -102,7 +102,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
         </div>
         <button
           aria-label={`Remove ${item.name}`}
-          className="inline-flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+          className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
           disabled={!canEdit || isPending}
           onClick={removeItem}
           title={`Remove ${item.name}`}
@@ -113,7 +113,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex h-9 items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="inline-flex h-9 items-center overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
           <button
             aria-label={`Decrease ${item.name}`}
             className="inline-flex h-full w-9 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
@@ -144,7 +144,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
       </div>
 
       <input
-        className="h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+        className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
         disabled={!canEdit || isPending}
         maxLength={255}
         onBlur={saveNotes}

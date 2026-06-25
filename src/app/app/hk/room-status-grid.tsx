@@ -89,7 +89,7 @@ export function RoomStatusGrid({
               return (
                 <article
                   key={room.id}
-                  className={`min-h-[92px] rounded-2xl border border-border bg-card p-2.5 transition-colors ${classes.card}`}
+                  className={`min-h-[92px] rounded-lg border border-border bg-card p-2.5 transition-colors ${classes.card}`}
                 >
                   <Link href={room.href} className="block">
                     <div className="num text-[18px] font-bold leading-none text-slate-900">

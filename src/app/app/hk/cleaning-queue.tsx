@@ -139,7 +139,7 @@ function CleaningQueue({
               className={[
                 "min-h-11 shrink-0 border px-3 text-[11px] font-semibold font-medium tracking-tight",
                 active
-                  ? "rounded-xl bg-blue-600 border-blue-600 shadow-sm text-blue-600"
+                  ? "rounded-lg bg-blue-600 border-blue-600 shadow-sm text-blue-600"
                   : "border-slate-200 bg-white text-slate-900",
               ].join(" ")}
             >
@@ -165,7 +165,7 @@ function CleaningQueue({
             <Link
               key={row.id}
               href={row.href}
-              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-3 transition-colors hover:bg-status-vc-bg"
+              className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-slate-200 bg-white shadow-sm p-3 transition-colors hover:bg-status-vc-bg"
             >
               <div className="min-w-0">
                 <div className="flex items-end gap-2">
@@ -188,7 +188,7 @@ function CleaningQueue({
                   </p>
                 ) : null}
               </div>
-              <span className="self-center border rounded-xl bg-blue-600 border-blue-600 shadow-sm px-3 py-2 text-[11px] font-semibold font-medium tracking-tight text-blue-600">
+              <span className="self-center border rounded-lg bg-blue-600 border-blue-600 shadow-sm px-3 py-2 text-[11px] font-semibold font-medium tracking-tight text-blue-600">
                 {row.actionLabel}
               </span>
             </Link>

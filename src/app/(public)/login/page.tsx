@@ -14,7 +14,7 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-jakarta text-slate-900 sm:p-8">
-      <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-[600px] md:flex-row">
+      <div className="flex w-full max-w-[1000px] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm md:min-h-[600px] md:flex-row">
         <section className="hidden w-[45%] flex-col justify-between border-r border-gray-200 bg-slate-50 px-10 py-12 md:flex lg:px-12">
           <div>
             <BrandBlock />
@@ -64,7 +64,7 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-900 shadow-sm"
+        className="flex shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-900 shadow-sm"
         style={{
           width: compact ? 36 : 40,
           height: compact ? 36 : 40,

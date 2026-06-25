@@ -44,7 +44,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
   } as CSSProperties;
 
   return (
-    <section className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-4 md:px-5">
         <nav className="flex gap-5" aria-label="Lokasi meja">
           {locationTabs.map((location) => (
@@ -101,7 +101,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
           }}
         >
           <div
-            className="absolute left-0 top-0 origin-top-left rounded-2xl border border-gray-200 bg-slate-50 shadow-inner"
+            className="absolute left-0 top-0 origin-top-left rounded-lg border border-gray-200 bg-slate-50 shadow-inner"
             style={{
               width: RESTAURANT_FLOOR_CANVAS_WIDTH,
               height: RESTAURANT_FLOOR_CANVAS_HEIGHT,
@@ -109,7 +109,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
             }}
           >
             {selectedTables.length === 0 ? (
-              <div className="absolute left-4 top-4 max-w-xs rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 text-left shadow-sm">
+              <div className="absolute left-4 top-4 max-w-xs rounded-lg border border-dashed border-gray-200 bg-white px-4 py-3 text-left shadow-sm">
                 <Table2 className="h-5 w-5 text-slate-400" aria-hidden="true" />
                 <h3 className="mt-3 text-sm font-semibold text-slate-900">
                   Belum ada meja di area ini

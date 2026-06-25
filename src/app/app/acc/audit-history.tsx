@@ -45,7 +45,7 @@ const bodyCellClass = "border-b border-border/60 px-4 py-3 align-top";
 
 export function AuditHistory({ rows }: AuditHistoryProps) {
   return (
-    <Card className="rounded-2xl overflow-hidden p-0 min-w-0 max-w-full border border-border">
+    <Card className="rounded-lg overflow-hidden p-0 min-w-0 max-w-full border border-border">
       <CardHeader className="border-b border-border rounded-none px-5 py-4 bg-card">
         <CardTitle className="text-base font-semibold tracking-tight text-foreground">Riwayat Audit</CardTitle>
       </CardHeader>

@@ -93,7 +93,7 @@ function StepCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
         <h2 className="text-sm font-semibold">{title}</h2>
         {meta ? <span className="text-xs font-medium text-slate-500">{meta}</span> : null}
@@ -197,7 +197,7 @@ function PreviewBill({
   pendingLines: PendingStayChargeLine[];
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
         {"Preview Bill"}
       </div>

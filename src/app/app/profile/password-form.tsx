@@ -52,7 +52,7 @@ export function PasswordForm() {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4">
         <h2 className="text-[16px] font-semibold text-slate-900">
           Ganti Password
@@ -76,7 +76,7 @@ export function PasswordForm() {
                     <Input
                       type="password"
                       autoComplete="current-password"
-                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
+                      className="h-10 rounded-md border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -97,7 +97,7 @@ export function PasswordForm() {
                     <Input
                       type="password"
                       autoComplete="new-password"
-                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
+                      className="h-10 rounded-md border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -118,7 +118,7 @@ export function PasswordForm() {
                     <Input
                       type="password"
                       autoComplete="new-password"
-                      className="h-10 rounded-xl border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
+                      className="h-10 rounded-md border-gray-300 bg-white text-[14px] shadow-sm focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10"
                       {...field}
                     />
                   </FormControl>
@@ -131,7 +131,7 @@ export function PasswordForm() {
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="h-10 rounded-xl border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800"
+                className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800"
               >
                 {form.formState.isSubmitting
                   ? "Menyimpan..."

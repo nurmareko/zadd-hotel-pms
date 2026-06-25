@@ -15,7 +15,7 @@ export default function Loading() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-5">
           <div className="border-b border-gray-100 pb-4">
             <Skeleton className="h-5 w-44" />
             <Skeleton className="mt-2 h-3 w-72 max-w-full" />
@@ -29,7 +29,7 @@ export default function Loading() {
             ))}
           </div>
           <TableSkeleton rows={6} cols={4} minWidth="760px" />
-          <div className="ml-auto mt-4 w-full max-w-xs space-y-2 rounded-2xl border border-gray-200 bg-slate-50 p-4">
+          <div className="ml-auto mt-4 w-full max-w-xs space-y-2 rounded-lg border border-gray-200 bg-slate-50 p-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex justify-between gap-3">
                 <Skeleton className="h-4 w-24" />

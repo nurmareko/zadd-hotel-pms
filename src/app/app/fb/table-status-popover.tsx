@@ -107,7 +107,7 @@ export function TableStatusPopover({
       {isOpen ? (
         <div
           aria-label={`Aksi meja ${tableNumber}`}
-          className="absolute left-0 top-[calc(100%+8px)] z-30 w-60 rounded-2xl border border-gray-200 bg-white p-3 text-slate-900 shadow-lg"
+          className="absolute left-0 top-[calc(100%+8px)] z-30 w-60 rounded-lg border border-gray-200 bg-white p-3 text-slate-900 shadow-lg"
           id={panelId}
           role="dialog"
         >
@@ -118,19 +118,19 @@ export function TableStatusPopover({
           {isReserved ? (
             <div className="grid gap-2">
               {noteText ? (
-                <p className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                <p className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
                   {noteText}
                 </p>
               ) : null}
               <Link
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
                 href={`/app/fb/orders/new?tableId=${tableId}`}
                 ref={seatGuestsRef}
               >
                 Dudukkan Tamu
               </Link>
               <button
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 type="button"
@@ -141,12 +141,12 @@ export function TableStatusPopover({
           ) : (
             <div className="grid gap-2">
               {noteText ? (
-                <p className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                <p className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
                   {noteText}
                 </p>
               ) : null}
               <button
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-status-ooo-pip bg-status-ooo-pip px-3 text-sm font-semibold text-white transition-colors hover:bg-status-ooo-fg focus:outline-none focus:ring-2 focus:ring-status-ooo-bg disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-status-ooo-pip bg-status-ooo-pip px-3 text-sm font-semibold text-white transition-colors hover:bg-status-ooo-fg focus:outline-none focus:ring-2 focus:ring-status-ooo-bg disabled:opacity-50"
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 ref={setAvailableRef}

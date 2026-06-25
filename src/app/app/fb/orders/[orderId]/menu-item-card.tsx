@@ -45,7 +45,7 @@ export function MenuItemCard({
   }
 
   return (
-    <article className="grid min-h-[132px] gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-gray-300">
+    <article className="grid min-h-[132px] gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-gray-300">
       <div>
         <div className="text-sm font-semibold leading-5 text-slate-900">
           {item.name}
@@ -60,7 +60,7 @@ export function MenuItemCard({
         </span>
         <button
           aria-label={`Add ${item.name}`}
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
           disabled={disabled || isPending}
           onClick={handleAdd}
           title={`Add ${item.name}`}

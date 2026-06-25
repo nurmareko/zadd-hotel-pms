@@ -12,8 +12,8 @@ export function ActiveCleaningPanel({
   housekeeperName,
 }: ActiveCleaningPanelProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-2xl px-5 py-4">
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-lg px-5 py-4">
         <h2 className="text-[16px] font-semibold tracking-tight text-slate-900">
           {"Pembersihan Berlangsung"}
         </h2>

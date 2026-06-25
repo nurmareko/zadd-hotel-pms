@@ -53,7 +53,7 @@ function FieldRowsSkeleton({ rows = 4 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, index) => (
         <div key={index}>
           <Skeleton className="h-3 w-32" />
-          <Skeleton className="mt-2 h-10 w-full rounded-xl border border-gray-200 bg-slate-100" />
+          <Skeleton className="mt-2 h-10 w-full rounded-md border border-gray-200 bg-slate-100" />
         </div>
       ))}
     </div>
@@ -84,7 +84,7 @@ export function DashboardSkeleton({
       />
       <KpiStripSkeleton count={kpiCount} />
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <PanelHeaderSkeleton titleWidth="w-40" metaWidth="w-20" />
           <TableSkeleton rows={6} cols={5} minWidth="620px" />
         </section>
@@ -121,7 +121,7 @@ function HkSupervisorDashboardSkeleton({
         />
       </section>
 
-      <section className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <PanelHeaderSkeleton titleWidth="w-32" metaWidth="w-16" />
         <TableSkeleton rows={4} cols={4} minWidth="680px" />
       </section>
@@ -134,16 +134,16 @@ function HkSupervisorDashboardSkeleton({
         />
       </section>
 
-      <section className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <PanelHeaderSkeleton titleWidth="w-36" />
         <div className="grid gap-2 p-3 md:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}
-              className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 shadow-sm"
+              className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 shadow-sm"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <Skeleton className="size-8 rounded-xl border border-gray-200 bg-slate-100" />
+                <Skeleton className="size-8 rounded-md border border-gray-200 bg-slate-100" />
                 <Skeleton className="h-3 w-24" />
               </div>
               <Skeleton className="h-5 w-8" />
@@ -152,7 +152,7 @@ function HkSupervisorDashboardSkeleton({
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <PanelHeaderSkeleton titleWidth="w-44" metaWidth="w-24" />
         <div className="grid gap-3 p-3 lg:grid-cols-[260px_minmax(0,1fr)]">
           <FieldRowsSkeleton rows={3} />
@@ -214,12 +214,12 @@ export function CrudTablePageSkeleton({
       ) : null}
       {hasDateNav ? (
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Skeleton className="h-10 w-36 rounded-xl border border-gray-200 bg-slate-100" />
+          <Skeleton className="h-10 w-36 rounded-md border border-gray-200 bg-slate-100" />
           <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-10 w-36 rounded-xl border border-gray-200 bg-slate-100" />
+          <Skeleton className="h-10 w-36 rounded-md border border-gray-200 bg-slate-100" />
         </div>
       ) : null}
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         {hasFilter ? <FilterBarSkeleton fields={filterFields} /> : null}
         <TableSkeleton rows={rows} cols={cols} minWidth={minWidth} />
       </section>
@@ -275,7 +275,7 @@ export function CardListPageSkeleton({
           {Array.from({ length: groups }).map((_, index) => (
             <section
               key={index}
-              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
             >
               <PanelHeaderSkeleton titleWidth="w-32" />
               <div className="p-3.5">{cardGrid(Math.max(1, cards))}</div>
@@ -324,7 +324,7 @@ export function FormPageSkeleton({
       <main className="min-h-screen bg-slate-50 font-jakarta text-slate-900 md:grid md:grid-cols-[45%_55%]">
         <section className="relative hidden overflow-hidden border-r border-gray-200 bg-white px-10 py-9 md:flex md:flex-col md:justify-between lg:px-14">
           <div
-            className="absolute inset-x-10 top-9 h-24 rounded-2xl border border-gray-100 bg-slate-50"
+            className="absolute inset-x-10 top-9 h-24 rounded-lg border border-gray-100 bg-slate-50"
             style={{
               backgroundImage:
                 "linear-gradient(rgba(226,232,240,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(226,232,240,0.6) 1px, transparent 1px)",
@@ -337,7 +337,7 @@ export function FormPageSkeleton({
             aria-hidden="true"
           />
           <div className="relative flex items-center gap-3">
-            <Skeleton className="size-10 rounded-xl border border-gray-200 bg-slate-100" />
+            <Skeleton className="size-10 rounded-md border border-gray-200 bg-slate-100" />
             <div>
               <Skeleton className="h-3 w-24 bg-slate-200" />
               <Skeleton className="mt-2 h-2.5 w-48 bg-slate-100" />
@@ -360,14 +360,14 @@ export function FormPageSkeleton({
           <div className="w-full max-w-[420px]">
             <div className="mb-8 md:hidden">
               <div className="flex items-center gap-3">
-                <Skeleton className="size-8 rounded-xl border border-gray-200 bg-slate-100" />
+                <Skeleton className="size-8 rounded-md border border-gray-200 bg-slate-100" />
                 <div>
                   <Skeleton className="h-3 w-24" />
                   <Skeleton className="mt-2 h-2.5 w-48 max-w-full" />
                 </div>
               </div>
             </div>
-            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
               <PanelHeaderSkeleton titleWidth="w-20" />
               <div className="px-5 py-6 sm:px-7 sm:py-7">
                 <div className="mb-6">
@@ -376,7 +376,7 @@ export function FormPageSkeleton({
                   <Skeleton className="mt-2 h-3 w-3/4" />
                 </div>
                 <FieldRowsSkeleton rows={fieldRows} />
-                <Skeleton className="mt-5 h-10 w-full rounded-xl border border-gray-200 bg-slate-200" />
+                <Skeleton className="mt-5 h-10 w-full rounded-md border border-gray-200 bg-slate-200" />
                 <div className="mt-4 border-t border-gray-100 pt-4">
                   <div className="mb-3 flex items-baseline justify-between gap-3">
                     <Skeleton className="h-3 w-24" />
@@ -386,7 +386,7 @@ export function FormPageSkeleton({
                     {Array.from({ length: 8 }).map((_, index) => (
                       <Skeleton
                         key={index}
-                        className="h-9 rounded-xl border border-gray-200 bg-slate-100"
+                        className="h-9 rounded-md border border-gray-200 bg-slate-100"
                       />
                     ))}
                   </div>
@@ -402,12 +402,12 @@ export function FormPageSkeleton({
   const content = (
     <>
       {showHeader ? <PageHeaderSkeleton actionCount={actionCount} /> : null}
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <PanelHeaderSkeleton titleWidth="w-36" />
         <div className="px-3.5 py-4">
           <FieldRowsSkeleton rows={fieldRows} />
           <div className="mt-4 flex justify-end border-t border-gray-100 pt-4">
-            <Skeleton className="h-10 w-32 rounded-xl border border-gray-200 bg-slate-200" />
+            <Skeleton className="h-10 w-32 rounded-md border border-gray-200 bg-slate-200" />
           </div>
         </div>
       </section>
@@ -439,13 +439,13 @@ export function DetailPageSkeleton({
   if (emptyState) {
     return (
       <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-50 p-6 font-jakarta text-slate-900">
-        <section className="min-h-[280px] w-full max-w-xl rounded-2xl border border-gray-200 bg-white px-6 py-10 shadow-sm">
+        <section className="min-h-[280px] w-full max-w-xl rounded-lg border border-gray-200 bg-white px-6 py-10 shadow-sm">
           <div className="mx-auto flex max-w-md flex-col items-center text-center">
-            <Skeleton className="size-12 rounded-2xl border border-gray-200 bg-slate-100" />
+            <Skeleton className="size-12 rounded-lg border border-gray-200 bg-slate-100" />
             <Skeleton className="mt-5 h-6 w-44" />
             <Skeleton className="mt-3 h-3 w-full" />
             <Skeleton className="mt-2 h-3 w-5/6" />
-            <Skeleton className="mt-6 h-10 w-32 rounded-xl border border-gray-200 bg-slate-200" />
+            <Skeleton className="mt-6 h-10 w-32 rounded-md border border-gray-200 bg-slate-200" />
           </div>
         </section>
       </main>
@@ -487,7 +487,7 @@ export function WorkflowPageSkeleton({
       <PageHeaderSkeleton actionCount={1} />
       <KpiStripSkeleton count={summaryCount} className="md:grid-cols-3" />
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <PanelHeaderSkeleton titleWidth="w-40" />
           <div className="p-3.5">
             <FieldRowsSkeleton rows={actionRows} />
@@ -524,14 +524,14 @@ export function CalendarTapeChartSkeleton({
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton
               key={index}
-              className="h-6 w-24 rounded-xl border border-gray-200 bg-slate-100"
+              className="h-6 w-24 rounded-lg border border-gray-200 bg-slate-100"
             />
           ))}
         </div>
         <Skeleton className="h-3 w-28 sm:ml-auto" />
       </div>
       <div
-        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
         style={{ maxHeight: 520, overflow: "hidden", padding: 0 }}
       >
         <div style={{ maxHeight: 520, overflow: "auto" }}>
@@ -593,9 +593,9 @@ export function CalendarTapeChartSkeleton({
 export function RedirectShellSkeleton() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6 font-jakarta text-slate-900">
-      <section className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
-          <Skeleton className="size-8 rounded-xl border border-gray-200 bg-slate-100" />
+          <Skeleton className="size-8 rounded-md border border-gray-200 bg-slate-100" />
           <div className="min-w-0 flex-1">
             <Skeleton className="h-3 w-32" />
             <Skeleton className="mt-2 h-3 w-48 max-w-full" />

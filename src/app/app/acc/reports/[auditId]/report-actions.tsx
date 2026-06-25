@@ -9,7 +9,7 @@ type ReportActionsProps = {
 export function ReportActions({ auditId }: ReportActionsProps) {
   return (
     <button
-      className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+      className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
       onClick={() => {
         window.location.href = `/api/night-audits/${auditId}/report`;
       }}

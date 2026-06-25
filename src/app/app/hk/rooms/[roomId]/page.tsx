@@ -38,8 +38,8 @@ function etaFromNotes(notes: string | null) {
 
 function HousekeeperDeniedPanel() {
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
         <CardTitle className="text-base font-semibold">Tugas Housekeeper</CardTitle>
       </CardHeader>
       <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">

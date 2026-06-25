@@ -62,7 +62,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
         <div className="flex flex-col gap-2 sm:flex-row">
           {isRoomService ? (
             <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href="/app/fb/orders/new"
             >
               <Utensils aria-hidden="true" className="size-4" />
@@ -70,7 +70,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             </Link>
           ) : (
             <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href="/app/fb/orders/new?service=room-service"
             >
               <BedDouble aria-hidden="true" className="size-4" />
@@ -78,7 +78,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             </Link>
           )}
           <Link
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb"
           >
             <ArrowLeft aria-hidden="true" className="size-4" />
@@ -88,14 +88,14 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       </div>
 
       {isRoomService ? (
-        <section className="max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
             Room Service
           </div>
           <RoomServiceForm />
         </section>
       ) : table ? (
-        <section className="max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
             Konfirmasi Order
           </div>
@@ -114,7 +114,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
               </div>
               {table.orders[0] ? (
                 <Link
-                  className="mt-3 inline-flex h-10 items-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+                  className="mt-3 inline-flex h-10 items-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
                   href={`/app/fb/orders/${table.orders[0].id}`}
                 >
                   Buka {table.orders[0].orderNo}
@@ -128,7 +128,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           )}
         </section>
       ) : (
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
             Pilih Meja Available
           </div>
@@ -143,7 +143,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
               {availableTables.map((availableTable) => (
                 <Link
-                  className="rounded-2xl border border-gray-200 bg-white p-4 text-slate-700 shadow-sm transition-colors hover:border-status-vc-pip hover:bg-status-vc-bg"
+                  className="rounded-lg border border-gray-200 bg-white p-4 text-slate-700 shadow-sm transition-colors hover:border-status-vc-pip hover:bg-status-vc-bg"
                   href={`/app/fb/orders/new?tableId=${availableTable.id}`}
                   key={availableTable.id}
                 >

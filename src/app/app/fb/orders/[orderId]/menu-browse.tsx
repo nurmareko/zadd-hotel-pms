@@ -51,7 +51,7 @@ export function MenuBrowse({
   }, [activeCategory, menuItems, query]);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
         <div className="text-base font-semibold text-slate-900">
           Pilih Menu
@@ -62,7 +62,7 @@ export function MenuBrowse({
             className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
           />
           <input
-            className="h-10 w-full rounded-xl border border-gray-300 bg-white py-1 pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="h-10 w-full rounded-md border border-gray-300 bg-white py-1 pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari menu..."
             type="search"

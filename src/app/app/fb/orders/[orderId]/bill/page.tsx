@@ -17,7 +17,7 @@ type BillPageProps = {
 function statusBanner(status: FBOrderStatus) {
   if (status === FBOrderStatus.CLOSED) {
     return (
-      <div className="mb-4 rounded-2xl border border-status-vc-pip bg-status-vc-bg px-4 py-3 text-sm font-medium text-status-vc-fg shadow-sm">
+      <div className="mb-4 rounded-lg border border-status-vc-pip bg-status-vc-bg px-4 py-3 text-sm font-medium text-status-vc-fg shadow-sm">
         Order ini sudah dibayar. Bill tersedia sebagai arsip dan dapat dicetak
         ulang.
       </div>
@@ -26,7 +26,7 @@ function statusBanner(status: FBOrderStatus) {
 
   if (status === FBOrderStatus.VOIDED) {
     return (
-      <div className="mb-4 rounded-2xl border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
+      <div className="mb-4 rounded-lg border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
         Order ini sudah dibatalkan. Alasan void belum tersimpan pada data order
         saat ini.
       </div>
@@ -35,7 +35,7 @@ function statusBanner(status: FBOrderStatus) {
 
   if (status === FBOrderStatus.BILLED) {
     return (
-      <div className="mb-4 rounded-2xl border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm font-medium text-status-oc-fg shadow-sm">
+      <div className="mb-4 rounded-lg border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm font-medium text-status-oc-fg shadow-sm">
         Bill sudah dikonfirmasi. Lanjutkan ke pembayaran atau buka kembali jika
         tamu ingin menambah item.
       </div>

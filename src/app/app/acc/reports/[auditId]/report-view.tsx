@@ -106,7 +106,7 @@ function MetricCard({
   subClassName?: string;
 }) {
   return (
-    <div className={cn("border bg-card rounded-2xl p-5", className || "border-border")}>
+    <div className={cn("border bg-card rounded-lg p-5", className || "border-border")}>
       <div className={cn("text-xs font-semibold uppercase tracking-tight", labelClassName || "text-muted-foreground")}>
         {label}
       </div>
@@ -120,13 +120,13 @@ function MetricCard({
 
 export function ReportView({ audit, settings }: ReportViewProps) {
   return (
-    <section className="border border-border bg-card rounded-2xl">
-      <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-2xl">
+    <section className="border border-border bg-card rounded-lg">
+      <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
         {"LAPORAN"}
       </div>
 
       <div className="grid gap-6 p-5">
-        <div className="grid gap-4 border border-border bg-slate-50 rounded-xl p-5 text-sm md:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="grid gap-4 border border-border bg-slate-50 rounded-lg p-5 text-sm md:grid-cols-[minmax(0,1fr)_280px]">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
               Hotel
@@ -227,7 +227,7 @@ export function ReportView({ audit, settings }: ReportViewProps) {
           <div className="mb-3 text-sm font-semibold tracking-tight text-foreground">
             Revenue Breakdown
           </div>
-          <div className="border border-border rounded-xl bg-card text-sm overflow-hidden">
+          <div className="border border-border rounded-lg bg-card text-sm overflow-hidden">
             <SnapshotRow
               label="Pendapatan Kamar"
               value={formatIDR(audit.roomRevenue.toString())}

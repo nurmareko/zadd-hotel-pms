@@ -78,7 +78,7 @@ function FolioPendingState() {
           Guest Folio
         </h1>
       </div>
-      <section className="max-w-6xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
           {"Folio"}
         </div>

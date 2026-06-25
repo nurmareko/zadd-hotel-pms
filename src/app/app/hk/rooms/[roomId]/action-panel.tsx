@@ -24,8 +24,8 @@ type ActionPanelProps = {
 
 function InfoCard({ title, children }: { title: string; children: string }) {
   return (
-    <Card className="rounded-2xl p-0">
-      <CardHeader className="border-b border-border px-5 py-4 rounded-t-2xl">
+    <Card className="rounded-lg p-0">
+      <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">

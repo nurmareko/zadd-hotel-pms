@@ -15,7 +15,7 @@ export default function Loading() {
       />
 
       <div className="grid gap-4">
-        <section className="border border-border bg-card rounded-2xl">
+        <section className="border border-border bg-card rounded-lg">
           <div className="bg-accent/50 px-3.5 py-3">
             <Skeleton className="h-3 w-40 bg-muted" />
           </div>
@@ -35,7 +35,7 @@ export default function Loading() {
           </div>
         </section>
 
-        <section className="border border-border bg-card rounded-2xl">
+        <section className="border border-border bg-card rounded-lg">
           <div className="bg-accent/50 px-3.5 py-3">
             <Skeleton className="h-3 w-32 bg-muted" />
           </div>

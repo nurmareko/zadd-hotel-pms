@@ -148,13 +148,13 @@ export default async function FBLandingPage({
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb/orders/new?service=room-service"
           >
             New Room Service Order
           </Link>
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             href="/app/fb/orders/new"
           >
             Mulai Order Baru

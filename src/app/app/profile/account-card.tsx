@@ -55,7 +55,7 @@ export function AccountCard({
   lastLoginLabel,
 }: AccountCardProps) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4">
         <h2 className="text-[16px] font-semibold text-slate-900">Akun</h2>
         <p className="mt-1 text-[13px] leading-5 text-slate-500">

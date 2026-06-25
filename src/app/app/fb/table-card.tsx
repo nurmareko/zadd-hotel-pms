@@ -128,8 +128,8 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
   );
   const className =
     variant === "floor"
-      ? `block h-full w-full rounded-2xl border text-left shadow-sm transition ${floorTableStatusStyles[table.status]}`
-      : `block min-h-[126px] rounded-2xl border p-4 text-left shadow-sm transition ${statusCardStyles[table.status]}`;
+      ? `block h-full w-full rounded-lg border text-left shadow-sm transition ${floorTableStatusStyles[table.status]}`
+      : `block min-h-[126px] rounded-lg border p-4 text-left shadow-sm transition ${statusCardStyles[table.status]}`;
   const content = variant === "floor" ? floorContent : cardContent;
 
   if (!href) {

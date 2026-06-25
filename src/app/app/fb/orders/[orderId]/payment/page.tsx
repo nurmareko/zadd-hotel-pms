@@ -113,7 +113,7 @@ function ClosedState({
   locationLabel: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-status-vc-pip bg-status-vc-bg shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-status-vc-pip bg-status-vc-bg shadow-sm">
       <div className="border-b border-status-vc-pip/60 bg-white/70 px-5 py-4">
         <div className="text-base font-semibold text-status-vc-fg">
           Sudah Dibayar
@@ -141,7 +141,7 @@ function ClosedState({
           </div>
         </div>
         {paymentMethod === PaymentMethod.CASH && cashDetails ? (
-          <div className="grid gap-2 rounded-2xl border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
+          <div className="grid gap-2 rounded-lg border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
             <div>
               <span className="text-slate-500">Uang diterima</span>{" "}
               <span className="num font-semibold">
@@ -158,13 +158,13 @@ function ClosedState({
         ) : null}
         <div className="flex flex-col gap-2 border-t border-status-vc-pip pt-3 sm:flex-row">
           <a
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             href={`/api/fb-orders/${orderId}/receipt`}
           >
             Cetak Struk
           </a>
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             href="/app/fb"
           >
             Kembali ke Daftar Meja
@@ -259,7 +259,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
       </div>
 
       {order.status === FBOrderStatus.VOIDED ? (
-        <div className="mb-4 rounded-2xl border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
+        <div className="mb-4 rounded-lg border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
           Order ini sudah dibatalkan. Pembayaran tidak tersedia untuk order
           voided.
         </div>
@@ -310,12 +310,12 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               icon={CircleSlash}
               title="Tidak ada aksi pembayaran"
               description="Order voided tidak memiliki aksi pembayaran. Gunakan daftar order untuk kembali ke area F&B."
-              className="rounded-2xl border border-gray-200 bg-white shadow-sm"
+              className="rounded-lg border border-gray-200 bg-white shadow-sm"
             />
           ) : null}
         </div>
 
-        <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
           <div className="border-b border-gray-100 px-5 py-4">
             <div className="text-base font-semibold text-slate-900">
               Ringkasan Bill
@@ -346,7 +346,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
               value={formatIDR(totals.total.toString())}
               strong
             />
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
+            <div className="mt-4 rounded-lg border border-gray-200 bg-slate-50 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-500">Jumlah tagihan</span>
                 <span className="num font-bold text-slate-900">
