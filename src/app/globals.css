@@ -167,12 +167,12 @@
     --chart-3: var(--slate-500);
     --chart-4: var(--slate-300);
     --chart-5: var(--slate-100);
-    --radius-small: 8px;
-    --radius-control: 12px;
-    --radius-card: 16px;
-    --radius-modal: 20px;
-    --radius-max: 24px;
-    --radius: var(--radius-card);
+    --radius-small: 4px;
+    --radius-control: 6px;
+    --radius-card: 8px;
+    --radius-modal: 10px;
+    --radius-max: 12px;
+    --radius: 8px;
     --sidebar: var(--console-ink);
     --sidebar-foreground: #6b7280;
     --sidebar-primary: var(--console-accent);

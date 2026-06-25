@@ -136,7 +136,7 @@ export function BillActions({
               >
                 Buka Kembali Order
               </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-[20px] border border-gray-200 bg-white shadow-xl">
+              <AlertDialogContent className="rounded-xl border border-gray-200 bg-white shadow-xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Buka kembali order?</AlertDialogTitle>
                   <AlertDialogDescription>

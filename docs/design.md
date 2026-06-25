@@ -26,7 +26,7 @@ Interfaces should feel purpose-built for hotel operations. Use workflow-specific
 
 ### Modern Operational Software
 
-The system should be full-width, responsive, efficient, and comfortable for long shifts. It uses soft hierarchy, bright surfaces, rounded cards, subtle shadows, Plus Jakarta Sans typography, Lucide icons, and consistent status chips.
+The system should be full-width, responsive, efficient, and comfortable for long shifts. It uses structured hierarchy, bright surfaces, tight-radius cards, subtle shadows, Plus Jakarta Sans typography, Lucide icons, and consistent status chips.
 
 ## Layout System
 
@@ -95,7 +95,7 @@ Cards are the primary layout unit for grouped operational information.
 |---|---|
 | Background | `#FFFFFF` |
 | Border | `1px solid #E5E7EB` |
-| Radius | 16px |
+| Radius | 8px |
 | Shadow | Soft only: `0 1px 2px rgba(0,0,0,0.05)`, optionally `0 4px 8px rgba(0,0,0,0.04)` |
 | Padding | 20px desktop, 16px mobile |
 
@@ -103,7 +103,20 @@ Every card has a header, content, and optional actions. Do not use dark inverted
 
 ### Modals And Popovers
 
-Modals use white backgrounds, 20px radius, and a larger soft shadow. Popovers should feel connected to the triggering control, stay compact, and preserve the same soft border and rounded surface language.
+Modals use white backgrounds, 10px radius, and a larger soft shadow. Popovers should feel connected to the triggering control, stay compact, and preserve the same soft border and structured surface language.
+
+### Radius Scale
+
+Corners should feel rigid-but-modern: tighter and more operational than soft consumer UI, while avoiding Console's hard 0px corners. Status chips are the intentional exception because the fully pill shape keeps status readable at a glance.
+
+| Use | Radius |
+|---|---:|
+| Small components | 4px |
+| Buttons / inputs | 6px |
+| Cards | 8px |
+| Modals | 10px |
+| Max | 12px |
+| Status chips | 999px |
 
 ### Empty States
 
@@ -252,9 +265,9 @@ Use plain descriptive titles. Do not use decorative prefixes, dark header strips
 
 | Variant | Background | Border | Text | Radius | Height |
 |---|---|---|---|---:|---:|
-| Primary | `#0F172A` | `#0F172A` | `#FFFFFF` | 12px | 40px |
-| Secondary | `#FFFFFF` | `#E5E7EB` | `#0F172A` | 12px | 40px |
-| Danger | `#EF4444` | `#EF4444` | `#FFFFFF` | 12px | 40px |
+| Primary | `#0F172A` | `#0F172A` | `#FFFFFF` | 6px | 40px |
+| Secondary | `#FFFFFF` | `#E5E7EB` | `#0F172A` | 6px | 40px |
+| Danger | `#EF4444` | `#EF4444` | `#FFFFFF` | 6px | 40px |
 
 Buttons should use clear labels and Lucide icons when the icon improves recognition. Avoid crowded toolbars; prefer contextual action placement.
 
@@ -263,7 +276,7 @@ Buttons should use clear labels and Lucide icons when the icon improves recognit
 | Property | Value |
 |---|---|
 | Height | 40px |
-| Radius | 12px |
+| Radius | 6px |
 | Background | `#FFFFFF` |
 | Border | `#D1D5DB` |
 | Focus | Blue ring with a soft shadow |
@@ -299,7 +312,7 @@ Example:
 - Metric: 82%
 - Description: 131 / 160 rooms
 
-KPI values use tabular numerals. Cards use 16px radius and 20px padding on desktop.
+KPI values use tabular numerals. Cards use 8px radius and 20px padding on desktop.
 
 ### Tables
 
@@ -398,7 +411,7 @@ Accounting and admin screens should be calm, dense enough for repeated work, and
 
 ### Tape Chart
 
-Tape Chart is the most visually complex Front Office screen. Preserve its operational mechanics while expressing it with V2 surfaces, rounded elements, Plus Jakarta Sans typography, soft borders, and status chips.
+Tape Chart is the most visually complex Front Office screen. Preserve its operational mechanics while expressing it with V2 surfaces, tight-radius elements, Plus Jakarta Sans typography, soft borders, and status chips.
 
 Required structure:
 
@@ -408,8 +421,8 @@ Required structure:
 - Sticky header row: show day-of-week or `Today` above the date; follow the V2 spacing rhythm instead of Console's fixed height.
 - Date columns: sized for readable dates and reservation alignment; use responsive V2 spacing rather than fixed Console cell widths.
 - Row heights: room rows, room-type group headers, and unallocated lanes use the compact V2 rhythm and grow only when overlapping reservations require additional lanes.
-- Reservation bars: absolute-positioned overlays spanning arrival to departure boundaries, centered on date columns. Bars use V2 rounded corners, compact vertical padding, and guest names with ellipsis overflow.
-- Checkout marker: when the departure boundary is visible, show a soft rounded marker on the bar's trailing edge. Use either a rounded triangular tab or a thin rounded accent in the departure/OOO tone. Do not use a sharp Console notch, and do not show a marker when checkout is clipped outside the visible window.
+- Reservation bars: absolute-positioned overlays spanning arrival to departure boundaries, centered on date columns. Bars use V2 tight-radius corners, compact vertical padding, and guest names with ellipsis overflow.
+- Checkout marker: when the departure boundary is visible, show a compact rounded marker on the bar's trailing edge. Use either a rounded triangular tab or a thin rounded accent in the departure/OOO tone. Do not use a sharp Console notch, and do not show a marker when checkout is clipped outside the visible window.
 - Empty cells: physical-room and unallocated-lane cells link to create a reservation with room or room-type and arrival date prefilled.
 - OOO cells: non-interactive and visually unavailable using the locked red OOO status and a quiet unavailable treatment.
 - Legend: show reservation states, checkout marker, unavailable room treatment, and room/day count above the grid.
@@ -448,7 +461,7 @@ Table status colors:
 | RESERVED | Amber `#F59E0B` |
 | OUT_OF_SERVICE | Gray `#64748B` |
 
-Use rounded table tiles, soft borders, clear labels, and status chips. Do not use dashed Console borders, horizontal mobile panning, or dark/inverted headers.
+Use tight-radius table tiles, soft borders, clear labels, and status chips. Do not use dashed Console borders, horizontal mobile panning, or dark/inverted headers.
 
 ## Icons
 
@@ -475,7 +488,7 @@ Always use:
 - Plus Jakarta Sans typography
 - Lucide icons
 - Soft shadows
-- Rounded cards
+- Tight-radius cards
 - Pastel status chips
 - The locked room-status palette
 
@@ -497,7 +510,7 @@ The final result should feel like a premium hotel operating platform built in 20
 
 Tape Chart preserves Console's structure and behavior: sticky first column and header, grouped rows, reservation bars, checkout marker, and legend. It does not preserve Console's exact fixed pixel measurements. Row heights and cell widths follow the V2 spacing rhythm, while the chart remains horizontally scrollable on desktop because date grids are inherently wide.
 
-The checkout marker is a soft V2 marker, not a sharp notch. Use a rounded triangular tab or a thin rounded accent on the reservation bar's trailing edge in the departure/OOO tone.
+The checkout marker is a compact V2 marker, not a sharp notch. Use a rounded triangular tab or a thin rounded accent on the reservation bar's trailing edge in the departure/OOO tone.
 
 The F&B floor plan scales proportionally on tablet and mobile so the whole room remains visible and legible. Do not introduce horizontal pan or scroll for the floor plan on smaller screens. The drag-to-reposition editor remains desktop-first; mobile is view/scale only.
 
