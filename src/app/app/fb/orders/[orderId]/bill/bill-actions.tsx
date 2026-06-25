@@ -79,15 +79,20 @@ export function BillActions({
   }
 
   return (
-    <aside className="border border-console-border bg-console-surface xl:sticky xl:top-4 xl:self-start">
-      <div className="border-b border-console-border bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"AKSI BILL"}
+    <aside className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+      <div className="border-b border-gray-100 px-5 py-4">
+        <div className="text-base font-semibold text-slate-900">
+          Aksi Bill
+        </div>
+        <div className="mt-1 text-sm text-slate-500">
+          Konfirmasi, cetak, atau buka kembali order.
+        </div>
       </div>
-      <div className="grid gap-2 p-3.5">
+      <div className="grid gap-2 p-5">
         {status === "OPEN" ? (
           <>
             <button
-              className="h-8 border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:border-console-border disabled:bg-slate-100 disabled:text-slate-400"
+              className="h-10 rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
               disabled={!hasItems || isPending}
               onClick={handleConfirmBill}
               type="button"
@@ -95,12 +100,12 @@ export function BillActions({
               {isPending ? "Memproses..." : "Konfirmasi & Cetak Bill"}
             </button>
             {!hasItems ? (
-              <p className="text-[11px] leading-5 text-status-od-fg">
+              <p className="rounded-xl border border-status-od-pip bg-status-od-bg px-3 py-2 text-sm font-medium leading-5 text-status-od-fg">
                 Order kosong, tidak bisa ditagih.
               </p>
             ) : null}
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href={`/app/fb/orders/${orderId}`}
             >
               Kembali ke Order
@@ -111,13 +116,13 @@ export function BillActions({
         {status === "BILLED" ? (
           <>
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
               href={`/app/fb/orders/${orderId}/payment`}
             >
               Lanjut ke Pembayaran
             </Link>
             <button
-              className="h-8 border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               onClick={handleReprint}
               type="button"
             >
@@ -125,13 +130,13 @@ export function BillActions({
             </button>
             <AlertDialog>
               <AlertDialogTrigger
-                className="h-8 border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg disabled:opacity-50"
+                className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
                 disabled={isPending}
                 type="button"
               >
                 Buka Kembali Order
               </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-none border-console-border">
+              <AlertDialogContent className="rounded-[20px] border border-gray-200 bg-white shadow-xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Buka kembali order?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -145,7 +150,7 @@ export function BillActions({
                     Batal
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="rounded-none"
+                    className="rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                     disabled={isPending}
                     onClick={handleReopen}
                     type="button"
@@ -160,7 +165,7 @@ export function BillActions({
 
         {status === "CLOSED" ? (
           <button
-            className="h-8 border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+            className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
             onClick={handleReprint}
             type="button"
           >
@@ -169,7 +174,7 @@ export function BillActions({
         ) : null}
 
         {status === "VOIDED" ? (
-          <p className="text-[11px] leading-5 text-slate-500">
+          <p className="text-sm leading-6 text-slate-500">
             Order voided tidak memiliki aksi cetak bill.
           </p>
         ) : null}

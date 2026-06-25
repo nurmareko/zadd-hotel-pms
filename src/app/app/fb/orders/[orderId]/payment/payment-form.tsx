@@ -85,7 +85,7 @@ const methodOptions = [
 ] as const;
 
 const fieldClassName =
-  "mt-1 h-8 rounded-none border-console-border bg-console-surface text-[12px]";
+  "mt-1 h-10 rounded-xl border-gray-300 bg-white text-sm shadow-sm";
 
 function downloadReceipt({
   orderId,
@@ -134,14 +134,14 @@ function formatGuestLabels(items: PaymentItem[]) {
 function ResultMessage({ result }: { result: ChargeLookupResult }) {
   if (!result.ok) {
     return (
-      <div className="border border-status-od-pip bg-status-od-bg px-3 py-2 text-[12px] font-medium text-status-od-fg">
+      <div className="rounded-2xl border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg">
         {result.error}
       </div>
     );
   }
 
   return (
-    <div className="border border-status-oc-pip bg-status-oc-bg px-3 py-2 text-[12px] text-status-oc-fg">
+    <div className="rounded-2xl border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm text-status-oc-fg">
       <div className="font-semibold">Tamu in-house ditemukan.</div>
       <div className="mt-1 leading-5">
         Akan dibebankan ke: {result.guestName} · Kamar {result.roomNumber} ·{" "}
@@ -370,15 +370,15 @@ export function PaymentForm({
 
   if (success) {
     return (
-      <section className="border border-status-vc-pip bg-status-vc-bg">
-        <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-          {"PEMBAYARAN SELESAI"}
+      <section className="overflow-hidden rounded-2xl border border-status-vc-pip bg-status-vc-bg shadow-sm">
+        <div className="border-b border-status-vc-pip/60 bg-white/70 px-5 py-4">
+          <div className="text-base font-semibold text-status-vc-fg">
+            Pembayaran Selesai
+          </div>
         </div>
-        <div className="grid gap-3 p-3.5 text-[12px] text-status-vc-fg">
+        <div className="grid gap-3 p-5 text-sm text-status-vc-fg">
           <div>
-            <div className="text-[15px] font-bold uppercase tracking-[0.04em]">
-              Order ditutup
-            </div>
+            <div className="text-base font-bold">Order ditutup</div>
             <div className="mt-1">
               Metode:{" "}
               <span className="font-semibold">{methodLabel(success.method)}</span>{" "}
@@ -395,7 +395,7 @@ export function PaymentForm({
             </div>
           </div>
           {success.method === PaymentMethod.CASH && success.change ? (
-            <div className="grid gap-1 border border-status-vc-pip bg-white px-3 py-2 text-console-ink sm:grid-cols-2">
+            <div className="grid gap-2 rounded-2xl border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
               <div>
                 <span className="text-slate-500">Uang diterima</span>{" "}
                 <span className="num font-semibold">
@@ -412,7 +412,7 @@ export function PaymentForm({
           ) : null}
           <div className="flex flex-col gap-2 border-t border-status-vc-pip pt-3 sm:flex-row">
             <button
-              className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
               onClick={() =>
                 downloadReceipt({
                   orderId: success.receiptOrderId,
@@ -427,7 +427,7 @@ export function PaymentForm({
             </button>
             {!success.fullyPaid ? (
               <button
-                className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
                 onClick={() => {
                   window.location.href = `/app/fb/orders/${orderId}/payment`;
                 }}
@@ -436,7 +436,7 @@ export function PaymentForm({
               </button>
             ) : null}
             <Link
-              className="inline-flex h-8 items-center justify-center border border-console-border bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-ink hover:border-console-ink hover:bg-console-bg"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
               href="/app/fb"
             >
               Kembali ke Daftar Meja
@@ -448,25 +448,30 @@ export function PaymentForm({
   }
 
   return (
-    <section className="border border-console-border bg-console-surface">
-      <div className="bg-console-ink px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-console-accent">
-        {"METODE PEMBAYARAN"}
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 px-5 py-4">
+        <div className="text-base font-semibold text-slate-900">
+          Metode Pembayaran
+        </div>
+        <div className="mt-1 text-sm text-slate-500">
+          Pilih item yang dibayar lalu selesaikan dengan metode pembayaran.
+        </div>
       </div>
 
-      <div className="grid gap-3 p-3.5">
-        <div className="border border-console-border bg-console-bg">
-          <div className="flex flex-col gap-2 border-b border-console-border bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid gap-4 p-4 md:p-5">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-slate-50">
+          <div className="flex flex-col gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-console-ink">
+              <div className="text-sm font-semibold text-slate-900">
                 Item yang dibayar
               </div>
-              <div className="mt-1 text-[11px] text-slate-500">
+              <div className="mt-1 text-sm text-slate-500">
                 Pilih item dan quantity untuk struk tamu ini.
               </div>
             </div>
             <div className="flex gap-2">
               <button
-                className="h-7 border border-console-border bg-white px-2 text-[10px] font-semibold uppercase tracking-[0.04em] hover:border-console-ink"
+                className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
                 onClick={() =>
                   setSelectedQuantities(
                     Object.fromEntries(
@@ -479,7 +484,7 @@ export function PaymentForm({
                 Semua
               </button>
               <button
-                className="h-7 border border-console-border bg-white px-2 text-[10px] font-semibold uppercase tracking-[0.04em] hover:border-console-ink"
+                className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
                 onClick={() =>
                   setSelectedQuantities(
                     Object.fromEntries(items.map((item) => [item.id, 0])),
@@ -497,25 +502,25 @@ export function PaymentForm({
 
               return (
                 <div
-                  className="grid gap-2 border border-console-border bg-white p-2 text-[12px] sm:grid-cols-[minmax(0,1fr)_90px_120px]"
+                  className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm shadow-sm sm:grid-cols-[minmax(0,1fr)_90px_128px]"
                   key={paymentItemGroupKey(item)}
                 >
                   <div>
-                    <div className="font-semibold text-console-ink">
+                    <div className="font-semibold text-slate-900">
                       {item.name}
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-500">
+                    <div className="mt-1 text-xs text-slate-500">
                       {item.guestLabels} - Sisa {item.totalQuantity} -{" "}
                       {formatIDR(item.unitPrice)}
                     </div>
                     {item.notes ? (
-                      <div className="mt-1 text-[11px] italic text-status-vd-fg">
+                      <div className="mt-1 text-xs italic text-status-vd-fg">
                         {item.notes}
                       </div>
                     ) : null}
                   </div>
                   <Input
-                    className="h-8 rounded-none border-console-border bg-console-surface text-right text-[12px]"
+                    className="h-10 rounded-xl border-gray-300 bg-white text-right text-sm shadow-sm"
                     max={item.totalQuantity}
                     min={0}
                     onChange={(event) => {
@@ -529,9 +534,9 @@ export function PaymentForm({
                     type="number"
                     value={quantity}
                   />
-                  <div className="flex items-center justify-between gap-2 border border-console-border bg-console-bg px-2 text-[11px] sm:justify-end">
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-sm sm:justify-end">
                     <span className="text-slate-500 sm:hidden">Jumlah</span>
-                    <span className="num font-semibold text-console-ink">
+                    <span className="num font-semibold text-slate-900">
                       {formatIDR(Number(item.unitPrice) * quantity)}
                     </span>
                   </div>
@@ -539,7 +544,7 @@ export function PaymentForm({
               );
             })}
           </div>
-          <div className="grid gap-1 border-t border-console-border bg-white px-3 py-2 text-[12px] sm:grid-cols-4">
+          <div className="grid gap-2 border-t border-gray-100 bg-white px-4 py-3 text-sm sm:grid-cols-4">
             <div>
               <span className="text-slate-500">Subtotal</span>{" "}
               <span className="num font-semibold">
@@ -558,7 +563,7 @@ export function PaymentForm({
             </div>
             <div className="sm:text-right">
               <span className="text-slate-500">Total bayar</span>{" "}
-              <span className="num text-[14px] font-bold text-console-ink">
+              <span className="num text-base font-bold text-slate-900">
                 {formatIDR(selectedTotalString)}
               </span>
             </div>
@@ -572,10 +577,11 @@ export function PaymentForm({
 
             return (
               <button
-                className={`min-h-24 border p-3 text-left transition-colors ${selected
-                    ? "border-console-ink bg-console-ink text-console-accent"
-                    : "border-console-border bg-white text-console-ink hover:border-console-ink hover:bg-console-bg"
-                  }`}
+                className={`min-h-24 rounded-2xl border p-4 text-left shadow-sm transition-colors ${
+                  selected
+                    ? "border-slate-900 bg-slate-50 text-slate-900"
+                    : "border-gray-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50"
+                }`}
                 key={option.value}
                 onClick={() => {
                   setMethod(option.value);
@@ -585,14 +591,19 @@ export function PaymentForm({
               >
                 <div className="flex items-center justify-between">
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                  {selected ? <Check className="h-4 w-4" aria-hidden="true" /> : null}
+                  {selected ? (
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white">
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  ) : null}
                 </div>
-                <div className="mt-3 text-[13px] font-bold uppercase tracking-[0.04em]">
+                <div className="mt-3 text-sm font-semibold">
                   {option.label}
                 </div>
                 <div
-                  className={`mt-1 text-[11px] ${selected ? "text-slate-300" : "text-slate-500"
-                    }`}
+                  className={`mt-1 text-xs ${
+                    selected ? "text-slate-600" : "text-slate-500"
+                  }`}
                 >
                   {option.detail}
                 </div>
@@ -601,11 +612,11 @@ export function PaymentForm({
           })}
         </div>
 
-        <div className="border-t border-console-border pt-3">
+        <div className="border-t border-gray-100 pt-4">
           {method === PaymentMethod.CASH ? (
             <div className="grid gap-3">
               <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                <span className="text-sm font-medium text-slate-600">
                   Uang Diterima
                 </span>
                 <Input
@@ -618,18 +629,19 @@ export function PaymentForm({
                   value={amountTendered}
                 />
               </label>
-              <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px]">
+              <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-slate-500">Kembalian</span>
                   <span
-                    className={`num text-[16px] font-bold ${change < 0 ? "text-status-od-fg" : "text-console-ink"
-                      }`}
+                    className={`num text-xl font-bold ${
+                      change < 0 ? "text-status-od-fg" : "text-slate-900"
+                    }`}
                   >
                     {formatIDR(Math.max(change, 0))}
                   </span>
                 </div>
                 {!cashIsValid ? (
-                  <div className="mt-1 text-[11px] font-medium text-status-od-fg">
+                  <div className="mt-1 text-xs font-medium text-status-od-fg">
                     Uang diterima kurang dari total tagihan.
                   </div>
                 ) : null}
@@ -639,7 +651,7 @@ export function PaymentForm({
 
           {method === PaymentMethod.CARD ? (
             <label className="block">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+              <span className="text-sm font-medium text-slate-600">
                 Nomor Approval / Referensi
               </span>
               <Input
@@ -654,7 +666,7 @@ export function PaymentForm({
 
           {method === PaymentMethod.TRANSFER ? (
             <label className="block">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+              <span className="text-sm font-medium text-slate-600">
                 Nomor Referensi Transfer
               </span>
               <Input
@@ -670,7 +682,7 @@ export function PaymentForm({
           {method === PaymentMethod.CHARGE_TO_ROOM ? (
             <div className="grid gap-3">
               {attachedRoomFolio ? (
-                <div className="border border-status-oc-pip bg-status-oc-bg px-3 py-2 text-[12px] text-status-oc-fg">
+                <div className="rounded-2xl border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm text-status-oc-fg">
                   <div className="font-semibold">
                     Folio room service sudah terhubung.
                   </div>
@@ -685,7 +697,7 @@ export function PaymentForm({
               ) : (
                 <>
                   <label className="block">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                    <span className="text-sm font-medium text-slate-600">
                       Nomor Kamar
                     </span>
                     <Input
@@ -700,13 +712,13 @@ export function PaymentForm({
                     />
                   </label>
                   {isLookupPending ? (
-                    <div className="border border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
+                    <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                       Mencari tamu in-house...
                     </div>
                   ) : lookupResult ? (
                     <ResultMessage result={lookupResult} />
                   ) : (
-                    <div className="border border-dashed border-console-border bg-console-bg px-3 py-2 text-[12px] text-slate-500">
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                       Masukkan nomor kamar untuk validasi folio aktif.
                     </div>
                   )}
@@ -717,14 +729,14 @@ export function PaymentForm({
         </div>
 
         {actionError ? (
-          <p className="border border-status-od-pip bg-status-od-bg px-3 py-2 text-[12px] font-medium text-status-od-fg">
+          <p className="rounded-2xl border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg">
             {actionError}
           </p>
         ) : null}
 
-        <div className="flex justify-end border-t border-console-border pt-3">
+        <div className="flex justify-end border-t border-gray-100 pt-4">
           <button
-            className="inline-flex h-8 items-center justify-center border border-console-ink bg-console-ink px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-console-accent hover:bg-slate-800 disabled:border-console-border disabled:bg-console-bg disabled:text-slate-400"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
             disabled={
               isSubmitPending ||
               !hasSelection ||

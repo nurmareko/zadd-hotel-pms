@@ -17,7 +17,7 @@ type BillPageProps = {
 function statusBanner(status: FBOrderStatus) {
   if (status === FBOrderStatus.CLOSED) {
     return (
-      <div className="mb-4 border border-status-vc-pip bg-status-vc-bg px-3.5 py-3 text-[12px] font-semibold text-status-vc-fg">
+      <div className="mb-4 rounded-2xl border border-status-vc-pip bg-status-vc-bg px-4 py-3 text-sm font-medium text-status-vc-fg shadow-sm">
         Order ini sudah dibayar. Bill tersedia sebagai arsip dan dapat dicetak
         ulang.
       </div>
@@ -26,7 +26,7 @@ function statusBanner(status: FBOrderStatus) {
 
   if (status === FBOrderStatus.VOIDED) {
     return (
-      <div className="mb-4 border border-status-od-pip bg-status-od-bg px-3.5 py-3 text-[12px] font-semibold text-status-od-fg">
+      <div className="mb-4 rounded-2xl border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
         Order ini sudah dibatalkan. Alasan void belum tersimpan pada data order
         saat ini.
       </div>
@@ -35,7 +35,7 @@ function statusBanner(status: FBOrderStatus) {
 
   if (status === FBOrderStatus.BILLED) {
     return (
-      <div className="mb-4 border border-status-oc-pip bg-status-oc-bg px-3.5 py-3 text-[12px] font-semibold text-status-oc-fg">
+      <div className="mb-4 rounded-2xl border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm font-medium text-status-oc-fg shadow-sm">
         Bill sudah dikonfirmasi. Lanjutkan ke pembayaran atau buka kembali jika
         tamu ingin menambah item.
       </div>
@@ -98,14 +98,13 @@ export default async function BillPage({ params }: BillPageProps) {
   const openedAtLabel = formatDateTimeID(order.openedAt);
 
   return (
-    <main className="min-h-screen bg-console-bg px-5 py-4 text-console-ink md:px-6 md:py-5">
+    <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[20px] font-bold uppercase tracking-[0.02em]">
-            <span className="text-console-accent">▸ </span>
-            Bill — {order.orderNo}
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
+            Bill · {order.orderNo}
           </h1>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
             pax · Dibuka {openedAtLabel}
           </p>
