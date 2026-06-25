@@ -9,6 +9,7 @@ import {
 import { differenceInCalendarDays } from "date-fns";
 
 import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
+import { PDF_BRAND_NAME, printColors, printStyles } from "@/lib/pdf/styles";
 
 type StringableDecimal = {
   toString(): string;
@@ -70,66 +71,41 @@ const arrangementLabels: Record<string, string> = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 28,
-    fontFamily: "Courier",
-    fontSize: 9,
-    color: "#0a0e1a",
+    ...printStyles.page,
   },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#0a0e1a",
-    paddingBottom: 10,
-    marginBottom: 12,
-    textAlign: "center",
+    ...printStyles.centeredHeader,
   },
   hotelName: {
-    fontSize: 16,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.hotelName,
   },
   muted: {
-    color: "#64748b",
+    ...printStyles.muted,
   },
   title: {
+    ...printStyles.title,
     marginTop: 10,
-    fontSize: 13,
-    fontWeight: 700,
-    textTransform: "uppercase",
   },
   block: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    marginBottom: 10,
+    ...printStyles.block,
   },
   blockHeader: {
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    fontSize: 8,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.blockHeader,
   },
   blockBody: {
-    padding: 8,
+    ...printStyles.blockBody,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    ...printStyles.grid,
   },
   field: {
-    width: "50%",
-    marginBottom: 6,
+    ...printStyles.field,
   },
   fieldLabel: {
-    color: "#64748b",
-    fontSize: 7,
-    textTransform: "uppercase",
+    ...printStyles.fieldLabel,
   },
   fieldValue: {
-    marginTop: 2,
-    fontSize: 9,
-    fontWeight: 700,
+    ...printStyles.fieldValue,
   },
   signature: {
     marginTop: 12,
@@ -149,7 +125,7 @@ const styles = StyleSheet.create({
   },
   signatureLine: {
     borderTopWidth: 1,
-    borderTopColor: "#0a0e1a",
+    borderTopColor: printColors.rule,
     paddingTop: 5,
   },
 });
@@ -190,9 +166,9 @@ export function Grc({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.hotelName}>{hotelSettings.hotelName}</Text>
+          <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{hotelSettings.address ?? "-"}</Text>
-          <Text style={styles.title}>GUEST REGISTRATION CARD</Text>
+          <Text style={styles.title}>Guest Registration Card</Text>
         </View>
 
         <View style={styles.block}>

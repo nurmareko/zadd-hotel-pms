@@ -13,6 +13,7 @@ import {
 } from "@/lib/fb-order-guest";
 import { type FBOrderTotals } from "@/lib/fb-order-totals";
 import { formatDateTimeID, formatDecimalID, formatIDR } from "@/lib/format";
+import { PDF_BRAND_NAME, printColors, printStyles } from "@/lib/pdf/styles";
 
 type StringableDecimal = {
   toString(): string;
@@ -61,87 +62,52 @@ type FBBillProps = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 28,
-    fontFamily: "Courier",
-    fontSize: 9,
-    color: "#0a0e1a",
+    ...printStyles.page,
   },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#0a0e1a",
-    paddingBottom: 10,
-    marginBottom: 12,
+    ...printStyles.header,
   },
   hotelName: {
-    fontSize: 16,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.hotelName,
   },
   muted: {
-    color: "#64748b",
+    ...printStyles.muted,
   },
   title: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.title,
   },
   block: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    marginBottom: 10,
+    ...printStyles.block,
   },
   blockHeader: {
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    fontSize: 8,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.blockHeader,
   },
   blockBody: {
-    padding: 8,
+    ...printStyles.blockBody,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    ...printStyles.grid,
   },
   field: {
-    width: "50%",
-    marginBottom: 6,
+    ...printStyles.field,
   },
   fieldLabel: {
-    color: "#64748b",
-    fontSize: 7,
-    textTransform: "uppercase",
+    ...printStyles.fieldLabel,
   },
   fieldValue: {
-    marginTop: 2,
-    fontSize: 9,
-    fontWeight: 700,
+    ...printStyles.fieldValue,
   },
   table: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
+    ...printStyles.table,
   },
   tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
-    fontSize: 7,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.tableHeader,
   },
   tableRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    minHeight: 22,
+    ...printStyles.tableRow,
   },
   cell: {
-    paddingHorizontal: 5,
-    paddingVertical: 5,
+    ...printStyles.cell,
   },
   itemCell: {
     paddingHorizontal: 5,
@@ -149,48 +115,37 @@ const styles = StyleSheet.create({
   },
   note: {
     marginTop: 2,
-    color: "#d97706",
+    color: printColors.note,
     fontSize: 7,
     fontStyle: "italic",
   },
   guestRow: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: printColors.subtleFill,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: printColors.lightRule,
     paddingHorizontal: 5,
     paddingVertical: 5,
     fontSize: 7,
     fontWeight: 700,
-    textTransform: "uppercase",
-    color: "#475569",
+    color: printColors.muted,
   },
   right: {
-    textAlign: "right",
+    ...printStyles.right,
   },
   summary: {
-    width: 220,
-    marginLeft: "auto",
-    marginTop: 8,
+    ...printStyles.summary,
   },
   summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-    paddingVertical: 4,
+    ...printStyles.summaryRow,
   },
   totalText: {
-    fontSize: 12,
-    fontWeight: 700,
+    ...printStyles.totalText,
   },
   strong: {
-    fontWeight: 700,
+    ...printStyles.strong,
   },
   footer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#0a0e1a",
-    paddingTop: 8,
+    ...printStyles.footer,
     textAlign: "center",
   },
 });
@@ -330,10 +285,10 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.hotelName}>{settings.hotelName}</Text>
+          <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
           <Text style={styles.title}>
-            {receipt ? "RECEIPT / STRUK" : "BILL / TAGIHAN"}
+            {receipt ? "Struk F&B" : "Tagihan F&B"}
           </Text>
         </View>
 

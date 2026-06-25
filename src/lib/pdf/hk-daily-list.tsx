@@ -12,6 +12,7 @@ import type {
   HousekeepingCleaningState,
   HousekeepingListRow,
 } from "@/lib/housekeeping-list-data";
+import { PDF_BRAND_NAME, printColors, printStyles } from "@/lib/pdf/styles";
 
 type HotelSettings = {
   hotelName: string;
@@ -35,72 +36,56 @@ export type HkDailyListProps = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 24,
-    fontFamily: "Courier",
-    fontSize: 8,
-    color: "#0a0e1a",
+    ...printStyles.compactPage,
   },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#0a0e1a",
+    ...printStyles.header,
     paddingBottom: 9,
     marginBottom: 10,
   },
   hotelName: {
-    fontSize: 16,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.hotelName,
   },
   muted: {
-    color: "#64748b",
+    ...printStyles.muted,
   },
   title: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.title,
   },
   summary: {
     marginBottom: 10,
-    color: "#64748b",
+    color: printColors.muted,
   },
   section: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
+    ...printStyles.block,
     marginBottom: 9,
   },
   sectionHeader: {
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    fontSize: 8,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.blockHeader,
   },
   sectionMeta: {
-    color: "#cbd5e1",
+    color: printColors.muted,
   },
   empty: {
     padding: 8,
-    color: "#64748b",
+    color: printColors.muted,
     fontStyle: "italic",
   },
   table: {
     borderTopWidth: 1,
-    borderTopColor: "#d1d5db",
+    borderTopColor: printColors.rule,
   },
   row: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: printColors.lightRule,
     minHeight: 34,
   },
   lastRow: {
     borderBottomWidth: 0,
   },
   headerRow: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: printColors.headerFill,
     minHeight: 18,
   },
   cell: {
@@ -112,8 +97,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     fontSize: 7,
     fontWeight: 700,
-    textTransform: "uppercase",
-    color: "#334155",
+    color: printColors.text,
   },
   roomCell: {
     width: 82,
@@ -133,7 +117,7 @@ const styles = StyleSheet.create({
   tiny: {
     marginTop: 2,
     fontSize: 7,
-    color: "#64748b",
+    color: printColors.muted,
   },
   line: {
     marginBottom: 2,
@@ -278,10 +262,10 @@ export function HkDailyList({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.hotelName}>{settings.hotelName}</Text>
+          <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
           <Text style={styles.title}>
-            DAILY HOUSEKEEPING LIST - {formatDateID(date)}
+            Daily Housekeeping List - {formatDateID(date)}
           </Text>
         </View>
 

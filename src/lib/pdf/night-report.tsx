@@ -12,6 +12,7 @@ import {
   formatFixedPercent,
   formatIDR,
 } from "@/lib/format";
+import { PDF_BRAND_NAME, printColors, printStyles } from "@/lib/pdf/styles";
 
 type StringableDecimal = {
   toString(): string;
@@ -44,74 +45,48 @@ type NightReportProps = {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 28,
-    fontFamily: "Courier",
-    fontSize: 9,
-    color: "#0a0e1a",
+    ...printStyles.page,
   },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#0a0e1a",
-    paddingBottom: 10,
-    marginBottom: 12,
+    ...printStyles.header,
   },
   hotelName: {
-    fontSize: 16,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.hotelName,
   },
   muted: {
-    color: "#64748b",
+    ...printStyles.muted,
   },
   title: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.title,
   },
   block: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    marginBottom: 10,
+    ...printStyles.block,
   },
   blockHeader: {
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    fontSize: 8,
-    fontWeight: 700,
-    textTransform: "uppercase",
+    ...printStyles.blockHeader,
   },
   blockBody: {
-    padding: 8,
+    ...printStyles.blockBody,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    ...printStyles.grid,
   },
   field: {
-    width: "50%",
-    marginBottom: 6,
+    ...printStyles.field,
   },
   fieldLabel: {
-    color: "#64748b",
-    fontSize: 7,
-    textTransform: "uppercase",
+    ...printStyles.fieldLabel,
   },
   fieldValue: {
-    marginTop: 2,
-    fontSize: 9,
-    fontWeight: 700,
+    ...printStyles.fieldValue,
   },
   table: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
+    ...printStyles.table,
   },
   tableRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: printColors.lightRule,
     minHeight: 24,
   },
   tableFirstRow: {
@@ -122,21 +97,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   right: {
-    textAlign: "right",
+    ...printStyles.right,
   },
   totalRow: {
-    backgroundColor: "#0a0e1a",
-    color: "#22c55e",
+    backgroundColor: printColors.subtleFill,
+    color: printColors.text,
   },
   totalText: {
-    fontSize: 12,
-    fontWeight: 700,
+    ...printStyles.totalText,
   },
   footer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#0a0e1a",
-    paddingTop: 8,
+    ...printStyles.footer,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -202,10 +173,10 @@ export function NightReport({ audit, settings }: NightReportProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.hotelName}>{settings.hotelName}</Text>
+          <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
           <Text style={styles.title}>
-            LAPORAN NIGHT AUDIT · {dateLabel(audit.businessDate)}
+            Laporan Night Audit - {dateLabel(audit.businessDate)}
           </Text>
         </View>
 
