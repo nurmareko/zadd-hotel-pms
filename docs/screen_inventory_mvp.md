@@ -65,9 +65,9 @@ The application is built as a **single Next.js app** with four operational areas
 | HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: role-aware detail. Housekeepers start/finish cleaning, add status notes, log found items, and see the live timer. Supervisors inspect VCU rooms, view history, and review status context. |
 | HK-03 | Supervisor Rooms | Page | `/app/hk/rooms`: merged status overview and daily worksheet with current room status, inline supervisor status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
 | HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
-| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK/Admin, and returned-item resolution. |
+| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK, and returned-item resolution. |
 
-`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, HK supervisors and ADMIN land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
+`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 

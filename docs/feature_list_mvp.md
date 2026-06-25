@@ -29,8 +29,8 @@ Supports the guest lifecycle from booking to final payment.
 
 Role-aware for mobile housekeepers and supervisor control.
 
-- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors/ADMIN to the supervisor dashboard.
-- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN can access supervisor HK screens.
+- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors to the supervisor dashboard.
+- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN does not access HK operational screens.
 - **My Rooms / Kamar Saya** — `/app/hk/clean` is the housekeeper worklist, grouped by assigned room need and linked to shared room detail.
 - **Shared room detail** — `/app/hk/rooms/[id]` adapts by role. Housekeepers start/finish cleaning, see the live timer, add a status note, and log found items. Supervisors inspect rooms, view status/history, and review cleaning context.
 - **Supervisor Rooms** — `/app/hk/rooms` merges the former status board and daily list into one worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` redirects here.
@@ -40,7 +40,7 @@ Role-aware for mobile housekeepers and supervisor control.
 - **VCU inspection workflow** — vacant cleaning follows `VD → VCU → VC` on pass or `VCU → VD` on rejection; occupied-room cleaning follows `OD → OC`.
 - **Supervisor status override** — supervisors can manually change a room's current status from the Supervisor Rooms page; each override creates a status audit.
 - **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context.
-- **Lost & Found** — `/app/hk/lost-found` supports text-only item logging, FO/HK/Admin search, and returned-item resolution.
+- **Lost & Found** — `/app/hk/lost-found` supports text-only item logging, FO/HK search, and returned-item resolution.
 - **FO sync** — HK actions revalidate HK screens and Front Office room/tape-chart views.
 
 ## Food & Beverage

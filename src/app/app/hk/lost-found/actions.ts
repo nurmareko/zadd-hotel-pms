@@ -12,7 +12,7 @@ import {
   ReturnLostFoundItemSchema,
 } from "./schema";
 
-const allowedRoles: AppRole[] = ["HK", "FO", "ADMIN"];
+const allowedRoles: AppRole[] = ["HK", "FO"];
 
 async function requireLostFoundRole() {
   const session = await auth();

@@ -6,7 +6,7 @@ import { isHkSupervisor } from "@/auth.config";
 export default async function HKLandingPage() {
   const session = await auth();
 
-  if (session?.user.role === "ADMIN" || isHkSupervisor(session)) {
+  if (isHkSupervisor(session)) {
     redirect("/app/hk/supervisor");
   }
 
