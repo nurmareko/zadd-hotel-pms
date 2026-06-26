@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { formatCompactDateTimeID } from "@/lib/format";
 import {
   buildAuditStayChargeLines,
   buildNightAuditPlan,
@@ -17,14 +18,16 @@ import { RunNightAuditSchema } from "./schema";
 export type NightAuditRunSummary = {
   auditId: number;
   businessDateLabel: string;
-  roomsCharged: number;
-  lineItemsPosted: number;
   roomRevenue: string;
   fbRevenue: string;
   otherRevenue: string;
   totalRevenue: string;
   warnings: string[];
-  transactionWriteCount: number;
+  runAtLabel?: string;
+  runByName?: string;
+  roomsCharged?: number;
+  lineItemsPosted?: number;
+  transactionWriteCount?: number;
 };
 
 export type NightAuditRunResult =
@@ -172,12 +175,18 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
             fbRevenue,
             totalRevenue,
           },
-          select: { id: true },
+          select: {
+            id: true,
+            runAt: true,
+            runBy: { select: { fullName: true } },
+          },
         });
         transactionWriteCount += 1;
 
         return {
           auditId: audit.id,
+          runAt: audit.runAt,
+          runByName: audit.runBy.fullName,
           transactionWriteCount,
           lineItemsPosted: lineItemsToCreate.length,
           roomsCharged: chargedFolioIds.size,
@@ -202,6 +211,8 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
       summary: {
         auditId: result.auditId,
         businessDateLabel: plan.businessDateLabel,
+        runAtLabel: formatCompactDateTimeID(result.runAt),
+        runByName: result.runByName,
         roomsCharged: result.roomsCharged,
         lineItemsPosted: result.lineItemsPosted,
         roomRevenue: result.roomRevenue,
