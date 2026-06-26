@@ -396,3 +396,25 @@ Admin mengelola master data, pengguna, dan pengaturan aplikasi tanpa akses ke mo
    ![Manajemen users Admin](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/admin-05-users.png)
 
    Admin dapat melihat user demo dan role pengguna. Bagian Admin tidak menampilkan akses ke layar Housekeeping.
+
+### 4. Kelola Meja
+
+1. Buka menu **Meja** pada Admin.
+
+   ![Daftar meja restoran](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/admin-06-tables-list.png)
+
+   Daftar Meja menampilkan nomor meja, kapasitas, lokasi, status, order aktif, dan catatan. Gunakan **Tambah Meja** atau aksi baris untuk menambah dan mengubah kapasitas, lokasi/area, status, dan catatan meja.
+
+2. Pilih tab **Layout**.
+
+   ![Layout meja restoran](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/admin-07-tables-layout.png)
+
+   Layout menampilkan editor floor plan desktop untuk memosisikan meja dengan drag pada canvas. Susunan ini mencerminkan layout fisik ruangan restoran sehingga F&B melihat posisi meja yang sama di floor plan.
+
+### 5. Pengaturan Hotel
+
+1. Buka menu **Pengaturan** pada Admin.
+
+   ![Pengaturan Hotel Admin](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/admin-08-settings.png)
+
+   Pengaturan Hotel menyediakan nama hotel, mata uang, alamat, PPN, service charge, dan cut-off Night Audit. Panel Preview menampilkan contoh perhitungan F&B sebelum perubahan disimpan.
