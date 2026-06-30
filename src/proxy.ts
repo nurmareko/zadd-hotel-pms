@@ -33,6 +33,14 @@ export const proxy = auth((request) => {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  if (routeMatches(pathname, "/app/fo/staff-performance")) {
+    if (!["FO", "ADMIN"].includes(session.user.role)) {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
   if (routeMatches(pathname, "/app/hk/lost-found")) {
     if (!["HK", "FO"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));

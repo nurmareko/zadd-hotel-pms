@@ -1,5 +1,6 @@
 import {
   ArrangementType,
+  ActivityAction,
   ArticleType,
   FBOrderStatus,
   FolioStatus,
@@ -12,13 +13,22 @@ import {
   RoomStatus,
   TableLocation,
   TableStatus,
+  type Prisma,
 } from "@prisma/client";
+import { compare, hash } from "bcryptjs";
 import { addDays, format, subHours, subMinutes } from "date-fns";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
-import { dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
+import {
+  dateOnlyBoundary,
+  hotelTodayDateOnly,
+  hotelTodayTimestampRange,
+} from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { getRestaurantTableGridPosition } from "@/lib/restaurant-table-layout";
+
+const PASSWORD_COST = 10;
+const FO_ACTIVITY_SEED_TAG = "fo-staff-performance-demo";
 
 const roomTypes = [
   { code: "STD", name: "Standard", capacity: 2, baseRate: 550000 },
@@ -99,6 +109,24 @@ const guests = [
 ] as const;
 
 const purposeOfVisitPool = ["Bisnis", "Liburan", "Keluarga", "Acara"] as const;
+
+const additionalFrontOfficeUsers = [
+  {
+    username: "fo2",
+    fullName: "Nadia Safitri",
+    password: "fo123",
+  },
+  {
+    username: "fo3",
+    fullName: "Raka Mahendra",
+    password: "fo123",
+  },
+  {
+    username: "fo4",
+    fullName: "Maya Lestari",
+    password: "fo123",
+  },
+] as const;
 
 const articles = [
   {
@@ -431,6 +459,91 @@ function stayNights(arrivalDate: Date, departureDate: Date) {
   }
 
   return nights;
+}
+
+function activityTimestamp(todayStart: Date, dayOffset: number, hour: number, minute = 0) {
+  const businessDayStart = addDays(todayStart, dayOffset);
+
+  return new Date(
+    businessDayStart.getTime() + (hour * 60 + minute) * 60 * 1000,
+  );
+}
+
+async function getDemoPasswordHash(username: string, password: string) {
+  const existingUser = await prisma.user.findUnique({
+    where: { username },
+    select: { passwordHash: true },
+  });
+
+  if (existingUser) {
+    const passwordMatches = await compare(password, existingUser.passwordHash);
+
+    if (passwordMatches) {
+      return existingUser.passwordHash;
+    }
+  }
+
+  return hash(password, PASSWORD_COST);
+}
+
+async function seedAdditionalFrontOfficeUsers() {
+  const role = await prisma.role.findUniqueOrThrow({ where: { code: "FO" } });
+
+  for (const userToSeed of additionalFrontOfficeUsers) {
+    const passwordHash = await getDemoPasswordHash(
+      userToSeed.username,
+      userToSeed.password,
+    );
+
+    const user = await prisma.user.upsert({
+      where: { username: userToSeed.username },
+      create: {
+        username: userToSeed.username,
+        fullName: userToSeed.fullName,
+        passwordHash,
+        isActive: true,
+        isSupervisor: false,
+      },
+      update: {
+        fullName: userToSeed.fullName,
+        passwordHash,
+        isActive: true,
+        isSupervisor: false,
+      },
+    });
+
+    await prisma.userRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      },
+      create: {
+        userId: user.id,
+        roleId: role.id,
+      },
+      update: {},
+    });
+  }
+
+  const foUsers = await prisma.user.findMany({
+    where: {
+      username: {
+        in: ["fo1", ...additionalFrontOfficeUsers.map((user) => user.username)],
+      },
+    },
+    orderBy: { username: "asc" },
+    select: { id: true, username: true, fullName: true },
+  });
+
+  console.log(
+    `✓ seeded ${additionalFrontOfficeUsers.length} additional FO demo users (${foUsers
+      .map((user) => user.username)
+      .join(", ")})`,
+  );
+
+  return foUsers;
 }
 
 async function findSeedUser() {
@@ -902,10 +1015,189 @@ async function seedLostFoundItems({
   console.log("✓ seeded 3 lost & found items");
 }
 
+type FrontOfficeUserSeed = Awaited<
+  ReturnType<typeof seedAdditionalFrontOfficeUsers>
+>[number];
+
+type DemoActivitySeed = {
+  username: string;
+  action: ActivityAction;
+  dayOffset: number;
+  hour: number;
+  minute?: number;
+  reservationNo: string;
+  amount?: number;
+  method?: PaymentMethod;
+  article?: string;
+  note?: string;
+};
+
+async function seedFrontOfficeActivityLogs({
+  frontOfficeUsers,
+  todayStart,
+}: {
+  frontOfficeUsers: FrontOfficeUserSeed[];
+  todayStart: Date;
+}) {
+  const usersByUsername = new Map(
+    frontOfficeUsers.map((user) => [user.username, user]),
+  );
+  const seededReservations = await prisma.reservation.findMany({
+    where: {
+      reservationNo: { in: reservations.map((reservation) => reservation.reservationNo) },
+    },
+    select: {
+      id: true,
+      reservationNo: true,
+      roomId: true,
+      folio: { select: { id: true, folioNo: true } },
+    },
+  });
+  const reservationsByNo = new Map(
+    seededReservations.map((reservation) => [reservation.reservationNo, reservation]),
+  );
+
+  const activitySeeds: DemoActivitySeed[] = [
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: 0, hour: 8, minute: 20, reservationNo: "DEMO-RSV-007", note: "Early family arrival" },
+    { username: "fo1", action: ActivityAction.PAYMENT_RECORDED, dayOffset: 0, hour: 9, minute: 5, reservationNo: "DEMO-RSV-004", amount: 550000, method: PaymentMethod.CARD },
+    { username: "fo1", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: 0, hour: 10, minute: 40, reservationNo: "DEMO-RSV-008", amount: 45000, article: "MINIBAR" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: 0, hour: 11, minute: 15, reservationNo: "DEMO-RSV-010", note: "Phone booking, VIP amenity requested" },
+    { username: "fo2", action: ActivityAction.PAYMENT_RECORDED, dayOffset: 0, hour: 12, minute: 35, reservationNo: "DEMO-RSV-010", amount: 425000, method: PaymentMethod.TRANSFER },
+    { username: "fo3", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: 0, hour: 14, minute: 10, reservationNo: "DEMO-RSV-008", note: "Walk-in single guest" },
+    { username: "fo4", action: ActivityAction.CHECK_OUT_COMPLETED, dayOffset: 0, hour: 16, minute: 45, reservationNo: "DEMO-RSV-006", note: "Corporate guest late checkout" },
+    { username: "fo4", action: ActivityAction.PAYMENT_RECORDED, dayOffset: 0, hour: 17, minute: 5, reservationNo: "DEMO-RSV-006", amount: 935000, method: PaymentMethod.CASH },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -1, hour: 7, minute: 50, reservationNo: "DEMO-RSV-004" },
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -1, hour: 10, minute: 25, reservationNo: "DEMO-RSV-005" },
+    { username: "fo1", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -1, hour: 13, minute: 35, reservationNo: "DEMO-RSV-004", amount: 75000, article: "BREAKFAST" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -1, hour: 9, minute: 10, reservationNo: "DEMO-RSV-011" },
+    { username: "fo2", action: ActivityAction.RESERVATION_UPDATED, dayOffset: -1, hour: 15, minute: 20, reservationNo: "DEMO-RSV-011", note: "Adjusted ETA and room preference" },
+    { username: "fo3", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -1, hour: 18, minute: 30, reservationNo: "DEMO-RSV-003", amount: 850000, method: PaymentMethod.TRANSFER },
+    { username: "fo4", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -1, hour: 19, minute: 5, reservationNo: "DEMO-RSV-005", amount: 50000, article: "LAUNDRY" },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -2, hour: 8, minute: 45, reservationNo: "DEMO-RSV-006" },
+    { username: "fo1", action: ActivityAction.CHECK_OUT_COMPLETED, dayOffset: -2, hour: 11, minute: 25, reservationNo: "DEMO-RSV-002" },
+    { username: "fo1", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -2, hour: 11, minute: 40, reservationNo: "DEMO-RSV-002", amount: 4312500, method: PaymentMethod.CARD },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -2, hour: 12, minute: 10, reservationNo: "DEMO-RSV-012" },
+    { username: "fo2", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -2, hour: 20, minute: 15, reservationNo: "DEMO-RSV-006", amount: 175000, article: "DINNER" },
+    { username: "fo4", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -2, hour: 15, minute: 30, reservationNo: "DEMO-RSV-006" },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -3, hour: 8, minute: 5, reservationNo: "DEMO-RSV-004" },
+    { username: "fo1", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -3, hour: 16, minute: 10, reservationNo: "DEMO-RSV-004", amount: 45000, article: "MINIBAR" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -3, hour: 10, minute: 45, reservationNo: "DEMO-RSV-013" },
+    { username: "fo2", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -3, hour: 13, minute: 15, reservationNo: "DEMO-RSV-013", amount: 625000, method: PaymentMethod.TRANSFER },
+    { username: "fo3", action: ActivityAction.RESERVATION_CREATED, dayOffset: -3, hour: 14, minute: 35, reservationNo: "DEMO-RSV-009" },
+
+    { username: "fo1", action: ActivityAction.CHECK_OUT_COMPLETED, dayOffset: -4, hour: 10, minute: 50, reservationNo: "DEMO-RSV-001" },
+    { username: "fo1", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -4, hour: 11, minute: 5, reservationNo: "DEMO-RSV-001", amount: 1265000, method: PaymentMethod.CASH },
+    { username: "fo2", action: ActivityAction.RESERVATION_CANCELLED, dayOffset: -4, hour: 16, minute: 20, reservationNo: "DEMO-RSV-014", note: "Guest cancelled before arrival" },
+    { username: "fo4", action: ActivityAction.RESERVATION_CREATED, dayOffset: -4, hour: 17, minute: 10, reservationNo: "DEMO-RSV-010" },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -5, hour: 9, minute: 20, reservationNo: "DEMO-RSV-002" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -5, hour: 13, minute: 55, reservationNo: "DEMO-RSV-009" },
+    { username: "fo3", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -5, hour: 18, minute: 45, reservationNo: "DEMO-RSV-002", amount: 150000, article: "LUNCH" },
+    { username: "fo4", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -5, hour: 19, minute: 10, reservationNo: "DEMO-RSV-002", amount: 1250000, method: PaymentMethod.CARD },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -6, hour: 8, minute: 35, reservationNo: "DEMO-RSV-001" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -6, hour: 11, minute: 25, reservationNo: "DEMO-RSV-012" },
+    { username: "fo3", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -6, hour: 15, minute: 40, reservationNo: "DEMO-RSV-001", amount: 550000, method: PaymentMethod.TRANSFER },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -9, hour: 8, minute: 15, reservationNo: "DEMO-RSV-004" },
+    { username: "fo1", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -10, hour: 12, minute: 5, reservationNo: "DEMO-RSV-004", amount: 275000, method: PaymentMethod.CASH },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -11, hour: 10, minute: 30, reservationNo: "DEMO-RSV-011" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -13, hour: 14, minute: 45, reservationNo: "DEMO-RSV-012" },
+    { username: "fo3", action: ActivityAction.CHECK_OUT_COMPLETED, dayOffset: -14, hour: 10, minute: 10, reservationNo: "DEMO-RSV-003" },
+    { username: "fo4", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -15, hour: 18, minute: 25, reservationNo: "DEMO-RSV-005", amount: 75000, article: "BREAKFAST" },
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -17, hour: 9, minute: 5, reservationNo: "DEMO-RSV-005" },
+    { username: "fo2", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -18, hour: 15, minute: 55, reservationNo: "DEMO-RSV-011", amount: 850000, method: PaymentMethod.TRANSFER },
+    { username: "fo3", action: ActivityAction.RESERVATION_CREATED, dayOffset: -21, hour: 11, minute: 40, reservationNo: "DEMO-RSV-013" },
+    { username: "fo4", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -23, hour: 13, minute: 10, reservationNo: "DEMO-RSV-008" },
+    { username: "fo1", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -25, hour: 20, minute: 5, reservationNo: "DEMO-RSV-004", amount: 50000, article: "LAUNDRY" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -28, hour: 9, minute: 50, reservationNo: "DEMO-RSV-010" },
+
+    { username: "fo1", action: ActivityAction.CHECK_IN_COMPLETED, dayOffset: -36, hour: 8, minute: 55, reservationNo: "DEMO-RSV-001" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -39, hour: 10, minute: 20, reservationNo: "DEMO-RSV-009" },
+    { username: "fo4", action: ActivityAction.PAYMENT_RECORDED, dayOffset: -42, hour: 16, minute: 35, reservationNo: "DEMO-RSV-003", amount: 1700000, method: PaymentMethod.CARD },
+    { username: "fo1", action: ActivityAction.CHECK_OUT_COMPLETED, dayOffset: -48, hour: 11, minute: 15, reservationNo: "DEMO-RSV-002" },
+    { username: "fo3", action: ActivityAction.FOLIO_CHARGE_POSTED, dayOffset: -52, hour: 19, minute: 45, reservationNo: "DEMO-RSV-002", amount: 175000, article: "DINNER" },
+    { username: "fo2", action: ActivityAction.RESERVATION_CREATED, dayOffset: -58, hour: 12, minute: 25, reservationNo: "DEMO-RSV-012" },
+  ];
+
+  await prisma.activityLog.deleteMany({
+    where: {
+      metadata: {
+        path: ["seed"],
+        equals: FO_ACTIVITY_SEED_TAG,
+      },
+    },
+  });
+
+  const activityData = activitySeeds.map((seed) => {
+    const user = usersByUsername.get(seed.username);
+    const reservation = reservationsByNo.get(seed.reservationNo);
+
+    if (!user) {
+      throw new Error(`Missing FO user ${seed.username} for activity seed.`);
+    }
+
+    if (!reservation) {
+      throw new Error(`Missing reservation ${seed.reservationNo} for activity seed.`);
+    }
+
+    const metadata = {
+      seed: FO_ACTIVITY_SEED_TAG,
+      reservationNo: seed.reservationNo,
+      ...(seed.amount !== undefined ? { amount: seed.amount } : {}),
+      ...(seed.method !== undefined ? { method: seed.method } : {}),
+      ...(seed.article !== undefined ? { article: seed.article } : {}),
+      ...(seed.note !== undefined ? { note: seed.note } : {}),
+    } satisfies Prisma.InputJsonObject;
+
+    return {
+      userId: user.id,
+      action: seed.action,
+      createdAt: activityTimestamp(
+        todayStart,
+        seed.dayOffset,
+        seed.hour,
+        seed.minute,
+      ),
+      reservationId: reservation.id,
+      folioId: reservation.folio?.id ?? null,
+      roomId: reservation.roomId,
+      metadata,
+    };
+  });
+
+  await prisma.activityLog.createMany({ data: activityData });
+
+  const perStaff = activitySeeds.reduce<Record<string, number>>((counts, seed) => {
+    counts[seed.username] = (counts[seed.username] ?? 0) + 1;
+    return counts;
+  }, {});
+  const oldest = activityData
+    .map((activity) => activity.createdAt)
+    .sort((first, second) => first.getTime() - second.getTime())[0];
+  const newest = activityData
+    .map((activity) => activity.createdAt)
+    .sort((first, second) => second.getTime() - first.getTime())[0];
+
+  console.log(
+    `✓ seeded ${activityData.length} FO ActivityLog rows (${Object.entries(perStaff)
+      .map(([username, count]) => `${username}: ${count}`)
+      .join(", ")})`,
+  );
+  console.log(
+    `✓ FO ActivityLog time spread ${oldest.toISOString()} -> ${newest.toISOString()}`,
+  );
+}
+
 async function main() {
   try {
     const today = hotelTodayDateOnly();
+    const { start: todayTimestampStart } = hotelTodayTimestampRange();
     const createdBy = await findSeedUser();
+    const frontOfficeUsers = await seedAdditionalFrontOfficeUsers();
     const housekeepingUser = await findHousekeepingUser();
     const secondHousekeepingUser = await findSecondHousekeepingUser();
     const housekeepingSupervisor = await findHousekeepingSupervisor();
@@ -1504,6 +1796,11 @@ async function main() {
     console.log(
       `✓ charge-to-room linked ${roomChargeOrder.orderNo} to folio ${chargeToRoomFolio.folioNo}`,
     );
+
+    await seedFrontOfficeActivityLogs({
+      frontOfficeUsers,
+      todayStart: todayTimestampStart,
+    });
 
     await prisma.nightAudit.deleteMany({});
 

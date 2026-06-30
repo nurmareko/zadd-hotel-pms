@@ -553,7 +553,7 @@ export function TapeChart({
         </div>
       </div>
 
-      <TapeChartLegend roomCount={roomCount} dayCount={data.dayCount} />
+      <TapeChartLegend />
 
       <div className={styles.chartShell} style={layoutStyle}>
         {roomCount === 0 ? (
