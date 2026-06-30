@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 21 tables organized across seven logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, and payment.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 22 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 21 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 22 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -24,6 +24,7 @@ erDiagram
   USER ||--o{ RESERVATION : "creates"
   USER ||--o{ FB_ORDER : "waits"
   USER ||--o{ FOLIO_LINE_ITEM : "posts"
+  USER ||--o{ ACTIVITY_LOG : "performs"
 
   ROOM_TYPE ||--o{ ROOM : "categorizes"
   ROOM_TYPE ||--o{ RESERVATION : "requested_for"
@@ -33,12 +34,15 @@ erDiagram
   ROOM ||--o{ CLEANING_SESSION : "cleaned_in"
   ROOM ||--o{ LOST_FOUND_ITEM : "found_in"
   ROOM ||--o{ RESERVATION : "assigned_to"
+  ROOM ||--o{ ACTIVITY_LOG : "context_for"
 
   GUEST ||--o{ RESERVATION : "makes"
   RESERVATION ||--o| FOLIO : "opens"
+  RESERVATION ||--o{ ACTIVITY_LOG : "context_for"
   FOLIO ||--o{ FOLIO_LINE_ITEM : "contains"
   FOLIO ||--o{ PAYMENT : "settled_by"
   FOLIO ||--o{ FB_ORDER : "charged_by"
+  FOLIO ||--o{ ACTIVITY_LOG : "context_for"
 
   ARTICLE ||--o{ FOLIO_LINE_ITEM : "charged_as"
 
@@ -272,6 +276,16 @@ erDiagram
     int received_by_id FK
     timestamp received_at
   }
+  ACTIVITY_LOG {
+    int id PK
+    int user_id FK
+    varchar action
+    timestamp created_at
+    int reservation_id FK
+    int folio_id FK
+    int room_id FK
+    json metadata
+  }
 ```
 
 ---
@@ -322,6 +336,10 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 21. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
 
+**Activity logging**
+
+22. ActivityLog(*id*, *user_id\#*, action, created_at, reservation_id\# nullable, folio_id\# nullable, room_id\# nullable, metadata)
+
 ---
 
 ## Enum specifications
@@ -342,6 +360,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | PaymentMethod | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
 | NightAuditStatus | COMPLETED |
 | LostFoundStatus | UNCLAIMED, RETURNED |
+| ActivityAction | RESERVATION_CREATED, RESERVATION_UPDATED, RESERVATION_CANCELLED, CHECK_IN_COMPLETED, CHECK_OUT_COMPLETED, PAYMENT_RECORDED, FOLIO_CHARGE_POSTED |
 
 ---
 
@@ -360,6 +379,7 @@ A few choices worth explaining:
 9. **Lost & Found is operationally independent.** LostFoundItem records text descriptions, optional room context, the user who logged the item, and return resolution. It does not create maintenance tickets, store photos, or change Room.status automatically.
 10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
+12. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
 
 ---
 
@@ -675,3 +695,24 @@ Lost & Found is text-only in the MVP. Records may be room-specific or public-are
 | received_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Payment time |
 
 > **Polymorphic constraint on Payment**: exactly one of `folio_id` or `fb_order_id` must be populated (`payment_exactly_one_owner_check`).
+
+### `activity_log`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique activity log identifier |
+| user_id | INT | NOT NULL, FOREIGN KEY → user(id) | Acting staff user from the authenticated session |
+| action | ActivityAction | NOT NULL | Business event code, not a field-level diff |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Event logging time |
+| reservation_id | INT | FOREIGN KEY → reservation(id), ON DELETE SET NULL | Reservation context, when relevant |
+| folio_id | INT | FOREIGN KEY → folio(id), ON DELETE SET NULL | Folio context, when relevant |
+| room_id | INT | FOREIGN KEY → room(id), ON DELETE SET NULL | Room context, when relevant |
+| metadata | JSONB | — | Small action-specific details such as payment amount/method |
+
+Indexes:
+
+- INDEX (`user_id`) — staff activity lookup.
+- INDEX (`action`) — business-event filtering.
+- INDEX (`created_at`) — date-range audit/report filtering.
+
+ActivityLog is intentionally general. Phase 1 writes Front Office events only; later HK, FB, and ACC events can extend `ActivityAction` and reuse the same table and context/metadata pattern.
