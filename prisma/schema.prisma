@@ -114,6 +114,16 @@ enum LostFoundStatus {
   RETURNED
 }
 
+enum ActivityAction {
+  RESERVATION_CREATED
+  RESERVATION_UPDATED
+  RESERVATION_CANCELLED
+  CHECK_IN_COMPLETED
+  CHECK_OUT_COMPLETED
+  PAYMENT_RECORDED
+  FOLIO_CHARGE_POSTED
+}
+
 // ============================================================
 // AUTHENTICATION
 // ============================================================
@@ -140,6 +150,7 @@ model User {
   lostFoundItemsFound     LostFoundItem[]          @relation("LostFoundItemFoundBy")
   nightAuditsRun          NightAudit[]
   paymentsReceived        Payment[]
+  activityLogs            ActivityLog[]
 
   @@map("user")
 }
@@ -198,6 +209,7 @@ model Room {
   housekeepingAssignments HousekeepingAssignment[]
   cleaningSessions        CleaningSession[]
   lostFoundItems          LostFoundItem[]
+  activityLogs            ActivityLog[]
 
   @@map("room")
 }
@@ -273,11 +285,12 @@ model Reservation {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  guest     Guest    @relation(fields: [guestId], references: [id])
-  roomType  RoomType @relation(fields: [roomTypeId], references: [id])
-  room      Room?    @relation(fields: [roomId], references: [id])
-  createdBy User     @relation("ReservationCreator", fields: [createdById], references: [id])
-  folio     Folio?
+  guest        Guest         @relation(fields: [guestId], references: [id])
+  roomType     RoomType      @relation(fields: [roomTypeId], references: [id])
+  room         Room?         @relation(fields: [roomId], references: [id])
+  createdBy    User          @relation("ReservationCreator", fields: [createdById], references: [id])
+  folio        Folio?
+  activityLogs ActivityLog[]
 
   @@map("reservation")
 }
@@ -290,10 +303,11 @@ model Folio {
   openedAt      DateTime    @default(now()) @map("opened_at")
   closedAt      DateTime?   @map("closed_at")
 
-  reservation Reservation     @relation(fields: [reservationId], references: [id])
-  lineItems   FolioLineItem[]
-  payments    Payment[]
-  fbOrders    FBOrder[]       @relation("ChargedFolio")
+  reservation  Reservation     @relation(fields: [reservationId], references: [id])
+  lineItems    FolioLineItem[]
+  payments     Payment[]
+  fbOrders     FBOrder[]       @relation("ChargedFolio")
+  activityLogs ActivityLog[]
 
   @@map("folio")
 }
@@ -519,4 +533,29 @@ model Payment {
   receivedBy User     @relation(fields: [receivedById], references: [id])
 
   @@map("payment")
+}
+
+// ============================================================
+// ACTIVITY LOG (general audit trail)
+// ============================================================
+
+model ActivityLog {
+  id            Int            @id @default(autoincrement())
+  userId        Int            @map("user_id")
+  action        ActivityAction
+  createdAt     DateTime       @default(now()) @map("created_at")
+  reservationId Int?           @map("reservation_id")
+  folioId       Int?           @map("folio_id")
+  roomId        Int?           @map("room_id")
+  metadata      Json?
+
+  user        User         @relation(fields: [userId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  folio       Folio?       @relation(fields: [folioId], references: [id], onDelete: SetNull)
+  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_log")
 }

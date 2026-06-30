@@ -4,6 +4,7 @@ import { ArticleType, FolioStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity-log";
 import { prisma } from "@/lib/prisma";
 import { PaymentSchema, PostChargeSchema } from "./schema";
 
@@ -80,6 +81,13 @@ export async function postCharge(
     },
   });
 
+  await logActivity({
+    userId,
+    action: "FOLIO_CHARGE_POSTED",
+    folioId: folio.id,
+    metadata: { amount },
+  });
+
   revalidatePath(`/app/fo/folios/${folio.id}`);
 
   return { ok: true };
@@ -122,6 +130,16 @@ export async function recordPayment(
       reference: parsed.data.reference || null,
       receivedById: userId,
       receivedAt: new Date(),
+    },
+  });
+
+  await logActivity({
+    userId,
+    action: "PAYMENT_RECORDED",
+    folioId: folio.id,
+    metadata: {
+      amount: parsed.data.amount,
+      method: parsed.data.method,
     },
   });
 

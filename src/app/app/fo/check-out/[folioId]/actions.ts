@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity-log";
 import { formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
@@ -149,6 +150,16 @@ export async function recordFinalPayment(
       reference: parsed.data.reference || null,
       receivedById: userId,
       receivedAt: new Date(),
+    },
+  });
+
+  await logActivity({
+    userId,
+    action: "PAYMENT_RECORDED",
+    folioId: folio.id,
+    metadata: {
+      amount: parsed.data.amount,
+      method: parsed.data.method,
     },
   });
 
@@ -314,6 +325,14 @@ export async function completeCheckout(
   if (!result.ok) {
     return result;
   }
+
+  await logActivity({
+    userId,
+    action: "CHECK_OUT_COMPLETED",
+    reservationId: folio.reservationId,
+    folioId: folio.id,
+    roomId: folio.reservation.roomId,
+  });
 
   revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
   revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);

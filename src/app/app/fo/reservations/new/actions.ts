@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
@@ -416,6 +417,12 @@ export async function createReservation(
 
   const arrival = formatISO(parsed.data.arrivalDate, { representation: "date" });
 
+  await logActivity({
+    userId,
+    action: "RESERVATION_CREATED",
+    reservationId: result.reservationId,
+  });
+
   revalidatePath("/app/fo/reservations");
   revalidatePath("/app/fo/tape-chart");
   redirect(`/app/fo/reservations?from=${arrival}&to=${arrival}`);
@@ -435,6 +442,7 @@ export async function cancelReservation(
     return { ok: false, error: "Invalid reservation" };
   }
 
+  const userId = Number(session.user.id);
   let result: { ok: true } | { ok: false; error: string };
 
   try {
@@ -505,6 +513,12 @@ export async function cancelReservation(
     return result;
   }
 
+  await logActivity({
+    userId,
+    action: "RESERVATION_CANCELLED",
+    reservationId,
+  });
+
   revalidatePath("/app/fo/reservations");
   revalidatePath(`/app/fo/reservations/${reservationId}`);
   revalidatePath("/app/fo/tape-chart");
@@ -531,6 +545,7 @@ export async function updateReservation(
     return { ok: false, error: validationError(parsed.error) };
   }
 
+  const userId = Number(session.user.id);
   let result: Awaited<ReturnType<typeof runUpdateReservationTransaction>> | null =
     null;
 
@@ -550,6 +565,12 @@ export async function updateReservation(
   if (!result.ok) {
     return result;
   }
+
+  await logActivity({
+    userId,
+    action: "RESERVATION_UPDATED",
+    reservationId,
+  });
 
   revalidatePath("/app/fo/reservations");
   revalidatePath(`/app/fo/reservations/${reservationId}`);

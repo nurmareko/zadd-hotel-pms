@@ -388,13 +388,7 @@ function TapeChartNavButton({
   );
 }
 
-function TapeChartLegend({
-  roomCount,
-  dayCount,
-}: {
-  roomCount: number;
-  dayCount: number;
-}) {
+function TapeChartLegend() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-500 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -559,7 +553,7 @@ export function TapeChart({
         </div>
       </div>
 
-      <TapeChartLegend roomCount={roomCount} dayCount={data.dayCount} />
+      <TapeChartLegend />
 
       <div className={styles.chartShell} style={layoutStyle}>
         {roomCount === 0 ? (

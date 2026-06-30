@@ -1,11 +1,16 @@
 "use server";
 
-import { Prisma, ReservationStatus, RoomStatus } from "@prisma/client";
+import {
+  Prisma,
+  ReservationStatus,
+  RoomStatus,
+} from "@prisma/client";
 import { format } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity-log";
 // Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
 // Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
@@ -326,6 +331,14 @@ export async function completeCheckIn(
   if (!result.ok) {
     return result;
   }
+
+  await logActivity({
+    userId,
+    action: "CHECK_IN_COMPLETED",
+    reservationId: parsed.data.reservationId,
+    folioId: result.folioId,
+    roomId: parsed.data.roomId,
+  });
 
   revalidatePath("/app/fo/tape-chart");
   revalidatePath("/app/fo/reservations");

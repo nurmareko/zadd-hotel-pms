@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   BedDouble,
+  BarChart3,
   CalendarDays,
   ClipboardList,
   Archive,
@@ -139,6 +140,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
             { href: "/app/fo/check-out", match: "startsWith" },
             { href: "/app/fo/folios", match: "startsWith" },
           ],
+        },
+        {
+          label: "Performance",
+          href: "/app/fo/staff-performance",
+          icon: BarChart3,
+          activeMatch: "startsWith",
         },
         {
           label: "Lost & Found",
