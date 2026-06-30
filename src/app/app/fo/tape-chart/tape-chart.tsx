@@ -416,11 +416,7 @@ function TapeChartLegend({
             {item.label}
           </span>
         ))}
-        <span className="text-slate-400">Gray rows = Out of Order</span>
       </div>
-      <span className="text-slate-500">
-        {roomCount} rooms / {dayCount} days
-      </span>
     </div>
   );
 }
@@ -527,7 +523,7 @@ export function TapeChart({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between mb-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Kalender (Tape Chart)
+            Kalender
           </h1>
         </div>
 

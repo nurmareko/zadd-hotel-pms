@@ -15,6 +15,8 @@ import {
   LogOut,
   MoreHorizontal,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Tag,
   Table2,
@@ -26,6 +28,7 @@ import {
 } from "lucide-react";
 
 import type { AppRole } from "@/auth";
+import { setNavSidebarCollapsed } from "@/app/app/nav-actions";
 import { Button } from "@/components/ui/button";
 import type { NavBadge, NavBadgeMap } from "@/lib/nav-badge-types";
 
@@ -52,6 +55,7 @@ type NavGroup = {
 type NavShellProps = {
   children: ReactNode;
   initialNavBadges: NavBadgeMap;
+  initialSidebarCollapsed: boolean;
   userRole: AppRole;
   userIsSupervisor: boolean;
   userFullName: string;
@@ -287,17 +291,24 @@ function TabBadgeDot({ badge }: { badge: NavBadge }) {
 export function NavShell({
   children,
   initialNavBadges,
+  initialSidebarCollapsed,
   userRole,
   userIsSupervisor,
   userFullName,
 }: NavShellProps) {
   const pathname = usePathname();
   const [navBadges, setNavBadges] = useState(initialNavBadges);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    initialSidebarCollapsed,
+  );
   const [moreOpen, setMoreOpen] = useState(false);
   const lastPathnameRef = useRef(pathname);
   const [, startTransition] = useTransition();
   const navGroups = getNavGroups(userRole, userIsSupervisor);
+  const desktopNavGroups = navGroups.filter((group) => group !== accountGroup);
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
+  const profileLink = accountGroup.links[0];
+  const isProfileActive = activeSidebarHref === profileLink.href;
 
   // One mobile nav: a role-scoped bottom tab bar built from the same link set
   // (and the same longest-match active logic) as the desktop sidebar. Overflow
@@ -340,31 +351,78 @@ export function NavShell({
     };
   }, [pathname, startTransition]);
 
+  function toggleSidebarCollapsed() {
+    const nextCollapsed = !sidebarCollapsed;
+
+    setSidebarCollapsed(nextCollapsed);
+    startTransition(() => {
+      void setNavSidebarCollapsed(nextCollapsed).catch(() => {
+        setSidebarCollapsed(!nextCollapsed);
+      });
+    });
+  }
+
   return (
     <div className="min-h-screen flex-1 bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-[260px] flex-col border-r border-slate-200 bg-white px-4 py-5 desktop:flex">
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 hidden flex-col border-r border-slate-200 bg-white py-5 transition-[width,padding] duration-200 ease-out desktop:flex",
+          sidebarCollapsed ? "w-16 px-1" : "w-[260px] px-4",
+        ].join(" ")}
+      >
         {/* Brand header */}
-        <div className="mb-5 flex items-center gap-2.5 border-b border-slate-100 pb-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-[13px] font-bold text-white">
-            Z
-          </div>
-          <div>
-            <div className="text-[10px] font-bold tracking-wide text-slate-500 uppercase">
-              ZADD
+        <div
+          className={[
+            "mb-5 flex border-b border-slate-100 pb-4",
+            sidebarCollapsed
+              ? "justify-center"
+              : "items-center justify-between gap-3",
+          ].join(" ")}
+        >
+          {!sidebarCollapsed ? (
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-[13px] font-bold text-white">
+                Z
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold tracking-wide text-slate-500 uppercase">
+                  ZADD
+                </div>
+                <div className="truncate text-[13px] font-semibold leading-tight text-slate-900">
+                  Hotel Management
+                </div>
+                <div className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-wider text-slate-500">
+                  {roleModuleNames[userRole]}
+                </div>
+              </div>
             </div>
-            <div className="text-[13px] font-semibold leading-tight text-slate-900">
-              Hotel Management
-            </div>
-            <div className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-slate-500">
-              {roleModuleNames[userRole]}
-            </div>
-          </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size={sidebarCollapsed ? "icon-xs" : "icon"}
+            aria-label={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+            title={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+            className="shrink-0 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            onClick={toggleSidebarCollapsed}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="size-[18px]" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="size-[18px]" aria-hidden="true" />
+            )}
+          </Button>
         </div>
 
         <nav className="flex-1 space-y-6">
-          {navGroups.map((group) => (
+          {desktopNavGroups.map((group) => (
             <section key={group.label}>
-              <h2 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2
+                className={[
+                  "mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400",
+                  sidebarCollapsed ? "sr-only" : "",
+                ].join(" ")}
+              >
                 {group.label}
               </h2>
               <div className="space-y-0.5">
@@ -377,19 +435,47 @@ export function NavShell({
                     <Link
                       key={link.href}
                       href={link.href}
+                      aria-label={sidebarCollapsed ? link.label : undefined}
                       aria-current={isActive ? "page" : undefined}
+                      title={sidebarCollapsed ? link.label : undefined}
                       className={[
-                        "flex items-center gap-2 py-2 text-sm font-medium transition-colors border-l-2",
+                        "group relative flex items-center border-l-2 text-sm font-medium transition-colors",
+                        sidebarCollapsed
+                          ? "h-10 justify-center px-0"
+                          : "gap-2 py-2",
                         isActive
-                          ? "bg-slate-100 text-slate-900 border-slate-900 pl-2.5"
-                          : "text-slate-600 border-transparent pl-2.5 hover:bg-slate-50 hover:text-slate-900",
+                          ? [
+                              "bg-slate-100 text-slate-900 border-slate-900",
+                              sidebarCollapsed ? "" : "pl-2.5",
+                            ].join(" ")
+                          : [
+                              "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900",
+                              sidebarCollapsed ? "" : "pl-2.5",
+                            ].join(" "),
                       ].join(" ")}
                     >
-                      <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={[
+                          "flex min-w-0 items-center",
+                          sidebarCollapsed ? "relative" : "gap-2",
+                        ].join(" ")}
+                      >
                         <Icon size={18} aria-hidden="true" />
-                        <span className="truncate">{link.label}</span>
+                        {!sidebarCollapsed ? (
+                          <span className="truncate">{link.label}</span>
+                        ) : null}
+                        {sidebarCollapsed && badge ? (
+                          <TabBadgeDot badge={badge} />
+                        ) : null}
                       </span>
-                      {badge ? <NavBadgePill badge={badge} /> : null}
+                      {!sidebarCollapsed && badge ? (
+                        <NavBadgePill badge={badge} />
+                      ) : null}
+                      {sidebarCollapsed ? (
+                        <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-md group-hover:block group-focus-visible:block">
+                          {link.label}
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}
@@ -399,20 +485,61 @@ export function NavShell({
         </nav>
 
         <div className="border-t border-slate-100 pt-4">
-          <p className="truncate px-3 text-sm font-semibold text-slate-900">
-            {userFullName}
-          </p>
-          <p className="mt-0.5 px-3 text-xs font-medium text-slate-500">
-            {userRole}
-          </p>
+          <Link
+            href={profileLink.href}
+            aria-label={sidebarCollapsed ? userFullName : undefined}
+            aria-current={isProfileActive ? "page" : undefined}
+            title={sidebarCollapsed ? userFullName : undefined}
+            className={[
+              "group relative flex border-l-2 text-sm font-medium transition-colors",
+              sidebarCollapsed
+                ? "mx-auto h-10 w-[47px] items-center justify-center"
+                : "min-w-0 flex-col px-3 py-2",
+              isProfileActive
+                ? [
+                    "bg-slate-100 text-slate-900 border-slate-900",
+                    sidebarCollapsed ? "" : "pl-2.5",
+                  ].join(" ")
+                : [
+                    "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900",
+                    sidebarCollapsed ? "" : "pl-2.5",
+                  ].join(" "),
+            ].join(" ")}
+          >
+            {sidebarCollapsed ? (
+              <>
+                <User size={18} aria-hidden="true" />
+                <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-md group-hover:block group-focus-visible:block">
+                  {userFullName}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="truncate text-sm font-semibold text-slate-900">
+                  {userFullName}
+                </span>
+                <span className="mt-0.5 text-xs font-medium text-slate-500">
+                  {userRole}
+                </span>
+              </>
+            )}
+          </Link>
           <Button
             type="button"
             variant="ghost"
-            className="mt-3 w-full justify-start gap-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-3 h-10 rounded-md"
+            size={sidebarCollapsed ? "icon" : "default"}
+            aria-label={sidebarCollapsed ? "Keluar" : undefined}
+            title={sidebarCollapsed ? "Keluar" : undefined}
+            className={[
+              "mt-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md",
+              sidebarCollapsed
+                ? "mx-auto flex"
+                : "w-full justify-start gap-2 px-3 h-10",
+            ].join(" ")}
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
             <LogOut size={18} aria-hidden="true" />
-            Keluar
+            {!sidebarCollapsed ? "Keluar" : null}
           </Button>
         </div>
       </aside>
@@ -441,7 +568,12 @@ export function NavShell({
         </Button>
       </div>
 
-      <div className="min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] desktop:ml-[260px] desktop:pb-0">
+      <div
+        className={[
+          "min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[margin-left] duration-200 ease-out desktop:pb-0",
+          sidebarCollapsed ? "desktop:ml-16" : "desktop:ml-[260px]",
+        ].join(" ")}
+      >
         {children}
       </div>
 
