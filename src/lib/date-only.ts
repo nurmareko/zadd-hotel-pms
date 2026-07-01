@@ -84,6 +84,17 @@ export function hotelTodayTimestampRange(now: Date = new Date()): {
 }
 
 /**
+ * UTC timestamp for midnight at the start of a hotel-local ISO calendar date.
+ * Use this for timestamp columns when a user picks a specific YYYY-MM-DD date.
+ */
+export function hotelTimestampBoundaryForDate(isoDate: string): Date {
+  const reference = new Date(`${isoDate}T00:00:00.000Z`);
+  const offsetMs = hotelOffsetMs(reference);
+
+  return new Date(reference.getTime() - offsetMs);
+}
+
+/**
  * Convert a local Date to a UTC-midnight Date representing the same calendar date.
  * Use this for queries against Prisma @db.Date columns to avoid timezone drift.
  *

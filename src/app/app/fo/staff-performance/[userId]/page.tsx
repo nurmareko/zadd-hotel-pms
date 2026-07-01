@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
-  ListChecks,
   ReceiptText,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +14,6 @@ import { notFound, redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -24,16 +22,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatCompactDateTimeID, formatDateTimeID, formatIDR } from "@/lib/format";
+import { formatCompactDateTimeID, formatIDR } from "@/lib/format";
 import { hotelTodayTimestampRange } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 import {
-  actionBadgeClass,
   actionLabel,
-  activityContext,
-  activityDetail,
   buildMetrics,
+  metadataAmount,
+  metadataText,
   type ActivityWithContext,
 } from "../activity";
 
@@ -49,31 +46,6 @@ type StaffHistoryPageProps = {
     window?: string | string[];
     page?: string | string[];
   }>;
-};
-
-const historyWindows: Record<
-  HistoryWindowKey,
-  { label: string; description: string; days?: number }
-> = {
-  all: {
-    label: "All time",
-    description: "Complete ActivityLog history",
-  },
-  month: {
-    label: "Past Month",
-    description: "ActivityLog rows from the last 30 hotel days",
-    days: 30,
-  },
-  week: {
-    label: "Past Week",
-    description: "ActivityLog rows from the last 7 hotel days",
-    days: 7,
-  },
-  today: {
-    label: "Today",
-    description: "ActivityLog rows from the current hotel day",
-    days: 1,
-  },
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -108,7 +80,7 @@ function getHistoryRange(windowKey: HistoryWindowKey) {
   }
 
   const { start: todayStart, end } = hotelTodayTimestampRange();
-  const days = historyWindows[windowKey].days ?? 1;
+  const days = windowKey === "month" ? 30 : windowKey === "week" ? 7 : 1;
   const start = addDays(todayStart, -(days - 1));
 
   return { start, end };
@@ -148,20 +120,14 @@ function activityWhere(
   };
 }
 
-function roleLabel(code: string) {
-  return code === "FO" ? "Front Office" : code;
-}
-
 function MetricCard({
   icon: Icon,
   label,
   value,
-  sub,
 }: {
   icon: typeof ClipboardCheck;
   label: string;
   value: string | number;
-  sub: string;
 }) {
   return (
     <Card className="shadow-sm">
@@ -179,7 +145,6 @@ function MetricCard({
             <Icon className="size-4" aria-hidden="true" />
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">{sub}</p>
       </CardHeader>
     </Card>
   );
@@ -190,6 +155,47 @@ function relativeTime(date: Date) {
     addSuffix: true,
     locale: indonesianLocale,
   });
+}
+
+function reservationNumber(activity: ActivityWithContext) {
+  if (activity.reservation) {
+    return activity.reservation.reservationNo;
+  }
+
+  return activity.reservationId ? `#${activity.reservationId}` : "-";
+}
+
+function guestName(activity: ActivityWithContext) {
+  return activity.reservation?.guest.fullName ?? "-";
+}
+
+function folioNumber(activity: ActivityWithContext) {
+  if (activity.folio) {
+    return activity.folio.folioNo;
+  }
+
+  return activity.folioId ? `#${activity.folioId}` : "-";
+}
+
+function roomNumber(activity: ActivityWithContext) {
+  if (activity.room) {
+    return activity.room.number;
+  }
+
+  return activity.roomId ? `#${activity.roomId}` : "-";
+}
+
+function activityAmount(activity: ActivityWithContext) {
+  const amount = metadataAmount(activity.metadata);
+
+  return amount > 0 ? formatIDR(amount) : "-";
+}
+
+function metadataColumn(
+  activity: ActivityWithContext,
+  key: "method" | "article" | "note",
+) {
+  return metadataText(activity.metadata, key) ?? "-";
 }
 
 export default async function StaffHistoryPage({
@@ -272,7 +278,6 @@ export default async function StaffHistoryPage({
     notFound();
   }
 
-  const roleCode = staffer.roles[0]?.role.code ?? "FO";
   const metrics = buildMetrics(summaryActivities);
   const visibleActivities = feedActivities.slice(0, FEED_PAGE_SIZE);
   const hasNextPage = feedActivities.length > FEED_PAGE_SIZE;
@@ -293,44 +298,11 @@ export default async function StaffHistoryPage({
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to comparative report
           </Link>
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium uppercase text-slate-500">
-            <ListChecks className="size-4" aria-hidden="true" />
-            Staff Activity History
-            <Badge variant="outline">{roleLabel(roleCode)}</Badge>
-            {!staffer.isActive ? <Badge variant="outline">Inactive</Badge> : null}
-          </div>
+          
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">
             {staffer.fullName}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            @{staffer.username} · {historyWindows[windowKey].description}
-          </p>
         </div>
-
-        <nav
-          aria-label="History window"
-          className="flex w-full flex-wrap gap-2 sm:w-auto"
-        >
-          {(Object.keys(historyWindows) as HistoryWindowKey[]).map((key) => {
-            const active = key === windowKey;
-
-            return (
-              <Link
-                key={key}
-                aria-current={active ? "page" : undefined}
-                className={[
-                  "inline-flex h-9 flex-1 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors sm:flex-none",
-                  active
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950",
-                ].join(" ")}
-                href={historyHref({ userId, windowKey: key })}
-              >
-                {historyWindows[key].label}
-              </Link>
-            );
-          })}
-        </nav>
       </div>
 
       <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -338,93 +310,157 @@ export default async function StaffHistoryPage({
           icon={ReceiptText}
           label="Reservations"
           value={metrics.reservationsCreated}
-          sub="Created by this staffer"
         />
         <MetricCard
           icon={BedDouble}
           label="Check-ins"
           value={metrics.checkInsCompleted}
-          sub="Completed check-ins"
         />
         <MetricCard
           icon={ClipboardCheck}
           label="Check-outs"
           value={metrics.checkOutsCompleted}
-          sub="Completed check-outs"
         />
         <MetricCard
           icon={CreditCard}
           label="Payments"
           value={metrics.paymentsRecordedCount}
-          sub={formatIDR(metrics.paymentsRecordedTotal)}
         />
         <MetricCard
           icon={FileText}
           label="Charges"
           value={metrics.folioChargesPosted}
-          sub="Folio charges posted"
         />
         <MetricCard
           icon={CalendarClock}
           label="Total actions"
           value={metrics.totalActions}
-          sub={
-            range
-              ? `${formatDateTimeID(range.start)} - ${formatDateTimeID(range.end)}`
-              : "All logged time"
-          }
         />
       </section>
 
       <Card className="shadow-sm">
         <CardHeader className="border-b border-slate-100">
-          <CardTitle>Activity feed</CardTitle>
-          <CardDescription>
-            Newest first · {summaryActivities.length} ActivityLog row
-            {summaryActivities.length === 1 ? "" : "s"} in this window
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {visibleActivities.length > 0 ? (
-            <div className="divide-y divide-slate-100">
-              {(visibleActivities as ActivityWithContext[]).map((activity) => {
-                const context = activityContext(activity);
-                const detail = activityDetail(activity);
-
-                return (
-                  <article
-                    key={activity.id}
-                    className="grid gap-3 px-5 py-4 md:grid-cols-[180px_minmax(0,1fr)]"
-                  >
-                    <div>
-                      <time className="block text-sm font-semibold tabular-nums text-slate-900">
-                        {formatCompactDateTimeID(activity.createdAt)}
-                      </time>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {relativeTime(activity.createdAt)}
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={actionBadgeClass(activity.action)}
+            <div className="max-w-full overflow-auto">
+              <table className="w-full min-w-[1280px] border-collapse text-sm">
+                <caption className="sr-only">
+                  Staff activity feed with newest ActivityLog rows first
+                </caption>
+                <thead>
+                  <tr>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Time
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Action
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Reservation
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Guest
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Folio
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Room
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Amount
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Method
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Article
+                    </th>
+                    <th
+                      className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
+                      scope="col"
+                    >
+                      Note
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(visibleActivities as ActivityWithContext[]).map(
+                    (activity) => {
+                      return (
+                        <tr
+                          key={activity.id}
+                          className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                         >
-                          {actionLabel(activity.action)}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 text-sm font-medium text-slate-950">
-                        {context || "No linked reservation, folio, or room"}
-                      </div>
-                      {detail ? (
-                        <div className="mt-1 text-sm text-slate-500">
-                          {detail}
-                        </div>
-                      ) : null}
-                    </div>
-                  </article>
-                );
-              })}
+                          <td className="w-[180px] px-4 py-3 align-top">
+                            <time className="block font-semibold tabular-nums text-slate-900">
+                              {formatCompactDateTimeID(activity.createdAt)}
+                            </time>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {relativeTime(activity.createdAt)}
+                            </div>
+                          </td>
+                          <td className="w-[170px] px-4 py-3 align-top font-medium text-slate-900">
+                            {actionLabel(activity.action)}
+                          </td>
+                          <td className="w-[150px] px-4 py-3 align-top font-medium text-slate-950">
+                            {reservationNumber(activity)}
+                          </td>
+                          <td className="w-[180px] px-4 py-3 align-top text-slate-700">
+                            {guestName(activity)}
+                          </td>
+                          <td className="w-[140px] px-4 py-3 align-top text-slate-700">
+                            {folioNumber(activity)}
+                          </td>
+                          <td className="w-[90px] px-4 py-3 align-top text-slate-700">
+                            {roomNumber(activity)}
+                          </td>
+                          <td className="w-[130px] px-4 py-3 text-right align-top font-medium tabular-nums text-slate-900">
+                            {activityAmount(activity)}
+                          </td>
+                          <td className="w-[110px] px-4 py-3 align-top text-slate-700">
+                            {metadataColumn(activity, "method")}
+                          </td>
+                          <td className="w-[130px] px-4 py-3 align-top text-slate-700">
+                            {metadataColumn(activity, "article")}
+                          </td>
+                          <td className="px-4 py-3 align-top text-slate-500">
+                            {metadataColumn(activity, "note")}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
             </div>
           ) : (
             <EmptyState

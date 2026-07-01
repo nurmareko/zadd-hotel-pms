@@ -3,31 +3,20 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  BarChart3,
-  ClipboardCheck,
-  CreditCard,
-  ReceiptText,
-  UserRoundCheck,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
-  formatCompactDateTimeID,
-  formatDateTimeID,
-  formatIDR,
-} from "@/lib/format";
-import { hotelTodayTimestampRange } from "@/lib/date-only";
+  hotelTimestampBoundaryForDate,
+  hotelTodayTimestampRange,
+} from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -41,6 +30,8 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{
   window?: string | string[];
+  from?: string | string[];
+  to?: string | string[];
   sort?: string | string[];
   dir?: string | string[];
 }>;
@@ -56,24 +47,18 @@ type SortKey =
   | "checkIns"
   | "checkOuts"
   | "payments"
-  | "paymentTotal"
-  | "charges"
-  | "total";
+  | "charges";
 type SortDirection = "asc" | "desc";
 
 type StaffRow = Metrics & {
   id: number;
-  username: string;
   fullName: string;
 };
 
-const windows: Record<
-  WindowKey,
-  { label: string; shortLabel: string; days: number }
-> = {
-  today: { label: "Today", shortLabel: "Today", days: 1 },
-  week: { label: "Past Week", shortLabel: "7 days", days: 7 },
-  month: { label: "Past Month", shortLabel: "30 days", days: 30 },
+const windows: Record<WindowKey, { label: string; days: number }> = {
+  today: { label: "Today", days: 1 },
+  week: { label: "Past Week", days: 7 },
+  month: { label: "Past Month", days: 30 },
 };
 
 const sortableColumns: Record<SortKey, string> = {
@@ -82,9 +67,7 @@ const sortableColumns: Record<SortKey, string> = {
   checkIns: "Check-ins",
   checkOuts: "Check-outs",
   payments: "Payments",
-  paymentTotal: "Payment Total",
   charges: "Charges",
-  total: "Total",
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -99,16 +82,51 @@ function parseWindow(value: string | string[] | undefined): WindowKey {
     : "today";
 }
 
+function isSortKey(value: string | undefined): value is SortKey {
+  return Boolean(value && value in sortableColumns);
+}
+
 function parseSort(value: string | string[] | undefined): SortKey {
   const sortValue = firstParam(value);
 
-  return sortValue && sortValue in sortableColumns
-    ? (sortValue as SortKey)
-    : "total";
+  return isSortKey(sortValue) ? sortValue : "staff";
 }
 
-function parseDirection(value: string | string[] | undefined): SortDirection {
-  return firstParam(value) === "asc" ? "asc" : "desc";
+function parseDirection(
+  value: string | string[] | undefined,
+  sortKey: SortKey,
+): SortDirection {
+  const direction = firstParam(value);
+
+  if (direction === "asc" || direction === "desc") {
+    return direction;
+  }
+
+  return sortKey === "staff" ? "asc" : "desc";
+}
+
+function parseDateInput(value: string | string[] | undefined) {
+  const dateValue = firstParam(value);
+  const match = dateValue?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, monthIndex, day));
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== monthIndex ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return dateValue;
 }
 
 function getWindowRange(windowKey: WindowKey) {
@@ -118,16 +136,50 @@ function getWindowRange(windowKey: WindowKey) {
   return { start, end };
 }
 
+function getCustomRange(from: string | undefined, to: string | undefined) {
+  return {
+    start: from ? hotelTimestampBoundaryForDate(from) : undefined,
+    end: to ? addDays(hotelTimestampBoundaryForDate(to), 1) : undefined,
+  };
+}
+
+function activityWindowWhere(range: { start?: Date; end?: Date }) {
+  if (!range.start && !range.end) {
+    return undefined;
+  }
+
+  return {
+    ...(range.start ? { gte: range.start } : {}),
+    ...(range.end ? { lt: range.end } : {}),
+  };
+}
+
 function reportHref({
   windowKey,
+  from,
+  to,
   sortKey,
   direction,
 }: {
-  windowKey: WindowKey;
+  windowKey?: WindowKey;
+  from?: string;
+  to?: string;
   sortKey?: SortKey;
   direction?: SortDirection;
 }) {
-  const params = new URLSearchParams({ window: windowKey });
+  const params = new URLSearchParams();
+
+  if (from || to) {
+    if (from) {
+      params.set("from", from);
+    }
+
+    if (to) {
+      params.set("to", to);
+    }
+  } else if (windowKey) {
+    params.set("window", windowKey);
+  }
 
   if (sortKey) {
     params.set("sort", sortKey);
@@ -141,7 +193,7 @@ function reportHref({
 }
 
 function buildRows(
-  staffers: Array<{ id: number; username: string; fullName: string }>,
+  staffers: Array<{ id: number; fullName: string }>,
   activities: ActivityWithContext[],
 ) {
   const metricsByUser = new Map<number, Metrics>();
@@ -187,12 +239,8 @@ function metricValue(row: StaffRow, sortKey: SortKey) {
       return row.checkOutsCompleted;
     case "payments":
       return row.paymentsRecordedCount;
-    case "paymentTotal":
-      return row.paymentsRecordedTotal;
     case "charges":
       return row.folioChargesPosted;
-    case "total":
-      return row.totalActions;
     case "staff":
       return 0;
   }
@@ -233,14 +281,14 @@ function HeaderCell({
   sortKey,
   currentSort,
   currentDirection,
-  windowKey,
+  rangeQuery,
   align = "right",
 }: {
   children: string;
   sortKey: SortKey;
   currentSort: SortKey;
   currentDirection: SortDirection;
-  windowKey: WindowKey;
+  rangeQuery: { windowKey: WindowKey; from?: string; to?: string };
   align?: "left" | "right";
 }) {
   const nextDirection = sortDirectionForColumn(
@@ -264,7 +312,7 @@ function HeaderCell({
           align === "right" ? "justify-end" : "",
         ].join(" ")}
         href={reportHref({
-          windowKey,
+          ...rangeQuery,
           sortKey,
           direction: nextDirection,
         })}
@@ -273,39 +321,6 @@ function HeaderCell({
         <SortIcon active={active} direction={currentDirection} />
       </Link>
     </th>
-  );
-}
-
-function MetricTile({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof BarChart3;
-  label: string;
-  value: string | number;
-  sub: string;
-}) {
-  return (
-    <Card className="shadow-sm">
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardDescription className="text-xs font-medium uppercase">
-              {label}
-            </CardDescription>
-            <CardTitle className="mt-1 text-2xl font-semibold tabular-nums">
-              {value}
-            </CardTitle>
-          </div>
-          <div className="flex size-9 items-center justify-center rounded-md bg-slate-100 text-slate-700">
-            <Icon className="size-4" aria-hidden="true" />
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">{sub}</p>
-      </CardHeader>
-    </Card>
   );
 }
 
@@ -320,9 +335,26 @@ export default async function StaffPerformancePage({
 
   const params = await searchParams;
   const windowKey = parseWindow(params.window);
+  const parsedFrom = parseDateInput(params.from);
+  const parsedTo = parseDateInput(params.to);
+  const [from, to] =
+    parsedFrom && parsedTo && parsedFrom > parsedTo
+      ? [parsedTo, parsedFrom]
+      : [parsedFrom, parsedTo];
+  const requestedSort = firstParam(params.sort);
   const sortKey = parseSort(params.sort);
-  const direction = parseDirection(params.dir);
-  const { start, end } = getWindowRange(windowKey);
+  const direction = parseDirection(
+    isSortKey(requestedSort) ? params.dir : undefined,
+    sortKey,
+  );
+  const customRangeActive = Boolean(from || to);
+  const range = customRangeActive
+    ? getCustomRange(from, to)
+    : getWindowRange(windowKey);
+  const rangeQuery = customRangeActive
+    ? { windowKey, from, to }
+    : { windowKey };
+  const createdAt = activityWindowWhere(range);
 
   const [staffers, activities] = await Promise.all([
     prisma.user.findMany({
@@ -331,11 +363,11 @@ export default async function StaffPerformancePage({
         roles: { some: { role: { code: "FO" } } },
       },
       orderBy: { fullName: "asc" },
-      select: { id: true, username: true, fullName: true },
+      select: { id: true, fullName: true },
     }),
     prisma.activityLog.findMany({
       where: {
-        createdAt: { gte: start, lt: end },
+        ...(createdAt ? { createdAt } : {}),
         user: { roles: { some: { role: { code: "FO" } } } },
       },
       orderBy: { createdAt: "desc" },
@@ -361,118 +393,86 @@ export default async function StaffPerformancePage({
   ]);
 
   const rows = sortRows(buildRows(staffers, activities), sortKey, direction);
-  const totals = rows.reduce(
-    (summary, row) => ({
-      activeStaff: summary.activeStaff + (row.totalActions > 0 ? 1 : 0),
-      totalActions: summary.totalActions + row.totalActions,
-      paymentsRecordedCount:
-        summary.paymentsRecordedCount + row.paymentsRecordedCount,
-      paymentsRecordedTotal:
-        summary.paymentsRecordedTotal + row.paymentsRecordedTotal,
-    }),
-    {
-      activeStaff: 0,
-      totalActions: 0,
-      paymentsRecordedCount: 0,
-      paymentsRecordedTotal: 0,
-    },
-  );
-  const topStaff = rows.find((row) => row.totalActions > 0);
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
-            <BarChart3 className="size-4" aria-hidden="true" />
-            Front Office Report
-          </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">
             Staff Performance
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            ActivityLog-only metrics from {formatDateTimeID(start)} to{" "}
-            {formatDateTimeID(end)}.
-          </p>
         </div>
 
-        <nav
-          aria-label="Performance window"
-          className="flex w-full flex-wrap gap-2 sm:w-auto"
-        >
-          {(Object.keys(windows) as WindowKey[]).map((key) => {
-            const active = key === windowKey;
+        <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
+          <nav
+            aria-label="Performance window"
+            className="flex w-full flex-wrap gap-2 sm:w-auto"
+          >
+            {(Object.keys(windows) as WindowKey[]).map((key) => {
+              const active = !customRangeActive && key === windowKey;
 
-            return (
-              <Link
-                key={key}
-                aria-current={active ? "page" : undefined}
-                className={[
-                  "inline-flex h-9 flex-1 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors sm:flex-none",
-                  active
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950",
-                ].join(" ")}
-                href={reportHref({
-                  windowKey: key,
-                  sortKey,
-                  direction,
-                })}
-              >
-                {windows[key].label}
-              </Link>
-            );
-          })}
-        </nav>
+              return (
+                <Link
+                  key={key}
+                  aria-current={active ? "page" : undefined}
+                  className={[
+                    "inline-flex h-9 flex-1 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors sm:flex-none",
+                    active
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950",
+                  ].join(" ")}
+                  href={reportHref({
+                    windowKey: key,
+                    sortKey,
+                    direction,
+                  })}
+                >
+                  {windows[key].label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <form
+            action="/app/fo/staff-performance"
+            method="get"
+            className="flex w-full flex-wrap items-center gap-2 sm:w-auto"
+          >
+            <input type="hidden" name="sort" value={sortKey} />
+            <input type="hidden" name="dir" value={direction} />
+            <input
+              type="date"
+              name="from"
+              aria-label="Tanggal mulai"
+              defaultValue={from ?? ""}
+              className="h-9 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
+            />
+            <span className="hidden text-slate-400 sm:inline">-</span>
+            <input
+              type="date"
+              name="to"
+              aria-label="Tanggal akhir"
+              defaultValue={to ?? ""}
+              className="h-9 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
+            />
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+            >
+              <Search className="size-4" aria-hidden="true" />
+              Filter
+            </button>
+          </form>
+        </div>
       </div>
-
-      <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricTile
-          icon={ClipboardCheck}
-          label="Logged actions"
-          value={totals.totalActions}
-          sub={`${totals.activeStaff} of ${rows.length} FO staff active in this window`}
-        />
-        <MetricTile
-          icon={CreditCard}
-          label="Payments"
-          value={totals.paymentsRecordedCount}
-          sub={formatIDR(totals.paymentsRecordedTotal)}
-        />
-        <MetricTile
-          icon={UserRoundCheck}
-          label="Top staff"
-          value={topStaff?.fullName ?? "-"}
-          sub={
-            topStaff
-              ? `${topStaff.totalActions} logged actions`
-              : "No activity in this window"
-          }
-        />
-        <MetricTile
-          icon={ReceiptText}
-          label="Window"
-          value={windows[windowKey].shortLabel}
-          sub={`${formatCompactDateTimeID(start)} - ${formatCompactDateTimeID(end)}`}
-        />
-      </section>
 
       <div>
         <Card className="shadow-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle>Comparative table</CardTitle>
-            <CardDescription>
-              Counts and payment totals are aggregated from ActivityLog rows.
-            </CardDescription>
-            <CardAction>
-              <Badge variant="outline">{windows[windowKey].label}</Badge>
-            </CardAction>
-          </CardHeader>
           <CardContent className="p-0">
             <div className="max-w-full overflow-auto">
-              <table className="w-full min-w-[980px] border-collapse text-sm">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
                 <caption className="sr-only">
-                  Front Office staff performance by selected ActivityLog window
+                  Front Office staff performance by selected ActivityLog range
                 </caption>
                 <thead>
                   <tr>
@@ -481,7 +481,7 @@ export default async function StaffPerformancePage({
                       sortKey="staff"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Staff
                     </HeaderCell>
@@ -489,7 +489,7 @@ export default async function StaffPerformancePage({
                       sortKey="reservations"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Reservations
                     </HeaderCell>
@@ -497,7 +497,7 @@ export default async function StaffPerformancePage({
                       sortKey="checkIns"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Check-ins
                     </HeaderCell>
@@ -505,7 +505,7 @@ export default async function StaffPerformancePage({
                       sortKey="checkOuts"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Check-outs
                     </HeaderCell>
@@ -513,33 +513,17 @@ export default async function StaffPerformancePage({
                       sortKey="payments"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Payments
-                    </HeaderCell>
-                    <HeaderCell
-                      sortKey="paymentTotal"
-                      currentSort={sortKey}
-                      currentDirection={direction}
-                      windowKey={windowKey}
-                    >
-                      Payment total
                     </HeaderCell>
                     <HeaderCell
                       sortKey="charges"
                       currentSort={sortKey}
                       currentDirection={direction}
-                      windowKey={windowKey}
+                      rangeQuery={rangeQuery}
                     >
                       Charges
-                    </HeaderCell>
-                    <HeaderCell
-                      sortKey="total"
-                      currentSort={sortKey}
-                      currentDirection={direction}
-                      windowKey={windowKey}
-                    >
-                      Total
                     </HeaderCell>
                   </tr>
                 </thead>
@@ -552,16 +536,13 @@ export default async function StaffPerformancePage({
                         key={row.id}
                         className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                       >
-                        <td className="px-4 py-3">
+                        <td className="p-0 font-semibold text-slate-950">
                           <Link
-                            className="font-semibold text-slate-950 hover:underline"
+                            className="block px-4 py-3 text-slate-950"
                             href={href}
                           >
                             {row.fullName}
                           </Link>
-                          <div className="mt-0.5 text-xs text-slate-500">
-                            @{row.username}
-                          </div>
                         </td>
                         <td className="p-0 text-right font-medium tabular-nums text-slate-900">
                           <Link className="block px-4 py-3" href={href}>
@@ -585,17 +566,7 @@ export default async function StaffPerformancePage({
                         </td>
                         <td className="p-0 text-right font-medium tabular-nums text-slate-900">
                           <Link className="block px-4 py-3" href={href}>
-                            {formatIDR(row.paymentsRecordedTotal)}
-                          </Link>
-                        </td>
-                        <td className="p-0 text-right font-medium tabular-nums text-slate-900">
-                          <Link className="block px-4 py-3" href={href}>
                             {row.folioChargesPosted}
-                          </Link>
-                        </td>
-                        <td className="p-0 text-right font-semibold tabular-nums text-slate-950">
-                          <Link className="block px-4 py-3" href={href}>
-                            {row.totalActions}
                           </Link>
                         </td>
                       </tr>
