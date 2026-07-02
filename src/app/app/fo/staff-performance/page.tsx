@@ -56,18 +56,18 @@ type StaffRow = Metrics & {
 };
 
 const windows: Record<WindowKey, { label: string; days: number }> = {
-  today: { label: "Today", days: 1 },
-  week: { label: "Past Week", days: 7 },
-  month: { label: "Past Month", days: 30 },
+  today: { label: "Hari ini", days: 1 },
+  week: { label: "7 hari terakhir", days: 7 },
+  month: { label: "30 hari terakhir", days: 30 },
 };
 
 const sortableColumns: Record<SortKey, string> = {
-  staff: "Staff",
-  reservations: "Reservations",
-  checkIns: "Check-ins",
-  checkOuts: "Check-outs",
-  payments: "Payments",
-  charges: "Charges",
+  staff: "Petugas",
+  reservations: "Reservasi",
+  checkIns: "Check-in",
+  checkOuts: "Check-out",
+  payments: "Pembayaran",
+  charges: "Charge folio",
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -399,13 +399,13 @@ export default async function StaffPerformancePage({
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-            Staff Performance
+            Kinerja Petugas
           </h1>
         </div>
 
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
           <nav
-            aria-label="Performance window"
+            aria-label="Periode kinerja"
             className="flex w-full flex-wrap gap-2 sm:w-auto"
           >
             {(Object.keys(windows) as WindowKey[]).map((key) => {
@@ -460,7 +460,7 @@ export default async function StaffPerformancePage({
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
               <Search className="size-4" aria-hidden="true" />
-              Filter
+              Cari
             </button>
           </form>
         </div>
@@ -472,7 +472,7 @@ export default async function StaffPerformancePage({
             <div className="max-w-full overflow-auto">
               <table className="w-full min-w-[760px] border-collapse text-sm">
                 <caption className="sr-only">
-                  Front Office staff performance by selected ActivityLog range
+                  Kinerja petugas Front Office berdasarkan rentang aktivitas yang dipilih
                 </caption>
                 <thead>
                   <tr>
@@ -483,7 +483,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Staff
+                      Petugas
                     </HeaderCell>
                     <HeaderCell
                       sortKey="reservations"
@@ -491,7 +491,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Reservations
+                      Reservasi
                     </HeaderCell>
                     <HeaderCell
                       sortKey="checkIns"
@@ -499,7 +499,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Check-ins
+                      Check-in
                     </HeaderCell>
                     <HeaderCell
                       sortKey="checkOuts"
@@ -507,7 +507,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Check-outs
+                      Check-out
                     </HeaderCell>
                     <HeaderCell
                       sortKey="payments"
@@ -515,7 +515,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Payments
+                      Pembayaran
                     </HeaderCell>
                     <HeaderCell
                       sortKey="charges"
@@ -523,7 +523,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Charges
+                      Charge folio
                     </HeaderCell>
                   </tr>
                 </thead>

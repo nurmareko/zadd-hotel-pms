@@ -142,7 +142,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           ],
         },
         {
-          label: "Performance",
+          label: "Kinerja",
           href: "/app/fo/staff-performance",
           icon: BarChart3,
           activeMatch: "startsWith",
