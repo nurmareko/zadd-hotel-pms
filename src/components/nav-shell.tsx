@@ -478,11 +478,6 @@ export function NavShell({
                       {!sidebarCollapsed && badge ? (
                         <NavBadgePill badge={badge} />
                       ) : null}
-                      {sidebarCollapsed ? (
-                        <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-md group-hover:block group-focus-visible:block">
-                          {link.label}
-                        </span>
-                      ) : null}
                     </Link>
                   );
                 })}
@@ -514,12 +509,7 @@ export function NavShell({
             ].join(" ")}
           >
             {sidebarCollapsed ? (
-              <>
-                <User size={18} aria-hidden="true" />
-                <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-md group-hover:block group-focus-visible:block">
-                  {userFullName}
-                </span>
-              </>
+              <User size={18} aria-hidden="true" />
             ) : (
               <>
                 <span className="truncate text-sm font-semibold text-slate-900">
