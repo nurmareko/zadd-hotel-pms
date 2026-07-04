@@ -14,7 +14,6 @@ import { useMemo, useState, type CSSProperties } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  COLUMN_WIDTH,
   DATE_HEADER_HEIGHT,
   GROUP_HEADER_HEIGHT,
   ROOM_LABEL_WIDTH,
@@ -50,6 +49,7 @@ type TapeChartProps = {
 };
 
 const BAR_VERTICAL_MARGIN = 4;
+const MIN_DAY_WIDTH = 56;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const reservationBarColors = {
@@ -121,9 +121,9 @@ type ReservationBar = {
   key: string;
   reservation: TapeChartReservationData;
   label: string;
-  left: number;
+  gridColumnStart: number;
+  gridColumnEnd: number;
   top: number;
-  width: number;
   height: number;
   colorKey: BarColorKey;
   hasCheckoutNotch: boolean;
@@ -163,22 +163,17 @@ function getReservationSpan(
   startIso: string,
   dayCount: number,
 ) {
-  const gridLeft = ROOM_LABEL_WIDTH;
-  const gridRight = ROOM_LABEL_WIDTH + dayCount * COLUMN_WIDTH;
-  const leftRaw =
-    ROOM_LABEL_WIDTH +
-    getDateIndex(reservation.checkInDate, startIso) * COLUMN_WIDTH +
-    COLUMN_WIDTH / 2;
-  const rightRaw =
-    ROOM_LABEL_WIDTH +
-    getDateIndex(reservation.checkOutDate, startIso) * COLUMN_WIDTH +
-    COLUMN_WIDTH / 2;
-  const left = clamp(leftRaw, gridLeft, gridRight);
-  const right = clamp(rightRaw, gridLeft, gridRight);
+  const gridLeft = 0;
+  const gridRight = dayCount * 2;
+  const leftRaw = getDateIndex(reservation.checkInDate, startIso) * 2 + 1;
+  const rightRaw = getDateIndex(reservation.checkOutDate, startIso) * 2 + 1;
+  const startHalfIndex = clamp(leftRaw, gridLeft, gridRight);
+  const endHalfIndex = clamp(rightRaw, gridLeft, gridRight);
 
   return {
-    left,
-    width: right - left,
+    gridColumnStart: startHalfIndex + 2,
+    gridColumnEnd: endHalfIndex + 2,
+    span: endHalfIndex - startHalfIndex,
     hasCheckoutNotch: rightRaw <= gridRight && rightRaw > gridLeft,
   };
 }
@@ -292,7 +287,7 @@ function buildReservationBars(
         const span = getReservationSpan(reservation, startIso, dayCount);
         const colorKey = getAllocatedBarColorKey(reservation);
 
-        if (span.width <= 0) {
+        if (span.span <= 0) {
           continue;
         }
 
@@ -300,9 +295,9 @@ function buildReservationBars(
           key: `room-${row.room.id}-${reservation.id}`,
           reservation,
           label: reservationBarColors[colorKey].label,
-          left: span.left,
+          gridColumnStart: span.gridColumnStart,
+          gridColumnEnd: span.gridColumnEnd,
           top: row.y + BAR_VERTICAL_MARGIN,
-          width: span.width,
           height: barHeight,
           colorKey,
           hasCheckoutNotch: span.hasCheckoutNotch,
@@ -314,7 +309,7 @@ function buildReservationBars(
       for (const lane of row.lanes) {
         const span = getReservationSpan(lane.reservation, startIso, dayCount);
 
-        if (span.width <= 0) {
+        if (span.span <= 0) {
           continue;
         }
 
@@ -322,12 +317,12 @@ function buildReservationBars(
           key: `unallocated-${row.roomType.id}-${lane.reservation.id}`,
           reservation: lane.reservation,
           label: reservationBarColors.UNALLOCATED.label,
-          left: span.left,
+          gridColumnStart: span.gridColumnStart,
+          gridColumnEnd: span.gridColumnEnd,
           top:
             row.y +
             lane.laneIndex * ROW_HEIGHT +
             BAR_VERTICAL_MARGIN,
-          width: span.width,
           height: barHeight,
           colorKey: "UNALLOCATED",
           hasCheckoutNotch: span.hasCheckoutNotch,
@@ -480,7 +475,7 @@ export function TapeChart({
     (count, roomType) => count + roomType.rooms.length,
     0,
   );
-  const gridWidth = ROOM_LABEL_WIDTH + days.length * COLUMN_WIDTH;
+  const gridMinWidth = ROOM_LABEL_WIDTH + days.length * MIN_DAY_WIDTH;
   const visibleLayout = useMemo(
     () => buildVisibleLayout(data.roomTypes, collapsedGroupIds, data.startDate),
     [collapsedGroupIds, data.roomTypes, data.startDate],
@@ -491,9 +486,11 @@ export function TapeChart({
     [data.dayCount, data.startDate, visibleLayout.rows],
   );
   const layoutStyle = {
-    "--column-width": `${COLUMN_WIDTH}px`,
+    "--day-min-width": `${MIN_DAY_WIDTH}px`,
     "--date-header-height": `${DATE_HEADER_HEIGHT}px`,
     "--group-header-height": `${GROUP_HEADER_HEIGHT}px`,
+    "--half-day-min-width": `${MIN_DAY_WIDTH / 2}px`,
+    "--half-day-count": days.length * 2,
     "--room-label-width": `${ROOM_LABEL_WIDTH}px`,
     "--row-height": `${ROW_HEIGHT}px`,
   } as CSSProperties;
@@ -567,7 +564,7 @@ export function TapeChart({
           <div className={styles.scrollArea}>
             <div
               className={styles.grid}
-              style={{ width: gridWidth, height: visibleLayout.height }}
+              style={{ minWidth: gridMinWidth, height: visibleLayout.height }}
             >
               <div className={styles.headerRow}>
                 <div
@@ -740,9 +737,8 @@ export function TapeChart({
                         .join(" ")}
                       aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`}
                       style={{
-                        left: bar.left,
+                        gridColumn: `${bar.gridColumnStart} / ${bar.gridColumnEnd}`,
                         top: bar.top,
-                        width: bar.width,
                         height: bar.height,
                         backgroundColor: colors.bgColor,
                         color: colors.textColor,
