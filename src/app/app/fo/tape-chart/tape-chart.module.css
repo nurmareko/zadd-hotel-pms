@@ -14,12 +14,16 @@
 
 .grid {
   position: relative;
+  width: 100%;
   background: #ffffff;
 }
 
 .headerRow,
 .gridRow {
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    var(--room-label-width)
+    repeat(var(--half-day-count), minmax(var(--half-day-min-width), 1fr));
   width: 100%;
 }
 
@@ -34,7 +38,7 @@
   position: sticky;
   left: 0;
   z-index: 20;
-  flex: 0 0 var(--room-label-width);
+  grid-column: 1;
   width: var(--room-label-width);
   border-right: 1px solid #e2e8f0;
 }
@@ -47,8 +51,8 @@
 }
 
 .dateHeaderCell {
-  flex: 0 0 var(--column-width);
-  width: var(--column-width);
+  grid-column: span 2;
+  min-width: 0;
   border-right: 1px solid #e2e8f0;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
@@ -95,8 +99,8 @@
 }
 
 .gridCell {
-  flex: 0 0 var(--column-width);
-  width: var(--column-width);
+  grid-column: span 2;
+  min-width: 0;
   border-right: 1px solid #f1f5f9;
   border-bottom: 1px solid #f1f5f9;
   background: #ffffff;
@@ -208,6 +212,10 @@
 
 .barLayer {
   position: absolute;
+  display: grid;
+  grid-template-columns:
+    var(--room-label-width)
+    repeat(var(--half-day-count), minmax(var(--half-day-min-width), 1fr));
   inset: 0;
   z-index: 15;
   pointer-events: none;
@@ -215,8 +223,11 @@
 
 .reservationBar {
   position: absolute;
+  right: 0;
+  left: 0;
   display: flex;
   align-items: center;
+  justify-self: stretch;
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.15);
