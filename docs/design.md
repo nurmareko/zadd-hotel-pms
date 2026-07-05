@@ -118,6 +118,14 @@ Corners should feel rigid-but-modern: tighter and more operational than soft con
 | Max | 12px |
 | Status chips | 999px |
 
+Implementation note: Tailwind radius utilities are token-backed in
+`src/app/globals.css`. `rounded-md` maps to `--radius-control`,
+`rounded-lg` and bare `rounded` map to `--radius-card`, `rounded-xl`
+maps to `--radius-modal`, and larger named radius utilities map to
+`--radius-max`. The earlier Tailwind radius gap is resolved; future
+system radius changes should be one-line edits to the radius custom
+properties in `src/app/globals.css`.
+
 ### Empty States
 
 Empty states should explain the situation and point to the next useful action. Do not leave a blank region or only show "No data."

@@ -66,7 +66,9 @@
   --color-status-oos-bg: var(--status-oos-bg);
   --color-status-oos-fg: var(--status-oos-fg);
   --color-status-oos-pip: var(--status-oos);
+  --radius-xs: var(--radius-small);
   --radius-sm: var(--radius-small);
+  --radius: var(--radius-card);
   --radius-md: var(--radius-control);
   --radius-lg: var(--radius-card);
   --radius-xl: var(--radius-modal);
@@ -172,7 +174,7 @@
     --radius-card: 8px;
     --radius-modal: 10px;
     --radius-max: 12px;
-    --radius: 8px;
+    --radius: var(--radius-card);
     --sidebar: var(--console-ink);
     --sidebar-foreground: #6b7280;
     --sidebar-primary: var(--console-accent);

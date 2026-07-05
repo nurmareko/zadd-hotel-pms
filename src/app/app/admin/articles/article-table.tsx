@@ -265,8 +265,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
+        <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Tambah Article"}
             </DialogTitle>
@@ -291,8 +291,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <DialogContent className="rounded-[10px] border border-border bg-card p-0 text-foreground sm:max-w-lg">
-          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-[10px]">
+        <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
+          <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
               {"Edit Article"}
             </DialogTitle>
@@ -325,7 +325,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
           }
         }}
       >
-        <AlertDialogContent className="rounded-[10px] border-border">
+        <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus artikel?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -144,7 +144,7 @@ export function AddChargeDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-[10px] border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+        <DialogContent className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               Tambah Charge
