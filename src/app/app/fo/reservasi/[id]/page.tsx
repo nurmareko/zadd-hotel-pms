@@ -31,6 +31,23 @@ function toDateInputValue(date: Date) {
   return formatISO(date, { representation: "date" });
 }
 
+type ReservationTab = "details" | "folio";
+
+function defaultReservationTab(status: ReservationStatus): ReservationTab {
+  return status === ReservationStatus.CHECKED_IN ? "folio" : "details";
+}
+
+function resolveReservationTab(
+  requestedTab: string | undefined,
+  status: ReservationStatus,
+): ReservationTab {
+  if (requestedTab === "details" || requestedTab === "folio") {
+    return requestedTab;
+  }
+
+  return defaultReservationTab(status);
+}
+
 function tabClassName(isActive: boolean) {
   return [
     "inline-flex h-9 items-center justify-center border px-4 text-sm font-medium rounded-md transition-colors",
@@ -45,7 +62,7 @@ function ReservationTabs({
   activeTab,
 }: {
   reservationId: number;
-  activeTab: "details" | "folio";
+  activeTab: ReservationTab;
 }) {
   return (
     <nav
@@ -152,7 +169,10 @@ export default async function ReservationDetailPage({
 
   const requestedMode = firstParam(query.mode);
   const formMode = requestedMode === "edit" ? "edit" : "view";
-  const activeTab = firstParam(query.tab) === "folio" ? "folio" : "details";
+  const activeTab = resolveReservationTab(
+    firstParam(query.tab),
+    reservation.status,
+  );
   const { today } = todayDateOnly();
   const canCheckIn =
     reservation.status === ReservationStatus.CONFIRMED &&
