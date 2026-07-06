@@ -543,7 +543,7 @@ flowchart TD
 - **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true`. ADMIN has no HK access. Housekeepers clean only their operational worklist.
 - **Manual override:** supervisors can bypass the normal clean/inspect path from Supervisor Rooms when operations require it; the override still writes the status audit.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
-- **Kalender sync:** every status change revalidates Front Office views. The FO receptionist sees room status updates without maintaining a separate room-status widget on Dashboard.
+- **Kalender sync:** every status change revalidates Front Office reservation views. The FO receptionist sees room status updates in Kalender without maintaining a separate room-status dashboard widget.
 
 ---
 

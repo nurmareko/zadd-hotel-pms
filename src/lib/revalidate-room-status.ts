@@ -4,7 +4,6 @@ const ROOM_STATUS_PATHS = [
   "/app/hk",
   "/app/hk/rooms",
   "/app/fo/reservasi/kalender",
-  "/app/fo/dashboard",
   "/app/fo/reservasi/new",
   "/app/admin/rooms",
   "/app/acc",
