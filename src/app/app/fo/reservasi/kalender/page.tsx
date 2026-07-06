@@ -1,0 +1,90 @@
+import { addDays, isValid, parseISO } from "date-fns";
+
+import { dateOnlyBoundary, hotelTodayDateOnly, hotelTodayISO } from "@/lib/date-only";
+import { formatDateID, formatISODate, formatMonthDayID } from "@/lib/format";
+import { getTapeChartData } from "@/lib/tape-chart-data";
+
+import { ReservationViewToggle } from "../reservation-view-toggle";
+import { TapeChart, type TapeChartDay } from "./tape-chart";
+
+export const dynamic = "force-dynamic";
+
+const DAY_COUNT = 14;
+const DEFAULT_PAST_DAY_COUNT = 2;
+const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+type FoTapeChartPageProps = {
+  searchParams: Promise<{ startDate?: string | string[] }>;
+};
+
+function parseStartDate(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  const defaultStartDate = getDefaultStartDate();
+
+  if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+    return defaultStartDate;
+  }
+
+  const parsed = parseISO(candidate);
+
+  return isValid(parsed)
+    ? dateOnlyBoundary(parsed)
+    : defaultStartDate;
+}
+
+function getDefaultStartDate() {
+  // Anchor the default window on the hotel timezone "today" so TODAY lands at
+  // column index DEFAULT_PAST_DAY_COUNT (2) instead of the UTC server date.
+  return addDays(hotelTodayDateOnly(), -DEFAULT_PAST_DAY_COUNT);
+}
+
+function getDateHref(startDate: Date) {
+  return `/app/fo/reservasi/kalender?startDate=${formatISODate(startDate)}`;
+}
+
+function buildDays(startDate: Date): TapeChartDay[] {
+  return Array.from({ length: DAY_COUNT }, (_, index) => {
+    const date = addDays(startDate, index);
+
+    return {
+      iso: formatISODate(date),
+      dayOfWeek: DAY_LABELS[date.getDay()],
+      dayNumber: date.getDate().toString(),
+      monthLabel: formatMonthDayID(date).replace(/^\d+\s*/, ""),
+      isWeekend: date.getDay() === 0 || date.getDay() === 6,
+    };
+  });
+}
+
+export default async function FoTapeChartPage({
+  searchParams,
+}: FoTapeChartPageProps) {
+  const { startDate } = await searchParams;
+  const visibleStartDate = parseStartDate(startDate);
+  const chartData = await getTapeChartData(visibleStartDate, DAY_COUNT);
+  const days = buildDays(visibleStartDate);
+  const previousStartDate = addDays(visibleStartDate, -DAY_COUNT);
+  const nextStartDate = addDays(visibleStartDate, DAY_COUNT);
+  const todayIso = hotelTodayISO();
+  const todayStartDate = getDefaultStartDate();
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
+      <div className="mb-4 flex justify-end">
+        <ReservationViewToggle currentView="kalender" />
+      </div>
+      <TapeChart
+        data={chartData}
+        days={days}
+        todayIso={todayIso}
+        previousHref={getDateHref(previousStartDate)}
+        nextHref={getDateHref(nextStartDate)}
+        todayHref={getDateHref(todayStartDate)}
+        newReservationHref="/app/fo/reservasi/new?from=kalender"
+        rangeLabel={`${formatMonthDayID(visibleStartDate)} - ${formatDateID(
+          addDays(visibleStartDate, DAY_COUNT - 1),
+        )}`}
+      />
+    </main>
+  );
+}

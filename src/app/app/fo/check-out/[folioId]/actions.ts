@@ -212,8 +212,8 @@ export async function completeCheckout(
   if (folio.status === FolioStatus.CLOSED) {
     revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
     revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
-    revalidatePath("/app/fo/tape-chart");
-    revalidatePath("/app/fo/reservations");
+    revalidatePath("/app/fo/reservasi/kalender");
+    revalidatePath("/app/fo/reservasi/list");
     revalidatePath("/app/hk");
 
     return { ok: true };
@@ -336,8 +336,8 @@ export async function completeCheckout(
 
   revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
   revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
-  revalidatePath("/app/fo/tape-chart");
-  revalidatePath("/app/fo/reservations");
+  revalidatePath("/app/fo/reservasi/kalender");
+  revalidatePath("/app/fo/reservasi/list");
   revalidatePath("/app/hk");
 
   return { ok: true };

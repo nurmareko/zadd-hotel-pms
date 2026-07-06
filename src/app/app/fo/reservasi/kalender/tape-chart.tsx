@@ -350,7 +350,10 @@ function getNewReservationHref(params: {
   roomId?: number;
   roomTypeId?: number;
 }) {
-  const searchParams = new URLSearchParams({ arrival: params.dayIso });
+  const searchParams = new URLSearchParams({
+    arrival: params.dayIso,
+    from: "kalender",
+  });
 
   if (typeof params.roomId === "number") {
     searchParams.set("roomId", String(params.roomId));
@@ -358,7 +361,7 @@ function getNewReservationHref(params: {
     searchParams.set("roomTypeId", String(params.roomTypeId));
   }
 
-  return `/app/fo/reservations/new?${searchParams.toString()}`;
+  return `/app/fo/reservasi/new?${searchParams.toString()}`;
 }
 
 function TapeChartNavButton({
@@ -728,7 +731,7 @@ export function TapeChart({
                   return (
                     <Link
                       key={bar.key}
-                      href={`/app/fo/reservations/${bar.reservation.id}`}
+                      href={`/app/fo/reservasi/${bar.reservation.id}`}
                       className={[
                         styles.reservationBar,
                         bar.hasCheckoutNotch ? styles.reservationBarNotched : "",

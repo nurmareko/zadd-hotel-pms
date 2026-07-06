@@ -135,7 +135,7 @@ export function ReservationTable({ groups }: ReservationTableProps) {
                   action={
                     <Link
                       className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-                      href="/app/fo/reservations/new"
+                      href="/app/fo/reservasi/new?from=list"
                     >
                       Buat Reservasi
                     </Link>
@@ -166,7 +166,7 @@ function GroupRows({ group }: { group: ReservationGroup }) {
         </th>
       </tr>
       {group.rows.map((row) => {
-        const href = `/app/fo/reservations/${row.id}`;
+        const href = `/app/fo/reservasi/${row.id}`;
 
         return (
           <ClickableReservationRow key={row.id} href={href}>

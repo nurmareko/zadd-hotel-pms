@@ -8,11 +8,18 @@ import {
 } from "@prisma/client";
 import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import {
+  FO_RESERVASI_VIEW_COOKIE,
+  FO_RESERVASI_VIEW_PATHS,
+  type FoReservasiView,
+  parseFoReservasiView,
+} from "@/lib/nav-preferences";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
@@ -31,6 +38,27 @@ const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
   ReservationStatus.CHECKED_IN,
 ];
+
+function reservationCreateRedirectPath(
+  origin: FoReservasiView,
+  arrival: string,
+) {
+  if (origin === "kalender") {
+    return FO_RESERVASI_VIEW_PATHS.kalender;
+  }
+
+  return `${FO_RESERVASI_VIEW_PATHS.list}?from=${arrival}&to=${arrival}`;
+}
+
+async function persistFoReservasiView(view: FoReservasiView) {
+  const cookieStore = await cookies();
+
+  cookieStore.set(FO_RESERVASI_VIEW_COOKIE, view, {
+    maxAge: 60 * 60 * 24 * 365,
+    path: "/app/fo/reservasi",
+    sameSite: "lax",
+  });
+}
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid reservation data";
@@ -368,6 +396,7 @@ async function runUpdateReservationTransaction(
 
 export async function createReservation(
   input: unknown,
+  originView: unknown = "list",
 ): Promise<ActionResult> {
   const session = await auth();
 
@@ -416,6 +445,9 @@ export async function createReservation(
   }
 
   const arrival = formatISO(parsed.data.arrivalDate, { representation: "date" });
+  const origin =
+    parseFoReservasiView(typeof originView === "string" ? originView : undefined) ??
+    "list";
 
   await logActivity({
     userId,
@@ -423,9 +455,10 @@ export async function createReservation(
     reservationId: result.reservationId,
   });
 
-  revalidatePath("/app/fo/reservations");
-  revalidatePath("/app/fo/tape-chart");
-  redirect(`/app/fo/reservations?from=${arrival}&to=${arrival}`);
+  await persistFoReservasiView(origin);
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
+  redirect(reservationCreateRedirectPath(origin, arrival));
 }
 
 export async function cancelReservation(
@@ -519,9 +552,9 @@ export async function cancelReservation(
     reservationId,
   });
 
-  revalidatePath("/app/fo/reservations");
-  revalidatePath(`/app/fo/reservations/${reservationId}`);
-  revalidatePath("/app/fo/tape-chart");
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
+  revalidatePath(`/app/fo/reservasi/${reservationId}`);
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
   return { ok: true };
 }
 
@@ -572,8 +605,8 @@ export async function updateReservation(
     reservationId,
   });
 
-  revalidatePath("/app/fo/reservations");
-  revalidatePath(`/app/fo/reservations/${reservationId}`);
-  revalidatePath("/app/fo/tape-chart");
-  redirect(`/app/fo/reservations/${reservationId}?mode=view`);
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
+  revalidatePath(`/app/fo/reservasi/${reservationId}`);
+  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
+  redirect(`/app/fo/reservasi/${reservationId}?mode=view`);
 }

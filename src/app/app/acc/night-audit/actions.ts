@@ -48,17 +48,17 @@ function revalidateNightAuditPaths(folioIds: number[], reservationIds: number[])
   revalidatePath("/app/acc");
   revalidatePath("/app/acc/night-audit");
   revalidatePath("/app/fo/dashboard");
-  revalidatePath("/app/fo/tape-chart");
-  revalidatePath("/app/fo/reservations");
+  revalidatePath("/app/fo/reservasi/kalender");
+  revalidatePath("/app/fo/reservasi/list");
   revalidatePath("/app/fo/folios/[id]", "page");
-  revalidatePath("/app/fo/reservations/[id]", "page");
+  revalidatePath("/app/fo/reservasi/[id]", "page");
 
   for (const folioId of folioIds) {
     revalidatePath(`/app/fo/folios/${folioId}`);
   }
 
   for (const reservationId of reservationIds) {
-    revalidatePath(`/app/fo/reservations/${reservationId}`);
+    revalidatePath(`/app/fo/reservasi/${reservationId}`);
   }
 }
 

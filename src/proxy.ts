@@ -41,6 +41,18 @@ export const proxy = auth((request) => {
     return NextResponse.next();
   }
 
+  if (
+    routeMatches(pathname, "/app/fo/reservasi") ||
+    routeMatches(pathname, "/app/fo/reservations") ||
+    routeMatches(pathname, "/app/fo/tape-chart")
+  ) {
+    if (!["FO", "ADMIN"].includes(session.user.role)) {
+      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
   if (routeMatches(pathname, "/app/hk/lost-found")) {
     if (!["HK", "FO"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));

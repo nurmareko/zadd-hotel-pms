@@ -189,7 +189,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <Link
-            href={`/app/fo/reservations/${reservation.id}`}
+            href={`/app/fo/reservasi/${reservation.id}`}
             className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >
             Batal

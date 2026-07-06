@@ -40,7 +40,7 @@ function activityTimeLabel(date: Date) {
 }
 
 function todayReservationsHref(status: ReservationStatus) {
-  return `/app/fo/reservations?status=${status}&from=today&to=today`;
+  return `/app/fo/reservasi/list?status=${status}&from=today&to=today`;
 }
 
 async function getActivityRows(today: Date, tomorrow: Date) {
@@ -110,7 +110,7 @@ async function getActivityRows(today: Date, tomorrow: Date) {
       )} -> Room ${reservation.room?.number ?? "-"}`,
       href: reservation.folio
         ? `/app/fo/folios/${reservation.folio.id}`
-        : `/app/fo/reservations/${reservation.id}`,
+        : `/app/fo/reservasi/${reservation.id}`,
       linkLabel: reservation.folio ? "view folio" : "view",
     })),
     ...checkOuts.map((reservation) => ({
@@ -122,7 +122,7 @@ async function getActivityRows(today: Date, tomorrow: Date) {
       )} -> Room ${reservation.room?.number ?? "-"}`,
       href: reservation.folio
         ? `/app/fo/folios/${reservation.folio.id}`
-        : `/app/fo/reservations/${reservation.id}`,
+        : `/app/fo/reservasi/${reservation.id}`,
       linkLabel: reservation.folio ? "view folio" : "view",
     })),
     ...reservationsCreated.map((reservation) => ({
@@ -132,7 +132,7 @@ async function getActivityRows(today: Date, tomorrow: Date) {
       description: `Reservation: ${guestShortName(
         reservation.guest.fullName,
       )} (${reservation.reservationNo})`,
-      href: `/app/fo/reservations/${reservation.id}`,
+      href: `/app/fo/reservasi/${reservation.id}`,
       linkLabel: "view",
     })),
     ...payments
