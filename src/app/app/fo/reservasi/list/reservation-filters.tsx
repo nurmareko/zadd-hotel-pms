@@ -27,7 +27,7 @@ export function ReservationFilters({
 }: ReservationFiltersProps) {
   return (
     <form
-      action="/app/fo/reservations"
+      action="/app/fo/reservasi/list"
       method="get"
       className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white p-4"
     >

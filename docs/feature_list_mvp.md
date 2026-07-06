@@ -10,7 +10,6 @@ Last updated: 2026-06-07.
 
 Supports the guest lifecycle from booking to final payment.
 
-- **Front Office dashboard** — KPI cards, arrivals, departures, in-house count, occupancy, and recent activity.
 - **Reservation management** — create and edit reservations with guest data, stay dates, room type, optional physical-room allocation, and rate. Confirmed reservations can be cancelled (`CONFIRMED → CANCELLED`), releasing room-type inventory capacity and disappearing from the active list and Kalender.
 - **Kalender (Tape Chart)** — default Front Office landing page: occupancy visualization as a room × date grid with unified status colors, room-type groups, unallocated-reservation lanes, and a checkout marker. Clicking an empty cell opens the reservation form with Kalender context prefilled.
 - **Overbooking prevention** — reservation create/edit checks room-type inventory capacity (the number of registered physical rooms for that type) across the stay, including unallocated reservations.
@@ -98,6 +97,8 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
 | Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |
 | Dynamic rate plans with date validity and segment | Front Office | MVP uses a fixed rate per room type. |
+| FO Reports: departures due today queue | Front Office | Rebuild the removed dashboard queue as a real departure-date view for checked-in reservations departing today, with folio balance and Check-out link. Current Reservation List filters `arrivalDate`, not `departureDate`, so this needs a dedicated report/query. |
+| FO Reports: occupancy KPI | Front Office | Rebuild the removed dashboard KPI as `% of OC / non-OOO rooms` in a future Front Office Reports page. |
 | Multi-role per account | Auth | Each praktikum account is limited to one role to simplify access control. |
 | GM/Manager role hierarchy | Auth | Management hierarchy and cross-module oversight roles are outside the current role model. |
 | FO ↔ HK messaging | Front Office / Housekeeping | Internal communication channel is useful but not required for the core room-status sync. |

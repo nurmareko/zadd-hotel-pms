@@ -23,6 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatIDR } from "@/lib/format";
+import {
+  FO_RESERVASI_VIEW_PATHS,
+  type FoReservasiView,
+} from "@/lib/nav-preferences";
 import { createReservation, updateReservation } from "./actions";
 import {
   createReservationSchema,
@@ -59,6 +63,8 @@ type ReservationFormProps = {
   activeReservations: ActiveReservation[];
   mode?: "create" | "edit" | "view";
   reservationId?: number;
+  createOrigin?: FoReservasiView;
+  returnHref?: string;
   submitLabel?: string;
 };
 
@@ -161,6 +167,8 @@ export function ReservationForm({
   activeReservations,
   mode = "create",
   reservationId,
+  createOrigin = "list",
+  returnHref = FO_RESERVASI_VIEW_PATHS.list,
   submitLabel = "Simpan Reservasi",
 }: ReservationFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
@@ -272,7 +280,7 @@ export function ReservationForm({
     const result =
       mode === "edit" && reservationId
         ? await updateReservation(reservationId, form.getValues())
-        : await createReservation(form.getValues());
+        : await createReservation(form.getValues(), createOrigin);
 
     if (!result.ok) {
       const message = resultErrorMessage(result.error);
@@ -776,7 +784,7 @@ export function ReservationForm({
                 {isSubmitting ? "Menyimpan..." : submitLabel}
               </button>
               <Link
-                href="/app/fo/reservations"
+                href={returnHref}
                 className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
               >
                 Batal

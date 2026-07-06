@@ -461,7 +461,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                     Unduh Tagihan
                   </a>
                   <Link
-                    href="/app/fo/tape-chart"
+                    href="/app/fo/reservasi/kalender"
                     className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
                   >
                     <Undo2 className="h-4 w-4" aria-hidden="true" />

@@ -3,7 +3,7 @@ import type { AppRole } from "@/auth";
 export function getRoleHome(role: AppRole) {
   switch (role) {
     case "FO":
-      return "/app/fo/tape-chart";
+      return "/app/fo/reservasi";
     case "HK":
       return "/app/hk";
     case "FB":

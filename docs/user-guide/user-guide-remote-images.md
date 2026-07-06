@@ -47,15 +47,7 @@ Aplikasi memiliki web app manifest dan ikon, sehingga dapat dipasang ke layar ut
 
 Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan check-out.
 
-### 1. Melihat Dashboard Front Office
-
-1. Buka menu **Dashboard**.
-
-   ![Dashboard Front Office](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/fo-01-dashboard.png)
-
-   Dashboard menampilkan Expected Arrivals, Departures hari ini, dan aktivitas terbaru. Gunakan daftar ini untuk memilih tamu yang akan check-in atau check-out.
-
-### 2. Buat Reservasi
+### 1. Buat Reservasi
 
 1. Klik **Reservasi**, lalu pilih **Tambah Reservasi**.
 
@@ -67,11 +59,11 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    ![Hasil reservasi tersimpan](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/fo-03-reservation-result.png)
 
-   Reservasi baru muncul di daftar reservasi dengan status **CONFIRMED**. Klik baris reservasi untuk membuka detail dan melanjutkan check-in.
+   Reservasi baru muncul di daftar reservasi dengan status **CONFIRMED**. Front Office masuk melalui menu **Reservasi**, yang membuka Kalender/List sesuai preferensi terakhir. Klik baris reservasi untuk membuka detail dan melanjutkan check-in.
 
 #### Alternatif: buat reservasi lewat Tape Chart
 
-1. Buka menu **Tape Chart**.
+1. Buka menu **Reservasi**, lalu pilih tampilan **Kalender**.
 
    ![Tape Chart Front Office](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/fo-12-tape-chart.png)
 
@@ -83,7 +75,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    Kamar dan tanggal sudah mengikuti pilihan pada Tape Chart. Lengkapi data tamu, lalu simpan reservasi seperti alur biasa.
 
-### 3. Proses Check-in
+### 2. Proses Check-in
 
 1. Dari detail reservasi, klik **Check In Guest**.
 
@@ -97,7 +89,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    Setelah tanda tangan terekam, klik **Konfirmasi Check-In**. Sistem membuat Guest Folio untuk tamu.
 
-### 4. Kelola Guest Folio
+### 3. Kelola Guest Folio
 
 1. Buka Guest Folio setelah check-in selesai.
 
@@ -117,7 +109,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    Biaya yang sudah diposting muncul pada tabel **Biaya** dan menambah saldo folio.
 
-### 5. Proses Check-out
+### 4. Proses Check-out
 
 1. Klik **Lanjut ke Check-Out** dari halaman folio.
 
@@ -137,7 +129,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    Check-out selesai. Sistem menyediakan tautan **Unduh Tagihan** dan **Back to Tape Chart**.
 
-### 6. Kelola Lost & Found
+### 5. Kelola Lost & Found
 
 1. Buka menu **Lost & Found**, lalu cari barang yang ditanyakan tamu.
 

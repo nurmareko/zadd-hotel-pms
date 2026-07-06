@@ -340,8 +340,8 @@ export async function completeCheckIn(
     roomId: parsed.data.roomId,
   });
 
-  revalidatePath("/app/fo/tape-chart");
-  revalidatePath("/app/fo/reservations");
-  revalidatePath(`/app/fo/reservations/${parsed.data.reservationId}`);
+  revalidatePath("/app/fo/reservasi/kalender");
+  revalidatePath("/app/fo/reservasi/list");
+  revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
   redirect(`/app/fo/folios/${result.folioId}`);
 }

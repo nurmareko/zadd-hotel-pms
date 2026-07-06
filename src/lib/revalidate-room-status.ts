@@ -3,9 +3,8 @@ import { revalidatePath } from "next/cache";
 const ROOM_STATUS_PATHS = [
   "/app/hk",
   "/app/hk/rooms",
-  "/app/fo/tape-chart",
-  "/app/fo/dashboard",
-  "/app/fo/reservations/new",
+  "/app/fo/reservasi/kalender",
+  "/app/fo/reservasi/new",
   "/app/admin/rooms",
   "/app/acc",
 ] as const;
@@ -22,7 +21,7 @@ export function revalidateRoomStatusViews({
   }
 
   if (reservationId) {
-    revalidatePath(`/app/fo/reservations/${reservationId}`);
+    revalidatePath(`/app/fo/reservasi/${reservationId}`);
   }
 
   if (roomId) {

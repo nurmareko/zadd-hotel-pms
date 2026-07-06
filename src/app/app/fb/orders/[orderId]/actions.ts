@@ -519,11 +519,11 @@ function revalidatePaymentPaths(
   if (folioId) {
     revalidatePath(`/app/fo/folios/${folioId}`);
     revalidatePath(`/app/fo/check-out/${folioId}`);
-    revalidatePath("/app/fo/tape-chart");
+    revalidatePath("/app/fo/reservasi/kalender");
   }
 
   if (reservationId) {
-    revalidatePath(`/app/fo/reservations/${reservationId}`);
+    revalidatePath(`/app/fo/reservasi/${reservationId}`);
   }
 }
 
