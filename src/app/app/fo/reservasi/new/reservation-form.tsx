@@ -312,21 +312,22 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-slate-200 bg-slate-50 px-5 py-3">
-            <span className="text-sm font-semibold text-slate-700">
-              Formulir Reservasi
-            </span>
-            <span className="text-xs text-slate-500 num">
-              {nights > 0
-                ? `${arrivalDate} → ${departureDate} · Lama menginap: ${nights} malam`
-                : "Pilih tanggal menginap"}
-            </span>
-          </div>
-          <div className="p-5">
-            <h2 className={sectionTitleClassName}>Data Tamu</h2>
-            <div className="grid gap-3.5 md:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-slate-200 bg-slate-50 px-5 py-3">
+              <span className="text-sm font-semibold text-slate-700">
+                Formulir Reservasi
+              </span>
+              <span className="text-xs text-slate-500 num">
+                {nights > 0
+                  ? `${arrivalDate} → ${departureDate} · Lama menginap: ${nights} malam`
+                  : "Pilih tanggal menginap"}
+              </span>
+            </div>
+            <div className="flex flex-col p-5">
+              <section className="order-2 mt-6 border-t border-slate-100 pt-6">
+                <h2 className={sectionTitleClassName}>Data Tamu</h2>
+                <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
               <FormField
                 control={form.control}
                 name="fullName"
@@ -418,7 +419,7 @@ export function ReservationForm({
                 )}
               />
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 xl:col-span-4">
                 <FormField
                   control={form.control}
                   name="address"
@@ -437,11 +438,33 @@ export function ReservationForm({
                   )}
                 />
               </div>
-            </div>
 
-            <div className="mt-6 border-t border-slate-100 pt-6">
+              <div className="md:col-span-2 xl:col-span-4">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catatan</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className={textareaClassName}
+                          placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
+                          readOnly={isViewMode}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+                </div>
+              </section>
+
+            <div className="order-1 rounded-lg bg-slate-50/80 p-4 ring-1 ring-slate-100">
               <h2 className={sectionTitleClassName}>Detail Reservasi</h2>
-              <div className="grid gap-3.5 md:grid-cols-2">
+              <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="reservationType"
@@ -698,32 +721,11 @@ export function ReservationForm({
                     </FormItem>
                   )}
                 />
-
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catatan</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className={textareaClassName}
-                            placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
-                            readOnly={isViewMode}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </div>
 
+            </div>
           </div>
-        </div>
 
         {/* lg offset clears the sticky mobile top bar on coarse-pointer
             tablets; desktop (fine pointer) has no top bar, so hug the top. */}
@@ -789,7 +791,7 @@ export function ReservationForm({
             </div>
           </section>
 
-        </aside>
+          </aside>
         </div>
 
         {showFooter ? (
