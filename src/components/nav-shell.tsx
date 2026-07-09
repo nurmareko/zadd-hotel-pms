@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -305,6 +312,9 @@ export function NavShell({
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
   const profileLink = accountGroup.links[0];
   const isProfileActive = activeSidebarHref === profileLink.href;
+  const contentStyle = {
+    "--app-sidebar-width": sidebarCollapsed ? "4rem" : "260px",
+  } as CSSProperties;
 
   // One mobile nav: a role-scoped bottom tab bar built from the same link set
   // (and the same longest-match active logic) as the desktop sidebar. Overflow
@@ -555,9 +565,9 @@ export function NavShell({
       </div>
 
       <div
+        style={contentStyle}
         className={[
-          "min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[margin-left] duration-200 ease-out desktop:pb-0",
-          sidebarCollapsed ? "desktop:ml-16" : "desktop:ml-[260px]",
+          "min-h-screen min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[margin-left,width] duration-200 ease-out desktop:ml-[var(--app-sidebar-width)] desktop:w-[calc(100%_-_var(--app-sidebar-width))] desktop:pb-0",
         ].join(" ")}
       >
         {children}

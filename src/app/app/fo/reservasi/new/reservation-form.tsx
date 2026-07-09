@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays, formatISO, parseISO } from "date-fns";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   useForm,
   useWatch,
@@ -12,6 +12,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { consoleButtonClassName } from "@/components/console-button";
 import {
   Form,
   FormControl,
@@ -66,14 +67,15 @@ type ReservationFormProps = {
   createOrigin?: FoReservasiView;
   returnHref?: string;
   submitLabel?: string;
+  viewFooterActions?: ReactNode;
 };
 
-const fieldClassName =
-  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
-const textareaClassName =
-  "min-h-20 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
-const selectClassName =
-  "h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
+// scroll-m keeps a focused invalid field clear of the pinned action bar
+// (bottom) and the sticky mobile top bar when RHF auto-focuses it on submit.
+const fieldScrollMarginClassName = "scroll-mt-24 scroll-mb-40";
+const fieldClassName = `h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
+const textareaClassName = `min-h-20 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
+const selectClassName = `h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors ${fieldScrollMarginClassName}`;
 const sectionTitleClassName =
   "mb-4 text-sm font-semibold tracking-tight text-slate-900";
 
@@ -170,6 +172,7 @@ export function ReservationForm({
   createOrigin = "list",
   returnHref = FO_RESERVASI_VIEW_PATHS.list,
   submitLabel = "Simpan Reservasi",
+  viewFooterActions,
 }: ReservationFormProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const hasMountedRoomTypeValidation = useRef(false);
@@ -269,7 +272,11 @@ export function ReservationForm({
   const availableRoomCount = roomOptions.filter(
     (room) => room.isAvailable,
   ).length;
-  const isSubmitting = form.formState.isSubmitting;
+  const { errors, isSubmitting, submitCount } = form.formState;
+  const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
+  const estimatedTotal =
+    rateAmount && nights ? formatIDR(rateAmount * nights) : "-";
+  const showFooter = !isViewMode || Boolean(viewFooterActions);
 
   async function onSubmit() {
     if (isViewMode) {
@@ -303,12 +310,24 @@ export function ReservationForm({
       <form
         id="reservation-form"
         onSubmit={form.handleSubmit(onSubmit)}
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+        className="flex flex-col gap-4"
       >
-        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="p-5">
-            <h2 className={sectionTitleClassName}>Data Tamu</h2>
-            <div className="grid gap-3.5 md:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-slate-200 bg-slate-50 px-5 py-3">
+              <span className="text-sm font-semibold text-slate-700">
+                Formulir Reservasi
+              </span>
+              <span className="text-xs text-slate-500 num">
+                {nights > 0
+                  ? `${arrivalDate} → ${departureDate} · Lama menginap: ${nights} malam`
+                  : "Pilih tanggal menginap"}
+              </span>
+            </div>
+            <div className="flex flex-col p-5">
+              <section className="order-2 mt-6 border-t border-slate-100 pt-6">
+                <h2 className={sectionTitleClassName}>Data Tamu</h2>
+                <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
               <FormField
                 control={form.control}
                 name="fullName"
@@ -400,7 +419,7 @@ export function ReservationForm({
                 )}
               />
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 xl:col-span-4">
                 <FormField
                   control={form.control}
                   name="address"
@@ -419,11 +438,33 @@ export function ReservationForm({
                   )}
                 />
               </div>
-            </div>
 
-            <div className="mt-6 border-t border-slate-100 pt-6">
+              <div className="md:col-span-2 xl:col-span-4">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catatan</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className={textareaClassName}
+                          placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
+                          readOnly={isViewMode}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+                </div>
+              </section>
+
+            <div className="order-1 rounded-lg bg-slate-50/80 p-4 ring-1 ring-slate-100">
               <h2 className={sectionTitleClassName}>Detail Reservasi</h2>
-              <div className="grid gap-3.5 md:grid-cols-2">
+              <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
                 <FormField
                   control={form.control}
                   name="reservationType"
@@ -680,39 +721,15 @@ export function ReservationForm({
                     </FormItem>
                   )}
                 />
-
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catatan</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className={textareaClassName}
-                            placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
-                            readOnly={isViewMode}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </div>
 
-            {actionError ? (
-              <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {actionError}
-              </p>
-            ) : null}
+            </div>
           </div>
-        </div>
 
-        <aside className="flex min-w-0 flex-col gap-4">
+        {/* lg offset clears the sticky mobile top bar on coarse-pointer
+            tablets; desktop (fine pointer) has no top bar, so hug the top. */}
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[4.75rem] desktop:top-5">
           <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan Tarif"}
@@ -774,24 +791,58 @@ export function ReservationForm({
             </div>
           </section>
 
-          {!isViewMode ? (
-            <div className="flex flex-col gap-2">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:cursor-wait disabled:opacity-70"
-              >
-                {isSubmitting ? "Menyimpan..." : submitLabel}
-              </button>
-              <Link
-                href={returnHref}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-              >
-                Batal
-              </Link>
+          </aside>
+        </div>
+
+        {showFooter ? (
+          <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 desktop:bottom-4">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-slate-200 bg-white/95 px-4 py-3 shadow-md backdrop-blur">
+              <div className="min-w-0 text-sm">
+                {actionError ? (
+                  <p className="font-medium text-red-600">{actionError}</p>
+                ) : hasBlockingErrors ? (
+                  <p className="font-medium text-red-600">
+                    Periksa kembali isian yang ditandai merah.
+                  </p>
+                ) : (
+                  <p className="text-slate-500 num">
+                    <span className="font-semibold text-slate-900">
+                      {nights} malam
+                    </span>
+                    {" · Estimasi tagihan "}
+                    <span className="font-semibold text-slate-900">
+                      {estimatedTotal}
+                    </span>
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {isViewMode ? (
+                  viewFooterActions
+                ) : (
+                  <>
+                    <Link
+                      href={returnHref}
+                      className={consoleButtonClassName("secondary")}
+                    >
+                      Batal
+                    </Link>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className={consoleButtonClassName(
+                        "primary",
+                        "disabled:cursor-wait disabled:opacity-70",
+                      )}
+                    >
+                      {isSubmitting ? "Menyimpan..." : submitLabel}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          ) : null}
-        </aside>
+          </div>
+        ) : null}
       </form>
     </Form>
   );

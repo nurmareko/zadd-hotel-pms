@@ -1,7 +1,5 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
 import { addDays, differenceInCalendarDays, formatISO } from "date-fns";
-import { Plus } from "lucide-react";
-import Link from "next/link";
 
 import { todayDateOnly } from "@/lib/date-only";
 import { computeFolioTotals } from "@/lib/folio-totals";
@@ -9,7 +7,6 @@ import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-import { ReservationViewToggle } from "../reservation-view-toggle";
 import { ReservationFilters } from "./reservation-filters";
 import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
@@ -197,36 +194,12 @@ export default async function ReservationListPage({
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Daftar Reservasi
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Dikelompokkan menurut tanggal check-in.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <ReservationViewToggle currentView="list" />
-          <Link
-            href="/app/fo/reservasi/new?from=list"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Tambah Reservasi
-          </Link>
-        </div>
-      </div>
-
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <ReservationFilters
-          filters={filters}
-          resultCount={reservations.length}
-        />
-        <ReservationTable groups={groups} />
-      </section>
-    </main>
+    <section className="animate-in fade-in overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm duration-300">
+      <ReservationFilters
+        filters={filters}
+        resultCount={reservations.length}
+      />
+      <ReservationTable groups={groups} />
+    </section>
   );
 }
