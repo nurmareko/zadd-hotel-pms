@@ -241,23 +241,6 @@ export default async function ReservationDetailPage({
               >
                 Kembali
               </Link>
-              {formMode === "edit" ? (
-                <>
-                  <Link
-                    href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
-                    className={consoleButtonClassName("secondary")}
-                  >
-                    Batal
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
-                  className={consoleButtonClassName("secondary")}
-                >
-                  Edit Reservasi
-                </Link>
-              )}
               {canPrintGrc ? (
                 <a
                   href={`/api/reservations/${reservation.id}/grc`}
@@ -280,14 +263,6 @@ export default async function ReservationDetailPage({
                   roomStatus={reservation.room?.status ?? null}
                 />
               ) : null}
-              {canCheckIn ? (
-                <Link
-                  href={`/app/fo/check-in/${reservation.id}`}
-                  className={consoleButtonClassName("primary")}
-                >
-                  Check In Guest
-                </Link>
-              ) : null}
             </div>
           </div>
 
@@ -302,7 +277,30 @@ export default async function ReservationDetailPage({
               activeReservations={allocatedActiveReservations}
               mode={formMode}
               reservationId={reservation.id}
+              returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
               submitLabel="Simpan Perubahan"
+              viewFooterActions={
+                formMode === "view" ? (
+                  <>
+                    <Link
+                      href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
+                      className={consoleButtonClassName(
+                        canCheckIn ? "secondary" : "primary",
+                      )}
+                    >
+                      Edit Reservasi
+                    </Link>
+                    {canCheckIn ? (
+                      <Link
+                        href={`/app/fo/check-in/${reservation.id}`}
+                        className={consoleButtonClassName("primary")}
+                      >
+                        Check In Guest
+                      </Link>
+                    ) : null}
+                  </>
+                ) : undefined
+              }
             />
           </div>
         </>
