@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  BedDouble,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Plus,
-  Wrench,
-} from "lucide-react";
+import { BedDouble, ChevronDown, ChevronUp, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, type CSSProperties } from "react";
 
@@ -41,11 +33,6 @@ type TapeChartProps = {
   data: TapeChartData;
   days: TapeChartDay[];
   todayIso: string;
-  previousHref: string;
-  nextHref: string;
-  todayHref: string;
-  newReservationHref: string;
-  rangeLabel: string;
 };
 
 const BAR_VERTICAL_MARGIN = 4;
@@ -364,28 +351,6 @@ function getNewReservationHref(params: {
   return `/app/fo/reservasi/new?${searchParams.toString()}`;
 }
 
-function TapeChartNavButton({
-  href,
-  label,
-  direction,
-}: {
-  href: string;
-  label: string;
-  direction: "previous" | "next";
-}) {
-  const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
-
-  return (
-    <Link
-      href={href}
-      aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-    >
-      <Icon className="h-4 w-4" aria-hidden="true" />
-    </Link>
-  );
-}
-
 function TapeChartLegend() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-500 shadow-sm">
@@ -461,16 +426,7 @@ function GroupRow({
   );
 }
 
-export function TapeChart({
-  data,
-  days,
-  todayIso,
-  previousHref,
-  nextHref,
-  todayHref,
-  newReservationHref,
-  rangeLabel,
-}: TapeChartProps) {
+export function TapeChart({ data, days, todayIso }: TapeChartProps) {
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(
     () => new Set(),
   );
@@ -514,45 +470,6 @@ export function TapeChart({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between mb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Kalender
-          </h1>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1">
-            <TapeChartNavButton
-              href={previousHref}
-              label="Tanggal sebelumnya"
-              direction="previous"
-            />
-            <div className="flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm">
-              <span>{rangeLabel}</span>
-            </div>
-            <TapeChartNavButton
-              href={nextHref}
-              label="Tanggal berikutnya"
-              direction="next"
-            />
-          </div>
-          <Link
-            href={todayHref}
-            className="flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
-          >
-            Today
-          </Link>
-          <Link
-            href={newReservationHref}
-            className="flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Reservasi
-          </Link>
-        </div>
-      </div>
-
       <TapeChartLegend />
 
       <div className={styles.chartShell} style={layoutStyle}>
