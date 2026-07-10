@@ -310,7 +310,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
+9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
 10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
@@ -379,7 +379,8 @@ A few choices worth explaining:
 9. **Lost & Found is operationally independent.** LostFoundItem records text descriptions, optional room context, the user who logged the item, and return resolution. It does not create maintenance tickets, store photos, or change Room.status automatically.
 10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
-12. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
+12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
+13. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
 
 ---
 
@@ -484,6 +485,7 @@ A few choices worth explaining:
 | guest_id | INT | NOT NULL, FOREIGN KEY → guest(id) | Booking guest |
 | room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type booked |
 | room_id | INT | NULLABLE, FOREIGN KEY → room(id), ON DELETE SET NULL | Physical room assigned at check-in; NULL means unallocated reservation |
+| group_booking_id | VARCHAR(32) | NULLABLE, INDEXED | Shared label linking several normal reservation rows from one multi-room booking; NULL for single-room bookings |
 | arrival_date | DATE | NOT NULL | Planned check-in date |
 | departure_date | DATE | NOT NULL | Planned check-out date |
 | adults | INT | NOT NULL, DEFAULT 1 | Adult guest count |

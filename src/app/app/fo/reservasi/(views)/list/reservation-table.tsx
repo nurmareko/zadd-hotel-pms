@@ -23,6 +23,8 @@ export type ReservationRow = {
   total: number;
   // null when the reservation has no folio yet (e.g. CONFIRMED pre-check-in).
   outstanding: number | null;
+  groupBookingId: string | null;
+  groupRoomCount: number | null;
 };
 
 export type ReservationGroup = {
@@ -177,7 +179,14 @@ function GroupRows({ group }: { group: ReservationGroup }) {
               {row.guestName}
             </td>
             <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
-              {row.reservationNo}
+              <div className="flex flex-col gap-1">
+                <span>{row.reservationNo}</span>
+                {row.groupBookingId && row.groupRoomCount ? (
+                  <span className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                    Grup ({row.groupRoomCount} kamar)
+                  </span>
+                ) : null}
+              </div>
             </td>
             <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
               {occupantsLabel(row.adults, row.children)}
