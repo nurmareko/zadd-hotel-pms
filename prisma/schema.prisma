@@ -266,6 +266,7 @@ model Reservation {
   guestId         Int                  @map("guest_id")
   roomTypeId      Int                  @map("room_type_id")
   roomId          Int?                 @map("room_id")
+  groupBookingId  String?              @map("group_booking_id") @db.VarChar(32)
   arrivalDate     DateTime             @map("arrival_date") @db.Date
   departureDate   DateTime             @map("departure_date") @db.Date
   adults          Int                  @default(1)
@@ -292,6 +293,7 @@ model Reservation {
   folio        Folio?
   activityLogs ActivityLog[]
 
+  @@index([groupBookingId])
   @@map("reservation")
 }
 

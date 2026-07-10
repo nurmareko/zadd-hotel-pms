@@ -73,8 +73,7 @@ export function reservationCapacityError(totalGuests: number, capacity: number) 
   return `Jumlah tamu (${totalGuests}) melebihi kapasitas tipe kamar (${capacity})`;
 }
 
-const BaseCreateReservationSchema = z
-  .object({
+const CreateReservationObjectSchema = z.object({
     fullName: z
       .string()
       .trim()
@@ -118,6 +117,43 @@ const BaseCreateReservationSchema = z
       .number("Deposit is required")
       .min(0, "Deposit cannot be negative"),
     notes: OptionalTextSchema,
+});
+
+const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
+  (value) => value.departureDate > value.arrivalDate,
+  {
+    message: "Departure must be after arrival",
+    path: ["departureDate"],
+  },
+);
+
+const ReservationRoomRowSchema = z.object({
+  roomTypeId: z.coerce
+    .number("Room type is required")
+    .int("Room type is required")
+    .positive("Room type is required"),
+  roomId: OptionalRoomIdSchema,
+  adults: z.coerce
+    .number("Adults is required")
+    .int("Adults must be a whole number")
+    .min(1, "At least one adult is required"),
+  children: z.coerce
+    .number("Children is required")
+    .int("Children must be a whole number")
+    .min(0, "Children cannot be negative"),
+});
+
+const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
+  roomTypeId: true,
+  roomId: true,
+  adults: true,
+  children: true,
+})
+  .extend({
+    rooms: z
+      .array(ReservationRoomRowSchema)
+      .min(1, "Tambahkan minimal 1 kamar")
+      .max(20, "Booking maksimal 20 kamar"),
   })
   .refine((value) => value.departureDate > value.arrivalDate, {
     message: "Departure must be after arrival",
@@ -168,6 +204,68 @@ export function createReservationSchema(
 
 export const CreateReservationSchema = createReservationSchema();
 
+export function createUnifiedReservationSchema(
+  roomTypes: ReservationRoomTypeCapacity[] = [],
+) {
+  const capacityByRoomTypeId = new Map(
+    roomTypes.map((roomType) => [roomType.id, roomType.capacity]),
+  );
+
+  return BaseUnifiedReservationSchema.superRefine((value, context) => {
+    const selectedRoomIds = new Set<number>();
+
+    value.rooms.forEach((room, index) => {
+      const totalGuests = room.adults + room.children;
+
+      if (totalGuests < 1) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "adults"],
+          message: "Jumlah tamu minimal 1",
+        });
+      }
+
+      const capacity = capacityByRoomTypeId.get(room.roomTypeId);
+
+      if (typeof capacity === "undefined") {
+        if (roomTypes.length > 0) {
+          context.addIssue({
+            code: "custom",
+            path: ["rooms", index, "roomTypeId"],
+            message: "Tipe kamar tidak valid",
+          });
+        }
+
+        return;
+      }
+
+      if (totalGuests > capacity) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "children"],
+          message: reservationCapacityError(totalGuests, capacity),
+        });
+      }
+
+      if (room.roomId === null) {
+        return;
+      }
+
+      if (selectedRoomIds.has(room.roomId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "roomId"],
+          message: "Kamar fisik yang sama tidak boleh dipilih dua kali",
+        });
+      }
+
+      selectedRoomIds.add(room.roomId);
+    });
+  });
+}
+
+export const UnifiedReservationSchema = createUnifiedReservationSchema();
+
 export type CreateReservationInput = {
   fullName: string;
   idNumber: string;
@@ -187,6 +285,19 @@ export type CreateReservationInput = {
   notes: string;
 };
 export type CreateReservationValues = z.output<typeof CreateReservationSchema>;
+
+export type UnifiedReservationInput = Omit<
+  CreateReservationInput,
+  "roomTypeId" | "roomId" | "adults" | "children"
+> & {
+  rooms: Array<{
+    roomTypeId: string;
+    roomId: string;
+    adults: string;
+    children: string;
+  }>;
+};
+export type UnifiedReservationValues = z.output<typeof UnifiedReservationSchema>;
 
 export const EditReservationSchema = CreateReservationSchema;
 export type EditReservationInput = CreateReservationInput;

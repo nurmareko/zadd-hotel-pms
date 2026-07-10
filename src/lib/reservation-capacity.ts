@@ -7,6 +7,7 @@ export type RoomTypeCapacityInput = {
   roomTypeId: number;
   arrival: Date;
   departure: Date;
+  requestedCount?: number;
   excludeReservationId?: number;
 };
 
@@ -19,6 +20,7 @@ export async function validateRoomTypeCapacity(
     roomTypeId,
     arrival,
     departure,
+    requestedCount = 1,
     excludeReservationId,
   }: RoomTypeCapacityInput,
   tx: Prisma.TransactionClient,
@@ -78,14 +80,22 @@ export async function validateRoomTypeCapacity(
     }
   }
 
-  if (peakCount >= roomCount) {
+  if (requestedCount < 1) {
+    return {
+      ok: false,
+      field: "roomTypeId",
+      error: "Jumlah kamar yang diminta tidak valid.",
+    };
+  }
+
+  if (peakCount + requestedCount > roomCount) {
     return {
       ok: false,
       field: "roomTypeId",
       error: `Tipe kamar ${roomType.name} sudah penuh pada tanggal ${formatISO(
         peakDate,
         { representation: "date" },
-      )}. Kapasitas ${roomCount}, sudah dipesan ${peakCount}.`,
+      )}. Kapasitas ${roomCount}, sudah dipesan ${peakCount}, diminta ${requestedCount}.`,
     };
   }
 

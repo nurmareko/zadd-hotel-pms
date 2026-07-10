@@ -107,6 +107,78 @@ function FolioPendingState() {
   );
 }
 
+function reservationStatusLabel(status: ReservationStatus) {
+  return status.replace("_", " ");
+}
+
+type GroupSibling = {
+  id: number;
+  reservationNo: string;
+  status: ReservationStatus;
+  guest: { fullName: string };
+  room: { number: string } | null;
+  roomType: { name: string };
+};
+
+function GroupBookingCard({
+  currentReservationId,
+  groupBookingId,
+  siblings,
+}: {
+  currentReservationId: number;
+  groupBookingId: string;
+  siblings: GroupSibling[];
+}) {
+  return (
+    <section className="mb-6 max-w-6xl overflow-hidden rounded-lg border border-sky-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-sky-50 px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-sky-950">
+            Bagian dari booking grup - {siblings.length} kamar
+          </h2>
+          <p className="mt-1 text-xs font-medium text-sky-700">
+            {groupBookingId}
+          </p>
+        </div>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {siblings.map((sibling) => {
+          const isCurrent = sibling.id === currentReservationId;
+
+          return (
+            <Link
+              key={sibling.id}
+              href={`/app/fo/reservasi/${sibling.id}`}
+              className="grid gap-2 px-5 py-3 text-sm transition-colors hover:bg-slate-50 md:grid-cols-[1fr_1fr_auto]"
+            >
+              <div>
+                <div className="font-semibold text-slate-900">
+                  {sibling.reservationNo}
+                  {isCurrent ? (
+                    <span className="ml-2 text-xs font-medium text-sky-700">
+                      saat ini
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-0.5 text-slate-500">
+                  {sibling.guest.fullName}
+                </div>
+              </div>
+              <div className="text-slate-600">
+                {sibling.room?.number ?? "Belum dialokasikan"} ·{" "}
+                {sibling.roomType.name}
+              </div>
+              <div className="font-medium text-slate-700">
+                {reservationStatusLabel(sibling.status)}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default async function ReservationDetailPage({
   params,
   searchParams,
@@ -166,6 +238,21 @@ export default async function ReservationDetailPage({
   if (!reservation) {
     notFound();
   }
+
+  const groupSiblings = reservation.groupBookingId
+    ? await prisma.reservation.findMany({
+        where: { groupBookingId: reservation.groupBookingId },
+        select: {
+          id: true,
+          reservationNo: true,
+          status: true,
+          guest: { select: { fullName: true } },
+          room: { select: { number: true } },
+          roomType: { select: { name: true } },
+        },
+        orderBy: [{ id: "asc" }],
+      })
+    : [];
 
   const requestedMode = firstParam(query.mode);
   const formMode = requestedMode === "edit" ? "edit" : "view";
@@ -229,7 +316,7 @@ export default async function ReservationDetailPage({
               </h1>
               <p className="mt-1 text-sm text-slate-500">
                 {reservation.reservationNo} ·{" "}
-                {reservation.status.replace("_", " ")} ·{" "}
+                {reservationStatusLabel(reservation.status)} ·{" "}
                 {reservation.guest.fullName}
               </p>
             </div>
@@ -267,6 +354,13 @@ export default async function ReservationDetailPage({
           </div>
 
           <div className="max-w-6xl">
+            {reservation.groupBookingId ? (
+              <GroupBookingCard
+                currentReservationId={reservation.id}
+                groupBookingId={reservation.groupBookingId}
+                siblings={groupSiblings}
+              />
+            ) : null}
             <ReservationForm
               defaultValues={defaultValues}
               roomTypes={roomTypes.map((roomType) => ({

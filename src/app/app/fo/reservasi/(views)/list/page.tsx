@@ -134,6 +134,27 @@ export default async function ReservationListPage({
     }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
+  const groupBookingIds = Array.from(
+    new Set(
+      reservations.flatMap((reservation) =>
+        reservation.groupBookingId ? [reservation.groupBookingId] : [],
+      ),
+    ),
+  );
+  const groupCounts = groupBookingIds.length
+    ? await prisma.reservation.groupBy({
+        by: ["groupBookingId"],
+        where: { groupBookingId: { in: groupBookingIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const groupCountById = new Map(
+    groupCounts.flatMap((group) =>
+      group.groupBookingId
+        ? [[group.groupBookingId, group._count._all] as const]
+        : [],
+    ),
+  );
 
   // Group by arrival (check-in) date, ascending. Reservations already arrive
   // sorted by arrival then guest name, so groups stay in order as we build them.
@@ -183,6 +204,10 @@ export default async function ReservationListPage({
       status: reservation.status,
       total,
       outstanding,
+      groupBookingId: reservation.groupBookingId,
+      groupRoomCount: reservation.groupBookingId
+        ? (groupCountById.get(reservation.groupBookingId) ?? 1)
+        : null,
     });
   }
 

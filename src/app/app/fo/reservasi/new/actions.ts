@@ -6,6 +6,7 @@ import {
   ReservationUsageType,
   RoomStatus,
 } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -24,8 +25,9 @@ import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
   createReservationSchema,
-  type CreateReservationValues,
+  createUnifiedReservationSchema,
   type EditReservationValues,
+  type UnifiedReservationValues,
   reservationCapacityError,
 } from "./schema";
 
@@ -115,6 +117,15 @@ type ReservationRoomAssignment = {
   } | null;
 };
 
+type ReservationRoomAssignmentInput = {
+  roomTypeId: number;
+  roomId: number | null;
+  arrivalDate: Date;
+  departureDate: Date;
+  adults: number;
+  children: number;
+};
+
 function sameDateOnly(left: Date, right: Date) {
   return (
     formatISO(dateOnlyBoundary(left), { representation: "date" }) ===
@@ -124,7 +135,7 @@ function sameDateOnly(left: Date, right: Date) {
 
 async function validateReservationRoomAssignment(
   tx: Prisma.TransactionClient,
-  input: CreateReservationValues | EditReservationValues,
+  input: ReservationRoomAssignmentInput,
   reservationId?: number,
 ): Promise<
   | { ok: true; assignment: ReservationRoomAssignment }
@@ -210,44 +221,90 @@ async function currentReservationSchema() {
   return createReservationSchema(roomTypes);
 }
 
+async function currentUnifiedReservationSchema() {
+  const roomTypes = await prisma.roomType.findMany({
+    select: { id: true, capacity: true },
+  });
+
+  return createUnifiedReservationSchema(roomTypes);
+}
+
+async function createReservationNumbers(
+  tx: Prisma.TransactionClient,
+  count: number,
+) {
+  const now = new Date();
+  const reservationDatePart = hotelTodayISO(now).replace(/-/g, "").slice(2);
+  const reservationPrefix = `RSV-${reservationDatePart}-`;
+  const reservationCount = await tx.reservation.count({
+    where: { reservationNo: { startsWith: reservationPrefix } },
+  });
+
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      `${reservationPrefix}${String(reservationCount + index + 1).padStart(
+        4,
+        "0",
+      )}`,
+  );
+}
+
+function createGroupBookingId() {
+  const datePart = hotelTodayISO(new Date()).replace(/-/g, "").slice(2);
+
+  return `GRP-${datePart}-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+}
+
 async function runCreateReservationTransaction(
-  input: CreateReservationValues,
+  input: UnifiedReservationValues,
   userId: number,
 ) {
   return prisma.$transaction(
     async (tx) => {
-      const validatedAssignment = await validateReservationRoomAssignment(
-        tx,
-        input,
-      );
+      const assignments: ReservationRoomAssignment[] = [];
 
-      if (!validatedAssignment.ok) {
-        return validatedAssignment;
+      for (const room of input.rooms) {
+        const validatedAssignment = await validateReservationRoomAssignment(
+          tx,
+          {
+            ...room,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+          },
+        );
+
+        if (!validatedAssignment.ok) {
+          return validatedAssignment;
+        }
+
+        assignments.push(validatedAssignment.assignment);
       }
 
-      const { roomType, room } = validatedAssignment.assignment;
-      const validatedCapacity = await validateRoomTypeCapacity(
-        {
-          roomTypeId: input.roomTypeId,
-          arrival: input.arrivalDate,
-          departure: input.departureDate,
-        },
-        tx,
-      );
+      const requestedByRoomTypeId = new Map<number, number>();
 
-      if (!validatedCapacity.ok) {
-        return validatedCapacity;
+      for (const room of input.rooms) {
+        requestedByRoomTypeId.set(
+          room.roomTypeId,
+          (requestedByRoomTypeId.get(room.roomTypeId) ?? 0) + 1,
+        );
       }
 
-      const now = new Date();
-      const reservationDatePart = hotelTodayISO(now).replace(/-/g, "").slice(2);
-      const reservationPrefix = `RSV-${reservationDatePart}-`;
-      const reservationCount = await tx.reservation.count({
-        where: { reservationNo: { startsWith: reservationPrefix } },
-      });
-      const reservationNo = `${reservationPrefix}${String(
-        reservationCount + 1,
-      ).padStart(4, "0")}`;
+      for (const [roomTypeId, requestedCount] of requestedByRoomTypeId) {
+        const validatedCapacity = await validateRoomTypeCapacity(
+          {
+            roomTypeId,
+            arrival: input.arrivalDate,
+            departure: input.departureDate,
+            requestedCount,
+          },
+          tx,
+        );
+
+        if (!validatedCapacity.ok) {
+          return validatedCapacity;
+        }
+      }
 
       const guest = await tx.guest.create({
         data: {
@@ -260,30 +317,43 @@ async function runCreateReservationTransaction(
         },
         select: { id: true },
       });
+      const reservationNumbers = await createReservationNumbers(
+        tx,
+        input.rooms.length,
+      );
+      const groupBookingId =
+        input.rooms.length > 1 ? createGroupBookingId() : null;
+      const reservationIds: number[] = [];
 
-      const reservation = await tx.reservation.create({
-        data: {
-          reservationNo,
-          type: ReservationUsageType.REGULAR,
-          arrangementType: input.arrangementType,
-          reservationType: input.reservationType,
-          guestId: guest.id,
-          roomTypeId: input.roomTypeId,
-          roomId: room?.id ?? null,
-          arrivalDate: input.arrivalDate,
-          departureDate: input.departureDate,
-          adults: input.adults,
-          children: input.children,
-          status: ReservationStatus.CONFIRMED,
-          rateAmount: roomType.baseRate,
-          deposit: input.deposit,
-          notes: input.notes,
-          createdById: userId,
-        },
-        select: { id: true },
-      });
+      for (const [index, room] of input.rooms.entries()) {
+        const { roomType, room: selectedRoom } = assignments[index];
+        const reservation = await tx.reservation.create({
+          data: {
+            reservationNo: reservationNumbers[index],
+            type: ReservationUsageType.REGULAR,
+            arrangementType: input.arrangementType,
+            reservationType: input.reservationType,
+            guestId: guest.id,
+            roomTypeId: room.roomTypeId,
+            roomId: selectedRoom?.id ?? null,
+            groupBookingId,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+            adults: room.adults,
+            children: room.children,
+            status: ReservationStatus.CONFIRMED,
+            rateAmount: roomType.baseRate,
+            deposit: input.deposit,
+            notes: input.notes,
+            createdById: userId,
+          },
+          select: { id: true },
+        });
 
-      return { ok: true as const, reservationId: reservation.id };
+        reservationIds.push(reservation.id);
+      }
+
+      return { ok: true as const, reservationIds, groupBookingId };
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -404,7 +474,7 @@ export async function createReservation(
     return { ok: false, error: "Unauthorized" };
   }
 
-  const parsed = (await currentReservationSchema()).safeParse(input);
+  const parsed = (await currentUnifiedReservationSchema()).safeParse(input);
 
   if (!parsed.success) {
     return { ok: false, error: validationError(parsed.error) };
@@ -426,9 +496,14 @@ export async function createReservation(
       }
 
       if (retriedAfterConflict || isSerializationConflict(error)) {
+        const firstRoomId = parsed.data.rooms[0]?.roomId ?? null;
+
         return {
           ok: false,
-          error: await reservationConflictMessage(parsed.data.roomId),
+          error:
+            parsed.data.rooms.length === 1
+              ? await reservationConflictMessage(firstRoomId)
+              : "Ketersediaan berubah saat menyimpan booking grup. Coba lagi.",
         };
       }
 
@@ -449,11 +524,13 @@ export async function createReservation(
     parseFoReservasiView(typeof originView === "string" ? originView : undefined) ??
     "list";
 
-  await logActivity({
-    userId,
-    action: "RESERVATION_CREATED",
-    reservationId: result.reservationId,
-  });
+  for (const reservationId of result.reservationIds) {
+    await logActivity({
+      userId,
+      action: "RESERVATION_CREATED",
+      reservationId,
+    });
+  }
 
   await persistFoReservasiView(origin);
   revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
