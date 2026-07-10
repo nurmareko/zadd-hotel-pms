@@ -127,7 +127,7 @@ const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
   },
 );
 
-const MultiRoomRowSchema = z.object({
+const ReservationRoomRowSchema = z.object({
   roomTypeId: z.coerce
     .number("Room type is required")
     .int("Room type is required")
@@ -143,7 +143,7 @@ const MultiRoomRowSchema = z.object({
     .min(0, "Children cannot be negative"),
 });
 
-const BaseMultiRoomReservationSchema = CreateReservationObjectSchema.omit({
+const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
   roomTypeId: true,
   roomId: true,
   adults: true,
@@ -151,9 +151,9 @@ const BaseMultiRoomReservationSchema = CreateReservationObjectSchema.omit({
 })
   .extend({
     rooms: z
-      .array(MultiRoomRowSchema)
-      .min(2, "Tambahkan minimal 2 kamar untuk booking grup")
-      .max(20, "Booking grup maksimal 20 kamar"),
+      .array(ReservationRoomRowSchema)
+      .min(1, "Tambahkan minimal 1 kamar")
+      .max(20, "Booking maksimal 20 kamar"),
   })
   .refine((value) => value.departureDate > value.arrivalDate, {
     message: "Departure must be after arrival",
@@ -204,14 +204,14 @@ export function createReservationSchema(
 
 export const CreateReservationSchema = createReservationSchema();
 
-export function createMultiRoomReservationSchema(
+export function createUnifiedReservationSchema(
   roomTypes: ReservationRoomTypeCapacity[] = [],
 ) {
   const capacityByRoomTypeId = new Map(
     roomTypes.map((roomType) => [roomType.id, roomType.capacity]),
   );
 
-  return BaseMultiRoomReservationSchema.superRefine((value, context) => {
+  return BaseUnifiedReservationSchema.superRefine((value, context) => {
     const selectedRoomIds = new Set<number>();
 
     value.rooms.forEach((room, index) => {
@@ -264,7 +264,7 @@ export function createMultiRoomReservationSchema(
   });
 }
 
-export const MultiRoomReservationSchema = createMultiRoomReservationSchema();
+export const UnifiedReservationSchema = createUnifiedReservationSchema();
 
 export type CreateReservationInput = {
   fullName: string;
@@ -286,7 +286,7 @@ export type CreateReservationInput = {
 };
 export type CreateReservationValues = z.output<typeof CreateReservationSchema>;
 
-export type MultiRoomReservationInput = Omit<
+export type UnifiedReservationInput = Omit<
   CreateReservationInput,
   "roomTypeId" | "roomId" | "adults" | "children"
 > & {
@@ -297,9 +297,7 @@ export type MultiRoomReservationInput = Omit<
     children: string;
   }>;
 };
-export type MultiRoomReservationValues = z.output<
-  typeof MultiRoomReservationSchema
->;
+export type UnifiedReservationValues = z.output<typeof UnifiedReservationSchema>;
 
 export const EditReservationSchema = CreateReservationSchema;
 export type EditReservationInput = CreateReservationInput;

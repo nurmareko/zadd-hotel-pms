@@ -25,10 +25,9 @@ import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
   createReservationSchema,
-  createMultiRoomReservationSchema,
-  type CreateReservationValues,
+  createUnifiedReservationSchema,
   type EditReservationValues,
-  type MultiRoomReservationValues,
+  type UnifiedReservationValues,
   reservationCapacityError,
 } from "./schema";
 
@@ -222,12 +221,12 @@ async function currentReservationSchema() {
   return createReservationSchema(roomTypes);
 }
 
-async function currentMultiRoomReservationSchema() {
+async function currentUnifiedReservationSchema() {
   const roomTypes = await prisma.roomType.findMany({
     select: { id: true, capacity: true },
   });
 
-  return createMultiRoomReservationSchema(roomTypes);
+  return createUnifiedReservationSchema(roomTypes);
 }
 
 async function createReservationNumbers(
@@ -258,35 +257,54 @@ function createGroupBookingId() {
 }
 
 async function runCreateReservationTransaction(
-  input: CreateReservationValues,
+  input: UnifiedReservationValues,
   userId: number,
 ) {
   return prisma.$transaction(
     async (tx) => {
-      const validatedAssignment = await validateReservationRoomAssignment(
-        tx,
-        input,
-      );
+      const assignments: ReservationRoomAssignment[] = [];
 
-      if (!validatedAssignment.ok) {
-        return validatedAssignment;
+      for (const room of input.rooms) {
+        const validatedAssignment = await validateReservationRoomAssignment(
+          tx,
+          {
+            ...room,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+          },
+        );
+
+        if (!validatedAssignment.ok) {
+          return validatedAssignment;
+        }
+
+        assignments.push(validatedAssignment.assignment);
       }
 
-      const { roomType, room } = validatedAssignment.assignment;
-      const validatedCapacity = await validateRoomTypeCapacity(
-        {
-          roomTypeId: input.roomTypeId,
-          arrival: input.arrivalDate,
-          departure: input.departureDate,
-        },
-        tx,
-      );
+      const requestedByRoomTypeId = new Map<number, number>();
 
-      if (!validatedCapacity.ok) {
-        return validatedCapacity;
+      for (const room of input.rooms) {
+        requestedByRoomTypeId.set(
+          room.roomTypeId,
+          (requestedByRoomTypeId.get(room.roomTypeId) ?? 0) + 1,
+        );
       }
 
-      const [reservationNo] = await createReservationNumbers(tx, 1);
+      for (const [roomTypeId, requestedCount] of requestedByRoomTypeId) {
+        const validatedCapacity = await validateRoomTypeCapacity(
+          {
+            roomTypeId,
+            arrival: input.arrivalDate,
+            departure: input.departureDate,
+            requestedCount,
+          },
+          tx,
+        );
+
+        if (!validatedCapacity.ok) {
+          return validatedCapacity;
+        }
+      }
 
       const guest = await tx.guest.create({
         data: {
@@ -299,30 +317,43 @@ async function runCreateReservationTransaction(
         },
         select: { id: true },
       });
+      const reservationNumbers = await createReservationNumbers(
+        tx,
+        input.rooms.length,
+      );
+      const groupBookingId =
+        input.rooms.length > 1 ? createGroupBookingId() : null;
+      const reservationIds: number[] = [];
 
-      const reservation = await tx.reservation.create({
-        data: {
-          reservationNo,
-          type: ReservationUsageType.REGULAR,
-          arrangementType: input.arrangementType,
-          reservationType: input.reservationType,
-          guestId: guest.id,
-          roomTypeId: input.roomTypeId,
-          roomId: room?.id ?? null,
-          arrivalDate: input.arrivalDate,
-          departureDate: input.departureDate,
-          adults: input.adults,
-          children: input.children,
-          status: ReservationStatus.CONFIRMED,
-          rateAmount: roomType.baseRate,
-          deposit: input.deposit,
-          notes: input.notes,
-          createdById: userId,
-        },
-        select: { id: true },
-      });
+      for (const [index, room] of input.rooms.entries()) {
+        const { roomType, room: selectedRoom } = assignments[index];
+        const reservation = await tx.reservation.create({
+          data: {
+            reservationNo: reservationNumbers[index],
+            type: ReservationUsageType.REGULAR,
+            arrangementType: input.arrangementType,
+            reservationType: input.reservationType,
+            guestId: guest.id,
+            roomTypeId: room.roomTypeId,
+            roomId: selectedRoom?.id ?? null,
+            groupBookingId,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+            adults: room.adults,
+            children: room.children,
+            status: ReservationStatus.CONFIRMED,
+            rateAmount: roomType.baseRate,
+            deposit: input.deposit,
+            notes: input.notes,
+            createdById: userId,
+          },
+          select: { id: true },
+        });
 
-      return { ok: true as const, reservationId: reservation.id };
+        reservationIds.push(reservation.id);
+      }
+
+      return { ok: true as const, reservationIds, groupBookingId };
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -433,111 +464,6 @@ async function runUpdateReservationTransaction(
   );
 }
 
-async function runCreateMultiRoomReservationTransaction(
-  input: MultiRoomReservationValues,
-  userId: number,
-) {
-  return prisma.$transaction(
-    async (tx) => {
-      const assignments: ReservationRoomAssignment[] = [];
-
-      for (const room of input.rooms) {
-        const validatedAssignment = await validateReservationRoomAssignment(
-          tx,
-          {
-            ...room,
-            arrivalDate: input.arrivalDate,
-            departureDate: input.departureDate,
-          },
-        );
-
-        if (!validatedAssignment.ok) {
-          return validatedAssignment;
-        }
-
-        assignments.push(validatedAssignment.assignment);
-      }
-
-      const requestedByRoomTypeId = new Map<number, number>();
-
-      for (const room of input.rooms) {
-        requestedByRoomTypeId.set(
-          room.roomTypeId,
-          (requestedByRoomTypeId.get(room.roomTypeId) ?? 0) + 1,
-        );
-      }
-
-      for (const [roomTypeId, requestedCount] of requestedByRoomTypeId) {
-        const validatedCapacity = await validateRoomTypeCapacity(
-          {
-            roomTypeId,
-            arrival: input.arrivalDate,
-            departure: input.departureDate,
-            requestedCount,
-          },
-          tx,
-        );
-
-        if (!validatedCapacity.ok) {
-          return validatedCapacity;
-        }
-      }
-
-      const guest = await tx.guest.create({
-        data: {
-          fullName: input.fullName,
-          idNumber: input.idNumber,
-          phone: input.phone,
-          email: input.email,
-          address: input.address,
-          nationality: input.nationality,
-        },
-        select: { id: true },
-      });
-      const reservationNumbers = await createReservationNumbers(
-        tx,
-        input.rooms.length,
-      );
-      const groupBookingId = createGroupBookingId();
-      const reservationIds: number[] = [];
-
-      for (const [index, room] of input.rooms.entries()) {
-        const { roomType, room: selectedRoom } = assignments[index];
-        const reservation = await tx.reservation.create({
-          data: {
-            reservationNo: reservationNumbers[index],
-            type: ReservationUsageType.REGULAR,
-            arrangementType: input.arrangementType,
-            reservationType: input.reservationType,
-            guestId: guest.id,
-            roomTypeId: room.roomTypeId,
-            roomId: selectedRoom?.id ?? null,
-            groupBookingId,
-            arrivalDate: input.arrivalDate,
-            departureDate: input.departureDate,
-            adults: room.adults,
-            children: room.children,
-            status: ReservationStatus.CONFIRMED,
-            rateAmount: roomType.baseRate,
-            deposit: input.deposit,
-            notes: input.notes,
-            createdById: userId,
-          },
-          select: { id: true },
-        });
-
-        reservationIds.push(reservation.id);
-      }
-
-      return { ok: true as const, groupBookingId, reservationIds };
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      ...TRANSACTION_OPTIONS,
-    },
-  );
-}
-
 export async function createReservation(
   input: unknown,
   originView: unknown = "list",
@@ -548,7 +474,7 @@ export async function createReservation(
     return { ok: false, error: "Unauthorized" };
   }
 
-  const parsed = (await currentReservationSchema()).safeParse(input);
+  const parsed = (await currentUnifiedReservationSchema()).safeParse(input);
 
   if (!parsed.success) {
     return { ok: false, error: validationError(parsed.error) };
@@ -570,9 +496,14 @@ export async function createReservation(
       }
 
       if (retriedAfterConflict || isSerializationConflict(error)) {
+        const firstRoomId = parsed.data.rooms[0]?.roomId ?? null;
+
         return {
           ok: false,
-          error: await reservationConflictMessage(parsed.data.roomId),
+          error:
+            parsed.data.rooms.length === 1
+              ? await reservationConflictMessage(firstRoomId)
+              : "Ketersediaan berubah saat menyimpan booking grup. Coba lagi.",
         };
       }
 
@@ -582,84 +513,6 @@ export async function createReservation(
 
   if (!result) {
     return { ok: false, error: "Something went wrong creating reservation" };
-  }
-
-  if (!result.ok) {
-    return result;
-  }
-
-  const arrival = formatISO(parsed.data.arrivalDate, { representation: "date" });
-  const origin =
-    parseFoReservasiView(typeof originView === "string" ? originView : undefined) ??
-    "list";
-
-  await logActivity({
-    userId,
-    action: "RESERVATION_CREATED",
-    reservationId: result.reservationId,
-  });
-
-  await persistFoReservasiView(origin);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
-  redirect(reservationCreateRedirectPath(origin, arrival));
-}
-
-export async function createMultiRoomReservation(
-  input: unknown,
-  originView: unknown = "list",
-): Promise<ActionResult> {
-  const session = await auth();
-
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = (await currentMultiRoomReservationSchema()).safeParse(input);
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  const userId = Number(session.user.id);
-  let result: Awaited<
-    ReturnType<typeof runCreateMultiRoomReservationTransaction>
-  > | null = null;
-  let retriedAfterConflict = false;
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      result = await runCreateMultiRoomReservationTransaction(
-        parsed.data,
-        userId,
-      );
-      break;
-    } catch (error) {
-      if (attempt < 2 && isRetryableReservationNumberError(error)) {
-        retriedAfterConflict = true;
-        continue;
-      }
-
-      if (retriedAfterConflict || isSerializationConflict(error)) {
-        return {
-          ok: false,
-          error:
-            "Ketersediaan berubah saat menyimpan booking grup. Coba lagi.",
-        };
-      }
-
-      return {
-        ok: false,
-        error: "Something went wrong creating group reservation",
-      };
-    }
-  }
-
-  if (!result) {
-    return {
-      ok: false,
-      error: "Something went wrong creating group reservation",
-    };
   }
 
   if (!result.ok) {
