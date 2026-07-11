@@ -9,6 +9,7 @@ import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
+import { GroupSettlementActions } from "./group-settlement-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -148,10 +149,12 @@ export default async function GroupBookingPage({
           </p>
         </div>
         <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">
-          Ringkasan ini hanya menampilkan folio per kamar. Tidak ada folio
-          bersama atau penyelesaian grup pada halaman ini.
+          Setiap kamar memiliki reservasi dan folio sendiri. Aksi grup tetap
+          menjalankan proses per kamar tersebut.
         </p>
       </div>
+
+      <GroupSettlementActions groupBookingId={groupBookingId} />
 
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
