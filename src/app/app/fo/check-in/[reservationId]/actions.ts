@@ -19,6 +19,14 @@ import { CheckInSchema, type CheckInValues } from "./schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
+type CompleteCheckInOptions = {
+  /**
+   * The individual check-in page should continue to land on its new folio.
+   * Batch orchestration keeps the operator on its group summary instead.
+   */
+  redirectToFolio?: boolean;
+};
+
 const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
   ReservationStatus.CHECKED_IN,
@@ -272,6 +280,7 @@ async function runCheckInTransaction(
 
 export async function completeCheckIn(
   formData: FormData,
+  options: CompleteCheckInOptions = {},
 ): Promise<ActionResult> {
   const session = await auth();
 
@@ -343,5 +352,10 @@ export async function completeCheckIn(
   revalidatePath("/app/fo/reservasi/kalender");
   revalidatePath("/app/fo/reservasi/list");
   revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
-  redirect(`/app/fo/folios/${result.folioId}`);
+
+  if (options.redirectToFolio !== false) {
+    redirect(`/app/fo/folios/${result.folioId}`);
+  }
+
+  return { ok: true };
 }

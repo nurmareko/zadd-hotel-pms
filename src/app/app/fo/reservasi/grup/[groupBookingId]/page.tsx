@@ -6,10 +6,11 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
-import { formatDateID, formatIDR } from "@/lib/format";
+import { formatDateID, formatIDR, formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 import { GroupSettlementActions } from "./group-settlement-actions";
+import { todayDateOnly } from "@/lib/date-only";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,13 @@ export default async function GroupBookingPage({
       where: { groupBookingId },
       include: {
         guest: {
-          select: { fullName: true, phone: true, email: true },
+          select: {
+            fullName: true,
+            idNumber: true,
+            phone: true,
+            email: true,
+            nationality: true,
+          },
         },
         room: { select: { number: true } },
         roomType: { select: { name: true } },
@@ -129,6 +136,16 @@ export default async function GroupBookingPage({
   const inactiveCount =
     statusCount(reservations, ReservationStatus.CANCELLED) +
     statusCount(reservations, ReservationStatus.NO_SHOW);
+  const { today } = todayDateOnly();
+  const checkInRooms = reservations.map((reservation) => ({
+    reservationId: reservation.id,
+    reservationNo: reservation.reservationNo,
+    roomId: reservation.roomId,
+    roomNumber: reservation.room?.number ?? null,
+    status: reservation.status,
+    arrivalDate: formatISODate(reservation.arrivalDate),
+    guest: reservation.guest,
+  }));
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
@@ -154,7 +171,11 @@ export default async function GroupBookingPage({
         </p>
       </div>
 
-      <GroupSettlementActions groupBookingId={groupBookingId} />
+      <GroupSettlementActions
+        groupBookingId={groupBookingId}
+        checkInRooms={checkInRooms}
+        todayIso={formatISODate(today)}
+      />
 
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
