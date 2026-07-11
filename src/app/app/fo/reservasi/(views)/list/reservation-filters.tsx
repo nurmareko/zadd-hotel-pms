@@ -5,8 +5,7 @@ type ReservationFiltersProps = {
   filters: {
     q: string;
     status: ReservationStatus | "";
-    from: string;
-    to: string;
+    startDate: string;
   };
   resultCount: number;
 };
@@ -31,6 +30,8 @@ export function ReservationFilters({
       method="get"
       className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white p-4"
     >
+      <input type="hidden" name="startDate" value={filters.startDate} />
+
       <div className="relative w-full sm:w-[280px]">
         <Search
           aria-hidden="true"
@@ -57,22 +58,6 @@ export function ReservationFilters({
           </option>
         ))}
       </select>
-
-      <input
-        type="date"
-        name="from"
-        aria-label="Tanggal mulai"
-        defaultValue={filters.from}
-        className={`${fieldClass} sm:w-[140px]`}
-      />
-      <span className="hidden text-slate-400 sm:inline">-</span>
-      <input
-        type="date"
-        name="to"
-        aria-label="Tanggal akhir"
-        defaultValue={filters.to}
-        className={`${fieldClass} sm:w-[140px]`}
-      />
 
       <button
         type="submit"

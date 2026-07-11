@@ -1,7 +1,7 @@
 import { addDays, isValid, parseISO } from "date-fns";
 
 import { dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
-import { formatDateID, formatISODate, formatMonthDayID } from "@/lib/format";
+import { formatDateID, formatMonthDayID } from "@/lib/format";
 
 // Shared between the kalender page (server) and the persistent view header
 // (client) so both derive the same visible window from ?startDate.
@@ -25,10 +25,6 @@ export function parseStartDate(value: string | string[] | undefined | null) {
   const parsed = parseISO(candidate);
 
   return isValid(parsed) ? dateOnlyBoundary(parsed) : defaultStartDate;
-}
-
-export function getDateHref(startDate: Date) {
-  return `/app/fo/reservasi/kalender?startDate=${formatISODate(startDate)}`;
 }
 
 export function buildRangeLabel(startDate: Date) {

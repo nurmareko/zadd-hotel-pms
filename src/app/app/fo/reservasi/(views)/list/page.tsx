@@ -1,18 +1,16 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
-import { addDays, differenceInCalendarDays, formatISO } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 
-import { todayDateOnly } from "@/lib/date-only";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+import { DAY_COUNT, parseStartDate } from "../kalender/date-window";
 import { ReservationFilters } from "./reservation-filters";
 import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_WINDOW_DAYS = 30;
 
 // Default scope: reservations that are still operationally relevant.
 const ACTIVE_STATUSES: ReservationStatus[] = [
@@ -24,40 +22,8 @@ const ACTIVE_STATUSES: ReservationStatus[] = [
 type SearchParams = {
   q?: string;
   status?: string;
-  from?: string;
-  to?: string;
+  startDate?: string | string[];
 };
-
-function parseDateParam(value: string | undefined, today: Date) {
-  if (value === "today") {
-    return today;
-  }
-
-  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (!match) {
-    return undefined;
-  }
-
-  const year = Number(match[1]);
-  const monthIndex = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const parsed = new Date(Date.UTC(year, monthIndex, day));
-
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== monthIndex ||
-    parsed.getUTCDate() !== day
-  ) {
-    return undefined;
-  }
-
-  return parsed;
-}
-
-function toDateInputValue(date: Date) {
-  return formatISO(date, { representation: "date" });
-}
 
 function parseStatus(value: string | undefined) {
   if (!value) {
@@ -75,14 +41,10 @@ export default async function ReservationListPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { today } = todayDateOnly();
-  const defaultToDate = addDays(today, DEFAULT_WINDOW_DAYS);
   const q = params.q?.trim() ?? "";
   const status = parseStatus(params.status);
-  const fromDate =
-    params.from === undefined ? today : parseDateParam(params.from, today);
-  const toDate =
-    params.to === undefined ? defaultToDate : parseDateParam(params.to, today);
+  const visibleStartDate = parseStartDate(params.startDate);
+  const visibleEndDate = addDays(visibleStartDate, DAY_COUNT);
 
   const where: Prisma.ReservationWhereInput = {};
 
@@ -108,12 +70,22 @@ export default async function ReservationListPage({
   // Specific status narrows to one; default keeps the active set.
   where.status = status ? status : { in: ACTIVE_STATUSES };
 
-  if (fromDate || toDate) {
-    where.arrivalDate = {
-      ...(fromDate ? { gte: fromDate } : {}),
-      ...(toDate ? { lte: toDate } : {}),
-    };
-  }
+  // Show arrivals in the same 14-day window as the Tape Chart. In-house
+  // guests remain operationally relevant, so CHECKED_IN reservations bypass
+  // the arrival-date window even when their stay began much earlier.
+  where.AND = [
+    {
+      OR: [
+        {
+          arrivalDate: {
+            gte: visibleStartDate,
+            lt: visibleEndDate,
+          },
+        },
+        { status: ReservationStatus.CHECKED_IN },
+      ],
+    },
+  ];
 
   // MVP: no pagination. Add when result sets exceed ~500.
   const [reservations, settings] = await Promise.all([
@@ -214,8 +186,7 @@ export default async function ReservationListPage({
   const filters = {
     q,
     status: status ?? ("" as const),
-    from: fromDate ? toDateInputValue(fromDate) : "",
-    to: toDate ? toDateInputValue(toDate) : "",
+    startDate: formatISODate(visibleStartDate),
   };
 
   return (
