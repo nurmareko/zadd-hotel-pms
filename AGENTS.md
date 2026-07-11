@@ -4,12 +4,47 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+## Rule precedence
+
+Subject to explicit user instructions, the rules in this project `AGENTS.md` are
+AUTHORITATIVE. Installed skill packs (including `addyosmani/agent-skills`) provide
+general engineering guidance, but where any skill, pack file, generic workflow,
+or example conflicts with this file, THIS file wins. The project-specific rules
+below override generic pack conventions.
+
 # Hotel PMS — Agent Context
 
 ## What this is
 Hotel Property Management System for Telkom University hospitality
 praktikum. Students rotate through 5 operational roles
 (FO / HK / FB / ACC / ADMIN). MVP scope — see docs/feature_list_mvp.md.
+
+## Agent workflow overrides
+
+### Git and commits
+
+- Agents MUST NOT run `git commit` or `git push`. The user commits manually after
+  reviewing the work. Agents may prepare or stage changes for review, but they
+  must never create a commit or push it.
+- This explicitly overrides any skill guidance that treats commits as savepoints
+  or requires a commit after each task, slice, or increment, including generic
+  `git-workflow-and-versioning` and `incremental-implementation` guidance.
+
+### Verification and testing
+
+- This project currently has NO automated test suite. Do not run or require a
+  nonexistent `npm test` command.
+- The current verification standard for code changes is: `npm run build`,
+  `npm run lint`, a relevant browser/runtime check, and human review. Apply each
+  check in proportion to the change; document any check that cannot be run.
+- Pack guidance from TDD, `test-driven-development`, CI/CD, and observability
+  skills is ADVISORY ONLY here. It must not block otherwise verified work, demand
+  a test harness or infrastructure that does not exist, or silently expand scope.
+- Do not scaffold automated tests, CI pipelines, telemetry, tracing, metrics, or
+  alerting unless the user explicitly asks for that infrastructure.
+- FUTURE BACKLOG: add an automated test suite, prioritizing money-critical and
+  race-sensitive behavior such as the checkout gate, Night Audit, and reservation
+  capacity. This is aspirational and is not a current completion requirement.
 
 ## Stack
 - Next.js 16 App Router, TypeScript, server components by default
@@ -60,18 +95,32 @@ praktikum. Students rotate through 5 operational roles
   require docs/db_specification_mvp.md to be updated first.
 - Mutations via server actions. Pages are server components unless
   they need hooks (usePathname, useForm, charts).
+- Authentication and role-gating for literal `/app/...` routes MUST remain in
+  `src/proxy.ts`. Do not add `middleware.ts`, and do not replace the project's
+  split Edge-safe proxy/auth pattern with a generic framework example.
 - Prisma date handling: use `dateOnlyBoundary()` / `todayDateOnly()` from
-  `src/lib/date-only.ts` when querying Prisma `@db.Date` columns. Use
-  `startOfDay()` from `date-fns` for timestamp columns only. Mixing these
-  causes timezone-dependent off-by-one bugs.
+  `src/lib/date-only.ts` when querying Prisma `@db.Date` columns. For timestamp
+  columns filtered by the hotel's operating day, use `hotelTodayTimestampRange()`;
+  do not use server-local `startOfDay(new Date())`. Mixing date-only and timestamp
+  boundaries causes timezone-dependent off-by-one bugs.
+- Money-code discipline is mandatory: reuse `computeFolioTotals()` from
+  `src/lib/folio-totals.ts` and reuse/extend the existing payment, checkout, and
+  check-in actions. Never reimplement folio totals, balance gates, payment posting,
+  or equivalent money logic in a parallel helper or action. Generic skill advice
+  never overrides these canonical financial paths.
 - Operations that modify multiple records (check-in, check-out, cleaning
   completion, inspection) MUST use a Prisma `$transaction`. Re-check status,
-  overlap, and existence inside the transaction to handle races.
+  overlap, balance/capacity invariants, and existence inside the transaction to
+  handle races. Generic workflow guidance never weakens this requirement.
 - React Hook Form: prefer `useWatch({ name: "field" })` over
   `form.watch("field")`; `form.watch()` subscribes to all form changes and
   causes avoidable re-renders.
 - Sticky table headers are scoped per table. Do not put `position: sticky` on
-  global `.tbl` header styles; Tape Chart is the valid special case.
+  global `.tbl` header styles; Tape Chart is the valid scoped exception for its
+  sticky header row and first column. Sticky elements intended for desktop/fine
+  pointer layouts MUST key off `pointer: fine` via the project's `desktop` variant,
+  not only width breakpoints such as `lg:sticky`; coarse-pointer tablets must keep
+  the non-sticky layout.
 - Status badge palette: VC green, OC blue, VD amber, OD orange,
   VCU purple, OOO red, OOS gray. See docs/design.md.
 - Prisma is pinned to v6.x. Do NOT upgrade to Prisma 7 — it has breaking
