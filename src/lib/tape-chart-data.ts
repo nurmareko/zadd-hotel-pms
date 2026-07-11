@@ -13,6 +13,7 @@ const TAPE_CHART_RESERVATION_STATUSES = [
 
 export type TapeChartReservationData = {
   id: number;
+  groupBookingId: string | null;
   guestName: string;
   checkInDate: string;
   checkOutDate: string;
@@ -45,6 +46,7 @@ export type TapeChartData = {
 
 function toReservationData(reservation: {
   id: number;
+  groupBookingId: string | null;
   arrivalDate: Date;
   departureDate: Date;
   status: ReservationStatus;
@@ -54,6 +56,7 @@ function toReservationData(reservation: {
 }): TapeChartReservationData {
   return {
     id: reservation.id,
+    groupBookingId: reservation.groupBookingId,
     guestName: reservation.guest.fullName,
     checkInDate: formatISODate(reservation.arrivalDate),
     checkOutDate: formatISODate(reservation.departureDate),
@@ -98,6 +101,7 @@ export async function getTapeChartData(
       },
       select: {
         id: true,
+        groupBookingId: true,
         roomId: true,
         roomTypeId: true,
         arrivalDate: true,

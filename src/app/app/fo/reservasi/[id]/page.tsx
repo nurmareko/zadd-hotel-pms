@@ -140,6 +140,12 @@ function GroupBookingCard({
             {groupBookingId}
           </p>
         </div>
+        <Link
+          href={`/app/fo/reservasi/grup/${groupBookingId}`}
+          className="inline-flex h-8 items-center justify-center rounded-md border border-sky-300 bg-white px-3 text-xs font-semibold text-sky-800 shadow-sm transition-colors hover:bg-sky-100"
+        >
+          Lihat ringkasan grup
+        </Link>
       </div>
       <div className="divide-y divide-slate-100">
         {siblings.map((sibling) => {

@@ -274,6 +274,49 @@
   filter: brightness(0.92);
 }
 
+.reservationBarGroupSelected {
+  z-index: 16;
+  outline: 3px solid #047857;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px rgb(16 185 129 / 0.2), 0 2px 5px rgb(15 23 42 / 0.18);
+}
+
+.reservationBarButton {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  padding: 0 8px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.reservationBarButton:focus-visible,
+.reservationBarDetail:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -3px;
+}
+
+.reservationBarDetail {
+  display: inline-flex;
+  width: 26px;
+  flex: 0 0 26px;
+  align-items: center;
+  align-self: stretch;
+  justify-content: center;
+  border-left: 1px solid rgb(255 255 255 / 0.35);
+  color: inherit;
+}
+
+.reservationBarDetail:hover {
+  background: rgb(15 23 42 / 0.12);
+}
+
 .reservationBar:focus-visible {
   outline: 2px solid #10b981;
   outline-offset: 1px;

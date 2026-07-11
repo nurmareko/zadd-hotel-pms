@@ -182,9 +182,12 @@ function GroupRows({ group }: { group: ReservationGroup }) {
               <div className="flex flex-col gap-1">
                 <span>{row.reservationNo}</span>
                 {row.groupBookingId && row.groupRoomCount ? (
-                  <span className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                  <Link
+                    href={`/app/fo/reservasi/grup/${row.groupBookingId}`}
+                    className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-900"
+                  >
                     Grup ({row.groupRoomCount} kamar)
-                  </span>
+                  </Link>
                 ) : null}
               </div>
             </td>
