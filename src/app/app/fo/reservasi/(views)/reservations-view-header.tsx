@@ -21,11 +21,11 @@ import {
   FO_RESERVASI_VIEW_PATHS,
   type FoReservasiView,
 } from "@/lib/nav-preferences";
+import { formatISODate } from "@/lib/format";
 
 import {
   buildRangeLabel,
   DAY_COUNT,
-  getDateHref,
   getDefaultStartDate,
   parseStartDate,
 } from "./kalender/date-window";
@@ -71,7 +71,22 @@ function DateNavButton({
   );
 }
 
-function KalenderDateNav() {
+function getDateHref(
+  view: FoReservasiView,
+  startDate: Date,
+  currentSearchParams: { toString(): string },
+) {
+  const nextSearchParams = new URLSearchParams(
+    view === "list" ? currentSearchParams.toString() : "",
+  );
+  nextSearchParams.set("startDate", formatISODate(startDate));
+  nextSearchParams.delete("from");
+  nextSearchParams.delete("to");
+
+  return `${FO_RESERVASI_VIEW_PATHS[view]}?${nextSearchParams.toString()}`;
+}
+
+function DateWindowNav({ view }: { view: FoReservasiView }) {
   const searchParams = useSearchParams();
   const visibleStartDate = parseStartDate(searchParams.get("startDate"));
 
@@ -79,7 +94,11 @@ function KalenderDateNav() {
     <div className="flex flex-wrap items-center gap-3 lg:justify-center">
       <div className="flex items-center gap-1">
         <DateNavButton
-          href={getDateHref(addDays(visibleStartDate, -DAY_COUNT))}
+          href={getDateHref(
+            view,
+            addDays(visibleStartDate, -DAY_COUNT),
+            searchParams,
+          )}
           label="Tanggal sebelumnya"
           direction="previous"
         />
@@ -87,13 +106,17 @@ function KalenderDateNav() {
           <span>{buildRangeLabel(visibleStartDate)}</span>
         </div>
         <DateNavButton
-          href={getDateHref(addDays(visibleStartDate, DAY_COUNT))}
+          href={getDateHref(
+            view,
+            addDays(visibleStartDate, DAY_COUNT),
+            searchParams,
+          )}
           label="Tanggal berikutnya"
           direction="next"
         />
       </div>
       <Link
-        href={getDateHref(getDefaultStartDate())}
+        href={getDateHref(view, getDefaultStartDate(), searchParams)}
         className="flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
       >
         Today
@@ -104,6 +127,7 @@ function KalenderDateNav() {
 
 export function ReservationsViewHeader() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const segment = useSelectedLayoutSegment();
   const currentView: FoReservasiView = segment === "list" ? "list" : "kalender";
   // Optimistic view drives the toggle pill and title so they respond on click,
@@ -125,7 +149,13 @@ export function ReservationsViewHeader() {
     rememberView(next);
     startTransition(() => {
       setOptimisticView(next);
-      router.push(FO_RESERVASI_VIEW_PATHS[next]);
+      router.push(
+        getDateHref(
+          next,
+          parseStartDate(searchParams.get("startDate")),
+          searchParams,
+        ),
+      );
     });
   }
 
@@ -141,7 +171,7 @@ export function ReservationsViewHeader() {
         {activeTitle}
       </h1>
 
-      {view === "kalender" ? <KalenderDateNav /> : <div aria-hidden="true" />}
+      <DateWindowNav view={view} />
 
       <div className="flex flex-wrap items-center gap-3 lg:justify-end">
         <div

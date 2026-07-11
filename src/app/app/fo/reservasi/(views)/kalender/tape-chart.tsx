@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowUpRight,
   BedDouble,
   ChevronDown,
   ChevronUp,
@@ -436,9 +435,6 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<number>>(
     () => new Set(),
   );
-  const [selectedGroupBookingId, setSelectedGroupBookingId] = useState<
-    string | null
-  >(null);
   const roomCount = data.roomTypes.reduce(
     (count, roomType) => count + roomType.rooms.length,
     0,
@@ -477,12 +473,6 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
     });
   }
 
-  function toggleSelectedGroup(groupBookingId: string) {
-    setSelectedGroupBookingId((current) =>
-      current === groupBookingId ? null : groupBookingId,
-    );
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <TapeChartLegend />
@@ -500,7 +490,6 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
             <div
               className={styles.grid}
               style={{ minWidth: gridMinWidth, height: visibleLayout.height }}
-              onClick={() => setSelectedGroupBookingId(null)}
             >
               <div className={styles.headerRow}>
                 <div
@@ -660,14 +649,9 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
               <div className={styles.barLayer} aria-hidden={reservationBars.length === 0}>
                 {reservationBars.map((bar) => {
                   const colors = reservationBarColors[bar.colorKey];
-                  const groupBookingId = bar.reservation.groupBookingId;
-                  const isSelected =
-                    groupBookingId !== null &&
-                    groupBookingId === selectedGroupBookingId;
                   const barClassName = [
                     styles.reservationBar,
                     bar.hasCheckoutNotch ? styles.reservationBarNotched : "",
-                    isSelected ? styles.reservationBarGroupSelected : "",
                   ]
                     .filter(Boolean)
                     .join(" ");
@@ -678,39 +662,6 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                     backgroundColor: colors.bgColor,
                     color: colors.textColor,
                   };
-
-                  if (groupBookingId !== null) {
-                    return (
-                      <div
-                        key={bar.key}
-                        className={barClassName}
-                        style={barStyle}
-                      >
-                        <button
-                          type="button"
-                          className={styles.reservationBarButton}
-                          aria-label={`${bar.reservation.guestName}, ${bar.label}. ${isSelected ? "Batalkan sorotan grup" : "Sorot semua kamar dalam grup"}`}
-                          aria-pressed={isSelected}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleSelectedGroup(groupBookingId);
-                          }}
-                        >
-                          <span className={styles.reservationBarText}>
-                            {bar.reservation.guestName}
-                          </span>
-                        </button>
-                        <Link
-                          href={`/app/fo/reservasi/${bar.reservation.id}`}
-                          className={styles.reservationBarDetail}
-                          aria-label={`Buka detail reservasi ${bar.reservation.guestName}`}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Link>
-                      </div>
-                    );
-                  }
 
                   return (
                     <Link
