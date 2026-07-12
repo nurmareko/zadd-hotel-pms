@@ -15,8 +15,8 @@ import {
 } from "@/lib/date-only";
 import { formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import {
-  ARRANGEMENT_INCLUSION_CODES,
   ROOM_CHARGE_ARTICLE_CODE,
   stayChargeShortfallLines,
   stayNightsThroughAuditDate,
@@ -212,7 +212,7 @@ function validatePostingArticles(
     }
   }
 
-  for (const code of ARRANGEMENT_INCLUSION_CODES[ArrangementType.FBM]) {
+  for (const code of ARRANGEMENT_INCLUSION_ARTICLE_CODES[ArrangementType.FBM]) {
     const article = articleByCode.get(code);
 
     if (article && article.defaultPrice === null) {

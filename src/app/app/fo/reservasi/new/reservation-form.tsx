@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { formatIDR } from "@/lib/format";
 import {
   FO_RESERVASI_VIEW_PATHS,
@@ -60,11 +61,17 @@ type ActiveReservation = {
   departureDate: string;
 };
 
+type InclusionArticle = {
+  code: string;
+  name: string;
+};
+
 type ReservationFormProps = {
   defaultValues: CreateReservationInput;
   roomTypes: RoomTypeOption[];
   rooms: RoomOption[];
   activeReservations: ActiveReservation[];
+  inclusionArticles?: InclusionArticle[];
   mode?: "create" | "edit" | "view";
   reservationId?: number;
   createOrigin?: FoReservasiView;
@@ -95,11 +102,6 @@ const arrangementTypeOptions = [
   { value: "RB", label: "RB (Room + Breakfast)" },
   { value: "FBM", label: "FBM (Full Board Meeting)" },
 ] as const;
-
-const arrangementHints: Partial<Record<string, string>> = {
-  RB: "Termasuk: Breakfast",
-  FBM: "Termasuk: Breakfast, Coffee Break, Lunch, Dinner",
-};
 
 function dayAfter(dateValue: string) {
   const parsed = parseISO(dateValue);
@@ -145,6 +147,30 @@ function SummaryRow({
       </span>
       <span className="text-right font-medium text-slate-900">{value}</span>
     </div>
+  );
+}
+
+function ArrangementInclusionHint({
+  arrangementType,
+  articleNamesByCode,
+}: {
+  arrangementType: keyof typeof ARRANGEMENT_INCLUSION_ARTICLE_CODES;
+  articleNamesByCode: Map<string, string>;
+}) {
+  const inclusionCodes = ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType];
+
+  if (inclusionCodes.length === 0) {
+    return <p className="text-xs text-slate-500">Tanpa inklusi makan.</p>;
+  }
+
+  return (
+    <p className="text-xs text-slate-500">
+      <span className="font-medium text-slate-600">Termasuk:</span>{" "}
+      {inclusionCodes
+        .map((code) => articleNamesByCode.get(code) ?? code)
+        .join(", ")}
+      .
+    </p>
   );
 }
 
@@ -225,6 +251,7 @@ export function ReservationForm({
   roomTypes,
   rooms,
   activeReservations,
+  inclusionArticles = [],
   mode = "create",
   reservationId,
   createOrigin = "list",
@@ -256,6 +283,10 @@ export function ReservationForm({
       name: ["arrivalDate", "departureDate", "deposit", "arrangementType", "rooms"],
     });
   const watchedRoomRows = useMemo(() => roomRows ?? [], [roomRows]);
+  const articleNamesByCode = useMemo(
+    () => new Map(inclusionArticles.map((article) => [article.code, article.name])),
+    [inclusionArticles],
+  );
   const selectedRoomIds = useMemo(
     () =>
       watchedRoomRows
@@ -644,11 +675,6 @@ export function ReservationForm({
                             ))}
                           </select>
                         </FormControl>
-                        {arrangementHints[arrangementTypeValue] ? (
-                          <p className="mt-1 text-xs text-slate-500">
-                            {arrangementHints[arrangementTypeValue]}
-                          </p>
-                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -749,6 +775,11 @@ export function ReservationForm({
                             </button>
                           ) : null}
                         </div>
+
+                        <ArrangementInclusionHint
+                          arrangementType={arrangementTypeValue}
+                          articleNamesByCode={articleNamesByCode}
+                        />
 
                         <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-5">
                           <FormField

@@ -1,11 +1,12 @@
 import {
-  ArrangementType,
+  type ArrangementType,
   Prisma,
   type Article,
   type FolioLineItem,
 } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
+import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
@@ -26,20 +27,6 @@ export const STAY_CHARGE_ARTICLE_CODES = [
 ] as const;
 
 export type StayChargeArticleCode = (typeof STAY_CHARGE_ARTICLE_CODES)[number];
-
-/**
- * Arrangement-type → the F&B inclusion article codes posted alongside the room
- * charge for that arrangement. Shared by the night audit and check-out so both
- * paths post exactly the same inclusions.
- */
-export const ARRANGEMENT_INCLUSION_CODES: Record<
-  ArrangementType,
-  StayChargeArticleCode[]
-> = {
-  [ArrangementType.RO]: [],
-  [ArrangementType.RB]: ["BREAKFAST"],
-  [ArrangementType.FBM]: ["BREAKFAST", "COFFEE-BREAK", "LUNCH", "DINNER"],
-};
 
 export type StayChargeArticle = Pick<
   Article,
@@ -127,7 +114,7 @@ export function stayChargeShortfallLines({
 
   const codes = [
     ROOM_CHARGE_ARTICLE_CODE,
-    ...ARRANGEMENT_INCLUSION_CODES[arrangementType],
+    ...ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType],
   ];
 
   const lines: PendingStayChargeLine[] = [];

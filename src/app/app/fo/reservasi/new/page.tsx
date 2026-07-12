@@ -6,12 +6,17 @@ import {
   FO_RESERVASI_VIEW_PATHS,
   parseFoReservasiView,
 } from "@/lib/nav-preferences";
+import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { prisma } from "@/lib/prisma";
 
 import { ReservationForm } from "./reservation-form";
 import type { CreateReservationInput } from "./schema";
 
 export const dynamic = "force-dynamic";
+
+const arrangementInclusionArticleCodes = [
+  ...new Set(Object.values(ARRANGEMENT_INCLUSION_ARTICLE_CODES).flat()),
+];
 
 type NewReservationPageProps = {
   searchParams: Promise<{
@@ -81,7 +86,7 @@ export default async function NewReservationPage({
   const arrivalDate = parseDateParam(firstParam(params.arrival)) ?? new Date();
   const departureDate =
     parseDateParam(firstParam(params.departure)) ?? addDays(arrivalDate, 1);
-  const [roomTypes, rooms, activeReservations] = await Promise.all([
+  const [roomTypes, rooms, activeReservations, inclusionArticles] = await Promise.all([
     prisma.roomType.findMany({
       select: {
         id: true,
@@ -113,6 +118,11 @@ export default async function NewReservationPage({
         arrivalDate: true,
         departureDate: true,
       },
+    }),
+    prisma.article.findMany({
+      where: { code: { in: arrangementInclusionArticleCodes } },
+      select: { code: true, name: true },
+      orderBy: { code: "asc" },
     }),
   ]);
   const requestedRoom = requestedRoomId
@@ -176,6 +186,7 @@ export default async function NewReservationPage({
           }))}
           rooms={rooms}
           activeReservations={allocatedActiveReservations}
+          inclusionArticles={inclusionArticles}
           createOrigin={originView}
           returnHref={FO_RESERVASI_VIEW_PATHS[originView]}
           submitLabel="Simpan Reservasi"
