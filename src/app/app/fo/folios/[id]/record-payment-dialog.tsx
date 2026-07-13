@@ -55,7 +55,7 @@ function defaultAmount(balance: number) {
     return "";
   }
 
-  return Number.isInteger(balance) ? String(balance) : balance.toFixed(2);
+  return String(balance);
 }
 
 function resultErrorMessage(error: unknown) {
@@ -161,8 +161,8 @@ export function RecordPaymentDialog({
                     <FormControl>
                       <Input
                         type="number"
-                        min={0.01}
-                        step={0.01}
+                        min={1}
+                        step={1}
                         placeholder="0"
                         className={fieldClassName}
                         {...field}

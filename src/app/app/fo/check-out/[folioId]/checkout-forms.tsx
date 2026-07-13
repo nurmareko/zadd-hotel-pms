@@ -35,7 +35,7 @@ const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 function defaultAmount(balance: number) {
-  return Number.isInteger(balance) ? String(balance) : balance.toFixed(2);
+  return String(balance);
 }
 
 function resultErrorMessage(error: unknown, fallback: string) {
@@ -98,8 +98,8 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
           <Input
             name="amount"
             type="number"
-            min={0.01}
-            step={0.01}
+            min={1}
+            step={1}
             defaultValue={defaultAmount(balance)}
             className={`mt-1 ${fieldClassName}`}
           />

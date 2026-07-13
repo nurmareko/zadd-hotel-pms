@@ -1,4 +1,4 @@
-import { ArticleType, PaymentMethod } from "@prisma/client";
+import { ArticleType, PaymentMethod, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const OptionalDescriptionSchema = z.preprocess(
@@ -20,7 +20,16 @@ export const PostChargeSchema = z.object({
     .min(0.01, "Jumlah minimal 0.01"),
   unitPrice: z.coerce
     .number("Harga satuan harus berupa angka")
+    .int("Harga satuan harus dalam rupiah utuh")
     .min(0, "Harga satuan minimal 0"),
+}).superRefine((value, ctx) => {
+  if (!new Prisma.Decimal(value.quantity).mul(value.unitPrice).isInteger()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["quantity"],
+      message: "Total charge harus dalam rupiah utuh",
+    });
+  }
 });
 
 export const paymentMethods = [
@@ -34,6 +43,7 @@ export const PaymentSchema = z
     folioId: z.coerce.number().int().positive("Folio wajib dipilih"),
     amount: z.coerce
       .number("Jumlah harus berupa angka")
+      .int("Jumlah harus dalam rupiah utuh")
       .positive("Jumlah harus lebih dari 0"),
     method: z.enum(paymentMethods),
     reference: OptionalReferenceSchema,

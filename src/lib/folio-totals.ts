@@ -1,8 +1,9 @@
-import type {
-  Article,
-  FolioLineItem,
-  HotelSettings,
-  Payment,
+import {
+  Prisma,
+  type Article,
+  type FolioLineItem,
+  type HotelSettings,
+  type Payment,
 } from "@prisma/client";
 
 export type FolioTotals = {
@@ -14,6 +15,10 @@ export type FolioTotals = {
   totalPaid: number;
   balance: number;
 };
+
+function roundIDR(amount: Prisma.Decimal) {
+  return Math.round(amount.toNumber());
+}
 
 export function computeFolioTotals(
   lineItems: (FolioLineItem & { article: Article })[],
@@ -27,24 +32,36 @@ export function computeFolioTotals(
     ["TAX", "SERVICE"].includes(lineItem.article.type),
   );
 
-  // Prisma Decimal is converted to Number here for MVP display/totals.
-  // Strict accounting would keep decimal arithmetic through the full pipeline.
-  const subtotal = baseLines.reduce(
-    (sum, lineItem) => sum + Number(lineItem.amount),
-    0,
+  // Folios settle in whole IDR. Keep the policy in this canonical read-time
+  // calculation: stay-charge posting remains count-based and unchanged.
+  const subtotal = roundIDR(
+    baseLines.reduce(
+      (sum, lineItem) => sum.plus(lineItem.amount),
+      new Prisma.Decimal(0),
+    ),
   );
-  const serviceCharge =
-    subtotal * (Number(settings.serviceChargePercent) / 100);
-  const tax = (subtotal + serviceCharge) * (Number(settings.taxPercent) / 100);
-  const taxableExtras = extraLines.reduce(
-    (sum, lineItem) => sum + Number(lineItem.amount),
-    0,
+  const serviceCharge = roundIDR(
+    new Prisma.Decimal(subtotal).mul(settings.serviceChargePercent).div(100),
+  );
+  const tax = roundIDR(
+    new Prisma.Decimal(subtotal)
+      .plus(serviceCharge)
+      .mul(settings.taxPercent)
+      .div(100),
+  );
+  const taxableExtras = roundIDR(
+    extraLines.reduce(
+      (sum, lineItem) => sum.plus(lineItem.amount),
+      new Prisma.Decimal(0),
+    ),
   );
 
   const totalCharges = subtotal + serviceCharge + tax + taxableExtras;
-  const totalPaid = payments.reduce(
-    (sum, payment) => sum + Number(payment.amount),
-    0,
+  const totalPaid = roundIDR(
+    payments.reduce(
+      (sum, payment) => sum.plus(payment.amount),
+      new Prisma.Decimal(0),
+    ),
   );
   const balance = totalCharges - totalPaid;
 

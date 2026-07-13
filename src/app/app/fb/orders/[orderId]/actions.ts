@@ -1397,6 +1397,10 @@ export async function chargeOrderToRoom(
             closedAt: now,
           },
         );
+        const folioAmount = paidSelection.totals.total.toDecimalPlaces(
+          0,
+          Prisma.Decimal.ROUND_HALF_UP,
+        );
 
         await tx.folioLineItem.create({
           data: {
@@ -1405,8 +1409,8 @@ export async function chargeOrderToRoom(
             fbOrderId: paidSelection.paidOrderId,
             description: `F&B - ${paidSelection.paidOrderNo}`,
             quantity: new Prisma.Decimal(1),
-            unitPrice: paidSelection.totals.total,
-            amount: paidSelection.totals.total,
+            unitPrice: folioAmount,
+            amount: folioAmount,
             postedById: userId,
             postedAt: now,
           },
