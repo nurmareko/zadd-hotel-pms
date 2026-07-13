@@ -1,7 +1,7 @@
 "use client";
 
 import { PaymentMethod, ReservationStatus } from "@prisma/client";
-import { CheckCircle2, CreditCard, LogIn, LogOut, XCircle } from "lucide-react";
+import { CreditCard, LogIn, LogOut, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -75,10 +75,6 @@ function asResult(
 }
 
 function resultClassName(status: GroupRoomActionResult["status"]) {
-  if (status === "completed") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-900";
-  }
-
   if (status === "failed") {
     return "border-red-200 bg-red-50 text-red-800";
   }
@@ -87,13 +83,11 @@ function resultClassName(status: GroupRoomActionResult["status"]) {
 }
 
 function statusLabel(status: GroupRoomActionResult["status"]) {
-  if (status === "completed") return "Selesai";
   if (status === "failed") return "Gagal";
   return "Dilewati";
 }
 
 function BatchResultSummary({ result }: { result: BatchResult }) {
-  const completed = result.results.filter((item) => item.status === "completed").length;
   const skipped = result.results.filter((item) => item.status === "skipped").length;
   const failed = result.results.filter((item) => item.status === "failed").length;
 
@@ -102,7 +96,7 @@ function BatchResultSummary({ result }: { result: BatchResult }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">{result.title}</h3>
         <p className="text-xs font-medium text-slate-500">
-          {completed} selesai · {skipped} dilewati · {failed} gagal
+          {skipped} dilewati · {failed} gagal
         </p>
       </div>
       <ul className="mt-3 space-y-2" aria-live="polite">
@@ -111,9 +105,7 @@ function BatchResultSummary({ result }: { result: BatchResult }) {
             key={item.reservationId}
             className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${resultClassName(item.status)}`}
           >
-            {item.status === "completed" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            ) : item.status === "failed" ? (
+            {item.status === "failed" ? (
               <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             ) : null}
             <p>
@@ -157,6 +149,25 @@ export function GroupSettlementActions({
     (room) => Boolean(signatures[room.reservationId]),
   );
 
+  function showBatchOutcome(
+    title: string,
+    results: GroupRoomActionResult[],
+    successLabel: string,
+  ) {
+    const completedCount = results.filter(
+      (item) => item.status === "completed",
+    ).length;
+    const exceptions = results.filter((item) => item.status !== "completed");
+
+    setBatchResult(
+      exceptions.length > 0 ? { title, results: exceptions } : null,
+    );
+
+    if (completedCount > 0) {
+      toast.success(`${completedCount} kamar berhasil ${successLabel}.`);
+    }
+  }
+
   function settleBalances() {
     setBatchResult(null);
 
@@ -172,8 +183,11 @@ export function GroupSettlementActions({
         return;
       }
 
-      setBatchResult({ title: "Hasil settle saldo grup", results: result.results });
-      toast.success("Proses settle saldo grup selesai");
+      showBatchOutcome(
+        "Hasil settle saldo grup",
+        result.results,
+        "di-settle",
+      );
     });
   }
 
@@ -188,8 +202,11 @@ export function GroupSettlementActions({
         return;
       }
 
-      setBatchResult({ title: "Hasil check-out kamar siap", results: result.results });
-      toast.success("Proses check-out kamar siap selesai");
+      showBatchOutcome(
+        "Hasil check-out kamar siap",
+        result.results,
+        "di-check-out",
+      );
     });
   }
 
@@ -244,10 +261,13 @@ export function GroupSettlementActions({
         );
       }
 
-      setBatchResult({ title: "Hasil check-in kamar siap", results });
+      showBatchOutcome(
+        "Hasil check-in kamar siap",
+        results,
+        "di-check-in",
+      );
       setIsCheckInPanelOpen(false);
       router.refresh();
-      toast.success("Proses check-in kamar siap selesai");
     });
   }
 
