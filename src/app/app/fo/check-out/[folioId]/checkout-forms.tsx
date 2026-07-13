@@ -4,7 +4,14 @@ import { PaymentMethod } from "@prisma/client";
 import { AlertTriangle, Check, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import {
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { PinnedActionFooter } from "@/components/pinned-action-footer";
@@ -33,6 +40,16 @@ function defaultAmount(balance: number) {
 
 function resultErrorMessage(error: unknown, fallback: string) {
   return typeof error === "string" ? error : fallback;
+}
+
+function CheckoutPinnedActionFooter({ children }: { children: ReactNode }) {
+  const container = useSyncExternalStore(
+    () => () => {},
+    () => document.getElementById("checkout-pinned-action-footer"),
+    () => null,
+  );
+
+  return container ? createPortal(children, container) : null;
 }
 
 export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
@@ -68,7 +85,8 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
   }
 
   return (
-    <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
+    <>
+      <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
       <input type="hidden" name="folioId" value={folioId} />
       <input type="hidden" name="method" value={method} />
 
@@ -125,6 +143,9 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </p>
       ) : null}
 
+    </form>
+
+    <CheckoutPinnedActionFooter>
       <PinnedActionFooter
         hint={
           actionError ? (
@@ -135,18 +156,23 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
             </p>
           )
         }
+        actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
         actions={
           <>
             <Link
               href={`/app/fo/folios/${folioId}`}
-              className={buttonVariants({ variant: "outline" })}
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full justify-center sm:w-auto",
+              })}
             >
               Batal
             </Link>
             <Button
               type="submit"
+              form="final-payment-form"
               disabled={isPending}
-              className="disabled:cursor-wait disabled:opacity-70"
+              className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
             >
               <CreditCard className="h-4 w-4" aria-hidden="true" />
               {isPending ? "Recording..." : "Record Payment & Continue"}
@@ -154,7 +180,8 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
           </>
         }
       />
-    </form>
+    </CheckoutPinnedActionFooter>
+    </>
   );
 }
 
@@ -208,8 +235,9 @@ export function CompleteCheckoutForm({
   }
 
   return (
-    <form
-      id="complete-checkout-form"
+    <>
+      <form
+        id="complete-checkout-form"
       ref={formRef}
       onSubmit={onSubmit}
       className="p-5"
@@ -282,6 +310,9 @@ export function CompleteCheckoutForm({
         </p>
       ) : null}
 
+    </form>
+
+    <CheckoutPinnedActionFooter>
       <PinnedActionFooter
         hint={
           actionError ? (
@@ -296,25 +327,34 @@ export function CompleteCheckoutForm({
             </p>
           )
         }
+        actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
         actions={
           <>
             <Link
               href={`/app/fo/folios/${folioId}`}
-              className={buttonVariants({ variant: "outline" })}
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full justify-center sm:w-auto",
+              })}
             >
               Batal
             </Link>
             {confirmed ? (
               <Button
                 type="submit"
+                form="complete-checkout-form"
                 disabled={isPending}
-                className="disabled:cursor-wait disabled:opacity-70"
+                className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
                 {isPending ? "Completing..." : "Complete Check-Out"}
               </Button>
             ) : (
-              <Button type="button" onClick={focusFirstUnconfirmedStep}>
+              <Button
+                type="button"
+                onClick={focusFirstUnconfirmedStep}
+                className="w-full sm:w-auto"
+              >
                 <Check className="h-4 w-4" aria-hidden="true" />
                 Complete Check-Out
               </Button>
@@ -322,6 +362,7 @@ export function CompleteCheckoutForm({
           </>
         }
       />
-    </form>
+    </CheckoutPinnedActionFooter>
+    </>
   );
 }
