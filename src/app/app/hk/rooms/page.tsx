@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  MessageSquareText,
   Printer,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,9 +32,10 @@ type SearchParams = {
 };
 
 const headerCellClass =
-  "bg-white border-b border-slate-200 px-4 py-3 text-left text-[12px] font-medium text-slate-500";
+  "border-b border-slate-200 bg-white px-3 py-3 text-left text-[12px] font-medium text-slate-600 desktop:px-4";
 const bodyCellClass =
-  "border-b border-slate-100 px-4 py-4 align-top";
+  "border-b border-slate-100 px-3 py-3 align-top desktop:px-4 desktop:py-4";
+const operationalStateClass = "text-[13px] italic text-slate-600";
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -85,7 +87,7 @@ function printHref(params: { date: Date; q: string; status: string }) {
 function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
   if (row.reservationContexts.length === 0) {
     return (
-      <span className="text-[11px] italic text-slate-400">
+      <span className={operationalStateClass}>
         Tidak ada aktivitas
       </span>
     );
@@ -108,7 +110,7 @@ function ReservationGuestCell({ row }: { row: HousekeepingListRow }) {
 function AssignmentCell({ row }: { row: HousekeepingListRow }) {
   if (!row.assignedHousekeeper) {
     return (
-      <span className="text-[11px] italic text-slate-400">
+      <span className={operationalStateClass}>
         Belum ditugaskan
       </span>
     );
@@ -128,7 +130,7 @@ function AssignmentCell({ row }: { row: HousekeepingListRow }) {
 
 function NoteCell({ row }: { row: HousekeepingListRow }) {
   if (!row.note) {
-    return <span className="text-[11px] italic text-slate-400">-</span>;
+    return <span className={operationalStateClass}>-</span>;
   }
 
   return (
@@ -138,7 +140,7 @@ function NoteCell({ row }: { row: HousekeepingListRow }) {
           {row.note.notes}
         </div>
       ) : (
-        <div className="text-[11px] italic text-slate-400">
+        <div className={operationalStateClass}>
           Tidak ada catatan reservasi
         </div>
       )}
@@ -243,8 +245,8 @@ export default async function HkRoomsPage({
             {formatISODate(date)} Supervisor Worksheet
           </CardTitle>
         </CardHeader>
-        <CardContent className="max-w-full overflow-auto p-0">
-          <table className="w-full min-w-[1180px] border-collapse text-[12px]">
+        <CardContent className="max-w-full overflow-hidden p-0 desktop:overflow-auto">
+          <table className="w-full border-collapse text-[12px] desktop:min-w-[1180px]">
             <caption className="sr-only">
               Worksheet kamar housekeeping supervisor berisi status kamar,
               kontrol ubah status, konteks reservasi bertanggal, catatan, dan
@@ -267,7 +269,10 @@ export default async function HkRoomsPage({
                 <th className={headerCellClass} scope="col">
                   Housekeeper
                 </th>
-                <th className={headerCellClass} scope="col">
+                <th
+                  className={`${headerCellClass} hidden desktop:table-cell`}
+                  scope="col"
+                >
                   Catatan
                 </th>
               </tr>
@@ -276,54 +281,85 @@ export default async function HkRoomsPage({
               {groupedRows.map(([floor, floorRows]) => (
                 <Fragment key={floor}>
                   <tr>
-                      <th
-                        colSpan={6}
-                        scope="colgroup"
-                        className="border-y border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-[13px] font-medium tracking-tight text-slate-900"
-                      >
+                    <th
+                      colSpan={5}
+                      scope="colgroup"
+                      className="border-y border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-[13px] font-medium tracking-tight text-slate-900 desktop:hidden"
+                    >
+                      Lantai {floor}
+                      <span className="ml-2 font-normal text-slate-600">
+                        · {floorRows.length} kamar
+                      </span>
+                    </th>
+                    <th
+                      colSpan={6}
+                      scope="colgroup"
+                      className="hidden border-y border-slate-200 bg-slate-50 px-4 py-2.5 text-left text-[13px] font-medium tracking-tight text-slate-900 desktop:table-cell"
+                    >
                         Lantai {floor}
-                        <span className="ml-2 font-normal text-slate-500">
+                        <span className="ml-2 font-normal text-slate-600">
                           · {floorRows.length} kamar
                         </span>
-                      </th>
+                    </th>
                   </tr>
                   {floorRows.map((row) => (
-                    <tr
-                      key={row.room.id}
-                      className="odd:bg-white even:bg-slate-50 hover:bg-status-vc-bg"
-                    >
-                      <td className={bodyCellClass}>
-                        <Link
-                          href={`/app/hk/rooms/${row.room.id}`}
-                          className="num text-[16px] font-bold leading-none text-slate-900 hover:underline hover:text-blue-600"
-                        >
-                          {row.room.number}
-                        </Link>
-                        <div className="mt-1 text-[11px] text-slate-500">
-                          {row.room.typeName}
-                        </div>
-                      </td>
-                      <td className={bodyCellClass}>
-                        <StatusPill status={row.room.status} />
-                      </td>
-                      <td className={`${bodyCellClass} min-w-[220px]`}>
-                        <SupervisorRoomStatusSelect
-                          key={`${row.room.id}-${row.room.status}`}
-                          roomId={row.room.id}
-                          roomNumber={row.room.number}
-                          status={row.room.status}
-                        />
-                      </td>
-                      <td className={`${bodyCellClass} min-w-[260px]`}>
-                        <ReservationGuestCell row={row} />
-                      </td>
-                      <td className={`${bodyCellClass} min-w-[180px]`}>
-                        <AssignmentCell row={row} />
-                      </td>
-                      <td className={bodyCellClass}>
-                        <NoteCell row={row} />
-                      </td>
-                    </tr>
+                    <Fragment key={row.room.id}>
+                      <tr className="odd:bg-white even:bg-slate-50 hover:bg-status-vc-bg">
+                        <td className={bodyCellClass}>
+                          <Link
+                            href={`/app/hk/rooms/${row.room.id}`}
+                            className="num text-[16px] font-bold leading-none text-slate-900 hover:underline hover:text-blue-600"
+                          >
+                            {row.room.number}
+                          </Link>
+                          <div className="mt-1 text-[11px] text-slate-600">
+                            {row.room.typeName}
+                          </div>
+                        </td>
+                        <td className={bodyCellClass}>
+                          <StatusPill status={row.room.status} />
+                        </td>
+                        <td className={`${bodyCellClass} min-w-[190px] desktop:min-w-[220px]`}>
+                          <SupervisorRoomStatusSelect
+                            key={`${row.room.id}-${row.room.status}`}
+                            roomId={row.room.id}
+                            roomNumber={row.room.number}
+                            status={row.room.status}
+                          />
+                        </td>
+                        <td className={`${bodyCellClass} min-w-[160px] desktop:min-w-[260px]`}>
+                          <ReservationGuestCell row={row} />
+                        </td>
+                        <td className={`${bodyCellClass} min-w-[140px] desktop:min-w-[180px]`}>
+                          <AssignmentCell row={row} />
+                        </td>
+                        <td className={`${bodyCellClass} hidden desktop:table-cell`}>
+                          <NoteCell row={row} />
+                        </td>
+                      </tr>
+                      <tr className="bg-slate-50 desktop:hidden">
+                        <td colSpan={5} className="border-b border-slate-100 px-3 py-0">
+                          <details className="group">
+                            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[13px] font-medium text-slate-700 marker:content-none">
+                              <MessageSquareText
+                                className="h-4 w-4 text-slate-600"
+                                aria-hidden="true"
+                              />
+                              Catatan reservasi
+                              <span className="ml-auto text-xs font-normal text-slate-600 group-open:hidden">
+                                Tampilkan
+                              </span>
+                              <span className="ml-auto hidden text-xs font-normal text-slate-600 group-open:inline">
+                                Sembunyikan
+                              </span>
+                            </summary>
+                            <div className="border-t border-slate-200 py-3">
+                              <NoteCell row={row} />
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </Fragment>
               ))}

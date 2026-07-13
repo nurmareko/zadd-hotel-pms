@@ -46,6 +46,7 @@ type AddChargeDialogProps = {
   folioId: number;
   articles: ChargeArticleOption[];
   disabled: boolean;
+  variant?: "default" | "outline";
 };
 
 const fieldClassName =
@@ -61,6 +62,7 @@ export function AddChargeDialog({
   folioId,
   articles,
   disabled,
+  variant = "default",
 }: AddChargeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -134,6 +136,7 @@ export function AddChargeDialog({
     <>
       <Button
         type="button"
+        variant={variant}
         disabled={disabled || articles.length === 0}
         onClick={() => setOpen(true)}
       >

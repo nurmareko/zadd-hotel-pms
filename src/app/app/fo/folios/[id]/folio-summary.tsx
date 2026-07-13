@@ -1,14 +1,7 @@
-import { FolioStatus, ReservationStatus } from "@prisma/client";
-import Link from "next/link";
-
-import { buttonVariants } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 import type { FolioTotals } from "@/lib/folio-totals";
 
 type FolioSummaryProps = {
-  folioId: number;
-  status: FolioStatus;
-  reservationStatus: ReservationStatus;
   totals: FolioTotals;
 };
 
@@ -49,15 +42,7 @@ function balanceClassName(balance: number) {
   return "text-emerald-600";
 }
 
-export function FolioSummary({
-  folioId,
-  status,
-  reservationStatus,
-  totals,
-}: FolioSummaryProps) {
-  const isOpen = status === FolioStatus.OPEN;
-  const canCheckOut = isOpen && reservationStatus === ReservationStatus.CHECKED_IN;
-
+export function FolioSummary({ totals }: FolioSummaryProps) {
   return (
     <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
@@ -79,20 +64,6 @@ export function FolioSummary({
             {formatIDR(totals.balance)}
           </span>
         </div>
-      </div>
-      <div className="border-t border-slate-200 bg-slate-50 p-5">
-        {canCheckOut ? (
-          <Link
-                      href={`/app/fo/check-out/${folioId}`}
-                      className={buttonVariants({ variant: "default", className: "w-full" })}
-                    >
-            Lanjut ke Check-Out
-          </Link>
-        ) : (
-          <span className="block text-xs text-slate-500">
-            Check-out tersedia saat folio open dan reservasi checked-in.
-          </span>
-        )}
       </div>
     </section>
   );
