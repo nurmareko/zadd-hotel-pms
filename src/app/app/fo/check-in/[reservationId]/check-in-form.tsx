@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useMemo, useState, type BaseSyntheticEvent } from "react";
 import {
   useForm,
@@ -18,7 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import { PinnedActionFooter } from "@/components/pinned-action-footer";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { focusFirstFormError } from "@/lib/form-error-focus";
 import { formatIDR } from "@/lib/format";
@@ -193,7 +195,8 @@ export function CheckInForm({
 
     return `Deposit ${formatIDR(existingDeposit)} was recorded at booking. Confirm or update.`;
   }, [existingDeposit]);
-  const isSubmitting = form.formState.isSubmitting;
+  const { errors, isSubmitting, submitCount } = form.formState;
+  const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
 
   function onInvalid() {
     focusFirstFormError(formElement);
@@ -249,15 +252,16 @@ export function CheckInForm({
         ref={setFormElement}
         onSubmit={form.handleSubmit(onSubmit, onInvalid)}
         noValidate
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+        className="flex flex-col gap-4"
       >
-        <input
-          type="hidden"
-          value={reservationId}
-          {...form.register("reservationId")}
-        />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <input
+            type="hidden"
+            value={reservationId}
+            {...form.register("reservationId")}
+          />
 
-        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
           <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
               <h2 className="text-sm font-semibold">1. Pilih Kamar</h2>
@@ -669,17 +673,45 @@ export function CheckInForm({
             <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
               Folio akan otomatis dibuka setelah check-in.
             </div>
-            <div className="border-t border-slate-200 bg-white p-5">
-              <Button
-                              type="submit"
-                              disabled={isSubmitting}
-                              className="w-full disabled:cursor-wait disabled:opacity-70"
-                            >
-                              {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
-                            </Button>
-            </div>
+
           </section>
-        </aside>
+          </aside>
+        </div>
+
+        <PinnedActionFooter
+          hint={
+            actionError ?? errors.root?.message ? (
+              <p className="font-medium text-red-600">
+                {actionError ?? errors.root?.message}
+              </p>
+            ) : hasBlockingErrors ? (
+              <p className="font-medium text-red-600">
+                Periksa kembali isian yang ditandai merah.
+              </p>
+            ) : (
+              <p className="text-slate-500">
+                Lengkapi GRC, tanda tangan tamu, dan konfirmasi kedatangan.
+              </p>
+            )
+          }
+          actions={
+            <>
+              <Link
+                href={`/app/fo/reservasi/${reservationId}`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Batal
+              </Link>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="disabled:cursor-wait disabled:opacity-70"
+              >
+                {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
+              </Button>
+            </>
+          }
+        />
       </form>
     </Form>
   );

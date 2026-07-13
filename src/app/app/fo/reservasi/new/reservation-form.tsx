@@ -14,6 +14,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Form,
@@ -958,47 +959,47 @@ export function ReservationForm({
         </div>
 
         {showFooter ? (
-          <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 desktop:bottom-4">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-slate-200 bg-white/95 px-4 py-3 shadow-md backdrop-blur">
-              <div className="min-w-0 text-sm">
-                {hasBlockingErrors ? (
-                  <p className="font-medium text-red-600">
-                    Periksa kembali isian yang ditandai merah.
-                  </p>
-                ) : (
-                  <p className="text-slate-500 num">
-                    <span className="font-semibold text-slate-900">
-                      {watchedRoomRows.length} kamar
-                    </span>
-                    {" · Estimasi tagihan "}
-                    <span className="font-semibold text-slate-900">
-                      {estimatedTotal}
-                    </span>
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
+          <PinnedActionFooter
+            hint={
+              hasBlockingErrors ? (
+                <p className="font-medium text-red-600">
+                  Periksa kembali isian yang ditandai merah.
+                </p>
+              ) : (
+                <p className="text-slate-500 num">
+                  <span className="font-semibold text-slate-900">
+                    {watchedRoomRows.length} kamar
+                  </span>
+                  {" · Estimasi tagihan "}
+                  <span className="font-semibold text-slate-900">
+                    {estimatedTotal}
+                  </span>
+                </p>
+              )
+            }
+            actions={
+              <>
                 {viewFooterActions}
                 {!isViewMode ? (
                   <>
                     <Link
-                                          href={returnHref}
-                                          className={buttonVariants({ variant: "outline" })}
-                                        >
+                      href={returnHref}
+                      className={buttonVariants({ variant: "outline" })}
+                    >
                       Batal
                     </Link>
                     <Button
-                                          type="submit"
-                                          disabled={isSubmitting}
-                                          className="disabled:cursor-wait disabled:opacity-70"
-                                        >
-                                          {isSubmitting ? "Menyimpan..." : submitLabel}
-                                        </Button>
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {isSubmitting ? "Menyimpan..." : submitLabel}
+                    </Button>
                   </>
                 ) : null}
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          />
         ) : null}
       </form>
     </Form>

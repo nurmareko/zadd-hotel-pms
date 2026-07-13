@@ -2,11 +2,13 @@
 
 import { PaymentMethod } from "@prisma/client";
 import { AlertTriangle, Check, CreditCard } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { PinnedActionFooter } from "@/components/pinned-action-footer";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
 import { paymentMethods } from "../../folios/[id]/schema";
@@ -123,16 +125,35 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </p>
       ) : null}
 
-      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="disabled:opacity-50"
-        >
-          <CreditCard className="h-4 w-4" aria-hidden="true" />
-          {isPending ? "Recording..." : "Record Payment & Continue"}
-        </Button>
-      </div>
+      <PinnedActionFooter
+        hint={
+          actionError ? (
+            <p className="font-medium text-red-600">{actionError}</p>
+          ) : (
+            <p className="text-slate-500">
+              Catat pembayaran akhir sebelum menyelesaikan check-out.
+            </p>
+          )
+        }
+        actions={
+          <>
+            <Link
+              href={`/app/fo/folios/${folioId}`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Batal
+            </Link>
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="disabled:cursor-wait disabled:opacity-70"
+            >
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              {isPending ? "Recording..." : "Record Payment & Continue"}
+            </Button>
+          </>
+        }
+      />
     </form>
   );
 }
@@ -142,6 +163,7 @@ export function CompleteCheckoutForm({
   balance,
 }: CompleteCheckoutFormProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [roomStatusConfirmed, setRoomStatusConfirmed] = useState(true);
   const [folioCloseConfirmed, setFolioCloseConfirmed] = useState(true);
   const [pdfConfirmed, setPdfConfirmed] = useState(true);
@@ -176,8 +198,22 @@ export function CompleteCheckoutForm({
     });
   }
 
+  function focusFirstUnconfirmedStep() {
+    const firstUnconfirmed = formRef.current?.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]:not(:checked)',
+    );
+
+    firstUnconfirmed?.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstUnconfirmed?.focus({ preventScroll: true });
+  }
+
   return (
-    <form id="complete-checkout-form" onSubmit={onSubmit} className="p-5">
+    <form
+      id="complete-checkout-form"
+      ref={formRef}
+      onSubmit={onSubmit}
+      className="p-5"
+    >
       <input type="hidden" name="folioId" value={folioId} />
 
       {isCreditBalance ? (
@@ -246,16 +282,46 @@ export function CompleteCheckoutForm({
         </p>
       ) : null}
 
-      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
-        <Button
-          type="submit"
-          disabled={!confirmed || isPending}
-          className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-        >
-          <Check className="h-4 w-4" aria-hidden="true" />
-          {isPending ? "Completing..." : "Complete Check-Out"}
-        </Button>
-      </div>
+      <PinnedActionFooter
+        hint={
+          actionError ? (
+            <p className="font-medium text-red-600">{actionError}</p>
+          ) : !confirmed ? (
+            <p className="font-medium text-red-600">
+              Selesaikan konfirmasi check-out yang belum dicentang.
+            </p>
+          ) : (
+            <p className="text-slate-500">
+              Semua langkah telah dikonfirmasi. Check-out siap diselesaikan.
+            </p>
+          )
+        }
+        actions={
+          <>
+            <Link
+              href={`/app/fo/folios/${folioId}`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Batal
+            </Link>
+            {confirmed ? (
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="disabled:cursor-wait disabled:opacity-70"
+              >
+                <Check className="h-4 w-4" aria-hidden="true" />
+                {isPending ? "Completing..." : "Complete Check-Out"}
+              </Button>
+            ) : (
+              <Button type="button" onClick={focusFirstUnconfirmedStep}>
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Complete Check-Out
+              </Button>
+            )}
+          </>
+        }
+      />
     </form>
   );
 }
