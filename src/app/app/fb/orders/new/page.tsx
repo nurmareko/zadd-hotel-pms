@@ -2,6 +2,7 @@ import { FBOrderStatus, TableStatus } from "@prisma/client";
 import { ArrowLeft, BedDouble, Table2, Utensils } from "lucide-react";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
@@ -62,7 +63,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
         <div className="flex flex-col gap-2 sm:flex-row">
           {isRoomService ? (
             <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className={buttonVariants({ variant: "outline", className: "gap-2" })}
               href="/app/fb/orders/new"
             >
               <Utensils aria-hidden="true" className="size-4" />
@@ -70,7 +71,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             </Link>
           ) : (
             <Link
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className={buttonVariants({ variant: "outline", className: "gap-2" })}
               href="/app/fb/orders/new?service=room-service"
             >
               <BedDouble aria-hidden="true" className="size-4" />
@@ -78,7 +79,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             </Link>
           )}
           <Link
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className={buttonVariants({ variant: "outline", className: "gap-2" })}
             href="/app/fb"
           >
             <ArrowLeft aria-hidden="true" className="size-4" />
@@ -114,7 +115,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
               </div>
               {table.orders[0] ? (
                 <Link
-                  className="mt-3 inline-flex h-10 items-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+                  className={buttonVariants({ className: "mt-3" })}
                   href={`/app/fb/orders/${table.orders[0].id}`}
                 >
                   Buka {table.orders[0].orderNo}

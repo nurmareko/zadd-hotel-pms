@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 import { confirmBill, reopenOrder } from "./actions";
 
@@ -91,21 +92,20 @@ export function BillActions({
       <div className="grid gap-2 p-5">
         {status === "OPEN" ? (
           <>
-            <button
-              className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
+            <Button
               disabled={!hasItems || isPending}
               onClick={handleConfirmBill}
               type="button"
             >
               {isPending ? "Memproses..." : "Konfirmasi & Cetak Bill"}
-            </button>
+            </Button>
             {!hasItems ? (
               <p className="rounded-lg border border-status-od-pip bg-status-od-bg px-3 py-2 text-sm font-medium leading-5 text-status-od-fg">
                 Order kosong, tidak bisa ditagih.
               </p>
             ) : null}
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className={buttonVariants({ variant: "outline" })}
               href={`/app/fb/orders/${orderId}`}
             >
               Kembali ke Order
@@ -116,21 +116,17 @@ export function BillActions({
         {status === "BILLED" ? (
           <>
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+              className={buttonVariants()}
               href={`/app/fb/orders/${orderId}/payment`}
             >
               Lanjut ke Pembayaran
             </Link>
-            <button
-              className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
-              onClick={handleReprint}
-              type="button"
-            >
+            <Button variant="outline" onClick={handleReprint} type="button">
               Cetak Ulang Bill
-            </button>
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger
-                className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+                className={buttonVariants({ variant: "outline" })}
                 disabled={isPending}
                 type="button"
               >
@@ -150,7 +146,6 @@ export function BillActions({
                     Batal
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="rounded-md bg-slate-900 text-white hover:bg-slate-800"
                     disabled={isPending}
                     onClick={handleReopen}
                     type="button"
@@ -164,13 +159,9 @@ export function BillActions({
         ) : null}
 
         {status === "CLOSED" ? (
-          <button
-            className="h-10 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
-            onClick={handleReprint}
-            type="button"
-          >
+          <Button variant="outline" onClick={handleReprint} type="button">
             Cetak Ulang Bill
-          </button>
+          </Button>
         ) : null}
 
         {status === "VOIDED" ? (

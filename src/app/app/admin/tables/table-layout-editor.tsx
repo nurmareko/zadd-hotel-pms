@@ -129,7 +129,6 @@ export function RestaurantTableLayoutEditor({
         </div>
         <Button
           type="button"
-          className="h-10 px-4"
           disabled={isArranging}
           onClick={handleAutoArrange}
         >

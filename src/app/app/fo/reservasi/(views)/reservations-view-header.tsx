@@ -21,6 +21,7 @@ import {
   FO_RESERVASI_VIEW_PATHS,
   type FoReservasiView,
 } from "@/lib/nav-preferences";
+import { buttonVariants } from "@/components/ui/button";
 import { formatISODate } from "@/lib/format";
 
 import {
@@ -63,9 +64,9 @@ function DateNavButton({
   return (
     <Link
       href={href}
-      aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-    >
+            aria-label={label}
+            className={buttonVariants({ variant: "outline" })}
+          >
       <Icon className="h-4 w-4" aria-hidden="true" />
     </Link>
   );
@@ -116,9 +117,9 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
         />
       </div>
       <Link
-        href={getDateHref(view, getDefaultStartDate(), searchParams)}
-        className="flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
-      >
+              href={getDateHref(view, getDefaultStartDate(), searchParams)}
+              className={buttonVariants({ variant: "outline" })}
+            >
         Today
       </Link>
     </div>
@@ -182,7 +183,7 @@ export function ReservationsViewHeader() {
           <span
             aria-hidden="true"
             className={[
-              "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded bg-emerald-600 shadow-sm",
+              "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded bg-slate-900 shadow-sm",
               "transition-transform duration-200 ease-out motion-reduce:transition-none",
               view === "list" ? "translate-x-full" : "translate-x-0",
             ].join(" ")}
@@ -197,7 +198,7 @@ export function ReservationsViewHeader() {
                 aria-pressed={isActive}
                 onClick={() => selectView(value)}
                 className={[
-                  "relative z-10 inline-flex h-8 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium transition-colors duration-200",
+                  "relative z-10 inline-flex h-11 desktop:h-10 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium transition-colors duration-200",
                   isActive
                     ? "text-white"
                     : "text-slate-600 hover:text-slate-900",
@@ -211,9 +212,9 @@ export function ReservationsViewHeader() {
         </div>
 
         <Link
-          href={`/app/fo/reservasi/new?from=${view}`}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
-        >
+                  href={`/app/fo/reservasi/new?from=${view}`}
+                  className={buttonVariants({ variant: "default" })}
+                >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Reservasi
         </Link>

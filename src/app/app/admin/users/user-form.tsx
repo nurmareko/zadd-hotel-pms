@@ -63,14 +63,10 @@ const emptyValues: UserFormInput = {
   role: "FO",
 };
 
-const inputClassName = "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+const inputClassName = "flex h-11 desktop:h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 const labelClassName =
   "text-[10px] font-semibold uppercase tracking-[0.06em]";
-
-const buttonClassName = "h-9 rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
-
-const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function isRoleCode(value: unknown): value is RoleCode {
   return roleCodes.some((role) => role === value);
@@ -240,7 +236,7 @@ export function UserForm({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-8 w-8 rounded-none text-slate-500 hover:bg-slate-50 hover:text-foreground"
+                      className="absolute right-0 top-0 rounded-none text-slate-500 hover:bg-slate-50 hover:text-foreground"
                       onClick={() => setShowPassword((isShown) => !isShown)}
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
@@ -264,14 +260,12 @@ export function UserForm({
           <Button
             type="button"
             variant="outline"
-            className={buttonClassName}
             onClick={onCancel}
           >
             Batal
           </Button>
           <Button
             type="submit"
-            className={primaryButtonClassName}
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting

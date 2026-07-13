@@ -4,7 +4,6 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCompactDateTimeID } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 export type TodayAuditStatus = {
   id: number;
@@ -38,7 +37,7 @@ export function AuditStatusBanner({
             </div>
           </div>
           <Link
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "bg-white/50 border-emerald-200 text-emerald-900 hover:bg-emerald-100 hover:text-emerald-900")}
+            className={buttonVariants({ variant: "outline" })}
             href={`/app/acc/reports/${todayAudit.id}`}
           >
             Lihat Laporan
@@ -56,7 +55,7 @@ export function AuditStatusBanner({
         description={`Night audit untuk ${businessDateLabel} belum dijalankan.`}
         action={
           <Link
-            className={buttonVariants({ size: "lg" })}
+            className={buttonVariants()}
             href="/app/acc/night-audit"
           >
             Jalankan Night Audit

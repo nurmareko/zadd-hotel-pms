@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 
 import type { NightAuditRunSummary } from "./actions";
@@ -75,13 +76,13 @@ export function ResultPanel({ summary }: ResultPanelProps) {
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className={buttonVariants()}
               href={`/app/acc/reports/${summary.auditId}`}
             >
               Lihat Laporan
             </Link>
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              className={buttonVariants({ variant: "outline" })}
               href="/app/acc"
             >
               Kembali ke Dashboard

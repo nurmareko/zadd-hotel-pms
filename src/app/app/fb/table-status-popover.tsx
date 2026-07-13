@@ -13,6 +13,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { Button, buttonVariants } from "@/components/ui/button";
+
 import {
   releaseTableReservation,
   setOutOfServiceTableAvailable,
@@ -123,20 +125,20 @@ export function TableStatusPopover({
                 </p>
               ) : null}
               <Link
-                className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className={buttonVariants()}
                 href={`/app/fb/orders/new?tableId=${tableId}`}
                 ref={seatGuestsRef}
               >
                 Dudukkan Tamu
               </Link>
-              <button
-                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
+              <Button
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 type="button"
+                variant="outline"
               >
                 {isPending ? "Memproses..." : "Lepas Reservasi"}
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="grid gap-2">
@@ -145,15 +147,15 @@ export function TableStatusPopover({
                   {noteText}
                 </p>
               ) : null}
-              <button
-                className="inline-flex h-10 items-center justify-center rounded-md border border-status-ooo-pip bg-status-ooo-pip px-3 text-sm font-semibold text-white transition-colors hover:bg-status-ooo-fg focus:outline-none focus:ring-2 focus:ring-status-ooo-bg disabled:opacity-50"
+              <Button
                 disabled={isPending}
                 onClick={handleSetAvailable}
                 ref={setAvailableRef}
                 type="button"
+                variant="danger"
               >
                 {isPending ? "Memproses..." : "Jadikan Tersedia"}
-              </button>
+              </Button>
             </div>
           )}
         </div>

@@ -57,7 +57,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
           description="Audit yang sudah dijalankan akan tersimpan sebagai riwayat dan laporan."
           action={
             <Link
-              className={buttonVariants({ size: "lg" })}
+              className={buttonVariants()}
               href="/app/acc/night-audit"
             >
               Jalankan Night Audit
@@ -126,7 +126,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   </td>
                   <td className={cn(bodyCellClass, "text-right")}>
                     <Link
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className={buttonVariants({ variant: "outline" })}
                       href={`/app/acc/reports/${row.id}`}
                     >
                       Lihat Laporan

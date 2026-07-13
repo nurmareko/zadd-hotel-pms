@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { consoleButtonClassName } from "@/components/console-button";
+import { Button } from "@/components/ui/button";
 import { requestRoomCleaning } from "./actions";
 
 export function RequestCleaningButton({
@@ -36,8 +36,8 @@ export function RequestCleaningButton({
   }
 
   return (
-    <button
-      type="button"
+    <Button
+          type="button"
       disabled={isPending || !canRequest}
       onClick={handleRequest}
       title={
@@ -45,7 +45,7 @@ export function RequestCleaningButton({
           ? undefined
           : "Permintaan pembersihan hanya tersedia untuk kamar berstatus OC."
       }
-      className={consoleButtonClassName("secondary")}
+      variant="outline"
     >
       <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
       {isPending
@@ -53,6 +53,6 @@ export function RequestCleaningButton({
         : alreadyRequested
           ? "Pembersihan Diminta"
           : "Minta Pembersihan Kamar"}
-    </button>
+    </Button>
   );
 }

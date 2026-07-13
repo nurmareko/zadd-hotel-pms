@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -190,14 +191,14 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <Link
             href={`/app/fo/reservasi/${reservation.id}`}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+            className={buttonVariants({ variant: "outline" })}
           >
             Batal
           </Link>
           <a
             href={`/api/reservations/${reservation.id}/grc`}
             download
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+            className={buttonVariants({ variant: "outline" })}
           >
             <Download className="h-4 w-4" aria-hidden="true" />
             Cetak GRC

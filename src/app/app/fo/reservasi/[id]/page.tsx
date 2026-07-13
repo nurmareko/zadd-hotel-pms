@@ -4,7 +4,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { consoleButtonClassName } from "@/components/console-button";
+import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { GuestFolioView } from "../../folios/[id]/folio-view";
@@ -49,12 +49,7 @@ function resolveReservationTab(
 }
 
 function tabClassName(isActive: boolean) {
-  return [
-    "inline-flex h-9 items-center justify-center border px-4 text-sm font-medium rounded-md transition-colors",
-    isActive
-      ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm",
-  ].join(" ");
+  return buttonVariants({ variant: isActive ? "default" : "outline" });
 }
 
 function ReservationTabs({
@@ -142,7 +137,10 @@ function GroupBookingCard({
         </div>
         <Link
           href={`/app/fo/reservasi/grup/${groupBookingId}`}
-          className="inline-flex h-8 items-center justify-center rounded-md border border-sky-300 bg-white px-3 text-xs font-semibold text-sky-800 shadow-sm transition-colors hover:bg-sky-100"
+          className={buttonVariants({
+                      variant: "outline",
+                      className: "border-sky-300 text-sky-800 hover:bg-sky-100",
+                    })}
         >
           Lihat ringkasan grup
         </Link>
@@ -329,17 +327,17 @@ export default async function ReservationDetailPage({
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
               <Link
-                href="/app/fo/reservasi"
-                className={consoleButtonClassName("secondary")}
-              >
+                              href="/app/fo/reservasi"
+                              className={buttonVariants({ variant: "outline" })}
+                            >
                 Kembali
               </Link>
               {canPrintGrc ? (
                 <a
-                  href={`/api/reservations/${reservation.id}/grc`}
-                  download
-                  className={consoleButtonClassName("secondary")}
-                >
+                                  href={`/api/reservations/${reservation.id}/grc`}
+                                  download
+                                  className={buttonVariants({ variant: "outline" })}
+                                >
                   <Download className="h-3.5 w-3.5" aria-hidden="true" />
                   Cetak GRC
                 </a>
@@ -384,17 +382,17 @@ export default async function ReservationDetailPage({
                   <>
                     <Link
                       href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
-                      className={consoleButtonClassName(
-                        canCheckIn ? "secondary" : "primary",
-                      )}
+                      className={buttonVariants({
+                                              variant: canCheckIn ? "outline" : "default",
+                                            })}
                     >
                       Edit Reservasi
                     </Link>
                     {canCheckIn ? (
                       <Link
-                        href={`/app/fo/check-in/${reservation.id}`}
-                        className={consoleButtonClassName("primary")}
-                      >
+                                              href={`/app/fo/check-in/${reservation.id}`}
+                                              className={buttonVariants({ variant: "default" })}
+                                            >
                         Check In Guest
                       </Link>
                     ) : null}

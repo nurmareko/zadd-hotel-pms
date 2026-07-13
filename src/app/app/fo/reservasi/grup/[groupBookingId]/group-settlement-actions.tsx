@@ -296,11 +296,11 @@ export function GroupSettlementActions({
             <label className="block">
               <span className="text-xs font-semibold text-slate-500">Metode pembayaran batch</span>
               <select
-                value={method}
-                onChange={(event) => setMethod(event.target.value as PaymentMethod)}
-                disabled={isPending}
-                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-              >
+                              value={method}
+                              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+                              disabled={isPending}
+                              className="mt-1 h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                            >
                 {paymentMethods.map((paymentMethod) => (
                   <option key={paymentMethod} value={paymentMethod}>{paymentMethod}</option>
                 ))}
@@ -316,7 +316,7 @@ export function GroupSettlementActions({
                 disabled={isPending}
                 maxLength={100}
                 placeholder="BCA TRF 12345"
-                className="mt-1 h-9 border-slate-300"
+                className="mt-1 h-11 desktop:h-10 border-slate-300"
               />
             </label>
           </div>
@@ -324,7 +324,7 @@ export function GroupSettlementActions({
             type="button"
             onClick={settleBalances}
             disabled={isPending}
-            className="mt-4 h-9 bg-emerald-600 text-white hover:bg-emerald-700"
+            className="mt-4"
           >
             <CreditCard className="h-4 w-4" aria-hidden="true" />
             {isSettling ? "Memproses..." : "Settle saldo grup"}
@@ -346,7 +346,7 @@ export function GroupSettlementActions({
             variant="outline"
             onClick={checkoutEligibleRooms}
             disabled={isPending}
-            className="mt-4 h-9 border-sky-300 text-sky-800 hover:bg-sky-50 hover:text-sky-950"
+            className="mt-4 border-sky-300 text-sky-800 hover:bg-sky-50 hover:text-sky-950"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
             {isCheckingOut ? "Memproses..." : "Check-out kamar yang siap"}
@@ -368,7 +368,7 @@ export function GroupSettlementActions({
             variant="outline"
             onClick={() => setIsCheckInPanelOpen((current) => !current)}
             disabled={isPending || checkInEligibleRooms.length === 0}
-            className="mt-4 h-9 border-emerald-300 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-950"
+            className="mt-4"
           >
             <LogIn className="h-4 w-4" aria-hidden="true" />
             {checkInEligibleRooms.length === 0
@@ -390,11 +390,11 @@ export function GroupSettlementActions({
               <label className="block">
                 <span className="text-xs font-semibold text-slate-600">Tujuan kunjungan seluruh grup</span>
                 <select
-                  value={groupPurposeOfVisit}
-                  onChange={(event) => setGroupPurposeOfVisit(event.target.value)}
-                  disabled={isPending}
-                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-                >
+                                  value={groupPurposeOfVisit}
+                                  onChange={(event) => setGroupPurposeOfVisit(event.target.value)}
+                                  disabled={isPending}
+                                  className="mt-1 h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                                >
                   <option value="Bisnis">Bisnis</option>
                   <option value="Liburan">Liburan</option>
                   <option value="Keluarga">Keluarga</option>
@@ -440,7 +440,7 @@ export function GroupSettlementActions({
               type="button"
               onClick={checkInEligibleRoomsInBatch}
               disabled={isPending || !arrivalConfirmed || !everyEligibleRoomIsSigned}
-              className="mt-5 h-9 bg-emerald-600 text-white hover:bg-emerald-700"
+              className="mt-5"
             >
               <LogIn className="h-4 w-4" aria-hidden="true" />
               {isCheckingIn ? "Memproses..." : `Proses ${checkInEligibleRooms.length} kamar siap`}

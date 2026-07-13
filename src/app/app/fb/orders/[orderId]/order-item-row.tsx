@@ -5,6 +5,7 @@ import { KeyboardEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 
 import {
@@ -100,23 +101,24 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
             </div>
           ) : null}
         </div>
-        <button
+        <Button
           aria-label={`Remove ${item.name}`}
-          className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
           disabled={!canEdit || isPending}
           onClick={removeItem}
+          size="icon"
           title={`Remove ${item.name}`}
           type="button"
+          variant="outline"
         >
           <X aria-hidden="true" className="size-3.5" />
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex h-9 items-center overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+        <div className="inline-flex h-11 items-center overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm desktop:h-10">
           <button
             aria-label={`Decrease ${item.name}`}
-            className="inline-flex h-full w-9 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex size-11 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 desktop:size-10"
             disabled={!canEdit || isPending}
             onClick={() => changeQuantity(item.quantity - 1)}
             title={`Decrease ${item.name}`}
@@ -129,7 +131,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
           </span>
           <button
             aria-label={`Increase ${item.name}`}
-            className="inline-flex h-full w-9 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex size-11 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 desktop:size-10"
             disabled={!canEdit || isPending}
             onClick={() => changeQuantity(item.quantity + 1)}
             title={`Increase ${item.name}`}

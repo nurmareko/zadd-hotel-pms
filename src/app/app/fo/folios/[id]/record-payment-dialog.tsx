@@ -8,7 +8,6 @@ import { useState } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
-import { consoleButtonClassName } from "@/components/console-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,7 +48,7 @@ type RecordPaymentDialogProps = {
 };
 
 const fieldClassName =
-  "h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
+  "h-11 desktop:h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 
 function defaultAmount(balance: number) {
   if (balance <= 0) {
@@ -132,7 +131,6 @@ export function RecordPaymentDialog({
         type="button"
         disabled={disabled}
         onClick={() => resetAndClose(true)}
-        className={consoleButtonClassName("primary")}
       >
         <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
         Catat Pembayaran
@@ -182,11 +180,11 @@ export function RecordPaymentDialog({
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">Metode</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
-                          <SelectValue placeholder="Pilih metode" />
-                        </SelectTrigger>
-                      </FormControl>
+                                          <FormControl>
+                                            <SelectTrigger className="h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
+                                              <SelectValue placeholder="Pilih metode" />
+                                            </SelectTrigger>
+                                          </FormControl>
                       <SelectContent
                         align="start"
                         className="rounded-lg border border-slate-200 bg-white shadow-md"
@@ -238,14 +236,12 @@ export function RecordPaymentDialog({
                   type="button"
                   variant="outline"
                   onClick={() => resetAndClose(false)}
-                  className={consoleButtonClassName("secondary")}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
-                  className={consoleButtonClassName("primary")}
                 >
                   {form.formState.isSubmitting
                     ? "Recording..."

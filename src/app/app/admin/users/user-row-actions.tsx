@@ -51,7 +51,7 @@ export function UserRowActions({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-none text-foreground hover:bg-slate-50"
+            className="rounded-none text-foreground hover:bg-slate-50"
             aria-label={`Actions for ${user.username}`}
           />
         }

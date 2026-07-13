@@ -8,7 +8,6 @@ import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { consoleButtonClassName } from "@/components/console-button";
 import {
   Dialog,
   DialogContent,
@@ -50,9 +49,9 @@ type AddChargeDialogProps = {
 };
 
 const fieldClassName =
-  "h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
+  "h-11 desktop:h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 const selectClassName =
-  "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
+  "h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
 
 function resultErrorMessage(error: unknown) {
   return typeof error === "string" ? error : "Unable to post charge";
@@ -137,7 +136,6 @@ export function AddChargeDialog({
         type="button"
         disabled={disabled || articles.length === 0}
         onClick={() => setOpen(true)}
-        className={consoleButtonClassName("primary")}
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         Tambah Charge
@@ -279,14 +277,12 @@ export function AddChargeDialog({
                   type="button"
                   variant="outline"
                   onClick={() => resetAndClose(false)}
-                  className={consoleButtonClassName("secondary")}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
-                  className={consoleButtonClassName("primary")}
                 >
                   {form.formState.isSubmitting ? "Posting..." : "Post Charge"}
                 </Button>

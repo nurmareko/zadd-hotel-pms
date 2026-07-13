@@ -64,7 +64,7 @@ export function HKDashboardTabs({
             type="button"
             onClick={() => setActiveTab("cleaning")}
             className={[
-              "min-h-11 flex-1 border-b-2 px-2 text-[11px] font-semibold font-medium tracking-tight",
+              "min-h-11 flex-1 border-b-2 px-2 text-[11px] font-semibold font-medium tracking-tight desktop:min-h-10",
               activeTab === "cleaning"
                 ? "border-slate-300 hover:border-slate-400 text-slate-900"
                 : "border-transparent text-slate-500",
@@ -76,7 +76,7 @@ export function HKDashboardTabs({
             type="button"
             onClick={() => setActiveTab("status")}
             className={[
-              "min-h-11 flex-1 border-b-2 px-2 text-[11px] font-semibold font-medium tracking-tight",
+              "min-h-11 flex-1 border-b-2 px-2 text-[11px] font-semibold font-medium tracking-tight desktop:min-h-10",
               activeTab === "status"
                 ? "border-slate-300 hover:border-slate-400 text-slate-900"
                 : "border-transparent text-slate-500",
@@ -137,7 +137,7 @@ function CleaningQueue({
               type="button"
               onClick={() => onFilterChange(filter)}
               className={[
-                "min-h-11 shrink-0 border px-3 text-[11px] font-semibold font-medium tracking-tight",
+                "min-h-11 shrink-0 border px-3 text-[11px] font-semibold font-medium tracking-tight desktop:min-h-10",
                 active
                   ? "rounded-lg bg-blue-600 border-blue-600 shadow-sm text-blue-600"
                   : "border-slate-200 bg-white text-slate-900",

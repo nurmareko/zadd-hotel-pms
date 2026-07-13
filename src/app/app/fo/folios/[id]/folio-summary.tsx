@@ -1,6 +1,7 @@
 import { FolioStatus, ReservationStatus } from "@prisma/client";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 import type { FolioTotals } from "@/lib/folio-totals";
 
@@ -82,9 +83,9 @@ export function FolioSummary({
       <div className="border-t border-slate-200 bg-slate-50 p-5">
         {canCheckOut ? (
           <Link
-            href={`/app/fo/check-out/${folioId}`}
-            className="inline-flex h-9 w-full items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-          >
+                      href={`/app/fo/check-out/${folioId}`}
+                      className={buttonVariants({ variant: "default", className: "w-full" })}
+                    >
             Lanjut ke Check-Out
           </Link>
         ) : (

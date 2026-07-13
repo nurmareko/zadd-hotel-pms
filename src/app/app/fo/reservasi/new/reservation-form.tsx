@@ -14,7 +14,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
-import { consoleButtonClassName } from "@/components/console-button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -81,13 +81,13 @@ type ReservationFormProps = {
 };
 
 const fieldScrollMarginClassName = "scroll-mt-24 scroll-mb-40";
-const fieldClassName = `h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
+const fieldClassName = `h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
 const textareaClassName = `min-h-20 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
-const selectClassName = `h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
+const selectClassName = `h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
 const sectionTitleClassName =
   "mb-4 text-sm font-semibold tracking-tight text-slate-900";
 const iconButtonClassName =
-  "inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex size-11 desktop:size-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
 
 const reservationTypeOptions = [
   { value: "INDIVIDUAL", label: "Individual" },
@@ -709,9 +709,9 @@ export function ReservationForm({
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <h2 className={sectionTitleClassName}>Kamar</h2>
                   {isCreateMode ? (
-                    <button
+                    <Button
                       type="button"
-                      className={consoleButtonClassName("secondary")}
+                      variant="outline"
                       onClick={() =>
                         roomsFieldArray.append({
                           roomTypeId: "",
@@ -723,7 +723,7 @@ export function ReservationForm({
                     >
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                       Tambah kamar
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
 
@@ -982,21 +982,18 @@ export function ReservationForm({
                 {!isViewMode ? (
                   <>
                     <Link
-                      href={returnHref}
-                      className={consoleButtonClassName("secondary")}
-                    >
+                                          href={returnHref}
+                                          className={buttonVariants({ variant: "outline" })}
+                                        >
                       Batal
                     </Link>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={consoleButtonClassName(
-                        "primary",
-                        "disabled:cursor-wait disabled:opacity-70",
-                      )}
-                    >
-                      {isSubmitting ? "Menyimpan..." : submitLabel}
-                    </button>
+                    <Button
+                                          type="submit"
+                                          disabled={isSubmitting}
+                                          className="disabled:cursor-wait disabled:opacity-70"
+                                        >
+                                          {isSubmitting ? "Menyimpan..." : submitLabel}
+                                        </Button>
                   </>
                 ) : null}
               </div>

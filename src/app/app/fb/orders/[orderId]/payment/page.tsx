@@ -3,6 +3,7 @@ import { CircleSlash } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   fbOrderGuestLabel,
@@ -158,13 +159,13 @@ function ClosedState({
         ) : null}
         <div className="flex flex-col gap-2 border-t border-status-vc-pip pt-3 sm:flex-row">
           <a
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+            className={buttonVariants()}
             href={`/api/fb-orders/${orderId}/receipt`}
           >
             Cetak Struk
           </a>
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+            className={buttonVariants({ variant: "outline" })}
             href="/app/fb"
           >
             Kembali ke Daftar Meja

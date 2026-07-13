@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { RoomStatus } from "@prisma/client";
 
+import { Button } from "@/components/ui/button";
+
 import { updateRoomStatus } from "./actions";
 import { allowedRoomStatuses, roomStatusLabels } from "./room-status-options";
 
@@ -55,7 +57,7 @@ export function RoomStatusControl({
         value={selectedStatus}
         disabled={isPending}
         onChange={(event) => setSelectedStatus(event.target.value as RoomStatus)}
-        className="min-w-0 flex-1 border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-900"
+        className="h-11 min-w-0 flex-1 border border-slate-200 bg-slate-50 px-1.5 text-[10px] font-semibold text-slate-900 desktop:h-10"
       >
         {statuses.map((roomStatus) => (
           <option key={roomStatus} value={roomStatus}>
@@ -63,14 +65,14 @@ export function RoomStatusControl({
           </option>
         ))}
       </select>
-      <button
+      <Button
         type="submit"
+        size="icon"
         aria-label={`Simpan status kamar ${roomNumber}`}
         disabled={isPending || selectedStatus === status}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center border rounded-md bg-blue-600 border-blue-600 shadow-sm text-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Save className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
+      </Button>
     </form>
   );
 }

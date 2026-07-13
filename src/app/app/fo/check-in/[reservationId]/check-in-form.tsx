@@ -18,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { focusFirstFormError } from "@/lib/form-error-focus";
 import { formatIDR } from "@/lib/format";
@@ -79,9 +80,9 @@ type CheckInFormProps = {
 };
 
 const fieldClassName =
-  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
+  "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 const selectClassName =
-  "h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
+  "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
 
 function SummaryRow({
   label,
@@ -269,7 +270,7 @@ export function CheckInForm({
                 <select
                   value={floorFilter}
                   onChange={(event) => setFloorFilter(event.target.value)}
-                  className="h-9 w-[140px] rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  className="h-11 desktop:h-10 w-[140px] rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
                 >
                   <option value="">Semua lantai</option>
                   {floors.map((floor) => (
@@ -304,7 +305,7 @@ export function CheckInForm({
                             onClick={() => field.onChange(String(room.id))}
                             className={`flex h-16 flex-col items-center justify-center gap-0.5 rounded-lg border px-2 text-center disabled:cursor-not-allowed disabled:opacity-45 transition-colors ${
                               selected
-                                ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                                ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                                 : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                             }`}
                           >
@@ -669,13 +670,13 @@ export function CheckInForm({
               Folio akan otomatis dibuka setelah check-in.
             </div>
             <div className="border-t border-slate-200 bg-white p-5">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-9 w-full rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors disabled:cursor-wait disabled:opacity-70"
-              >
-                {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
-              </button>
+              <Button
+                              type="submit"
+                              disabled={isSubmitting}
+                              className="w-full disabled:cursor-wait disabled:opacity-70"
+                            >
+                              {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
+                            </Button>
             </div>
           </section>
         </aside>

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import {
@@ -130,13 +131,9 @@ export function RoomServiceForm() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-        <button
-          className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
-          disabled={isSubmitPending || !lookupResult?.ok}
-          type="submit"
-        >
+        <Button disabled={isSubmitPending || !lookupResult?.ok} type="submit">
           {isSubmitPending ? "Membuat..." : "Continue"}
-        </button>
+        </Button>
       </div>
     </form>
   );

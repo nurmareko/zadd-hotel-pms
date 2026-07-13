@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { consoleButtonClassName } from "@/components/console-button";
+import { buttonVariants } from "@/components/ui/button";
 import { cancelReservation } from "../new/actions";
 
 type CancelReservationDialogProps = {
@@ -47,7 +47,7 @@ export function CancelReservationDialog({
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        className={consoleButtonClassName("secondary")}
+              className={buttonVariants({ variant: "outline" })}
         disabled={isPending}
         type="button"
       >
@@ -65,13 +65,13 @@ export function CancelReservationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
-            className={consoleButtonClassName("secondary")}
+                      className={buttonVariants({ variant: "outline" })}
             disabled={isPending}
           >
             Batal
           </AlertDialogCancel>
           <AlertDialogAction
-            className={consoleButtonClassName("danger")}
+                      className={buttonVariants({ variant: "destructive" })}
             disabled={isPending}
             onClick={handleCancel}
             type="button"

@@ -3,6 +3,7 @@ import { CalendarX } from "lucide-react";
 import Link from "next/link";
 
 import { StatusBadge } from "@/components/status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateID, formatDateWithWeekday, formatIDR } from "@/lib/format";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
@@ -136,8 +137,8 @@ export function ReservationTable({ groups }: ReservationTableProps) {
                   description="Tidak ada reservasi yang cocok dengan filter Anda."
                   action={
                     <Link
-                      className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-                      href="/app/fo/reservasi/new?from=list"
+                                          className={buttonVariants({ variant: "default" })}
+                                          href="/app/fo/reservasi/new?from=list"
                     >
                       Buat Reservasi
                     </Link>

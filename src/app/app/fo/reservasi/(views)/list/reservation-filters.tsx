@@ -1,6 +1,8 @@
 import type { ReservationStatus } from "@prisma/client";
 import { Search } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+
 type ReservationFiltersProps = {
   filters: {
     q: string;
@@ -18,7 +20,7 @@ const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
 ];
 
 const fieldClass =
-  "h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
+  "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
 
 export function ReservationFilters({
   filters,
@@ -38,12 +40,12 @@ export function ReservationFilters({
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
         />
         <input
-          type="search"
-          name="q"
-          defaultValue={filters.q}
-          placeholder="Cari nomor reservasi atau nama tamu..."
-          className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-        />
+                  type="search"
+                  name="q"
+                  defaultValue={filters.q}
+                  placeholder="Cari nomor reservasi atau nama tamu..."
+                  className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                />
       </div>
 
       <select
@@ -59,12 +61,7 @@ export function ReservationFilters({
         ))}
       </select>
 
-      <button
-        type="submit"
-        className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-      >
-        Cari
-      </button>
+      <Button type="submit">Cari</Button>
 
       <span className="min-w-0 flex-1" />
       <span className="whitespace-nowrap text-right text-sm font-medium text-slate-500">

@@ -10,6 +10,7 @@ import {
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { buttonVariants } from "@/components/ui/button";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { buildNightAuditPlan } from "@/lib/night-audit";
 
@@ -56,7 +57,7 @@ export default async function NightAuditPage() {
           </p>
         </div>
         <Link
-          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          className={buttonVariants({ variant: "outline" })}
           href="/app/acc"
         >
           Kembali

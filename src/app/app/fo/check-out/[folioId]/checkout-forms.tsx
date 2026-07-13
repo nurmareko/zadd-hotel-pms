@@ -23,7 +23,7 @@ type CompleteCheckoutFormProps = {
 };
 
 const fieldClassName =
-  "h-9 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
+  "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 function defaultAmount(balance: number) {
   return Number.isInteger(balance) ? String(balance) : balance.toFixed(2);
@@ -91,18 +91,15 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
           </span>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {paymentMethods.map((paymentMethod) => (
-              <button
-                key={paymentMethod}
-                type="button"
-                onClick={() => setMethod(paymentMethod)}
-                className={`h-9 rounded-md border text-xs font-semibold transition-colors ${
-                  method === paymentMethod
-                    ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {paymentMethod}
-              </button>
+              <Button
+                              key={paymentMethod}
+                              type="button"
+                              variant={method === paymentMethod ? "default" : "outline"}
+                              onClick={() => setMethod(paymentMethod)}
+                              className="text-xs font-semibold"
+                            >
+                              {paymentMethod}
+                            </Button>
             ))}
           </div>
         </label>
@@ -130,7 +127,7 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         <Button
           type="submit"
           disabled={isPending}
-          className="h-9 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 shadow-sm transition-colors disabled:opacity-50"
+          className="disabled:opacity-50"
         >
           <CreditCard className="h-4 w-4" aria-hidden="true" />
           {isPending ? "Recording..." : "Record Payment & Continue"}
@@ -253,7 +250,7 @@ export function CompleteCheckoutForm({
         <Button
           type="submit"
           disabled={!confirmed || isPending}
-          className="h-9 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 shadow-sm transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+          className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
         >
           <Check className="h-4 w-4" aria-hidden="true" />
           {isPending ? "Completing..." : "Complete Check-Out"}

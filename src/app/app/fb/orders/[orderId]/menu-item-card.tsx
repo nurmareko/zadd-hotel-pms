@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 
 import { addItemToOrder } from "./actions";
@@ -58,9 +59,8 @@ export function MenuItemCard({
         <span className="inline-flex h-6 items-center rounded-full border border-gray-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-600">
           {item.category}
         </span>
-        <button
+        <Button
           aria-label={`Add ${item.name}`}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
           disabled={disabled || isPending}
           onClick={handleAdd}
           title={`Add ${item.name}`}
@@ -68,7 +68,7 @@ export function MenuItemCard({
         >
           <Plus aria-hidden="true" className="size-3.5" />
           Tamu {guestNumber}
-        </button>
+        </Button>
       </div>
     </article>
   );

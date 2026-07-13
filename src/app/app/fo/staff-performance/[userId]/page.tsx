@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCompactDateTimeID, formatIDR } from "@/lib/format";
 import { hotelTodayTimestampRange } from "@/lib/date-only";
@@ -491,9 +492,9 @@ export default async function StaffHistoryPage({
               </div>
               <div className="flex gap-2">
                 {hasPreviousPage ? (
-                  <Link
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-                    href={historyHref({
+                                  <Link
+                                    className={buttonVariants({ variant: "outline" })}
+                                    href={historyHref({
                       userId,
                       windowKey,
                       page: page - 1,
@@ -503,9 +504,9 @@ export default async function StaffHistoryPage({
                   </Link>
                 ) : null}
                 {hasNextPage ? (
-                  <Link
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-                    href={historyHref({
+                                  <Link
+                                    className={buttonVariants({ variant: "outline" })}
+                                    href={historyHref({
                       userId,
                       windowKey,
                       page: page + 1,

@@ -2,6 +2,7 @@ import { FBOrderServiceType, FBOrderStatus } from "@prisma/client";
 import { ClipboardList, SearchX } from "lucide-react";
 import Link from "next/link";
 
+import { Button, buttonVariants } from "@/components/ui/button";
 import { formatIDR, formatTimeID } from "@/lib/format";
 
 import { OrderStatusBadge } from "./status-badge";
@@ -86,7 +87,7 @@ export function OrderList({
       <form className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white p-4 md:p-5" action="/app/fb">
         <input type="hidden" name="tab" value="orders" />
         <select
-          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="h-11 rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100 desktop:h-10"
           name="status"
           defaultValue={selectedStatus}
         >
@@ -98,7 +99,7 @@ export function OrderList({
           ))}
         </select>
         <select
-          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="h-11 rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100 desktop:h-10"
           name="tableId"
           defaultValue={selectedTableId}
         >
@@ -109,14 +110,9 @@ export function OrderList({
             </option>
           ))}
         </select>
-        <button
-          className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
-          type="submit"
-        >
-          Terapkan
-        </button>
+        <Button type="submit">Terapkan</Button>
         <Link
-          className="inline-flex h-10 items-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50"
+          className={buttonVariants({ variant: "outline" })}
           href="/app/fb?tab=orders"
         >
           Reset
@@ -208,7 +204,7 @@ export function OrderList({
                     </td>
                     <td className="px-3.5 py-3 text-right">
                       <Link
-                        className="inline-flex h-8 items-center rounded-md border border-gray-200 bg-white px-3 text-xs font-semibold text-slate-900 transition-colors hover:bg-slate-50"
+                        className={buttonVariants({ variant: "outline", size: "xs" })}
                         href={`/app/fb/orders/${order.id}`}
                       >
                         {actionLabel(order.status)}

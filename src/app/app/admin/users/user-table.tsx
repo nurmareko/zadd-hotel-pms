@@ -71,9 +71,6 @@ type UserTableProps = {
 
 type SortDirection = "asc" | "desc" | null;
 
-const buttonClassName = "h-9 rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
-
-const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 const roleClassNames: Record<RoleCode, string> = {
   FO: "border-blue-500 bg-status-oc-bg text-status-oc-fg",
@@ -85,7 +82,7 @@ const roleClassNames: Record<RoleCode, string> = {
 
 function AddUserButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" className={primaryButtonClassName} onClick={onClick}>
+    <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
       Tambah Pengguna
     </Button>
@@ -268,7 +265,7 @@ export function UserTable({ users }: UserTableProps) {
       ) : (
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
-            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
+            <div className="flex h-11 desktop:h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
@@ -278,7 +275,7 @@ export function UserTable({ users }: UserTableProps) {
               />
             </div>
             <select
-              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
+              className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={roleFilter}
               onChange={(event) =>
                 setRoleFilter(event.target.value as RoleCode | "")
@@ -292,7 +289,7 @@ export function UserTable({ users }: UserTableProps) {
               <option value="ADMIN">ADMIN</option>
             </select>
             <select
-              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
+              className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
@@ -491,7 +488,7 @@ export function UserTable({ users }: UserTableProps) {
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 placeholder="Minimal 6 karakter"
-                className="h-8 rounded-none border-border bg-card text-sm"
+                className="h-11 desktop:h-10 rounded-none border-border bg-card text-sm"
               />
             </div>
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
@@ -499,14 +496,12 @@ export function UserTable({ users }: UserTableProps) {
                 type="button"
                 variant="outline"
                 disabled={isResetting}
-                className={buttonClassName}
                 onClick={closeResetDialog}
               >
                 Batal
               </Button>
               <Button
                 type="submit"
-                className={primaryButtonClassName}
                 disabled={isResetting}
               >
               {isResetting ? "Menyimpan..." : "Reset Password"}

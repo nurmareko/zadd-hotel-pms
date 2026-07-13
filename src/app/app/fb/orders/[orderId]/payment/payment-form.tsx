@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatIDR } from "@/lib/format";
 
@@ -411,8 +412,7 @@ export function PaymentForm({
             </div>
           ) : null}
           <div className="flex flex-col gap-2 border-t border-status-vc-pip pt-3 sm:flex-row">
-            <button
-              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+            <Button
               onClick={() =>
                 downloadReceipt({
                   orderId: success.receiptOrderId,
@@ -424,19 +424,19 @@ export function PaymentForm({
               type="button"
             >
               Cetak Struk
-            </button>
+            </Button>
             {!success.fullyPaid ? (
-              <button
-                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              <Button
+                variant="outline"
                 onClick={() => {
                   window.location.href = `/app/fb/orders/${orderId}/payment`;
                 }}
               >
                 Kembali ke Pembayaran
-              </button>
+              </Button>
             ) : null}
             <Link
-              className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              className={buttonVariants({ variant: "outline" })}
               href="/app/fb"
             >
               Kembali ke Daftar Meja
@@ -470,8 +470,9 @@ export function PaymentForm({
               </div>
             </div>
             <div className="flex gap-2">
-              <button
-                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   setSelectedQuantities(
                     Object.fromEntries(
@@ -482,9 +483,10 @@ export function PaymentForm({
                 type="button"
               >
                 Semua
-              </button>
-              <button
-                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   setSelectedQuantities(
                     Object.fromEntries(items.map((item) => [item.id, 0])),
@@ -493,7 +495,7 @@ export function PaymentForm({
                 type="button"
               >
                 Kosongkan
-              </button>
+              </Button>
             </div>
           </div>
           <div className="grid gap-2 p-3">
@@ -735,8 +737,7 @@ export function PaymentForm({
         ) : null}
 
         <div className="flex justify-end border-t border-gray-100 pt-4">
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:border-gray-200 disabled:bg-slate-100 disabled:text-slate-400"
+          <Button
             disabled={
               isSubmitPending ||
               !hasSelection ||
@@ -756,7 +757,7 @@ export function PaymentForm({
               : method === PaymentMethod.CHARGE_TO_ROOM
                 ? "Bebankan ke Kamar"
                 : "Selesaikan Pembayaran"}
-          </button>
+          </Button>
         </div>
       </div>
     </section>

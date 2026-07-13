@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import SignaturePad from "signature_pad";
 
+import { Button } from "@/components/ui/button";
+
 type SignaturePadFieldProps = {
   value: string;
   onChange: (value: string) => void;
@@ -95,14 +97,15 @@ export function SignaturePadField({
             ? "Tanda tangan sudah direkam. Gunakan Hapus untuk mengulang."
             : "Tamu menandatangani area di atas dengan jari atau mouse."}
         </p>
-        <button
-          type="button"
-          onClick={clearSignature}
-          disabled={!value}
-          className="h-8 shrink-0 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          Hapus
-        </button>
+        <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearSignature}
+                  disabled={!value}
+                  className="shrink-0 text-xs disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  Hapus
+                </Button>
       </div>
     </div>
   );

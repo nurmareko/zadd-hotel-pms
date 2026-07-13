@@ -2,6 +2,7 @@ import { FileText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
@@ -46,7 +47,7 @@ export default async function NightReportPage({
           description="Jalankan night audit terlebih dahulu untuk membuat laporan."
           action={
             <Link
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className={buttonVariants()}
               href="/app/acc/night-audit"
             >
               Jalankan Night Audit

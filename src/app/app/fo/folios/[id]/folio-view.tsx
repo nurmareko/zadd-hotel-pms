@@ -2,7 +2,7 @@ import { ArticleType, FolioStatus } from "@prisma/client";
 import { Download } from "lucide-react";
 import Link from "next/link";
 
-import { consoleButtonClassName } from "@/components/console-button";
+import { buttonVariants } from "@/components/ui/button";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { formatCompactDateID, formatDayOfMonthID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -138,17 +138,17 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Link
-            href={`/api/folios/${folio.id}/bill`}
-            className={consoleButtonClassName("secondary")}
-          >
+                      href={`/api/folios/${folio.id}/bill`}
+                      className={buttonVariants({ variant: "outline" })}
+                    >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             PDF Bill
           </Link>
           <a
-            href={`/api/reservations/${folio.reservationId}/grc`}
-            download
-            className={consoleButtonClassName("secondary")}
-          >
+                      href={`/api/reservations/${folio.reservationId}/grc`}
+                      download
+                      className={buttonVariants({ variant: "outline" })}
+                    >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             Cetak GRC
           </a>

@@ -140,7 +140,7 @@ export default async function AccountingDashboardPage() {
           </p>
         </div>
         <Link
-          className={buttonVariants({ size: "lg" })}
+          className={buttonVariants()}
           href="/app/acc/night-audit"
         >
           Jalankan Night Audit

@@ -3,6 +3,8 @@
 import { AlertTriangle, Play, X } from "lucide-react";
 import { useState, useTransition } from "react";
 
+import { Button } from "@/components/ui/button";
+
 import { ResultPanel } from "./result-panel";
 import { runNightAudit, type NightAuditRunResult } from "./actions";
 
@@ -65,36 +67,34 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
               membuat snapshot audit untuk business date hari ini.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <button
-                className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              <Button
                 disabled={isPending}
                 onClick={handleRun}
                 type="button"
               >
                 <Play className="h-3.5 w-3.5" aria-hidden="true" />
                 {isPending ? "Memproses..." : "Konfirmasi Jalankan"}
-              </button>
-              <button
-                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+              </Button>
+              <Button
                 disabled={isPending}
                 onClick={() => setIsConfirming(false)}
                 type="button"
+                variant="outline"
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
                 Batal
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <button
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+          <Button
             disabled={disabled || isPending}
             onClick={() => setIsConfirming(true)}
             type="button"
           >
             <Play className="h-3.5 w-3.5" aria-hidden="true" />
             Jalankan Night Audit
-          </button>
+          </Button>
         )}
       </div>
     </section>

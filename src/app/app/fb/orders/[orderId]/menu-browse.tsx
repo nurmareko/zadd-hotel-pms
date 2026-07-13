@@ -79,7 +79,7 @@ export function MenuBrowse({
 
           return (
             <button
-              className={`h-8 rounded-full border px-3 text-xs font-semibold transition-colors ${
+              className={`h-11 rounded-full border px-3 text-xs font-semibold transition-colors desktop:h-10 ${
                 active
                   ? "border-slate-900 bg-slate-900 text-white"
                   : "border-gray-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
@@ -99,7 +99,7 @@ export function MenuBrowse({
 
           return (
             <button
-              className={`border-b-2 pb-2 text-sm font-semibold transition-colors ${
+              className={`min-h-11 border-b-2 pb-2 text-sm font-semibold transition-colors desktop:min-h-10 ${
                 active
                   ? "border-slate-900 text-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-900"

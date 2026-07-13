@@ -268,7 +268,7 @@ export default async function GroupBookingPage({
                     <td className="px-4 py-3">
                       <Link
                         href={`/app/fo/reservasi/${reservation.id}`}
-                        className="font-semibold text-slate-900 hover:text-emerald-700 hover:underline"
+                        className="font-semibold text-slate-900 hover:text-slate-700 hover:underline"
                       >
                         {reservation.reservationNo}
                       </Link>
@@ -307,7 +307,7 @@ export default async function GroupBookingPage({
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/app/fo/reservasi/${reservation.id}`}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 transition-colors hover:text-emerald-900"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-950"
                       >
                         Buka
                         <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />

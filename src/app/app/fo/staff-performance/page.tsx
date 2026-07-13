@@ -9,6 +9,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -415,12 +416,10 @@ export default async function StaffPerformancePage({
                 <Link
                   key={key}
                   aria-current={active ? "page" : undefined}
-                  className={[
-                    "inline-flex h-9 flex-1 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors sm:flex-none",
-                    active
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950",
-                  ].join(" ")}
+                  className={buttonVariants({
+                                      variant: active ? "default" : "outline",
+                                      className: "flex-1 sm:flex-none",
+                                    })}
                   href={reportHref({
                     windowKey: key,
                     sortKey,
@@ -441,27 +440,24 @@ export default async function StaffPerformancePage({
             <input type="hidden" name="sort" value={sortKey} />
             <input type="hidden" name="dir" value={direction} />
             <input
-              type="date"
-              name="from"
-              aria-label="Tanggal mulai"
-              defaultValue={from ?? ""}
-              className="h-9 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
-            />
+                          type="date"
+                          name="from"
+                          aria-label="Tanggal mulai"
+                          defaultValue={from ?? ""}
+                          className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
+                        />
             <span className="hidden text-slate-400 sm:inline">-</span>
             <input
-              type="date"
-              name="to"
-              aria-label="Tanggal akhir"
-              defaultValue={to ?? ""}
-              className="h-9 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
-            />
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
-            >
-              <Search className="size-4" aria-hidden="true" />
-              Cari
-            </button>
+                          type="date"
+                          name="to"
+                          aria-label="Tanggal akhir"
+                          defaultValue={to ?? ""}
+                          className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
+                        />
+            <Button type="submit">
+                          <Search className="size-4" aria-hidden="true" />
+                          Cari
+                        </Button>
           </form>
         </div>
       </div>

@@ -169,7 +169,7 @@ export function HousekeeperWorkPanel({
                 </p>
                 
                 <div className="space-y-2.5">
-                  <label className="flex items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none">
+                  <label className="flex min-h-11 items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none desktop:min-h-10">
                     <input
                       type="checkbox"
                       checked={linenChanged}
@@ -179,7 +179,7 @@ export function HousekeeperWorkPanel({
                     <span>Linen diganti (Ganti Sprei) {isTurnover && <span className="text-destructive font-semibold">*wajib</span>}</span>
                   </label>
 
-                  <label className="flex items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none">
+                  <label className="flex min-h-11 items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none desktop:min-h-10">
                     <input
                       type="checkbox"
                       checked={towelChanged}

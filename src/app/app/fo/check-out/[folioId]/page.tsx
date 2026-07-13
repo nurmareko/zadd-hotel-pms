@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle2, Download, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import {
   absoluteBalanceLabel,
   billBalanceAmountLabel,
@@ -392,9 +393,9 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <Link
-            href={`/app/fo/folios/${folio.id}`}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-          >
+                      href={`/app/fo/folios/${folio.id}`}
+                      className={buttonVariants({ variant: "outline" })}
+                    >
             Batal
           </Link>
         </div>
@@ -453,17 +454,17 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <a
-                    href={`/api/folios/${folio.id}/bill`}
-                    download
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 shadow-sm transition-colors"
-                  >
+                                      href={`/api/folios/${folio.id}/bill`}
+                                      download
+                                      className={buttonVariants({ variant: "default" })}
+                                    >
                     <Download className="h-4 w-4" aria-hidden="true" />
                     Unduh Tagihan
                   </a>
                   <Link
-                    href="/app/fo/reservasi/kalender"
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-                  >
+                                      href="/app/fo/reservasi/kalender"
+                                      className={buttonVariants({ variant: "outline" })}
+                                    >
                     <Undo2 className="h-4 w-4" aria-hidden="true" />
                     Back to Tape Chart
                   </Link>

@@ -99,15 +99,17 @@ function FloorSelectCheckbox({
   }, [indeterminate]);
 
   return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={checked}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.checked)}
-      aria-label={`Pilih semua lantai ${floor}`}
-      className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
-    />
+    <label className="inline-flex min-h-11 min-w-11 items-center justify-center desktop:min-h-10 desktop:min-w-10">
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        aria-label={`Pilih semua lantai ${floor}`}
+        className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
+      />
+    </label>
   );
 }
 
@@ -340,7 +342,7 @@ export function BulkAssignmentPanel({
                 value={housekeeperId}
                 onChange={onHousekeeperChange}
                 disabled={controlsDisabled}
-                className="h-9 min-w-[250px] rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 min-w-[250px] rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 desktop:h-10"
               >
                 {housekeepers.length === 0 ? (
                   <option value="">Tidak ada member HK</option>
@@ -450,7 +452,7 @@ export function BulkAssignmentPanel({
                       className="odd:bg-white even:bg-slate-50 hover:bg-status-vc-bg"
                     >
                       <td className={bodyCellClass}>
-                        <label className="inline-flex items-center">
+                        <label className="inline-flex min-h-11 min-w-11 items-center justify-center desktop:min-h-10 desktop:min-w-10">
                           <input
                             type="checkbox"
                             checked={selectedRoomIds.has(row.room.id)}

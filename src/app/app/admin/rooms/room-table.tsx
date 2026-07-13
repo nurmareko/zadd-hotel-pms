@@ -61,7 +61,6 @@ const statusClassNames: Record<RoomStatus, string> = {
   OOO: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
 };
 
-const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddRoomButton({
   disabled,
@@ -73,7 +72,6 @@ function AddRoomButton({
   return (
     <Button
       type="button"
-      className={primaryButtonClassName}
       disabled={disabled}
       onClick={onClick}
     >
@@ -148,7 +146,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
             {"Daftar Kamar"}
           </h2>
           <div className="flex flex-wrap gap-2">
-            <div className="flex h-8 min-w-[220px] items-center gap-2 border border-border bg-white px-2.5 text-slate-500">
+            <div className="flex h-11 desktop:h-10 min-w-[220px] items-center gap-2 border border-border bg-white px-2.5 text-slate-500">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"

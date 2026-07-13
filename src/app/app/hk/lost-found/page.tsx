@@ -25,7 +25,7 @@ type SearchParams = {
 };
 
 const fieldClass =
-  "h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none";
+  "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none desktop:h-10";
 const headerCellClass =
   "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
 const bodyCellClass =
@@ -107,11 +107,7 @@ function MarkReturnedForm({ item }: { item: LostFoundRow }) {
         placeholder="Catatan penyelesaian"
         className={fieldClass}
       />
-      <Button
-        type="submit"
-        className="h-10 w-fit rounded-md border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
-        variant="outline"
-      >
+      <Button type="submit" className="w-fit rounded-md">
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
         Tandai dikembalikan
       </Button>
@@ -253,7 +249,7 @@ export default async function LostFoundPage({
                 name="q"
                 defaultValue={q}
                 placeholder="Cari deskripsi..."
-                className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none"
+                className="h-11 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none desktop:h-10"
               />
             </div>
             <input
@@ -272,7 +268,7 @@ export default async function LostFoundPage({
               <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
               <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
             </select>
-            <Button type="submit" variant="outline" size="default" className="rounded-md h-10">
+            <Button type="submit" variant="outline" size="default" className="rounded-md">
               <Search className="h-4 w-4" aria-hidden="true" />
               Cari
             </Button>
@@ -303,7 +299,7 @@ export default async function LostFoundPage({
                 </option>
               ))}
             </select>
-            <Button type="submit" className="rounded-md h-10 px-4">
+            <Button type="submit" className="rounded-md px-4">
               <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               Tambah Barang
             </Button>

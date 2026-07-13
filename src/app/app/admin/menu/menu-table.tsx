@@ -59,11 +59,10 @@ type MenuTableProps = {
   items: MenuItemRow[];
 };
 
-const primaryButtonClassName = "h-9 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-600/90";
 
 function AddMenuItemButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" className={primaryButtonClassName} onClick={onClick}>
+    <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
       Tambah Menu
     </Button>
@@ -223,7 +222,7 @@ export function MenuTable({ items }: MenuTableProps) {
       ) : (
         <section className="rounded-lg border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border bg-card p-3.5 lg:flex-row lg:items-center">
-            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
+            <div className="flex h-11 desktop:h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
@@ -233,7 +232,7 @@ export function MenuTable({ items }: MenuTableProps) {
               />
             </div>
             <select
-              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
+              className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
@@ -245,7 +244,7 @@ export function MenuTable({ items }: MenuTableProps) {
               ))}
             </select>
             <select
-              className="h-8 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
+              className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
