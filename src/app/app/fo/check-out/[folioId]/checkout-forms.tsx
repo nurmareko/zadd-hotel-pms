@@ -2,11 +2,20 @@
 
 import { PaymentMethod } from "@prisma/client";
 import { AlertTriangle, Check, CreditCard } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import {
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { PinnedActionFooter } from "@/components/pinned-action-footer";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
 import { paymentMethods } from "../../folios/[id]/schema";
@@ -26,11 +35,21 @@ const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 function defaultAmount(balance: number) {
-  return Number.isInteger(balance) ? String(balance) : balance.toFixed(2);
+  return String(balance);
 }
 
 function resultErrorMessage(error: unknown, fallback: string) {
   return typeof error === "string" ? error : fallback;
+}
+
+function CheckoutPinnedActionFooter({ children }: { children: ReactNode }) {
+  const container = useSyncExternalStore(
+    () => () => {},
+    () => document.getElementById("checkout-pinned-action-footer"),
+    () => null,
+  );
+
+  return container ? createPortal(children, container) : null;
 }
 
 export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
@@ -66,7 +85,8 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
   }
 
   return (
-    <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
+    <>
+      <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
       <input type="hidden" name="folioId" value={folioId} />
       <input type="hidden" name="method" value={method} />
 
@@ -78,8 +98,8 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
           <Input
             name="amount"
             type="number"
-            min={0.01}
-            step={0.01}
+            min={1}
+            step={1}
             defaultValue={defaultAmount(balance)}
             className={`mt-1 ${fieldClassName}`}
           />
@@ -123,17 +143,45 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         </p>
       ) : null}
 
-      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="disabled:opacity-50"
-        >
-          <CreditCard className="h-4 w-4" aria-hidden="true" />
-          {isPending ? "Recording..." : "Record Payment & Continue"}
-        </Button>
-      </div>
     </form>
+
+    <CheckoutPinnedActionFooter>
+      <PinnedActionFooter
+        hint={
+          actionError ? (
+            <p className="font-medium text-red-600">{actionError}</p>
+          ) : (
+            <p className="text-slate-500">
+              Catat pembayaran akhir sebelum menyelesaikan check-out.
+            </p>
+          )
+        }
+        actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
+        actions={
+          <>
+            <Link
+              href={`/app/fo/folios/${folioId}`}
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full justify-center sm:w-auto",
+              })}
+            >
+              Batal
+            </Link>
+            <Button
+              type="submit"
+              form="final-payment-form"
+              disabled={isPending}
+              className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
+            >
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              {isPending ? "Recording..." : "Record Payment & Continue"}
+            </Button>
+          </>
+        }
+      />
+    </CheckoutPinnedActionFooter>
+    </>
   );
 }
 
@@ -142,6 +190,7 @@ export function CompleteCheckoutForm({
   balance,
 }: CompleteCheckoutFormProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [roomStatusConfirmed, setRoomStatusConfirmed] = useState(true);
   const [folioCloseConfirmed, setFolioCloseConfirmed] = useState(true);
   const [pdfConfirmed, setPdfConfirmed] = useState(true);
@@ -176,8 +225,23 @@ export function CompleteCheckoutForm({
     });
   }
 
+  function focusFirstUnconfirmedStep() {
+    const firstUnconfirmed = formRef.current?.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]:not(:checked)',
+    );
+
+    firstUnconfirmed?.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstUnconfirmed?.focus({ preventScroll: true });
+  }
+
   return (
-    <form id="complete-checkout-form" onSubmit={onSubmit} className="p-5">
+    <>
+      <form
+        id="complete-checkout-form"
+      ref={formRef}
+      onSubmit={onSubmit}
+      className="p-5"
+    >
       <input type="hidden" name="folioId" value={folioId} />
 
       {isCreditBalance ? (
@@ -246,16 +310,59 @@ export function CompleteCheckoutForm({
         </p>
       ) : null}
 
-      <div className="mt-5 flex justify-end border-t border-slate-100 pt-5">
-        <Button
-          type="submit"
-          disabled={!confirmed || isPending}
-          className="disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-        >
-          <Check className="h-4 w-4" aria-hidden="true" />
-          {isPending ? "Completing..." : "Complete Check-Out"}
-        </Button>
-      </div>
     </form>
+
+    <CheckoutPinnedActionFooter>
+      <PinnedActionFooter
+        hint={
+          actionError ? (
+            <p className="font-medium text-red-600">{actionError}</p>
+          ) : !confirmed ? (
+            <p className="font-medium text-red-600">
+              Selesaikan konfirmasi check-out yang belum dicentang.
+            </p>
+          ) : (
+            <p className="text-slate-500">
+              Semua langkah telah dikonfirmasi. Check-out siap diselesaikan.
+            </p>
+          )
+        }
+        actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
+        actions={
+          <>
+            <Link
+              href={`/app/fo/folios/${folioId}`}
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full justify-center sm:w-auto",
+              })}
+            >
+              Batal
+            </Link>
+            {confirmed ? (
+              <Button
+                type="submit"
+                form="complete-checkout-form"
+                disabled={isPending}
+                className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
+              >
+                <Check className="h-4 w-4" aria-hidden="true" />
+                {isPending ? "Completing..." : "Complete Check-Out"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={focusFirstUnconfirmedStep}
+                className="w-full sm:w-auto"
+              >
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Complete Check-Out
+              </Button>
+            )}
+          </>
+        }
+      />
+    </CheckoutPinnedActionFooter>
+    </>
   );
 }

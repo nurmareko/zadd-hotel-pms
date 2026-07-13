@@ -1,6 +1,6 @@
 "use server";
 
-import { ArticleType, FolioStatus } from "@prisma/client";
+import { ArticleType, FolioStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
@@ -66,7 +66,9 @@ export async function postCharge(
   }
 
   const description = parsed.data.description?.trim() || article.name;
-  const amount = parsed.data.quantity * parsed.data.unitPrice;
+  const amount = new Prisma.Decimal(parsed.data.quantity).mul(
+    parsed.data.unitPrice,
+  );
 
   await prisma.folioLineItem.create({
     data: {
@@ -85,7 +87,7 @@ export async function postCharge(
     userId,
     action: "FOLIO_CHARGE_POSTED",
     folioId: folio.id,
-    metadata: { amount },
+    metadata: { amount: amount.toNumber() },
   });
 
   revalidatePath(`/app/fo/folios/${folio.id}`);

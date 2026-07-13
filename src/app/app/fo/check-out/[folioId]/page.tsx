@@ -489,6 +489,8 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
           />
         </aside>
       </div>
+
+      <div id="checkout-pinned-action-footer" className="contents" />
     </main>
   );
 }

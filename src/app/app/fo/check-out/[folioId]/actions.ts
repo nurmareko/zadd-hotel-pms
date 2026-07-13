@@ -128,9 +128,8 @@ export async function recordFinalPayment(
   });
 
   const totals = computeFolioTotals(lineItems, folio.payments, settings);
-  const roundedBalance = Math.round(totals.balance);
 
-  if (roundedBalance <= 0) {
+  if (totals.balance <= 0) {
     return { ok: false, error: "Tagihan sudah lunas" };
   }
 
@@ -253,7 +252,7 @@ export async function completeCheckout(
 
   const totals = computeFolioTotals(lineItems, folio.payments, settings);
 
-  if (Math.round(totals.balance) > 0) {
+  if (totals.balance > 0) {
     revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
     revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
 

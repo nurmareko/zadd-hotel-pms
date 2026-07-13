@@ -115,6 +115,7 @@ const CreateReservationObjectSchema = z.object({
     arrangementType: z.nativeEnum(ArrangementType),
     deposit: z.coerce
       .number("Deposit is required")
+      .int("Deposit must be whole rupiah")
       .min(0, "Deposit cannot be negative"),
     notes: OptionalTextSchema,
 });

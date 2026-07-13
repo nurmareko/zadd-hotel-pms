@@ -47,13 +47,13 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const reservationBarColors = {
   CONFIRMED: {
     label: "Confirmed",
-    bgColor: reservationStatusColors.CONFIRMED.backgroundColor,
-    textColor: reservationStatusColors.CONFIRMED.foregroundColor,
+    bgColor: "#f97316",
+    textColor: "#ffffff",
   },
   CHECKED_IN: {
     label: "Checked-in",
-    bgColor: reservationStatusColors.CHECKED_IN.backgroundColor,
-    textColor: reservationStatusColors.CHECKED_IN.foregroundColor,
+    bgColor: "#047857",
+    textColor: "#ffffff",
   },
   CHECKED_OUT: {
     label: "Checked-out",

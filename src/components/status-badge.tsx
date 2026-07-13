@@ -35,7 +35,7 @@ export function StatusBadge({
     ? ({
         backgroundColor: reservationColors.mutedBackgroundColor,
         borderColor: reservationColors.backgroundColor,
-        color: reservationColors.backgroundColor,
+        color: reservationColors.badgeForegroundColor,
       } satisfies CSSProperties)
     : undefined;
   const reservationPipStyle = reservationColors

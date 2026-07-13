@@ -1,8 +1,9 @@
-import { ArticleType, FolioStatus } from "@prisma/client";
-import { Download } from "lucide-react";
+import { ArticleType, FolioStatus, ReservationStatus } from "@prisma/client";
+import { ChevronDown, Download } from "lucide-react";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { folioBalanceState } from "@/lib/folio-balance-display";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { formatCompactDateID, formatDayOfMonthID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -113,6 +114,11 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
   }
 
   const totals = computeFolioTotals(folio.lineItems, folio.payments, settings);
+  const hasBalanceDue = folioBalanceState(totals.balance) === "due";
+  const canContinueToCheckout =
+    folio.status === FolioStatus.OPEN &&
+    folio.reservation.status === ReservationStatus.CHECKED_IN &&
+    !hasBalanceDue;
   const chargeArticles = articles.map((article) => ({
     ...article,
     defaultPrice:
@@ -136,32 +142,55 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Link
-                      href={`/api/folios/${folio.id}/bill`}
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            PDF Bill
-          </Link>
-          <a
-                      href={`/api/reservations/${folio.reservationId}/grc`}
-                      download
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Cetak GRC
-          </a>
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           <AddChargeDialog
             folioId={folio.id}
             articles={chargeArticles}
             disabled={folio.status !== FolioStatus.OPEN}
+            variant="outline"
           />
-          <RecordPaymentDialog
-            folioId={folio.id}
-            balance={totals.balance}
-            disabled={folio.status !== FolioStatus.OPEN}
-          />
+          <details className="group relative">
+            <summary
+              className={`${buttonVariants({ variant: "outline" })} cursor-pointer list-none group-open:bg-slate-50 [&::-webkit-details-marker]:hidden`}
+            >
+              Ekspor
+              <ChevronDown aria-hidden="true" />
+            </summary>
+            <div className="absolute right-0 z-10 mt-2 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md">
+              <a
+                href={`/api/folios/${folio.id}/bill`}
+                className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-slate-900 hover:bg-slate-50 desktop:min-h-10"
+              >
+                <Download aria-hidden="true" />
+                PDF Bill
+              </a>
+              <a
+                href={`/api/reservations/${folio.reservationId}/grc`}
+                download
+                className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-slate-900 hover:bg-slate-50 desktop:min-h-10"
+              >
+                <Download aria-hidden="true" />
+                Cetak GRC
+              </a>
+            </div>
+          </details>
+          {hasBalanceDue && folio.status === FolioStatus.OPEN ? (
+            <div className="order-first sm:order-none">
+              <RecordPaymentDialog
+                folioId={folio.id}
+                balance={totals.balance}
+                disabled={false}
+              />
+            </div>
+          ) : null}
+          {canContinueToCheckout ? (
+            <Link
+              href={`/app/fo/check-out/${folio.id}`}
+              className={`${buttonVariants({ variant: "default" })} order-first sm:order-none`}
+            >
+              Lanjut ke Check-Out
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -173,9 +202,6 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
         <aside className="flex min-w-0 flex-col gap-3">
           <FolioHeader folio={folio} />
           <FolioSummary
-            folioId={folio.id}
-            status={folio.status}
-            reservationStatus={folio.reservation.status}
             totals={totals}
           />
         </aside>

@@ -437,14 +437,14 @@ Required structure:
 - Container: card surface with no dark header and internal scrolling.
 - Scroll behavior: horizontal and vertical scrolling are expected on desktop because the date grid is inherently wide; sticky cells stay anchored.
 
-Reservation bar colors:
+Reservation bar colors use darker, high-contrast fills than room-status chips so guest names remain easy to scan across the date grid. Use white text on every bar.
 
-| Reservation state | Color |
-|---|---|
-| Confirmed | Amber `#F59E0B` |
-| Checked-in | Green `#22C55E` |
-| Checked-out | Gray `#64748B` |
-| Unallocated | Blue `#3B82F6` |
+| Reservation state | Background | Text |
+|---|---|---|
+| Confirmed | Orange `#F97316` | White `#FFFFFF` |
+| Checked-in | Dark green `#047857` | White `#FFFFFF` |
+| Checked-out | Gray `#64748B` | White `#FFFFFF` |
+| Unallocated | Blue `#2563EB` | White `#FFFFFF` |
 
 ### F&B Floor Plan And Table Layout Editor
 

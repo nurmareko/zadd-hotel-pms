@@ -56,6 +56,7 @@ const MoneySchema = z.preprocess(
       : value,
   z.coerce
     .number("Jumlah deposit harus berupa angka")
+    .int("Jumlah deposit harus dalam rupiah utuh")
     .min(0, "Jumlah deposit tidak boleh negatif"),
 );
 

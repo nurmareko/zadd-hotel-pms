@@ -343,10 +343,12 @@ export default async function ReservationDetailPage({
                 </a>
               ) : null}
               {canCancel ? (
-                <CancelReservationDialog
-                  reservationId={reservation.id}
-                  reservationNo={reservation.reservationNo}
-                />
+                <div className="border-t border-slate-200 pt-2 sm:ml-1 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                  <CancelReservationDialog
+                    reservationId={reservation.id}
+                    reservationNo={reservation.reservationNo}
+                  />
+                </div>
               ) : null}
               {canRequestCleaning ? (
                 <RequestCleaningButton
@@ -377,6 +379,7 @@ export default async function ReservationDetailPage({
               reservationId={reservation.id}
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
               submitLabel="Simpan Perubahan"
+              readOnlyRateAmount={reservation.rateAmount.toString()}
               viewFooterActions={
                 formMode === "view" ? (
                   <>
