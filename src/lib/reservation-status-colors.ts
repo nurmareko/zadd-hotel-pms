@@ -2,24 +2,28 @@ import type { ReservationStatus } from "@prisma/client";
 
 export const reservationStatusColors = {
   CONFIRMED: {
-    backgroundColor: "#f97316",
-    foregroundColor: "#ffffff",
-    mutedBackgroundColor: "#fff7ed",
+    backgroundColor: "var(--status-vd)",
+    foregroundColor: "var(--slate-900)",
+    mutedBackgroundColor: "var(--status-vd-bg)",
+    badgeForegroundColor: "var(--status-vd-fg)",
   },
   CHECKED_IN: {
-    backgroundColor: "#047857",
-    foregroundColor: "#ffffff",
-    mutedBackgroundColor: "#ecfdf5",
+    backgroundColor: "var(--status-vc)",
+    foregroundColor: "var(--slate-900)",
+    mutedBackgroundColor: "var(--status-vc-bg)",
+    badgeForegroundColor: "var(--status-vc-fg)",
   },
   CHECKED_OUT: {
-    backgroundColor: "#64748b",
+    backgroundColor: "var(--status-oos)",
     foregroundColor: "#ffffff",
-    mutedBackgroundColor: "#f1f5f9",
+    mutedBackgroundColor: "var(--status-oos-bg)",
+    badgeForegroundColor: "var(--status-oos-fg)",
   },
   CANCELLED: {
     backgroundColor: "var(--destructive)",
     foregroundColor: "#ffffff",
     mutedBackgroundColor: "#fef2f2",
+    badgeForegroundColor: "var(--status-ooo-fg)",
   },
 } as const satisfies Partial<Record<ReservationStatus, ReservationStatusColor>>;
 
@@ -29,6 +33,7 @@ type ReservationStatusColor = {
   backgroundColor: string;
   foregroundColor: string;
   mutedBackgroundColor: string;
+  badgeForegroundColor: string;
 };
 
 export function hasSharedReservationStatusColor(

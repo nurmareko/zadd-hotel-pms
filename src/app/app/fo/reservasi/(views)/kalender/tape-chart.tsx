@@ -62,8 +62,8 @@ const reservationBarColors = {
   },
   UNALLOCATED: {
     label: "Unallocated",
-    bgColor: "#2563eb",
-    textColor: "#ffffff",
+    bgColor: "var(--status-oc)",
+    textColor: "var(--slate-900)",
   },
 } as const;
 

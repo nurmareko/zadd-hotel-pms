@@ -79,6 +79,7 @@ type ReservationFormProps = {
   returnHref?: string;
   submitLabel?: string;
   viewFooterActions?: ReactNode;
+  readOnlyRateAmount?: string;
 };
 
 const fieldScrollMarginClassName = "scroll-mt-24 scroll-mb-40";
@@ -148,6 +149,42 @@ function SummaryRow({
       </span>
       <span className="text-right font-medium text-slate-900">{value}</span>
     </div>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 wrap-break-word whitespace-pre-wrap text-sm font-medium text-slate-900">
+        {value || "—"}
+      </dd>
+    </div>
+  );
+}
+
+function ReadOnlySection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <h2 className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700">
+        {title}
+      </h2>
+      <dl className="grid gap-x-6 gap-y-4 p-5 sm:grid-cols-2">{children}</dl>
+    </section>
   );
 }
 
@@ -259,6 +296,7 @@ export function ReservationForm({
   returnHref = FO_RESERVASI_VIEW_PATHS.list,
   submitLabel = "Simpan Reservasi",
   viewFooterActions,
+  readOnlyRateAmount,
 }: ReservationFormProps) {
   const hasMountedRoomValidation = useRef(false);
   const isViewMode = mode === "view";
@@ -407,6 +445,130 @@ export function ReservationForm({
 
       toast.error(message);
     }
+  }
+
+  if (isViewMode) {
+    const roomValue = watchedRoomRows[0];
+    const roomType = roomTypes.find(
+      (option) => option.id === Number(roomValue?.roomTypeId || 0),
+    );
+    const allocatedRoom = rooms.find(
+      (option) => option.id === Number(roomValue?.roomId || 0),
+    );
+    const reservationTypeLabel =
+      reservationTypeOptions.find(
+        (option) => option.value === defaultValues.reservationType,
+      )?.label ?? defaultValues.reservationType;
+    const arrangementTypeLabel =
+      arrangementTypeOptions.find(
+        (option) => option.value === defaultValues.arrangementType,
+      )?.label ?? defaultValues.arrangementType;
+    const totalDeposit = Number.isFinite(depositAmount)
+      ? depositAmount * watchedRoomRows.length
+      : 0;
+
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-4 xl:grid-cols-2">
+          <ReadOnlySection title="Data Tamu">
+            <ReadOnlyField label="Nama Lengkap" value={defaultValues.fullName} />
+            <ReadOnlyField
+              label="Nomor Identitas"
+              value={defaultValues.idNumber}
+            />
+            <ReadOnlyField label="Telepon" value={defaultValues.phone} />
+            <ReadOnlyField label="Email" value={defaultValues.email} />
+            <ReadOnlyField
+              label="Kewarganegaraan"
+              value={defaultValues.nationality}
+            />
+            <ReadOnlyField
+              label="Alamat"
+              value={defaultValues.address}
+              wide
+            />
+            <ReadOnlyField
+              label="Catatan"
+              value={defaultValues.notes}
+              wide
+            />
+          </ReadOnlySection>
+
+          <ReadOnlySection title="Masa Menginap">
+            <ReadOnlyField
+              label="Tipe Reservasi"
+              value={reservationTypeLabel}
+            />
+            <ReadOnlyField
+              label="Tipe Arrangement"
+              value={arrangementTypeLabel}
+            />
+            <ReadOnlyField
+              label="Check-in"
+              value={defaultValues.arrivalDate}
+            />
+            <ReadOnlyField
+              label="Check-out"
+              value={defaultValues.departureDate}
+            />
+            <ReadOnlyField
+              label="Durasi"
+              value={`${nights} malam`}
+            />
+          </ReadOnlySection>
+
+          <ReadOnlySection title="Kamar">
+            <ReadOnlyField
+              label="Tipe Kamar"
+              value={
+                roomType ? `${roomType.code} — ${roomType.name}` : "Belum dipilih"
+              }
+            />
+            <ReadOnlyField
+              label="Nomor Kamar"
+              value={
+                allocatedRoom
+                  ? `${allocatedRoom.number} · Lantai ${allocatedRoom.floor}`
+                  : "Belum dialokasikan"
+              }
+            />
+            <ReadOnlyField
+              label="Dewasa"
+              value={roomValue?.adults ?? defaultValues.adults}
+            />
+            <ReadOnlyField
+              label="Anak"
+              value={roomValue?.children ?? defaultValues.children}
+            />
+            <ReadOnlyField
+              label="Kapasitas Tipe"
+              value={roomType ? `${roomType.capacity} tamu` : "—"}
+            />
+          </ReadOnlySection>
+
+          <ReadOnlySection title="Informasi Finansial">
+            <ReadOnlyField
+              label="Tarif Reservasi / Malam"
+              value={
+                readOnlyRateAmount ? formatIDR(readOnlyRateAmount) : "—"
+              }
+            />
+            <ReadOnlyField label="Deposit" value={formatIDR(totalDeposit)} />
+          </ReadOnlySection>
+        </div>
+
+        {showFooter ? (
+          <PinnedActionFooter
+            hint={
+              <p className="text-slate-500">
+                Data reservasi ditampilkan dalam mode lihat.
+              </p>
+            }
+            actions={viewFooterActions}
+          />
+        ) : null}
+      </div>
+    );
   }
 
   return (

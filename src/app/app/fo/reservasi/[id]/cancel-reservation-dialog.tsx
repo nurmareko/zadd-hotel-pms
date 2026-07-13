@@ -47,7 +47,7 @@ export function CancelReservationDialog({
   return (
     <AlertDialog>
       <AlertDialogTrigger
-              className={buttonVariants({ variant: "outline" })}
+        className={buttonVariants({ variant: "destructive" })}
         disabled={isPending}
         type="button"
       >
@@ -64,14 +64,11 @@ export function CancelReservationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel
-                      className={buttonVariants({ variant: "outline" })}
-            disabled={isPending}
-          >
+          <AlertDialogCancel disabled={isPending}>
             Batal
           </AlertDialogCancel>
           <AlertDialogAction
-                      className={buttonVariants({ variant: "destructive" })}
+            variant="destructive"
             disabled={isPending}
             onClick={handleCancel}
             type="button"

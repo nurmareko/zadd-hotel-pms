@@ -176,8 +176,14 @@ function GroupRows({ group }: { group: ReservationGroup }) {
             <td className="border-b border-slate-100 px-4 py-3">
               <ReservationStatusBadge status={row.status} />
             </td>
-            <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
-              {row.guestName}
+            <td className="border-b border-slate-100 p-0">
+              <Link
+                href={href}
+                aria-label={`Buka reservasi ${row.reservationNo} untuk ${row.guestName}`}
+                className="flex min-h-11 items-center px-4 py-3 font-semibold text-slate-900 outline-none transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500"
+              >
+                {row.guestName}
+              </Link>
             </td>
             <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
               <div className="flex flex-col gap-1">
