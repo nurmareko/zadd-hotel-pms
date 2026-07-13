@@ -45,15 +45,15 @@ export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
       </div>
 
       <Tabs defaultValue="list">
-        <TabsList className="mb-4 h-auto rounded-none border-b border-border bg-transparent p-0">
+        <TabsList className="mb-4 h-auto rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
           <TabsTrigger
-            className="rounded-none border-b-2 border-transparent bg-transparent px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="rounded-md bg-transparent px-3 py-2 text-sm font-semibold text-slate-500 shadow-none transition-colors hover:bg-slate-50 hover:text-slate-900 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
             value="list"
           >
             Daftar Meja ({tables.length})
           </TabsTrigger>
           <TabsTrigger
-            className="ml-5 rounded-none border-b-2 border-transparent bg-transparent px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="rounded-md bg-transparent px-3 py-2 text-sm font-semibold text-slate-500 shadow-none transition-colors hover:bg-slate-50 hover:text-slate-900 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
             value="layout"
           >
             Layout

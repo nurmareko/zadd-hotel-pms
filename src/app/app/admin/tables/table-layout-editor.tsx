@@ -7,7 +7,6 @@ import { Rnd } from "react-rnd";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   RESTAURANT_FLOOR_CANVAS_HEIGHT,
   RESTAURANT_FLOOR_CANVAS_WIDTH,
@@ -36,7 +35,7 @@ type TableLayoutEditorProps = {
 type PositionOverrides = Record<number, { posX: number; posY: number }>;
 
 const tableBoxClassName =
-  "flex h-full w-full cursor-move select-none flex-col items-center justify-center border border-primary bg-card text-foreground shadow-[2px_2px_0_#111827] focus-within:outline-none";
+  "flex h-full w-full cursor-move select-none flex-col items-center justify-center rounded-md border border-gray-200 bg-white text-slate-900 shadow-sm transition-shadow hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2";
 
 const locationTabs = Object.values(TableLocation);
 
@@ -116,10 +115,10 @@ export function RestaurantTableLayoutEditor({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card">
-      <div className="flex flex-col gap-3 border-b border-border bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-gray-200 p-4 md:flex-row md:items-center md:justify-between md:p-5">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-foreground">
+          <h2 className="text-xl font-semibold text-slate-900">
             Floor Layout
           </h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -130,25 +129,25 @@ export function RestaurantTableLayoutEditor({
         </div>
         <Button
           type="button"
-          className="h-8 rounded-none border-primary bg-card px-3 text-sm font-semibold uppercase tracking-[0.04em] text-primary hover:bg-slate-800 hover:text-primary"
+          className="h-10 px-4"
           disabled={isArranging}
           onClick={handleAutoArrange}
         >
-          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
           {isArranging ? "Arranging..." : "Auto-arrange"}
         </Button>
       </div>
 
-      <div className="border-b border-border px-3.5">
-        <div className="flex gap-5" role="tablist" aria-label="Lokasi meja">
+      <div className="border-b border-gray-200 px-4 py-3 md:px-5">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Lokasi meja">
           {locationTabs.map((location) => (
             <button
               key={location}
               type="button"
-              className={`border-b-2 px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] ${
+              className={`rounded-md px-3 py-2 text-sm font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 ${
                 selectedLocation === location
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-slate-500 hover:text-foreground"
+                  ? "bg-slate-100 text-slate-900"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               }`}
               role="tab"
               aria-selected={selectedLocation === location}
@@ -160,21 +159,24 @@ export function RestaurantTableLayoutEditor({
         </div>
       </div>
 
-      <div className="overflow-auto p-3.5">
+      <div className="overflow-auto p-4 md:p-5">
         <div
-          className="relative border border-dashed border-border bg-slate-50"
+          className="relative rounded-lg border border-gray-200 bg-slate-50 shadow-inner"
           style={{
             width: RESTAURANT_FLOOR_CANVAS_WIDTH,
             height: RESTAURANT_FLOOR_CANVAS_HEIGHT,
           }}
         >
           {selectedTables.length === 0 ? (
-            <EmptyState
-              icon={Table2}
-              title="Belum ada meja di area ini"
-              description="Pindahkan atau tambahkan meja untuk mengatur layout area ini."
-              className="absolute left-4 top-4 min-h-0 items-start px-3 py-2 text-left"
-            />
+            <div className="absolute left-4 top-4 max-w-xs rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm">
+              <Table2 className="h-5 w-5 text-slate-400" aria-hidden="true" />
+              <h3 className="mt-3 text-sm font-semibold text-slate-900">
+                Belum ada meja di area ini
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Pindahkan atau tambahkan meja untuk mengatur layout area ini.
+              </p>
+            </div>
           ) : null}
 
           {selectedTables.map((table) => (
@@ -200,11 +202,11 @@ export function RestaurantTableLayoutEditor({
                 <span className="num text-[17px] font-bold leading-none">
                   {table.number}
                 </span>
-                <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+                <span className="mt-1 text-[10px] font-semibold text-slate-500">
                   {table.capacity} pax
                 </span>
                 {savingTableId === table.id ? (
-                  <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-primary">
+                  <span className="mt-1 text-[9px] font-semibold text-slate-500">
                     Saving
                   </span>
                 ) : null}
