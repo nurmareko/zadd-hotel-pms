@@ -1,6 +1,7 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { Grc } from "@/lib/pdf/grc";
 import { prisma } from "@/lib/prisma";
 
@@ -42,6 +43,10 @@ export async function GET(
         },
         room: { select: { number: true } },
         roomType: { select: { name: true } },
+        reservationNights: {
+          select: { date: true, rateAmount: true },
+          orderBy: { date: "asc" },
+        },
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
@@ -55,9 +60,16 @@ export async function GET(
     return new Response("Hotel settings not found", { status: 500 });
   }
 
+  const stayTotal = flatReservationNightStayTotal({
+    arrivalDate: reservation.arrivalDate,
+    departureDate: reservation.departureDate,
+    rateAmount: reservation.rateAmount,
+    reservationNights: reservation.reservationNights,
+  });
   const grcDocument = Grc({
     folio: reservation.folio,
     reservation,
+    stayTotal,
     guest: reservation.guest,
     room: reservation.room,
     roomType: reservation.roomType,

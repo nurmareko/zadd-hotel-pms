@@ -25,7 +25,6 @@ type GrcProps = {
     departureDate: Date;
     arrangementType: string;
     reservationType: string;
-    rateAmount: StringableDecimal;
     adults: number;
     children: number;
     purposeOfVisit: string | null;
@@ -35,6 +34,13 @@ type GrcProps = {
     createdBy: {
       fullName: string;
     };
+  };
+  stayTotal: {
+    total: StringableDecimal;
+    nightlySchedule: Array<{
+      date: Date;
+      rateAmount: StringableDecimal;
+    }>;
   };
   guest: {
     fullName: string;
@@ -128,6 +134,21 @@ const styles = StyleSheet.create({
     borderTopColor: printColors.rule,
     paddingTop: 5,
   },
+  nightlyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: printColors.rule,
+    paddingVertical: 5,
+  },
+  nightlyDate: {
+    ...printStyles.fieldValue,
+  },
+  nightlyRate: {
+    ...printStyles.fieldValue,
+    textAlign: "right",
+  },
 });
 
 function dateLabel(date: Date) {
@@ -150,6 +171,7 @@ function Field({ label, value }: { label: string; value: string }) {
 export function Grc({
   folio,
   reservation,
+  stayTotal,
   guest,
   room,
   roomType,
@@ -216,11 +238,31 @@ export function Grc({
             <Field label="Room" value={roomNumber} />
             <Field label="Room Type" value={roomType.name} />
             <Field
-              label="Rate"
-              value={formatIDR(reservation.rateAmount.toString())}
+              label="Stay Total"
+              value={formatIDR(stayTotal.total.toString())}
             />
             <Field label="Adults" value={String(reservation.adults)} />
             <Field label="Children" value={String(reservation.children)} />
+          </View>
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.blockHeader}>{"NIGHTLY SCHEDULE"}</Text>
+          <View style={styles.blockBody}>
+            {stayTotal.nightlySchedule.length > 0 ? (
+              stayTotal.nightlySchedule.map((night) => (
+                <View key={night.date.toISOString()} style={styles.nightlyRow}>
+                  <Text style={styles.nightlyDate}>{dateLabel(night.date)}</Text>
+                  <Text style={styles.nightlyRate}>
+                    {formatIDR(night.rateAmount.toString())}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.muted}>
+                Snapshot malam tidak tersedia; total menggunakan tarif flat.
+              </Text>
+            )}
           </View>
         </View>
 

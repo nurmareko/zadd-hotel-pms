@@ -27,7 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
-import { formatIDR } from "@/lib/format";
+import { formatDateID, formatIDR } from "@/lib/format";
+import { dateOnlyRange } from "@/lib/stay-date-range";
 import {
   FO_RESERVASI_VIEW_PATHS,
   type FoReservasiView,
@@ -45,6 +46,7 @@ type RoomTypeOption = {
   name: string;
   capacity: number;
   baseRate: string;
+  nightlyRateQuote: string;
 };
 
 type RoomOption = {
@@ -79,7 +81,8 @@ type ReservationFormProps = {
   returnHref?: string;
   submitLabel?: string;
   viewFooterActions?: ReactNode;
-  readOnlyRateAmount?: string;
+  readOnlyStayTotal?: string;
+  readOnlyNightlySchedule?: Array<{ date: string; rateAmount: string }>;
 };
 
 const fieldScrollMarginClassName = "scroll-mt-24 scroll-mb-40";
@@ -296,7 +299,8 @@ export function ReservationForm({
   returnHref = FO_RESERVASI_VIEW_PATHS.list,
   submitLabel = "Simpan Reservasi",
   viewFooterActions,
-  readOnlyRateAmount,
+  readOnlyStayTotal,
+  readOnlyNightlySchedule = [],
 }: ReservationFormProps) {
   const hasMountedRoomValidation = useRef(false);
   const isViewMode = mode === "view";
@@ -336,13 +340,27 @@ export function ReservationForm({
   const nights = nightsBetween(arrivalDate, departureDate);
   const minDeparture = arrivalDate ? dayAfter(arrivalDate) : undefined;
   const depositAmount = Number(depositValue || 0);
-  const roomSubtotal = watchedRoomRows.reduce((total, room) => {
+  const quotedStayDates = useMemo(
+    () => dateOnlyRange(arrivalDate, departureDate),
+    [arrivalDate, departureDate],
+  );
+  const quotedRoomSubtotal = watchedRoomRows.reduce((total, room) => {
     const roomType = roomTypes.find(
       (option) => option.id === Number(room.roomTypeId || 0),
     );
+    const nightlyQuote = roomType
+      ? quotedStayDates.map((date) => ({
+          date,
+          rateAmount: roomType.nightlyRateQuote,
+        }))
+      : [];
 
-    return total + (roomType ? Number(roomType.baseRate) * nights : 0);
+    return total + nightlyQuote.reduce((sum, night) => sum + Number(night.rateAmount), 0);
   }, 0);
+  const roomSubtotal =
+    !isCreateMode && readOnlyStayTotal
+      ? Number(readOnlyStayTotal)
+      : quotedRoomSubtotal;
   const firstSelectedRoomTypeId = Number(watchedRoomRows[0]?.roomTypeId || 0);
   const firstRoomOptions = getRoomOptions({
     activeReservations,
@@ -548,12 +566,30 @@ export function ReservationForm({
 
           <ReadOnlySection title="Informasi Finansial">
             <ReadOnlyField
-              label="Tarif Reservasi / Malam"
+              label="Total Menginap"
               value={
-                readOnlyRateAmount ? formatIDR(readOnlyRateAmount) : "—"
+                readOnlyStayTotal ? formatIDR(readOnlyStayTotal) : "—"
               }
             />
             <ReadOnlyField label="Deposit" value={formatIDR(totalDeposit)} />
+          </ReadOnlySection>
+
+          <ReadOnlySection title="Rincian Tarif per Malam">
+            {readOnlyNightlySchedule.length > 0 ? (
+              readOnlyNightlySchedule.map((night) => (
+                <ReadOnlyField
+                  key={night.date}
+                  label={formatDateID(new Date(`${night.date}T00:00:00.000Z`))}
+                  value={formatIDR(night.rateAmount)}
+                />
+              ))
+            ) : (
+              <ReadOnlyField
+                label="Jadwal malam"
+                value="Snapshot malam tidak tersedia; total menggunakan tarif flat."
+                wide
+              />
+            )}
           </ReadOnlySection>
         </div>
 

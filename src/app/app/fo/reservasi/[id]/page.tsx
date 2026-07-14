@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { prisma } from "@/lib/prisma";
 import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
@@ -202,6 +203,10 @@ export default async function ReservationDetailPage({
         room: { select: { number: true, status: true } },
         roomType: { select: { name: true } },
         folio: { select: { id: true } },
+        reservationNights: {
+          select: { date: true, rateAmount: true },
+          orderBy: { date: "asc" },
+        },
       },
     }),
     prisma.roomType.findMany({
@@ -294,6 +299,12 @@ export default async function ReservationDetailPage({
     deposit: reservation.deposit.toString(),
     notes: reservation.notes ?? "",
   };
+  const stayTotal = flatReservationNightStayTotal({
+    arrivalDate: reservation.arrivalDate,
+    departureDate: reservation.departureDate,
+    rateAmount: reservation.rateAmount,
+    reservationNights: reservation.reservationNights,
+  });
   const allocatedActiveReservations = activeReservations.flatMap(
     (activeReservation) =>
       activeReservation.roomId === null
@@ -372,6 +383,7 @@ export default async function ReservationDetailPage({
               roomTypes={roomTypes.map((roomType) => ({
                 ...roomType,
                 baseRate: roomType.baseRate.toString(),
+                nightlyRateQuote: roomType.baseRate.toString(),
               }))}
               rooms={rooms}
               activeReservations={allocatedActiveReservations}
@@ -379,7 +391,11 @@ export default async function ReservationDetailPage({
               reservationId={reservation.id}
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
               submitLabel="Simpan Perubahan"
-              readOnlyRateAmount={reservation.rateAmount.toString()}
+              readOnlyStayTotal={stayTotal.total.toString()}
+              readOnlyNightlySchedule={stayTotal.nightlySchedule.map((night) => ({
+                date: toDateInputValue(night.date),
+                rateAmount: night.rateAmount.toString(),
+              }))}
               viewFooterActions={
                 formMode === "view" ? (
                   <>
