@@ -73,7 +73,7 @@ type CheckInFormProps = {
   arrivalLabel: string;
   departureLabel: string;
   nights: number;
-  totalStay: number;
+  totalStay: string;
   assignedRoomId: number | null;
   assignedRoomNumber: string | null;
   existingDeposit: string;

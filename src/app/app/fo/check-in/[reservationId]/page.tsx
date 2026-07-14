@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { CheckInForm } from "./check-in-form";
@@ -89,6 +90,10 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
       },
       room: { select: { id: true, number: true } },
       roomType: { select: { id: true, code: true, name: true } },
+      reservationNights: {
+        select: { date: true, rateAmount: true },
+        orderBy: { date: "asc" },
+      },
     },
   });
 
@@ -170,8 +175,12 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     reservation.departureDate,
     reservation.arrivalDate,
   );
-  const rateAmount = reservation.rateAmount.toString();
-  const totalStay = Number(rateAmount) * nights;
+  const stayTotal = flatReservationNightStayTotal({
+    arrivalDate: reservation.arrivalDate,
+    departureDate: reservation.departureDate,
+    rateAmount: reservation.rateAmount,
+    reservationNights: reservation.reservationNights,
+  });
   const arrivalLabel = dateLabel(reservation.arrivalDate);
   const departureLabel = dateLabel(reservation.departureDate);
 
@@ -221,7 +230,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
           arrivalLabel={arrivalLabel}
           departureLabel={departureLabel}
           nights={nights}
-          totalStay={totalStay}
+          totalStay={stayTotal.total.toString()}
           assignedRoomId={reservation.roomId}
           assignedRoomNumber={reservation.room?.number ?? null}
           existingDeposit={reservation.deposit.toString()}

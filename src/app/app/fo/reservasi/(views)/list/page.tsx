@@ -1,6 +1,7 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
-import { addDays, differenceInCalendarDays } from "date-fns";
+import { addDays } from "date-fns";
 
+import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatISODate } from "@/lib/format";
@@ -106,6 +107,20 @@ export default async function ReservationListPage({
     }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
+  const reservationIds = reservations.map((reservation) => reservation.id);
+  const nightlyTotals = reservationIds.length
+    ? await prisma.reservationNight.groupBy({
+        by: ["reservationId"],
+        where: { reservationId: { in: reservationIds } },
+        _count: { _all: true },
+        _sum: { rateAmount: true },
+        _min: { date: true },
+        _max: { date: true },
+      })
+    : [];
+  const nightlyTotalByReservationId = new Map(
+    nightlyTotals.map((total) => [total.reservationId, total]),
+  );
   const groupBookingIds = Array.from(
     new Set(
       reservations.flatMap((reservation) =>
@@ -134,14 +149,22 @@ export default async function ReservationListPage({
   let currentGroup: ReservationGroup | undefined;
 
   for (const reservation of reservations) {
-    const nights = Math.max(
-      1,
-      differenceInCalendarDays(
-        reservation.departureDate,
-        reservation.arrivalDate,
-      ),
+    const nightlySummary = nightlyTotalByReservationId.get(reservation.id);
+    const total = Number(
+      flatReservationNightSummaryTotal({
+        arrivalDate: reservation.arrivalDate,
+        departureDate: reservation.departureDate,
+        rateAmount: reservation.rateAmount,
+        summary: nightlySummary
+          ? {
+              count: nightlySummary._count._all,
+              total: nightlySummary._sum.rateAmount,
+              firstDate: nightlySummary._min.date,
+              lastDate: nightlySummary._max.date,
+            }
+          : undefined,
+      }).toString(),
     );
-    const total = Number(reservation.rateAmount) * nights;
     const outstanding = reservation.folio
       ? roundedFolioBalance(
           computeFolioTotals(

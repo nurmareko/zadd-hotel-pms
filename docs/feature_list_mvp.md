@@ -1,8 +1,8 @@
 # Feature List (MVP)
 
-What we're building in the MVP, grouped by module. Features deferred to later releases are listed at the end with rationale.
+What we're building in the MVP, grouped by module. In-progress and deferred features are listed at the end with their current status or rationale.
 
-Last updated: 2026-06-07.
+Last updated: 2026-07-14.
 
 ---
 
@@ -84,6 +84,17 @@ Shared access features used by all role workspaces.
 
 ---
 
+## In Progress
+
+Work that has an approved design contract and is being prepared for implementation; it is not shipped functionality yet.
+
+| Feature | Module | Status / reference |
+|---|---|---|
+| Dynamic / adjustable room pricing | Front Office | In progress. The approved per-night pricing, locking, modification, and cutover semantics are defined in [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
+| ARR (Average Room Rate) | Accounting | In progress. ARR recognition, paid-night denominator, COMP exclusion, and pre-cutover handling are defined in [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
+
+---
+
 ## Deferred Features
 
 Identified during requirements gathering but deferred to later releases. The current scope prioritizes shipping the core operational flow — reservation → check-in → stay → charge → check-out → daily close — at production quality over a larger surface of partial features.
@@ -96,7 +107,6 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Multi-outlet F&B | F&B | One outlet (hotel restaurant) is enough for the early praktikum. |
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
 | Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |
-| Dynamic rate plans with date validity and segment | Front Office | MVP uses a fixed rate per room type. |
 | FO Reports: departures due today queue | Front Office | Rebuild the removed dashboard queue as a real departure-date view for checked-in reservations departing today, with folio balance and Check-out link. Current Reservation List filters `arrivalDate`, not `departureDate`, so this needs a dedicated report/query. |
 | FO Reports: occupancy KPI | Front Office | Rebuild the removed dashboard KPI as `% of OC / non-OOO rooms` in a future Front Office Reports page. |
 | Multi-role per account | Auth | Each praktikum account is limited to one role to simplify access control. |

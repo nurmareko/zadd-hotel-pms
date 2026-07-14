@@ -19,6 +19,7 @@ import { compare, hash } from "bcryptjs";
 import { addDays, format, subHours, subMinutes } from "date-fns";
 
 import { computeFolioTotals } from "@/lib/folio-totals";
+import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
   dateOnlyBoundary,
   hotelTodayDateOnly,
@@ -1402,6 +1403,24 @@ async function main() {
           createdById: createdBy.id,
         },
       });
+
+      // Demo reservations are a deterministic fixture. Regenerate their local
+      // schedule after the upsert so repeated db:demo runs cannot leave nights
+      // at a prior fixture date or rate. This is never used by the additive
+      // production legacy-backfill operation.
+      await prisma.$transaction([
+        prisma.reservationNight.deleteMany({
+          where: { reservationId: seededReservation.id },
+        }),
+        prisma.reservationNight.createMany({
+          data: createReservationNightSchedule({
+            reservationId: seededReservation.id,
+            arrivalDate,
+            departureDate,
+            rateAmount: seededReservation.rateAmount,
+          }),
+        }),
+      ]);
 
       if (hasCompletedGrc && !room) {
         throw new Error(`${reservation.reservationNo} needs an assigned room.`);

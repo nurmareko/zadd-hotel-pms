@@ -15,6 +15,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
   FO_RESERVASI_VIEW_COOKIE,
   FO_RESERVASI_VIEW_PATHS,
@@ -132,6 +133,8 @@ function sameDateOnly(left: Date, right: Date) {
     formatISO(dateOnlyBoundary(right), { representation: "date" })
   );
 }
+
+
 
 async function validateReservationRoomAssignment(
   tx: Prisma.TransactionClient,
@@ -350,6 +353,15 @@ async function runCreateReservationTransaction(
           select: { id: true },
         });
 
+        await tx.reservationNight.createMany({
+          data: createReservationNightSchedule({
+            reservationId: reservation.id,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+            rateAmount: roomType.baseRate,
+          }),
+        });
+
         reservationIds.push(reservation.id);
       }
 
@@ -377,6 +389,14 @@ async function runUpdateReservationTransaction(
           arrivalDate: true,
           departureDate: true,
           status: true,
+          folio: {
+            select: {
+              lineItems: {
+                take: 1,
+                select: { id: true },
+              },
+            },
+          },
         },
       });
 
@@ -405,12 +425,37 @@ async function runUpdateReservationTransaction(
       }
 
       const { roomType, room } = validatedAssignment.assignment;
-      const stayChanged =
+      const isPricingRelevant =
         existingReservation.roomTypeId !== input.roomTypeId ||
         !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
         !sameDateOnly(existingReservation.departureDate, input.departureDate);
 
-      if (stayChanged) {
+      if (isPricingRelevant) {
+        if (existingReservation.status === ReservationStatus.CHECKED_IN) {
+          return {
+            ok: false as const,
+            error:
+              "Pricing-relevant edits are not supported after check-in. This phase does not rewrite or append nightly history for an in-house stay.",
+          };
+        }
+
+        if (existingReservation.status !== ReservationStatus.CONFIRMED) {
+          return {
+            ok: false as const,
+            error: "Pricing-relevant edits are only allowed for confirmed reservations.",
+          };
+        }
+
+        if (existingReservation.folio?.lineItems.length) {
+          return {
+            ok: false as const,
+            error:
+              "Pricing-relevant edits are not allowed after folio charges have been posted.",
+          };
+        }
+      }
+
+      if (isPricingRelevant) {
         const validatedCapacity = await validateRoomTypeCapacity(
           {
             roomTypeId: input.roomTypeId,
@@ -447,13 +492,27 @@ async function runUpdateReservationTransaction(
           departureDate: input.departureDate,
           adults: input.adults,
           children: input.children,
-          rateAmount: roomType.baseRate,
+          ...(isPricingRelevant ? { rateAmount: roomType.baseRate } : {}),
           deposit: input.deposit,
           notes: input.notes,
           arrangementType: input.arrangementType,
           reservationType: input.reservationType,
         },
       });
+
+      if (isPricingRelevant) {
+        await tx.reservationNight.deleteMany({
+          where: { reservationId },
+        });
+        await tx.reservationNight.createMany({
+          data: createReservationNightSchedule({
+            reservationId,
+            arrivalDate: input.arrivalDate,
+            departureDate: input.departureDate,
+            rateAmount: roomType.baseRate,
+          }),
+        });
+      }
 
       return { ok: true as const };
     },

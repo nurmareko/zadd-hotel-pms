@@ -9,7 +9,8 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:demo": "tsx prisma/demo-seed.ts",
-    "db:reset": "prisma migrate reset --force && npm run db:demo"
+    "db:reset": "prisma migrate reset --force && npm run db:demo",
+    "db:backfill:reservation-nights": "tsx prisma/backfill-reservation-nights.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

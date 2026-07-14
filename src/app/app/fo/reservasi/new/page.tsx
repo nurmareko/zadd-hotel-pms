@@ -183,6 +183,7 @@ export default async function NewReservationPage({
           roomTypes={roomTypes.map((roomType) => ({
             ...roomType,
             baseRate: roomType.baseRate.toString(),
+            nightlyRateQuote: roomType.baseRate.toString(),
           }))}
           rooms={rooms}
           activeReservations={allocatedActiveReservations}

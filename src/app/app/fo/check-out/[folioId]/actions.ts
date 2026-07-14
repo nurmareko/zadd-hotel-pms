@@ -271,6 +271,39 @@ export async function completeCheckout(
   try {
     result = await prisma.$transaction(
       async (tx) => {
+        const currentFolio = await tx.folio.findUnique({
+          where: { id: folio.id },
+          include: {
+            lineItems: { include: { article: true } },
+            payments: true,
+          },
+        });
+        const currentSettings = await tx.hotelSettings.findUnique({
+          where: { id: 1 },
+        });
+
+        if (!currentFolio) {
+          throw new CheckoutActionError("Folio not found");
+        }
+
+        if (!currentSettings) {
+          throw new CheckoutActionError("Hotel settings not found");
+        }
+
+        const currentTotals = computeFolioTotals(
+          currentFolio.lineItems,
+          currentFolio.payments,
+          currentSettings,
+        );
+
+        if (currentTotals.balance > 0) {
+          throw new CheckoutActionError(
+            `Saldo masih belum lunas (${formatIDR(
+              currentTotals.balance,
+            )}). Catat pembayaran final dahulu.`,
+          );
+        }
+
         const closedFolio = await tx.folio.updateMany({
           where: { id: folio.id, status: FolioStatus.OPEN },
           data: {
