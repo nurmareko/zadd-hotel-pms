@@ -368,9 +368,9 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 A few choices worth explaining:
 
-1. **Rate is inlined into RoomType.** In the MVP, each room type has a single fixed rate (`base_rate`). Dynamic rate plans with date validity and guest segmentation are deferred.
+1. **RoomType has a base rate.** `base_rate` is the starting point for every room-night quote. The Phase-0 Dynamic Pricing contract below defines the approved per-night adjustment and locking semantics; its Phase-1 storage is not yet part of the physical schema.
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
-3. **Rate snapshot on Reservation.** The `rate_amount` column captures the rate at booking time, so later changes to `base_rate` don't affect existing reservations.
+3. **Rate snapshot transition.** `Reservation.rate_amount` is the legacy booking-time snapshot. Phase 1 will make immutable per-night snapshots authoritative; later base-rate or pricing-rule changes must not affect existing reservations, and non-pricing reservation edits must not rewrite `rate_amount`.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
@@ -381,6 +381,66 @@ A few choices worth explaining:
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
 13. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
+
+---
+
+## Dynamic Pricing (per-night model) contract
+
+> **Phase-0 design contract — no schema change in this document section.** The physical `PricingRule`, `ReservationNight`, and room-charge posting identity are **Phase-1 targets**. This contract defines their required behavior so later schema, migration, and code work share one authority.
+
+### Pricing rules
+
+- A `PricingRule` adjusts a `RoomType` base rate using exactly one of two adjustment kinds: a signed **AMOUNT** delta or a signed **PERCENT** delta on the base rate. An absolute-rate kind is not included in this release.
+- Each rule has exactly one selector shape:
+  - **DAY_OF_WEEK** — one weekday; or
+  - **DATE_RANGE** — `startsOn` inclusive and `endsBefore` exclusive, using date-only WIB values.
+- Quoting uses **no stacking** and this fixed precedence for the quoted stay date: an active matching date-range rule wins; otherwise an active matching day-of-week rule wins; otherwise the room type base rate applies. For example, a holiday Saturday is `base + 25%`, not `base + 10% + 25%`.
+- Constraints: one weekday rule is unique per `(roomType, weekday)`; overlapping active date ranges for one room type are rejected; and a rule that would produce a negative final rate is rejected.
+- `isActive` gates future quoting only. Editing a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
+
+**Phase-1 conceptual targets (not schema):** `PricingRule` needs a room-type reference, adjustment kind and signed value, `isActive`, and exactly one of the two selector shapes above.
+
+### Per-night snapshot and rate locking
+
+- A reservation must have one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. The Phase-1 conceptual target is `ReservationNight` with a reservation reference, stay date, and persisted nightly rate.
+- Stay total is `SUM` of nightly rates. It is never calculated as `rate × nights`.
+- The rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
+- **Current `rateAmount` rewrite defect:** editing a reservation must not blindly replace `rateAmount` with the current base rate. Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote. Guest, notes, deposit, and physical room-allocation edits must not change pricing.
+
+### Modify and overstay policy — first release
+
+- A `CONFIRMED`, unposted reservation that receives a pricing-relevant modification must be fully requoted: regenerate its nightly rows in one transaction and present the old and new totals before confirmation.
+- For a `CHECKED_IN` or posted stay, only an **extension** is allowed. The extension appends future nightly rows; it must not reprice or rewrite already-posted nights. Shortening a posted stay or changing its room type is not supported until a reversal/adjustment policy exists.
+- `CHECKED_OUT`, `CANCELLED`, and `NO_SHOW` reservations accept no pricing edits.
+- An overstay beyond the planned departure must be explicitly extended so it has nightly snapshots. Night Audit and checkout must never invent an unsnapshotted rate from current pricing rules.
+
+### Rounding
+
+- Percent calculations use `Decimal` arithmetic.
+- Round the **final nightly rate once** to whole IDR, persist that exact amount, and copy it unchanged to the folio line.
+- Night Audit and checkout must not round that amount again. This follows the existing whole-IDR settlement policy.
+
+### COMP and revenue classification
+
+- Every nightly row carries an explicit `revenueClass` of `PAID` or `COMP`; it must not be inferred from a rate of zero.
+- This field is required so ARR can exclude complimentary nights correctly. The workflow that creates complimentary stays is outside this first release.
+
+### ARR (Average Room Rate)
+
+- ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`.
+- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights, OOO rooms, and future or unconsumed nights, including nights after an early departure. It must not use the current room-status snapshot or `roomsOccupied` as its denominator.
+- ARR reads posted room-charge lines tied to their service night through the **Phase-1 posting identity**, not booking-time snapshots alone.
+- For historical or pre-cutover audits, ARR is **UNAVAILABLE** unless both numerator and denominator can be proven. It must never be fabricated from a flat backfill.
+
+### Migration and cutover
+
+- Legacy reservations receive a non-destructive flat backfill: nightly rows at their existing `rateAmount`. This is a fallback record, not reconstructed historical pricing.
+- Authoritative per-night ARR begins on a documented cutover date.
+
+### Open questions for Phase 1
+
+- The calendar date that establishes the authoritative per-night ARR cutover has not yet been set.
+- The exact Phase-1 schema and database constraints for `PricingRule`, `ReservationNight`, and the posting identity remain intentionally out of scope for this Phase-0 contract.
 
 ---
 
