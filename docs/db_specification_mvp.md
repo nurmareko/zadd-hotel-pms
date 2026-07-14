@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 22 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 24 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 22 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 24 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -28,6 +28,7 @@ erDiagram
 
   ROOM_TYPE ||--o{ ROOM : "categorizes"
   ROOM_TYPE ||--o{ RESERVATION : "requested_for"
+  ROOM_TYPE ||--o{ PRICING_RULE : "has"
 
   ROOM ||--o{ HOUSEKEEPING_LOG : "tracks"
   ROOM ||--o{ HOUSEKEEPING_ASSIGNMENT : "assigned_for"
@@ -37,8 +38,10 @@ erDiagram
   ROOM ||--o{ ACTIVITY_LOG : "context_for"
 
   GUEST ||--o{ RESERVATION : "makes"
+  RESERVATION ||--o{ RESERVATION_NIGHT : "snapshots"
   RESERVATION ||--o| FOLIO : "opens"
   RESERVATION ||--o{ ACTIVITY_LOG : "context_for"
+  RESERVATION_NIGHT ||--o{ FOLIO_LINE_ITEM : "posting_identity"
   FOLIO ||--o{ FOLIO_LINE_ITEM : "contains"
   FOLIO ||--o{ PAYMENT : "settled_by"
   FOLIO ||--o{ FB_ORDER : "charged_by"
@@ -81,6 +84,20 @@ erDiagram
     text description
     int capacity
     decimal base_rate
+  }
+  PRICING_RULE {
+    varchar id PK
+    int room_type_id FK
+    varchar name
+    varchar selector_kind
+    varchar day_of_week
+    date starts_on
+    date ends_before
+    varchar adjustment_kind
+    decimal adjustment_value
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
   }
   ROOM {
     int id PK
@@ -140,6 +157,15 @@ erDiagram
     timestamp created_at
     timestamp updated_at
   }
+  RESERVATION_NIGHT {
+    varchar id PK
+    int reservation_id FK
+    date date
+    decimal rate_amount
+    varchar revenue_class "PAID, COMP"
+    varchar source_pricing_rule_id
+    timestamp created_at
+  }
   FOLIO {
     int id PK
     varchar folio_no UK
@@ -153,6 +179,7 @@ erDiagram
     int folio_id FK
     int article_id FK
     int fb_order_id FK
+    varchar reservation_night_id FK
     varchar description
     decimal quantity
     decimal unit_price
@@ -264,6 +291,7 @@ erDiagram
     int check_in_count
     int check_out_count
     int in_house_count
+    int room_nights_sold
     timestamp created_at
   }
   PAYMENT {
@@ -303,42 +331,44 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Master data**
 
 4. RoomType(*id*, code, name, description, capacity, base_rate)
-5. Room(*id*, number, floor, *room_type_id\#*, status)
-6. Article(*id*, code, name, type, default_price)
-7. HotelSettings(*id*, hotel_name, address, tax_percent, service_charge_percent, night_audit_time, currency)
+5. PricingRule(*id*, *room_type_id\#*, name, selector_kind, day_of_week nullable, starts_on nullable, ends_before nullable, adjustment_kind, adjustment_value, is_active, created_at, updated_at)
+6. Room(*id*, number, floor, *room_type_id\#*, status)
+7. Article(*id*, code, name, type, default_price)
+8. HotelSettings(*id*, hotel_name, address, tax_percent, service_charge_percent, night_audit_time, currency)
 
 **Front Office**
 
-8. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-9. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
-10. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
-11. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
+9. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
+10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
+11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, revenue_class, source_pricing_rule_id nullable, created_at)
+12. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
+13. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, reservation_night_id\# nullable, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
 **Food & Beverage**
 
-12. MenuItem(*id*, code, name, category, price, is_active)
-13. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
-14. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, service_type, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
-15. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
+14. MenuItem(*id*, code, name, category, price, is_active)
+15. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
+16. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, service_type, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
+17. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 
 **Housekeeping**
 
-16. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
-17. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
-18. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
-19. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
+18. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
+19. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
+20. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
+21. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
 
 **Accounting**
 
-20. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, created_at)
+22. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, room_nights_sold nullable, created_at)
 
 **Payment**
 
-21. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
+23. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
 
 **Activity logging**
 
-22. ActivityLog(*id*, *user_id\#*, action, created_at, reservation_id\# nullable, folio_id\# nullable, room_id\# nullable, metadata)
+24. ActivityLog(*id*, *user_id\#*, action, created_at, reservation_id\# nullable, folio_id\# nullable, room_id\# nullable, metadata)
 
 ---
 
@@ -361,6 +391,10 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | NightAuditStatus | COMPLETED |
 | LostFoundStatus | UNCLAIMED, RETURNED |
 | ActivityAction | RESERVATION_CREATED, RESERVATION_UPDATED, RESERVATION_CANCELLED, CHECK_IN_COMPLETED, CHECK_OUT_COMPLETED, PAYMENT_RECORDED, FOLIO_CHARGE_POSTED |
+| PricingRuleSelectorKind | DAY_OF_WEEK, DATE_RANGE |
+| PricingRuleDayOfWeek | MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY |
+| PricingRuleAdjustmentKind | AMOUNT_DELTA, PERCENT_DELTA |
+| ReservationNightRevenueClass | PAID, COMP |
 
 ---
 
@@ -368,9 +402,9 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 A few choices worth explaining:
 
-1. **RoomType has a base rate.** `base_rate` is the starting point for every room-night quote. The Phase-0 Dynamic Pricing contract below defines the approved per-night adjustment and locking semantics; its Phase-1 storage is not yet part of the physical schema.
+1. **RoomType has a base rate.** `base_rate` remains the current operational rate source. The Phase-0 Dynamic Pricing contract below defines the approved per-night adjustment and locking semantics; Phase 1 adds only dormant storage and does not change any current quote, reader, or posting path.
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
-3. **Rate snapshot transition.** `Reservation.rate_amount` is the legacy booking-time snapshot. Phase 1 will make immutable per-night snapshots authoritative; later base-rate or pricing-rule changes must not affect existing reservations, and non-pricing reservation edits must not rewrite `rate_amount`.
+3. **Rate snapshot transition.** `Reservation.rate_amount` remains the authoritative booking-time snapshot in Phase 1. `ReservationNight` is present but empty and unused until a later activation phase; later base-rate or pricing-rule changes must not affect existing reservations, and non-pricing reservation edits must not rewrite `rate_amount`.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
@@ -386,7 +420,7 @@ A few choices worth explaining:
 
 ## Dynamic Pricing (per-night model) contract
 
-> **Phase-0 design contract — no schema change in this document section.** The physical `PricingRule`, `ReservationNight`, and room-charge posting identity are **Phase-1 targets**. This contract defines their required behavior so later schema, migration, and code work share one authority.
+> **Phase-0 design contract — authoritative semantics.** Phase 1 adds the physical `PricingRule`, `ReservationNight`, and room-charge posting-identity storage described below, but enables no readers, writers, rules, pricing, or backfill. This contract remains the authority for later activation phases.
 
 ### Pricing rules
 
@@ -398,11 +432,11 @@ A few choices worth explaining:
 - Constraints: one weekday rule is unique per `(roomType, weekday)`; overlapping active date ranges for one room type are rejected; and a rule that would produce a negative final rate is rejected.
 - `isActive` gates future quoting only. Editing a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
 
-**Phase-1 conceptual targets (not schema):** `PricingRule` needs a room-type reference, adjustment kind and signed value, `isActive`, and exactly one of the two selector shapes above.
+**Phase-1 additive storage:** `PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. Schema-only enforcement is limited to the weekday uniqueness index; exactly-one-selector, non-overlapping active date ranges, and non-negative final-rate validation are deferred to application logic in the later rules phase.
 
 ### Per-night snapshot and rate locking
 
-- A reservation must have one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. The Phase-1 conceptual target is `ReservationNight` with a reservation reference, stay date, and persisted nightly rate.
+- A reservation must have one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. Phase 1 provides `ReservationNight` storage with a reservation reference, date-only stay date, and persisted nightly rate, but creates no rows yet.
 - Stay total is `SUM` of nightly rates. It is never calculated as `rate × nights`.
 - The rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
 - **Current `rateAmount` rewrite defect:** editing a reservation must not blindly replace `rateAmount` with the current base rate. Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote. Guest, notes, deposit, and physical room-allocation edits must not change pricing.
@@ -440,7 +474,8 @@ A few choices worth explaining:
 ### Open questions for Phase 1
 
 - The calendar date that establishes the authoritative per-night ARR cutover has not yet been set.
-- The exact Phase-1 schema and database constraints for `PricingRule`, `ReservationNight`, and the posting identity remain intentionally out of scope for this Phase-0 contract.
+- Whether `ReservationNight.sourcePricingRuleId` should become a foreign key and, if so, its rule-deletion policy remains open. It is a nullable provenance ID only in Phase 1.
+- The composite posting uniqueness on (`folio_line_item.reservation_night_id`, `article_id`) is deferred to the posting phase so this additive migration cannot reject legacy or manual line items.
 
 ---
 
@@ -487,6 +522,29 @@ A few choices worth explaining:
 | description | TEXT | — | Description |
 | capacity | INT | NOT NULL | Max guest capacity per room. Reservation overbooking uses the count of physical room rows for this type as inventory capacity. |
 | base_rate | DECIMAL(12,2) | NOT NULL | Base rate per night |
+
+### `pricing_rule`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | VARCHAR | PRIMARY KEY | Generated pricing-rule identifier |
+| room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id), INDEXED | Room type whose base rate this rule adjusts |
+| name | VARCHAR(255) | NOT NULL | Human-readable rule name |
+| selector_kind | PricingRuleSelectorKind | NOT NULL | `DAY_OF_WEEK` or `DATE_RANGE` |
+| day_of_week | PricingRuleDayOfWeek | NULLABLE | Used by `DAY_OF_WEEK` selectors |
+| starts_on | DATE | NULLABLE | Inclusive date-only WIB boundary for `DATE_RANGE` selectors |
+| ends_before | DATE | NULLABLE | Exclusive date-only WIB boundary for `DATE_RANGE` selectors |
+| adjustment_kind | PricingRuleAdjustmentKind | NOT NULL | Signed amount or percent delta kind |
+| adjustment_value | DECIMAL(12,2) | NOT NULL | Signed adjustment value |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Gates future quoting only; unused in Phase 1 |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+Indexes and deferred constraints:
+
+- INDEX (`room_type_id`) — room-type rule lookup.
+- UNIQUE (`room_type_id`, `day_of_week`) — one weekday rule per room type. PostgreSQL permits repeated nulls, so date-range rules do not conflict.
+- Exactly one selector shape, non-overlapping active date ranges, and rejection of rules producing negative final rates are intentionally application-enforced in the later rules phase.
 
 ### `room`
 
@@ -562,6 +620,23 @@ A few choices worth explaining:
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
 
+### `reservation_night`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | VARCHAR | PRIMARY KEY | Generated nightly snapshot identifier |
+| reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Owning reservation |
+| date | DATE | NOT NULL | Date-only WIB stay date |
+| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Immutable nightly snapshot; unused in Phase 1 |
+| revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification; unused in Phase 1 |
+| source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; not a foreign key in Phase 1 |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Snapshot creation time |
+
+Indexes and constraints:
+
+- UNIQUE (`reservation_id`, `date`) — at most one nightly snapshot per reservation stay date.
+- INDEX (`date`) — nightly reporting and future posting lookup.
+
 ### `folio`
 
 | Attribute | Type | Constraint | Notes |
@@ -581,6 +656,7 @@ A few choices worth explaining:
 | folio_id | INT | NOT NULL, FOREIGN KEY → folio(id) | Target folio |
 | article_id | INT | NOT NULL, FOREIGN KEY → article(id) | Article (charge code) |
 | fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order (if charge to room) |
+| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Future room-charge posting identity; legacy and manual lines remain null in Phase 1 |
 | description | VARCHAR(255) | NOT NULL | Item description |
 | quantity | DECIMAL(8,2) | NOT NULL, DEFAULT 1 | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price |
@@ -739,6 +815,7 @@ Lost & Found is text-only in the MVP. Records may be room-specific or public-are
 | check_in_count | INT | NOT NULL | Arrival/check-in count snapshot |
 | check_out_count | INT | NOT NULL | Departure/check-out count snapshot |
 | in_house_count | INT | NOT NULL | In-house guest count snapshot |
+| room_nights_sold | INT | NULLABLE | Future ARR denominator; unused in Phase 1 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
 
 > **Night Audit lock**: `business_date` is unique for the shipped daily-close flow. The app stores the completed snapshot for the WIB hotel date and relies on this constraint to prevent duplicate audits for the same business date.
