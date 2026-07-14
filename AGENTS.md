@@ -46,6 +46,13 @@ praktikum. Students rotate through 5 operational roles
   race-sensitive behavior such as the checkout gate, Night Audit, and reservation
   capacity. This is aspirational and is not a current completion requirement.
 
+### Live verification (agent-browser)
+
+- The `agent-browser` CLI is installed and available for live browser verification. Prefer it to actually verify UI and money-path behavior: start the dev server, log in with demo credentials, drive the real flow, and observe state instead of reporting only that a human should verify.
+- Run `agent-browser skills get core` for current usage.
+- For money-critical paths (checkout gate, payments, Night Audit, pricing), surface the observed results clearly for human confirmation and never claim behavior that was not actually observed.
+- Clicking cannot verify concurrency or race conditions. Verify those structurally through in-transaction rechecks and source review.
+
 ## Stack
 - Next.js 16 App Router, TypeScript, server components by default
 - Next.js 16 uses `src/proxy.ts` for request interception; do not add `middleware.ts`.
