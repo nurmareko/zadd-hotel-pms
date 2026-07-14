@@ -2,13 +2,12 @@
 
 import {
   Prisma,
-  ReservationNightRevenueClass,
   ReservationStatus,
   ReservationUsageType,
   RoomStatus,
 } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { addDays, formatISO } from "date-fns";
+import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -16,6 +15,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
   FO_RESERVASI_VIEW_COOKIE,
   FO_RESERVASI_VIEW_PATHS,
@@ -134,36 +134,7 @@ function sameDateOnly(left: Date, right: Date) {
   );
 }
 
-function createReservationNightSchedule({
-  reservationId,
-  arrivalDate,
-  departureDate,
-  rateAmount,
-}: {
-  reservationId: number;
-  arrivalDate: Date;
-  departureDate: Date;
-  rateAmount: Prisma.Decimal;
-}): Prisma.ReservationNightCreateManyInput[] {
-  const nights: Prisma.ReservationNightCreateManyInput[] = [];
-  const departure = dateOnlyBoundary(departureDate);
 
-  for (
-    let date = dateOnlyBoundary(arrivalDate);
-    date < departure;
-    date = addDays(date, 1)
-  ) {
-    nights.push({
-      reservationId,
-      date,
-      rateAmount,
-      revenueClass: ReservationNightRevenueClass.PAID,
-      sourcePricingRuleId: null,
-    });
-  }
-
-  return nights;
-}
 
 async function validateReservationRoomAssignment(
   tx: Prisma.TransactionClient,
