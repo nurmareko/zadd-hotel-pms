@@ -415,6 +415,7 @@ A few choices worth explaining:
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
 13. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
+14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing Phase 5c from posting the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
 
 ---
 
@@ -470,12 +471,12 @@ A few choices worth explaining:
 
 - Legacy reservations receive a non-destructive flat backfill: nightly rows at their existing `rateAmount`. This is a fallback record, not reconstructed historical pricing.
 - Authoritative per-night ARR begins on a documented cutover date.
+- Phase 5b adds an ordinary composite UNIQUE index on (`folio_line_item.reservation_night_id`, `article_id`) as the database-level duplicate guard for Phase 5c automatic stay-charge posting. PostgreSQL's standard unique-index null semantics permit multiple rows with `reservation_night_id = NULL`; the index does not use `NULLS NOT DISTINCT`, so existing legacy, manual, and F&B lines remain valid.
 
 ### Open questions for Phase 1
 
 - The calendar date that establishes the authoritative per-night ARR cutover has not yet been set.
 - Whether `ReservationNight.sourcePricingRuleId` should become a foreign key and, if so, its rule-deletion policy remains open. It is a nullable provenance ID only in Phase 1.
-- The composite posting uniqueness on (`folio_line_item.reservation_night_id`, `article_id`) is deferred to the posting phase so this additive migration cannot reject legacy or manual line items.
 
 ---
 
@@ -656,13 +657,17 @@ Indexes and constraints:
 | folio_id | INT | NOT NULL, FOREIGN KEY → folio(id) | Target folio |
 | article_id | INT | NOT NULL, FOREIGN KEY → article(id) | Article (charge code) |
 | fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order (if charge to room) |
-| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Future room-charge posting identity; legacy and manual lines remain null in Phase 1 |
+| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Room-charge posting identity; with `article_id`, guards Phase 5c automatic postings while legacy/manual/F&B lines may remain null |
 | description | VARCHAR(255) | NOT NULL | Item description |
 | quantity | DECIMAL(8,2) | NOT NULL, DEFAULT 1 | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price |
 | amount | DECIMAL(12,2) | NOT NULL | Total (quantity × unit_price) |
 | posted_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Posting staff |
 | posted_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Posting time |
+
+Indexes and constraints:
+
+- UNIQUE (`reservation_night_id`, `article_id`) — at most one linked posting of a given article for one reservation night, providing the database duplicate guard for Phase 5c automatic stay charges and inclusions. This is an ordinary PostgreSQL unique index: rows with a non-null reservation-night ID are guarded, while multiple rows with `reservation_night_id = NULL` remain valid because nulls are distinct. `NULLS NOT DISTINCT` is intentionally not used.
 
 ### `menu_item`
 
