@@ -158,8 +158,13 @@ function resolveFromPricingSet(
   };
 }
 
-async function loadPricingSet(roomTypeId: number): Promise<RoomTypePricingSet> {
-  const roomType = await prisma.roomType.findUnique({
+type PricingResolverClient = Pick<Prisma.TransactionClient, "roomType">;
+
+async function loadPricingSet(
+  roomTypeId: number,
+  client: PricingResolverClient = prisma,
+): Promise<RoomTypePricingSet> {
+  const roomType = await client.roomType.findUnique({
     where: { id: roomTypeId },
     select: {
       id: true,
@@ -197,15 +202,18 @@ export async function resolveNightlyRate(
   return resolveFromPricingSet(pricingSet, parseISODateOnly(date));
 }
 
-export async function resolveNightlySchedule({
-  roomTypeId,
-  arrivalDate,
-  departureDate,
-}: {
-  roomTypeId: number;
-  arrivalDate: string;
-  departureDate: string;
-}): Promise<ResolvedNightlyRate[]> {
+export async function resolveNightlySchedule(
+  {
+    roomTypeId,
+    arrivalDate,
+    departureDate,
+  }: {
+    roomTypeId: number;
+    arrivalDate: string;
+    departureDate: string;
+  },
+  client: PricingResolverClient = prisma,
+): Promise<ResolvedNightlyRate[]> {
   const arrival = parseISODateOnly(arrivalDate);
   const departure = parseISODateOnly(departureDate);
 
@@ -215,7 +223,7 @@ export async function resolveNightlySchedule({
     );
   }
 
-  const pricingSet = await loadPricingSet(roomTypeId);
+  const pricingSet = await loadPricingSet(roomTypeId, client);
   const schedule: ResolvedNightlyRate[] = [];
 
   for (let date = arrival; date < departure; date = addUtcDateOnlyDay(date)) {

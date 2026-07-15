@@ -5,34 +5,49 @@ import {
 import { addDays } from "date-fns";
 
 import { dateOnlyBoundary } from "@/lib/date-only";
+import type { ResolvedNightlyRate } from "@/lib/pricing-resolver";
 
-/**
- * Builds the immutable date-only nightly schedule for a stay. Callers choose
- * the already-locked nightly rate; this helper never derives a price.
- */
-export function createReservationNightSchedule({
-  reservationId,
-  arrivalDate,
-  departureDate,
-  rateAmount,
-}: {
+type ResolvedScheduleInput = {
+  reservationId: number;
+  resolvedSchedule: ResolvedNightlyRate[];
+};
+
+type LegacyFlatScheduleInput = {
   reservationId: number;
   arrivalDate: Date;
   departureDate: Date;
   rateAmount: Prisma.Decimal;
-}): Prisma.ReservationNightCreateManyInput[] {
+};
+
+/**
+ * Maps an already-resolved schedule into the immutable reservation snapshot.
+ * The flat input remains available only for the explicit legacy backfill.
+ */
+export function createReservationNightSchedule(
+  input: ResolvedScheduleInput | LegacyFlatScheduleInput,
+): Prisma.ReservationNightCreateManyInput[] {
+  if ("resolvedSchedule" in input) {
+    return input.resolvedSchedule.map((night) => ({
+      reservationId: input.reservationId,
+      date: night.date,
+      rateAmount: night.rate,
+      revenueClass: ReservationNightRevenueClass.PAID,
+      sourcePricingRuleId: night.sourceRule?.id ?? null,
+    }));
+  }
+
   const nights: Prisma.ReservationNightCreateManyInput[] = [];
-  const departure = dateOnlyBoundary(departureDate);
+  const departure = dateOnlyBoundary(input.departureDate);
 
   for (
-    let date = dateOnlyBoundary(arrivalDate);
+    let date = dateOnlyBoundary(input.arrivalDate);
     date < departure;
     date = addDays(date, 1)
   ) {
     nights.push({
-      reservationId,
+      reservationId: input.reservationId,
       date,
-      rateAmount,
+      rateAmount: input.rateAmount,
       revenueClass: ReservationNightRevenueClass.PAID,
       sourcePricingRuleId: null,
     });

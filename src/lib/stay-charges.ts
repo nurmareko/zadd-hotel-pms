@@ -139,12 +139,6 @@ function validatePostingSchedule({
       );
     }
 
-    if (!night.rateAmount.equals(rateAmount)) {
-      postingBlocked(
-        reservationNo,
-        `rate snapshot ${night.id} (${night.rateAmount.toString()}) tidak sama dengan rate flat reservasi (${rateAmount.toString()}).`,
-      );
-    }
   }
 
   if (!Number.isInteger(expectedNights) || expectedNights < 1) {

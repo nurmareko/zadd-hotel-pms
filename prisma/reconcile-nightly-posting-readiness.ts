@@ -13,7 +13,9 @@ const CUTOVER_STATUSES = [
   ReservationStatus.CHECKED_OUT,
 ] as const;
 
-const BLOCKING_CLASS_NUMBERS = new Set([1, 2, 3, 4, 5, 6, 7, 10, 11, 12]);
+const BLOCKING_CLASS_NUMBERS = new Set([
+  1, 2, 3, 4, 6, 7, 10, 11, 12, 13,
+]);
 const canonicalArticleCodes = new Set<string>(STAY_CHARGE_ARTICLE_CODES);
 
 type Finding = {
@@ -60,7 +62,7 @@ const reservationSelection = Prisma.validator<Prisma.ReservationDefaultArgs>()({
             postedAt: true,
             article: { select: { code: true, name: true } },
             reservationNight: {
-              select: { reservationId: true, date: true },
+              select: { reservationId: true, date: true, rateAmount: true },
             },
           },
           orderBy: [{ postedAt: "asc" }, { id: "asc" }],
@@ -222,14 +224,24 @@ function addScheduleFindings(
     );
   }
 
-  const unequalRateNights = reservation.reservationNights.filter(
-    (night) => !night.rateAmount.equals(reservation.rateAmount),
-  );
-  if (unequalRateNights.length > 0) {
+  const firstNight = reservation.reservationNights[0];
+  if (firstNight && !firstNight.rateAmount.equals(reservation.rateAmount)) {
+    classes.get(13)?.findings.push(
+      folioFinding(
+        reservation,
+        `reservation rate=${reservation.rateAmount.toString()}; first night ${dateKey(firstNight.date)}=${firstNight.rateAmount.toString()}`,
+      ),
+    );
+  }
+
+  const variableRateNights = reservation.reservationNights
+    .slice(1)
+    .filter((night) => !night.rateAmount.equals(reservation.rateAmount));
+  if (variableRateNights.length > 0) {
     classes.get(5)?.findings.push(
       folioFinding(
         reservation,
-        `reservation rate=${reservation.rateAmount.toString()}; unequal nights: ${unequalRateNights
+        `first-night compatibility rate=${reservation.rateAmount.toString()}; variable later nights: ${variableRateNights
           .map((night) => `${dateKey(night.date)}=${night.rateAmount.toString()}`)
           .join(", ")}`,
       ),
@@ -359,6 +371,17 @@ function addLineItemFindings(
 
       if (line.reservationNight?.reservationId !== reservation.id) {
         continue;
+      }
+
+      if (
+        line.article.code === ROOM_CHARGE_ARTICLE_CODE &&
+        (!line.quantity.equals(1) ||
+          !line.unitPrice.equals(line.reservationNight.rateAmount) ||
+          !line.amount.equals(line.reservationNight.rateAmount))
+      ) {
+        linkedViolations.push(
+          `ROOM-CHARGE line ${line.id} amount/unit/quantity does not match snapshot ${line.reservationNightId} rate ${line.reservationNight.rateAmount.toString()}`,
+        );
       }
 
       linkedByArticle.set(line.article.code, [
@@ -507,7 +530,7 @@ function printReport(
   if (blockingClasses.length === 0) {
     console.log("GO — no blocking reconciliation anomalies were found.");
     console.log(
-      "Expected/benign observations: class 8 is the legacy unlinked nightly prefix to preserve during cutover; class 9 is F&B-origin DINNER intentionally excluded from inclusion counts.",
+      "Expected/benign observations: class 5 reports activated variable nightly pricing; class 8 is the legacy unlinked nightly prefix to preserve during cutover; class 9 is F&B-origin DINNER intentionally excluded from inclusion counts.",
     );
   } else {
     console.log("NO-GO — reconcile these blocking classes before Phase 5c:");
@@ -536,7 +559,7 @@ async function main() {
     { number: 2, name: "PARTIAL/NON-CONTIGUOUS SCHEDULE", disposition: "BLOCKING", findings: [] },
     { number: 3, name: "OUT-OF-RANGE NIGHTS", disposition: "BLOCKING", findings: [] },
     { number: 4, name: "FRACTIONAL/NEGATIVE RATES", disposition: "BLOCKING", findings: [] },
-    { number: 5, name: "FLAT-INEQUALITY", disposition: "BLOCKING", findings: [] },
+    { number: 5, name: "VARIABLE NIGHTLY RATES", disposition: "EXPECTED / INFORMATIONAL", findings: [] },
     { number: 6, name: "OVER-POSTED", disposition: "BLOCKING", findings: [] },
     { number: 7, name: "EXISTING NON-NULL DUPLICATE (reservationNightId, articleId)", disposition: "BLOCKING", findings: [] },
     { number: 8, name: "UNLINKED CANONICAL STAY-CHARGE LINES", disposition: "EXPECTED / INFORMATIONAL", findings: [] },
@@ -544,6 +567,7 @@ async function main() {
     { number: 10, name: "MANUAL CANONICAL-ARTICLE LINES", disposition: "BLOCKING", findings: [] },
     { number: 11, name: "LINKED-PREFIX VALIDITY", disposition: "BLOCKING", findings: [] },
     { number: 12, name: "OWNERSHIP", disposition: "BLOCKING", findings: [] },
+    { number: 13, name: "SCALAR/FIRST-NIGHT MISMATCH", disposition: "BLOCKING", findings: [] },
   ];
   const classes = new Map(
     findingClasses.map((findingClass) => [findingClass.number, findingClass]),
