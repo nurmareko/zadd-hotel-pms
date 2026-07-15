@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:demo": "tsx prisma/demo-seed.ts",
     "db:reset": "prisma migrate reset --force && npm run db:demo",
-    "db:backfill:reservation-nights": "tsx prisma/backfill-reservation-nights.ts"
+    "db:backfill:reservation-nights": "tsx prisma/backfill-reservation-nights.ts",
+    "db:reconcile:nightly-posting": "tsx prisma/reconcile-nightly-posting-readiness.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
