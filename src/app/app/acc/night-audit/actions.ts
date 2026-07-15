@@ -120,7 +120,7 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
             where: { id: reservation.folioId },
             select: {
               status: true,
-              lineItems: { select: { articleId: true } },
+              lineItems: { select: { articleId: true, fbOrderId: true } },
             },
           });
 

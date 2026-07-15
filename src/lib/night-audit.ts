@@ -43,7 +43,7 @@ type NightAuditReservation = {
     id: number;
     folioNo: string;
     status: FolioStatus;
-    lineItems: { articleId: number }[];
+    lineItems: { articleId: number; fbOrderId: number | null }[];
   } | null;
 };
 
@@ -295,7 +295,7 @@ export function buildAuditStayChargeLines({
   label,
 }: {
   reservation: NightAuditStayChargeReservation;
-  existingLineItems: { articleId: number }[];
+  existingLineItems: { articleId: number; fbOrderId: number | null }[];
   articles: StayChargeArticle[];
   businessDate: Date;
   postedById: number;
@@ -444,7 +444,7 @@ export async function buildNightAuditPlan({
             id: true,
             folioNo: true,
             status: true,
-            lineItems: { select: { articleId: true } },
+            lineItems: { select: { articleId: true, fbOrderId: true } },
           },
         },
       },

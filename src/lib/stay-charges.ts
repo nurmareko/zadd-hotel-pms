@@ -99,13 +99,22 @@ export function stayChargeShortfallLines({
   arrangementType: ArrangementType;
   rateAmount: Prisma.Decimal | null;
   expectedNights: number;
-  lineItems: Pick<FolioLineItem, "articleId">[];
+  lineItems: Pick<FolioLineItem, "articleId" | "fbOrderId">[];
   articles: StayChargeArticle[];
 }): PendingStayChargeLine[] {
   const articleByCode = new Map(articles.map((article) => [article.code, article]));
+  const inclusionArticleIds = new Set(
+    ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType]
+      .map((code) => articleByCode.get(code)?.id)
+      .filter((articleId): articleId is number => articleId !== undefined),
+  );
 
   const postedCountByArticleId = new Map<number, number>();
   for (const lineItem of lineItems) {
+    if (lineItem.fbOrderId !== null && inclusionArticleIds.has(lineItem.articleId)) {
+      continue;
+    }
+
     postedCountByArticleId.set(
       lineItem.articleId,
       (postedCountByArticleId.get(lineItem.articleId) ?? 0) + 1,
@@ -174,7 +183,7 @@ export function buildPendingStayChargeLines({
   arrangementType: ArrangementType;
   rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
-  lineItems: Pick<FolioLineItem, "articleId">[];
+  lineItems: Pick<FolioLineItem, "articleId" | "fbOrderId">[];
   articles: StayChargeArticle[];
   now?: Date;
 }): PendingStayChargeLine[] {
@@ -215,7 +224,7 @@ export async function postPendingStayCharges({
     async (tx) => {
       const lineItems = await tx.folioLineItem.findMany({
         where: { folioId },
-        select: { articleId: true },
+        select: { articleId: true, fbOrderId: true },
       });
 
       const pending = buildPendingStayChargeLines({
