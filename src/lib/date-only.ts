@@ -5,6 +5,27 @@ import { addDays, format } from "date-fns";
  * zone, not the server clock (Vercel runs in UTC).
  */
 const HOTEL_TIME_ZONE = "Asia/Jakarta";
+const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidISODateOnly(value: string): boolean {
+  if (!ISO_DATE_ONLY_PATTERN.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
+export function parseISODateOnly(value: string): Date {
+  if (!isValidISODateOnly(value)) {
+    throw new RangeError(`Invalid date-only value: ${value}`);
+  }
+
+  return new Date(`${value}T00:00:00.000Z`);
+}
 
 /**
  * Today's calendar date in the hotel timezone (Asia/Jakarta / WIB, UTC+7) as a

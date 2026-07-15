@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { applyPricingRuleAdjustment } from "@/lib/pricing-resolver";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   RoomCreateSchema,
   RoomIdSchema,
@@ -59,6 +60,13 @@ function prismaErrorResult(
           entity === "room"
             ? "Kamar memiliki riwayat reservasi. Ubah status ke OOO."
             : "Tipe kamar masih memiliki kamar. Hapus kamar terlebih dahulu.",
+      };
+    }
+
+    if (error.code === "P2034" || error.code === "P2028") {
+      return {
+        ok: false,
+        error: "Data tipe kamar berubah bersamaan. Silakan coba lagi.",
       };
     }
 
@@ -123,23 +131,60 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
   const { id, ...data } = parsed.data;
 
   try {
-    const existingCode = await prisma.roomType.findFirst({
-      where: { code: data.code, id: { not: id } },
-      select: { id: true },
-    });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const existingCode = await tx.roomType.findFirst({
+          where: { code: data.code, id: { not: id } },
+          select: { id: true },
+        });
 
-    if (existingCode) {
-      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+        if (existingCode) {
+          return { ok: false as const, error: "Kode sudah digunakan", field: "code" };
+        }
+
+        const activeRules = await tx.pricingRule.findMany({
+          where: { roomTypeId: id, isActive: true },
+          select: {
+            adjustmentKind: true,
+            adjustmentValue: true,
+          },
+        });
+        const nextBaseRate = new Prisma.Decimal(data.baseRate);
+        const producesNegativeRate = activeRules.some((rule) =>
+          applyPricingRuleAdjustment(
+            nextBaseRate,
+            rule.adjustmentKind,
+            rule.adjustmentValue,
+          ).isNegative(),
+        );
+
+        if (producesNegativeRate) {
+          return {
+            ok: false as const,
+            error:
+              "Base rate ini membuat aturan harga aktif menghasilkan tarif malam negatif",
+            field: "baseRate",
+          };
+        }
+
+        await tx.roomType.update({
+          where: { id },
+          data,
+        });
+
+        return { ok: true as const };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+
+    if (result.ok) {
+      revalidatePath(ROOMS_PATH);
     }
 
-    await prisma.roomType.update({
-      where: { id },
-      data,
-    });
-
-    revalidatePath(ROOMS_PATH);
-
-    return { ok: true };
+    return result;
   } catch (error) {
     return prismaErrorResult(error, "roomType");
   }
