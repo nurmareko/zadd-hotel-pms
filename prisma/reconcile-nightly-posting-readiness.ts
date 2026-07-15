@@ -3,6 +3,10 @@ import { Prisma, ReservationStatus } from "@prisma/client";
 import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { prisma } from "@/lib/prisma";
 import {
+  hasLegacyNightlyRoomChargeShape,
+  linkedRoomChargeShapeIssues,
+} from "@/lib/room-charge-integrity";
+import {
   ROOM_CHARGE_ARTICLE_CODE,
   STAY_CHARGE_ARTICLE_CODES,
 } from "@/lib/stay-charges";
@@ -154,13 +158,13 @@ function hasNightlyLineShape(
   }
 
   if (line.article.code === ROOM_CHARGE_ARTICLE_CODE) {
-    const automaticDescription =
-      line.description === "Room charge" ||
-      line.description.startsWith("Night Audit Room Charge - ");
-
-    return (
-      automaticDescription && line.unitPrice.equals(reservation.rateAmount)
-    );
+    return hasLegacyNightlyRoomChargeShape({
+      description: line.description,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      amount: line.amount,
+      reservationRateAmount: reservation.rateAmount,
+    });
   }
 
   return (
@@ -292,10 +296,17 @@ function addLineItemFindings(
   const manualCanonicalByArticle = new Map<string, ScannedLineItem[]>();
 
   for (const [articleCode, lines] of unlinkedByArticle) {
-    const classifiable = lines.filter(
-      (line) => applicableCodes.has(articleCode) && hasNightlyLineShape(reservation, line),
-    );
-    const prefix = classifiable.slice(0, expectedDates.length);
+    const prefix: ScannedLineItem[] = [];
+    for (const line of lines) {
+      if (
+        prefix.length >= expectedDates.length ||
+        !applicableCodes.has(articleCode) ||
+        !hasNightlyLineShape(reservation, line)
+      ) {
+        break;
+      }
+      prefix.push(line);
+    }
     const prefixIds = new Set(prefix.map((line) => line.id));
     const manual = lines.filter((line) => !prefixIds.has(line.id));
 
@@ -373,14 +384,18 @@ function addLineItemFindings(
         continue;
       }
 
-      if (
-        line.article.code === ROOM_CHARGE_ARTICLE_CODE &&
-        (!line.quantity.equals(1) ||
-          !line.unitPrice.equals(line.reservationNight.rateAmount) ||
-          !line.amount.equals(line.reservationNight.rateAmount))
-      ) {
+      if (line.article.code === ROOM_CHARGE_ARTICLE_CODE) {
         linkedViolations.push(
-          `ROOM-CHARGE line ${line.id} amount/unit/quantity does not match snapshot ${line.reservationNightId} rate ${line.reservationNight.rateAmount.toString()}`,
+          ...linkedRoomChargeShapeIssues({
+            id: line.id,
+            fbOrderId: line.fbOrderId,
+            reservationNightId: line.reservationNightId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            amount: line.amount,
+            reservationNightRateAmount: line.reservationNight.rateAmount,
+            serviceDate: line.reservationNight.date,
+          }),
         );
       }
 

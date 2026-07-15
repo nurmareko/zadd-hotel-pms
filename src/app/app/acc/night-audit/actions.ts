@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { computeArr } from "@/lib/arr";
+import { addDateOnlyDays } from "@/lib/date-only";
 import { formatCompactDateTimeID } from "@/lib/format";
 import {
   buildAuditStayChargeLines,
@@ -17,6 +19,7 @@ import {
   STAY_CHARGE_ARTICLE_CODES,
 } from "@/lib/stay-charges";
 
+import { toArrDisplayData, type ArrDisplayData } from "../arr-display";
 import { RunNightAuditSchema } from "./schema";
 
 export type NightAuditRunSummary = {
@@ -32,6 +35,7 @@ export type NightAuditRunSummary = {
   roomsCharged?: number;
   lineItemsPosted?: number;
   transactionWriteCount?: number;
+  arr: ArrDisplayData;
 };
 
 export type NightAuditRunResult =
@@ -274,6 +278,30 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
         result.chargedFolioIds,
         result.chargedReservationIds,
       );
+      let arr: ArrDisplayData;
+      try {
+        arr = toArrDisplayData(
+          await computeArr({
+            fromInclusive: plan.businessDate,
+            toExclusive: addDateOnlyDays(plan.businessDate, 1),
+          }),
+        );
+      } catch {
+        const businessDate = plan.businessDate.toISOString().slice(0, 10);
+        arr = {
+          status: "INTEGRITY_ERROR",
+          numerator: "0",
+          paidRoomNights: 0,
+          arr: null,
+          fromInclusive: businessDate,
+          toExclusive: addDateOnlyDays(plan.businessDate, 1)
+            .toISOString()
+            .slice(0, 10),
+          cutoverDate: businessDate,
+          reason:
+            "Night Audit selesai, tetapi query ARR live gagal. Muat ulang dashboard untuk mencoba kembali.",
+        };
+      }
 
       return {
         ok: true,
@@ -290,6 +318,7 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
           totalRevenue: result.totalRevenue,
           warnings: plan.warnings,
           transactionWriteCount: result.transactionWriteCount,
+          arr,
         },
       };
     } catch (error) {

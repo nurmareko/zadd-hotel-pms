@@ -462,20 +462,25 @@ A few choices worth explaining:
 
 ### ARR (Average Room Rate)
 
-- ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`.
-- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights, OOO rooms, and future or unconsumed nights, including nights after an early departure. It must not use the current room-status snapshot or `roomsOccupied` as its denominator.
-- ARR reads posted room-charge lines tied to their service night through the **Phase-1 posting identity**, not booking-time snapshots alone.
-- For historical or pre-cutover audits, ARR is **UNAVAILABLE** unless both numerator and denominator can be proven. It must never be fabricated from a flat backfill.
+- ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`. It reads only posted `FolioLineItem` rows whose article code is `ROOM-CHARGE`, `fb_order_id` is null, `reservation_night_id` is populated, and linked `ReservationNight.revenue_class` is `PAID`.
+- ARR uses Prisma `Decimal` for the numerator and division. It is a weighted range aggregate (`SUM(amounts) / COUNT(lines)`), never an average of daily ARRs. The Decimal result is rounded once to whole IDR only for display, consistent with the app's IDR presentation policy.
+- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights and future or unconsumed nights, including nights after an early departure. The `COMP` filter is read-ready, but an operational end-to-end COMP workflow is not included in Phase 8.
+- OOO is excluded implicitly: an unsold OOO room has no posted room-charge line and therefore cannot enter the denominator. The mid-stay OOO edge case—a charged night whose room was OOO on that service night—is **not handled** because the model has no per-service-night room-status identity. ARR must not inspect current `Room.status`; that snapshot is historically wrong for prior service nights.
+- ARR reads posted room-charge lines tied to their service night through the posting identity, not `Reservation.rate_amount`, `ReservationNight.rate_amount` as revenue, `posted_at`, or any `NightAudit` revenue/occupancy snapshot.
+- Linked line integrity fails closed. Quantity must be 1; amount, unit price, and the linked nightly snapshot must agree; the folio and night must belong to the same reservation; the service date must be inside that reservation's `[arrivalDate, departureDate)` stay; and a service date beyond the hotel-date as-of boundary is invalid. Any violation yields `INTEGRITY_ERROR`, not a partial number.
+- A valid post-cutover period with zero matching paid lines yields `NO_RECOGNIZED_NIGHTS` / N/A, never Rp 0.
+- ARR is live reporting only in Phase 8. The frozen Night Report PDF/HTML intentionally remains unchanged.
 
 ### Migration and cutover
 
 - Legacy reservations receive a non-destructive flat backfill: nightly rows at their existing `rateAmount`. This is a fallback record, not reconstructed historical pricing.
-- Authoritative per-night ARR begins on a documented cutover date.
+- The production cutover is configured with the `ARR_CUTOVER_DATE` environment variable as a strict `YYYY-MM-DD` date-only value. This value is the deployment's declared first authoritative service date and must move with the real posting-identity go-live; it is not a source-code calendar constant.
+- When `ARR_CUTOVER_DATE` is absent (including resettable demo data), the application derives cutover from data: classify each folio's valid unlinked legacy `ROOM-CHARGE` lines as its chronological stay prefix, take the latest service date covered by any such prefix, then use the following date. If any unlinked room-charge line cannot be classified as that valid legacy prefix, derivation fails closed until the identity is reconciled. If no legacy prefix exists, use the earliest linked room-charge service date, or the hotel date when no room-charge data exists. This makes `db:reset` safe when relative demo dates shift.
+- A requested period entirely before cutover is `UNAVAILABLE`. A period that straddles cutover is also `UNAVAILABLE` for the full request and is never silently clamped. A period on/after cutover is authoritative subject to linked-line integrity.
 - Phase 5b adds an ordinary composite UNIQUE index on (`folio_line_item.reservation_night_id`, `article_id`) as the database-level duplicate guard for Phase 5c automatic stay-charge posting. PostgreSQL's standard unique-index null semantics permit multiple rows with `reservation_night_id = NULL`; the index does not use `NULLS NOT DISTINCT`, so existing legacy, manual, and F&B lines remain valid.
 
 ### Open questions for Phase 1
 
-- The calendar date that establishes the authoritative per-night ARR cutover has not yet been set.
 - Whether `ReservationNight.sourcePricingRuleId` should become a foreign key and, if so, its rule-deletion policy remains open. It is a nullable provenance ID only in Phase 1.
 
 ---

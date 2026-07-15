@@ -20,6 +20,9 @@ export type AuditHistoryRow = {
   runAt: Date;
   occupancyRate: string;
   roomRevenue: string;
+  arr: string | null;
+  arrAvailability: "AUTHORITATIVE" | "UNAVAILABLE" | "NO_RECOGNIZED_NIGHTS" | "INTEGRITY_ERROR";
+  arrReason?: string;
   fbRevenue: string;
   totalRevenue: string;
 };
@@ -68,7 +71,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
       ) : (
         <CardContent className="p-0">
           <div className="max-w-full overflow-auto">
-            <table className="w-full min-w-[980px] border-collapse text-sm">
+            <table className="w-full min-w-270 border-collapse text-sm">
               <thead>
                 <tr>
                   <th className={headerCellClass}>
@@ -85,6 +88,9 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   </th>
                   <th className={headerRightClass}>
                     Pendapatan Kamar
+                  </th>
+                  <th className={headerRightClass}>
+                    ARR Harian
                   </th>
                   <th className={headerRightClass}>
                     Pendapatan F&B
@@ -117,6 +123,19 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                   </td>
                   <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
                     {formatIDR(row.roomRevenue)}
+                  </td>
+                  <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
+                    {row.arrAvailability === "AUTHORITATIVE" && row.arr !== null
+                      ? formatIDR(row.arr)
+                      : row.arrAvailability === "NO_RECOGNIZED_NIGHTS"
+                        ? "N/A"
+                        : row.arrAvailability === "INTEGRITY_ERROR"
+                          ? (
+                              <span className="font-semibold text-red-700" title={row.arrReason}>
+                                Integrity error
+                              </span>
+                            )
+                          : "—"}
                   </td>
                   <td className={cn(bodyCellClass, "text-right text-muted-foreground")}>
                     {formatIDR(row.fbRevenue)}

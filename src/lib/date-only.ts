@@ -27,6 +27,11 @@ export function parseISODateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+/** UTC-safe calendar arithmetic for Prisma @db.Date boundaries. */
+export function addDateOnlyDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 86_400_000);
+}
+
 /**
  * Today's calendar date in the hotel timezone (Asia/Jakarta / WIB, UTC+7) as a
  * "YYYY-MM-DD" string. The timezone is resolved explicitly via Intl, so the

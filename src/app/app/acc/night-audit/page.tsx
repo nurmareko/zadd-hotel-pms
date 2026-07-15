@@ -11,9 +11,12 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { buttonVariants } from "@/components/ui/button";
+import { computeArr } from "@/lib/arr";
+import { addDateOnlyDays } from "@/lib/date-only";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { buildNightAuditPlan } from "@/lib/night-audit";
 
+import { toArrDisplayData } from "../arr-display";
 import { PreRunSummary } from "./pre-run-summary";
 import { ResultPanel } from "./result-panel";
 import { RunButton } from "./run-button";
@@ -28,6 +31,12 @@ export default async function NightAuditPage() {
   }
 
   const plan = await buildNightAuditPlan({ runById: Number(session.user.id) });
+  const existingAuditArr = plan.existingAudit
+    ? await computeArr({
+        fromInclusive: plan.businessDate,
+        toExclusive: addDateOnlyDays(plan.businessDate, 1),
+      })
+    : null;
   const disabledReason =
     plan.blockingErrors.length > 0
       ? "Perbaiki prerequisite yang berstatus blocking sebelum menjalankan audit."
@@ -77,6 +86,7 @@ export default async function NightAuditPage() {
               otherRevenue: plan.existingAudit.otherRevenue,
               totalRevenue: plan.existingAudit.totalRevenue,
               warnings: plan.warnings,
+              arr: toArrDisplayData(existingAuditArr!),
             }}
           />
         ) : (

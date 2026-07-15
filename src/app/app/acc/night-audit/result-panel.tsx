@@ -4,6 +4,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 
+import { ArrResultSummary } from "../arr-result-summary";
 import type { NightAuditRunSummary } from "./actions";
 
 type ResultPanelProps = {
@@ -63,6 +64,7 @@ export function ResultPanel({ summary }: ResultPanelProps) {
                   line item diposting.
                 </p>
               ) : null}
+              <ArrResultSummary result={summary.arr} />
             </div>
           </div>
 
