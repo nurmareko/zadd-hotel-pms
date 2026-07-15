@@ -29,9 +29,8 @@ function scalarFallback(rateAmount: Prisma.Decimal, expectedDates: string[]) {
 }
 
 /**
- * Phase 4 display guard: nightly rows are used only when their date coverage and
- * Decimal total are exactly equivalent to the still-flat booking snapshot.
- * Posting and checkout continue to own their scalar calculations until Phase 5.
+ * Complete nightly coverage is authoritative. The scalar calculation is retained
+ * only as a compatibility fallback for legacy or incomplete snapshots.
  */
 export function flatReservationNightStayTotal({
   arrivalDate,
@@ -66,7 +65,7 @@ export function flatReservationNightStayTotal({
     new Prisma.Decimal(0),
   );
 
-  if (!hasCompleteDateCoverage || !total.equals(fallbackTotal)) {
+  if (!hasCompleteDateCoverage) {
     return {
       total: fallbackTotal,
       nightlySchedule: [] as NightlyRate[],
@@ -99,8 +98,7 @@ export function flatReservationNightSummaryTotal({
     !summary.firstDate ||
     !summary.lastDate ||
     dateKey(summary.firstDate) !== expectedDates[0] ||
-    dateKey(summary.lastDate) !== expectedDates.at(-1) ||
-    !summary.total.equals(fallbackTotal)
+    dateKey(summary.lastDate) !== expectedDates.at(-1)
   ) {
     return fallbackTotal;
   }

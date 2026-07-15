@@ -19,10 +19,13 @@ import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusion
 import {
   ROOM_CHARGE_ARTICLE_CODE,
   stayChargeShortfallLines,
+  StayChargePostingError,
   stayNightsThroughAuditDate,
   STAY_CHARGE_ARTICLE_CODES,
+  type ExistingStayChargeLine,
   type StayChargeArticle,
   type StayChargeArticleCode,
+  type StayChargeReservationNight,
 } from "@/lib/stay-charges";
 
 // Re-exported under the night-audit name for the article codes/preview API.
@@ -35,15 +38,16 @@ type NightAuditReservation = {
   id: number;
   reservationNo: string;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
+  departureDate: Date;
+  reservationNights: StayChargeReservationNight[];
   guest: { fullName: string };
   room: { number: string } | null;
   folio: {
     id: number;
     folioNo: string;
     status: FolioStatus;
-    lineItems: { articleId: number }[];
+    lineItems: ExistingStayChargeLine[];
   } | null;
 };
 
@@ -53,16 +57,20 @@ type NightAuditReservation = {
  * line items the plan also builds.
  */
 export type NightAuditStayChargeReservation = {
+  reservationId: number;
+  reservationNo: string;
   folioId: number;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
+  departureDate: Date;
+  reservationNights: StayChargeReservationNight[];
 };
 
 export type NightAuditLineItemInput = {
   folioId: number;
   articleId: number;
   fbOrderId: null;
+  reservationNightId: string;
   description: string;
   quantity: Prisma.Decimal;
   unitPrice: Prisma.Decimal;
@@ -89,7 +97,7 @@ export type NightAuditSnapshotInput = {
 export type NightAuditPostingArticlePreview = {
   code: NightAuditPostingArticleCode;
   name: string;
-  amountSource: "reservation-rate" | "article-price";
+  amountSource: "reservation-night-snapshot" | "article-price";
   amount: string | null;
 };
 
@@ -100,7 +108,6 @@ export type NightAuditPreviewReservation = {
   roomNumber: string;
   folioNo: string;
   arrangementType: ArrangementType;
-  rateAmount: string;
   lineItemCount: number;
   postingTotal: string;
 };
@@ -148,12 +155,7 @@ export type NightAuditPlan = {
   reservations: NightAuditPreviewReservation[];
   warnings: string[];
   blockingErrors: string[];
-  lineItemsToCreate: NightAuditLineItemInput[];
-  stayChargeReservations: NightAuditStayChargeReservation[];
-  stayChargeArticles: StayChargeArticle[];
   snapshot: NightAuditSnapshotInput;
-  affectedFolioIds: number[];
-  affectedReservationIds: number[];
 };
 
 function businessDateLabel(date: Date) {
@@ -179,15 +181,7 @@ function addDecimal(
   );
 }
 
-function safeRateAmount(reservation: NightAuditReservation) {
-  const rate = decimal(reservation.rateAmount);
 
-  if (rate.lt(0)) {
-    return ZERO;
-  }
-
-  return rate;
-}
 
 function occupancyRate(roomsOccupied: number, totalRooms: number) {
   if (totalRooms === 0) {
@@ -233,7 +227,9 @@ function buildPostingArticlesPreview(
       code,
       name: article?.name ?? code,
       amountSource:
-        code === "ROOM-CHARGE" ? "reservation-rate" : "article-price",
+        code === "ROOM-CHARGE"
+          ? "reservation-night-snapshot"
+          : "article-price",
       amount:
         code === "ROOM-CHARGE"
           ? null
@@ -257,18 +253,6 @@ function validateReservations(reservations: NightAuditReservation[]) {
     if (reservation.folio.status !== FolioStatus.OPEN) {
       blockingErrors.push(
         `Folio ${reservation.folio.folioNo} untuk ${reservation.reservationNo} tidak OPEN.`,
-      );
-    }
-
-    const rawRate = decimal(reservation.rateAmount);
-
-    if (reservation.rateAmount === null || rawRate.eq(0)) {
-      warnings.push(
-        `Reservasi ${reservation.reservationNo} memiliki rate 0; room charge akan diposting Rp 0.`,
-      );
-    } else if (rawRate.lt(0)) {
-      warnings.push(
-        `Reservasi ${reservation.reservationNo} memiliki rate negatif; room charge diperlakukan Rp 0.`,
       );
     }
   }
@@ -295,7 +279,7 @@ export function buildAuditStayChargeLines({
   label,
 }: {
   reservation: NightAuditStayChargeReservation;
-  existingLineItems: { articleId: number }[];
+  existingLineItems: ExistingStayChargeLine[];
   articles: StayChargeArticle[];
   businessDate: Date;
   postedById: number;
@@ -307,12 +291,16 @@ export function buildAuditStayChargeLines({
   )?.id;
 
   const shortfall = stayChargeShortfallLines({
+    reservationId: reservation.reservationId,
+    reservationNo: reservation.reservationNo,
     arrangementType: reservation.arrangementType,
-    rateAmount: reservation.rateAmount,
+    arrivalDate: reservation.arrivalDate,
+    departureDate: reservation.departureDate,
     expectedNights: stayNightsThroughAuditDate(
       reservation.arrivalDate,
       businessDate,
     ),
+    reservationNights: reservation.reservationNights,
     lineItems: existingLineItems,
     articles,
   });
@@ -321,6 +309,7 @@ export function buildAuditStayChargeLines({
     folioId: reservation.folioId,
     articleId: line.articleId,
     fbOrderId: null,
+    reservationNightId: line.reservationNightId,
     description:
       line.articleId === roomArticleId
         ? `Night Audit Room Charge - ${label}`
@@ -350,6 +339,7 @@ function buildLineItems({
 }) {
   const lineItems: NightAuditLineItemInput[] = [];
   const previews: NightAuditPreviewReservation[] = [];
+  const blockingErrors: string[] = [];
 
   for (const reservation of reservations) {
     if (!reservation.folio || reservation.folio.status !== FolioStatus.OPEN) {
@@ -357,20 +347,34 @@ function buildLineItems({
     }
 
     const folio = reservation.folio;
-    const reservationLineItems = buildAuditStayChargeLines({
-      reservation: {
-        folioId: folio.id,
-        arrangementType: reservation.arrangementType,
-        rateAmount: reservation.rateAmount,
-        arrivalDate: reservation.arrivalDate,
-      },
-      existingLineItems: folio.lineItems,
-      articles,
-      businessDate,
-      postedById,
-      postedAt,
-      label,
-    });
+    let reservationLineItems: NightAuditLineItemInput[];
+
+    try {
+      reservationLineItems = buildAuditStayChargeLines({
+        reservation: {
+          reservationId: reservation.id,
+          reservationNo: reservation.reservationNo,
+          folioId: folio.id,
+          arrangementType: reservation.arrangementType,
+          arrivalDate: reservation.arrivalDate,
+          departureDate: reservation.departureDate,
+          reservationNights: reservation.reservationNights,
+        },
+        existingLineItems: folio.lineItems,
+        articles,
+        businessDate,
+        postedById,
+        postedAt,
+        label,
+      });
+    } catch (error) {
+      if (error instanceof StayChargePostingError) {
+        blockingErrors.push(error.message);
+        continue;
+      }
+
+      throw error;
+    }
 
     // Folio already current for this business date (e.g. check-out catch-up
     // posted the night first): nothing to post, omit from the preview.
@@ -386,7 +390,6 @@ function buildLineItems({
       roomNumber: reservation.room?.number ?? "-",
       folioNo: folio.folioNo,
       arrangementType: reservation.arrangementType,
-      rateAmount: safeRateAmount(reservation).toString(),
       lineItemCount: reservationLineItems.length,
       postingTotal: addDecimal(
         reservationLineItems.map((lineItem) => lineItem.amount),
@@ -394,7 +397,7 @@ function buildLineItems({
     });
   }
 
-  return { lineItems, previews };
+  return { lineItems, previews, blockingErrors };
 }
 
 export async function buildNightAuditPlan({
@@ -435,8 +438,17 @@ export async function buildNightAuditPlan({
         id: true,
         reservationNo: true,
         arrangementType: true,
-        rateAmount: true,
         arrivalDate: true,
+        departureDate: true,
+        reservationNights: {
+          select: {
+            id: true,
+            reservationId: true,
+            date: true,
+            rateAmount: true,
+          },
+          orderBy: { date: "asc" },
+        },
         guest: { select: { fullName: true } },
         room: { select: { number: true } },
         folio: {
@@ -444,7 +456,13 @@ export async function buildNightAuditPlan({
             id: true,
             folioNo: true,
             status: true,
-            lineItems: { select: { articleId: true } },
+            lineItems: {
+              select: {
+                articleId: true,
+                fbOrderId: true,
+                reservationNightId: true,
+              },
+            },
           },
         },
       },
@@ -496,7 +514,11 @@ export async function buildNightAuditPlan({
     validatePostingArticles(articles);
   const { blockingErrors: reservationErrors, warnings: reservationWarnings } =
     validateReservations(reservations);
-  const { lineItems, previews } = buildLineItems({
+  const {
+    lineItems,
+    previews,
+    blockingErrors: schedulePostingErrors,
+  } = buildLineItems({
     reservations,
     articles,
     businessDate,
@@ -539,38 +561,13 @@ export async function buildNightAuditPlan({
     );
   }
 
-  const affectedFolioIds = [
-    ...new Set(lineItems.map((lineItem) => lineItem.folioId)),
-  ];
-  const affectedReservationIds = [
-    ...new Set(
-      reservations
-        .filter((reservation) =>
-          affectedFolioIds.includes(reservation.folio?.id ?? -1),
-        )
-        .map((reservation) => reservation.id),
-    ),
-  ];
+
 
   const roomLineCount = lineItems.filter(
     (lineItem) => lineItem.articleId === roomArticleId,
   ).length;
 
-  // Every in-house reservation with an open folio is a candidate for posting;
-  // the commit transaction re-reads each folio's line items and recomputes the
-  // shortfall, so a concurrent check-out catch-up cannot cause a double.
-  const stayChargeReservations: NightAuditStayChargeReservation[] = reservations
-    .filter(
-      (reservation) =>
-        reservation.folio !== null &&
-        reservation.folio.status === FolioStatus.OPEN,
-    )
-    .map((reservation) => ({
-      folioId: reservation.folio!.id,
-      arrangementType: reservation.arrangementType,
-      rateAmount: reservation.rateAmount,
-      arrivalDate: reservation.arrivalDate,
-    }));
+
 
   return {
     businessDate,
@@ -616,10 +613,11 @@ export async function buildNightAuditPlan({
     postingArticles: buildPostingArticlesPreview(articleByCode),
     reservations: previews,
     warnings,
-    blockingErrors: [...articleErrors, ...reservationErrors],
-    lineItemsToCreate: lineItems,
-    stayChargeReservations,
-    stayChargeArticles: articles,
+    blockingErrors: [
+      ...articleErrors,
+      ...reservationErrors,
+      ...schedulePostingErrors,
+    ],
     snapshot: {
       businessDate,
       runById,
@@ -634,7 +632,5 @@ export async function buildNightAuditPlan({
       checkOutCount,
       inHouseCount: reservations.length,
     },
-    affectedFolioIds,
-    affectedReservationIds,
   };
 }

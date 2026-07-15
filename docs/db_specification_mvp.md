@@ -402,9 +402,9 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 A few choices worth explaining:
 
-1. **RoomType has a base rate.** `base_rate` remains the current operational rate source. The Phase-0 Dynamic Pricing contract below defines the approved per-night adjustment and locking semantics; Phase 1 adds only dormant storage and does not change any current quote, reader, or posting path.
+1. **RoomType has a base rate.** `base_rate` is the starting point for dynamic pricing. Active pricing rules resolve the persisted rate for each stay date; the per-night adjustment and locking semantics are defined by the Dynamic Pricing contract below.
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
-3. **Rate snapshot transition.** `Reservation.rate_amount` remains the authoritative booking-time snapshot in Phase 1. `ReservationNight` is present but empty and unused until a later activation phase; later base-rate or pricing-rule changes must not affect existing reservations, and non-pricing reservation edits must not rewrite `rate_amount`.
+3. **Per-night rate snapshots are authoritative.** `ReservationNight.rate_amount` is the locked pricing source for each stay date end-to-end: quote/display totals, automatic room-charge posting, checkout projection, and ARR integrity all use the nightly model. `Reservation.rate_amount` is retained only as a compatibility field containing the first-night rate; it is not the stay total or an authoritative money source. Later base-rate or pricing-rule changes do not affect existing snapshots, and non-pricing reservation edits do not rewrite either representation.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
@@ -415,12 +415,13 @@ A few choices worth explaining:
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
 13. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
+14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing Phase 5c from posting the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
 
 ---
 
 ## Dynamic Pricing (per-night model) contract
 
-> **Phase-0 design contract — authoritative semantics.** Phase 1 adds the physical `PricingRule`, `ReservationNight`, and room-charge posting-identity storage described below, but enables no readers, writers, rules, pricing, or backfill. This contract remains the authority for later activation phases.
+> **Implemented end-to-end.** `PricingRule`, `ReservationNight`, and room-charge posting identity are active across quoting, reservation locking and modification, displays and GRC export, automatic posting and checkout, and ARR reporting. The semantics below remain the authoritative contract.
 
 ### Pricing rules
 
@@ -432,14 +433,15 @@ A few choices worth explaining:
 - Constraints: one weekday rule is unique per `(roomType, weekday)`; overlapping active date ranges for one room type are rejected; and a rule that would produce a negative final rate is rejected.
 - `isActive` gates future quoting only. Editing a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
 
-**Phase-1 additive storage:** `PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. Schema-only enforcement is limited to the weekday uniqueness index; exactly-one-selector, non-overlapping active date ranges, and non-negative final-rate validation are deferred to application logic in the later rules phase.
+`PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. The weekday uniqueness index is enforced in the schema; selector shape, active date-range overlap, and non-negative resolved-rate validation are enforced by the application.
 
 ### Per-night snapshot and rate locking
 
-- A reservation must have one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. Phase 1 provides `ReservationNight` storage with a reservation reference, date-only stay date, and persisted nightly rate, but creates no rows yet.
-- Stay total is `SUM` of nightly rates. It is never calculated as `rate × nights`.
-- The rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
-- **Current `rateAmount` rewrite defect:** editing a reservation must not blindly replace `rateAmount` with the current base rate. Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote. Guest, notes, deposit, and physical room-allocation edits must not change pricing.
+- A reservation has one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. `ReservationNight` stores the date-only stay date, resolved rate, revenue class, and optional pricing-rule provenance.
+- `ReservationNight` is the authoritative pricing representation end-to-end. Stay total is `SUM(ReservationNight.rateAmount)` and is never calculated as scalar `Reservation.rateAmount × nights`.
+- `Reservation.rateAmount` is compatibility-only. Create and pricing-relevant modify operations write the resolved first-night rate so legacy consumers and zero-night/incomplete-snapshot display fallbacks remain safe; it is not authoritative for stay value, posting, folio totals, checkout balance, or ARR.
+- The nightly rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
+- Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote and refreshes both the nightly schedule and first-night compatibility value. Guest, notes, deposit, and physical room-allocation edits do not change pricing.
 
 ### Modify and overstay policy — first release
 
@@ -461,21 +463,26 @@ A few choices worth explaining:
 
 ### ARR (Average Room Rate)
 
-- ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`.
-- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights, OOO rooms, and future or unconsumed nights, including nights after an early departure. It must not use the current room-status snapshot or `roomsOccupied` as its denominator.
-- ARR reads posted room-charge lines tied to their service night through the **Phase-1 posting identity**, not booking-time snapshots alone.
-- For historical or pre-cutover audits, ARR is **UNAVAILABLE** unless both numerator and denominator can be proven. It must never be fabricated from a flat backfill.
+- ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`. It reads only posted `FolioLineItem` rows whose article code is `ROOM-CHARGE`, `fb_order_id` is null, `reservation_night_id` is populated, and linked `ReservationNight.revenue_class` is `PAID`.
+- ARR uses Prisma `Decimal` for the numerator and division. It is a weighted range aggregate (`SUM(amounts) / COUNT(lines)`), never an average of daily ARRs. The Decimal result is rounded once to whole IDR only for display, consistent with the app's IDR presentation policy.
+- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights and future or unconsumed nights, including nights after an early departure. The `COMP` filter is read-ready, but an operational end-to-end COMP workflow is not included in Phase 8.
+- OOO is excluded implicitly: an unsold OOO room has no posted room-charge line and therefore cannot enter the denominator. The mid-stay OOO edge case—a charged night whose room was OOO on that service night—is **not handled** because the model has no per-service-night room-status identity. ARR must not inspect current `Room.status`; that snapshot is historically wrong for prior service nights.
+- ARR reads posted room-charge lines tied to their service night through the posting identity, not `Reservation.rate_amount`, `ReservationNight.rate_amount` as revenue, `posted_at`, or any `NightAudit` revenue/occupancy snapshot.
+- Linked line integrity fails closed. Quantity must be 1; amount, unit price, and the linked nightly snapshot must agree; the folio and night must belong to the same reservation; the service date must be inside that reservation's `[arrivalDate, departureDate)` stay; and a service date beyond the hotel-date as-of boundary is invalid. Any violation yields `INTEGRITY_ERROR`, not a partial number.
+- A valid post-cutover period with zero matching paid lines yields `NO_RECOGNIZED_NIGHTS` / N/A, never Rp 0.
+- ARR is live reporting only in Phase 8. The frozen Night Report PDF/HTML intentionally remains unchanged.
 
 ### Migration and cutover
 
 - Legacy reservations receive a non-destructive flat backfill: nightly rows at their existing `rateAmount`. This is a fallback record, not reconstructed historical pricing.
-- Authoritative per-night ARR begins on a documented cutover date.
+- The production cutover is configured with the `ARR_CUTOVER_DATE` environment variable as a strict `YYYY-MM-DD` date-only value. This value is the deployment's declared first authoritative service date and must move with the real posting-identity go-live; it is not a source-code calendar constant.
+- When `ARR_CUTOVER_DATE` is absent (including resettable demo data), the application derives cutover from data: classify each folio's valid unlinked legacy `ROOM-CHARGE` lines as its chronological stay prefix, take the latest service date covered by any such prefix, then use the following date. If any unlinked room-charge line cannot be classified as that valid legacy prefix, derivation fails closed until the identity is reconciled. If no legacy prefix exists, use the earliest linked room-charge service date, or the hotel date when no room-charge data exists. This makes `db:reset` safe when relative demo dates shift.
+- A requested period entirely before cutover is `UNAVAILABLE`. A period that straddles cutover is also `UNAVAILABLE` for the full request and is never silently clamped. A period on/after cutover is authoritative subject to linked-line integrity.
+- Phase 5b adds an ordinary composite UNIQUE index on (`folio_line_item.reservation_night_id`, `article_id`) as the database-level duplicate guard for Phase 5c automatic stay-charge posting. PostgreSQL's standard unique-index null semantics permit multiple rows with `reservation_night_id = NULL`; the index does not use `NULLS NOT DISTINCT`, so existing legacy, manual, and F&B lines remain valid.
 
 ### Open questions for Phase 1
 
-- The calendar date that establishes the authoritative per-night ARR cutover has not yet been set.
 - Whether `ReservationNight.sourcePricingRuleId` should become a foreign key and, if so, its rule-deletion policy remains open. It is a nullable provenance ID only in Phase 1.
-- The composite posting uniqueness on (`folio_line_item.reservation_night_id`, `article_id`) is deferred to the posting phase so this additive migration cannot reject legacy or manual line items.
 
 ---
 
@@ -609,7 +616,7 @@ Indexes and deferred constraints:
 | adults | INT | NOT NULL, DEFAULT 1 | Adult guest count |
 | children | INT | NOT NULL, DEFAULT 0 | Child guest count |
 | status | ReservationStatus | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
-| rate_amount | DECIMAL(12,2) | NOT NULL | Rate snapshot at booking time |
+| rate_amount | DECIMAL(12,2) | NOT NULL | Compatibility-only first-night rate. Not authoritative for stay value or financial calculations; use `SUM(reservation_night.rate_amount)` for the stay total. |
 | deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
 | notes | TEXT | — | Canonical reservation note; FO edits it and HK reads it as guest instructions |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
@@ -627,8 +634,8 @@ Indexes and deferred constraints:
 | id | VARCHAR | PRIMARY KEY | Generated nightly snapshot identifier |
 | reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Owning reservation |
 | date | DATE | NOT NULL | Date-only WIB stay date |
-| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Immutable nightly snapshot; unused in Phase 1 |
-| revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification; unused in Phase 1 |
+| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Authoritative immutable rate snapshot for this stay date; summed for stay value and copied unchanged to linked room-charge postings |
+| revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification used by ARR recognition |
 | source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; not a foreign key in Phase 1 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Snapshot creation time |
 
@@ -656,13 +663,17 @@ Indexes and constraints:
 | folio_id | INT | NOT NULL, FOREIGN KEY → folio(id) | Target folio |
 | article_id | INT | NOT NULL, FOREIGN KEY → article(id) | Article (charge code) |
 | fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order (if charge to room) |
-| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Future room-charge posting identity; legacy and manual lines remain null in Phase 1 |
+| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Room-charge posting identity; with `article_id`, guards Phase 5c automatic postings while legacy/manual/F&B lines may remain null |
 | description | VARCHAR(255) | NOT NULL | Item description |
 | quantity | DECIMAL(8,2) | NOT NULL, DEFAULT 1 | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price |
 | amount | DECIMAL(12,2) | NOT NULL | Total (quantity × unit_price) |
 | posted_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Posting staff |
 | posted_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Posting time |
+
+Indexes and constraints:
+
+- UNIQUE (`reservation_night_id`, `article_id`) — at most one linked posting of a given article for one reservation night, providing the database duplicate guard for Phase 5c automatic stay charges and inclusions. This is an ordinary PostgreSQL unique index: rows with a non-null reservation-night ID are guarded, while multiple rows with `reservation_night_id = NULL` remain valid because nulls are distinct. `NULLS NOT DISTINCT` is intentionally not used.
 
 ### `menu_item`
 

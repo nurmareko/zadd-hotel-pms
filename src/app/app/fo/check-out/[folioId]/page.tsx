@@ -22,6 +22,7 @@ import { prisma } from "@/lib/prisma";
 import {
   buildPendingStayChargeLines,
   type PendingStayChargeLine,
+  StayChargePostingError,
   STAY_CHARGE_ARTICLE_CODES,
 } from "@/lib/stay-charges";
 import { CompleteCheckoutForm, FinalPaymentForm } from "./checkout-forms";
@@ -310,6 +311,15 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
             guest: { select: { fullName: true } },
             room: { select: { number: true } },
             roomType: { select: { code: true, name: true } },
+            reservationNights: {
+              select: {
+                id: true,
+                reservationId: true,
+                date: true,
+                rateAmount: true,
+              },
+              orderBy: { date: "asc" },
+            },
           },
         },
         lineItems: {
@@ -357,15 +367,28 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
   // already stayed, so the screen shows the true amount owed (and disables
   // check-out) even before the night audit runs. The check-out actions post
   // these for real before judging the balance server-side.
-  const pendingStayCharges = isCheckoutAllowed
-    ? buildPendingStayChargeLines({
+  let pendingStayCharges: PendingStayChargeLine[] = [];
+
+  if (isCheckoutAllowed) {
+    try {
+      pendingStayCharges = buildPendingStayChargeLines({
+        reservationId: folio.reservation.id,
+        reservationNo: folio.reservation.reservationNo,
         arrangementType: folio.reservation.arrangementType,
-        rateAmount: folio.reservation.rateAmount,
         arrivalDate: folio.reservation.arrivalDate,
+        departureDate: folio.reservation.departureDate,
+        reservationNights: folio.reservation.reservationNights,
         lineItems: folio.lineItems,
         articles: stayChargeArticles,
-      })
-    : [];
+      });
+    } catch (error) {
+      if (error instanceof StayChargePostingError) {
+        return <ErrorState title={folio.folioNo} message={error.message} />;
+      }
+
+      throw error;
+    }
+  }
 
   const totals = computeFolioTotals(
     [...folio.lineItems, ...pendingStayCharges] as Parameters<

@@ -10,6 +10,8 @@ export type TodaySnapshotData = {
   checkInCount: number;
   checkOutCount: number;
   runningRevenue: number;
+  latestCompletedArr: string;
+  latestCompletedArrCoverage: string;
 };
 
 type TodaySnapshotProps = {
@@ -22,7 +24,7 @@ export function TodaySnapshot({ snapshot }: TodaySnapshotProps) {
       <h3 className="text-xl font-semibold tracking-tight text-foreground">
         Snapshot Hari Ini
       </h3>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <KpiCard
           label="OKUPANSI"
           value={formatFixedPercent(snapshot.occupancyPercent)}
@@ -52,6 +54,12 @@ export function TodaySnapshot({ snapshot }: TodaySnapshotProps) {
           value={formatIDR(snapshot.runningRevenue)}
           sub="Room + F&B belum diaudit"
           className="bg-emerald-50/50 border-emerald-100 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
+        />
+        <KpiCard
+          label="ARR HARI SELESAI TERAKHIR"
+          value={snapshot.latestCompletedArr}
+          sub={snapshot.latestCompletedArrCoverage}
+          className="bg-violet-50/50 border-violet-100 [&_div:first-child]:text-violet-600 [&_div:nth-child(2)]:text-violet-900"
         />
       </div>
     </section>

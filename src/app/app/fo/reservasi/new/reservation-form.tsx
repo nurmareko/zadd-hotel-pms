@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   useFieldArray,
   useForm,
@@ -28,12 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { formatDateID, formatIDR } from "@/lib/format";
-import { dateOnlyRange } from "@/lib/stay-date-range";
 import {
   FO_RESERVASI_VIEW_PATHS,
   type FoReservasiView,
 } from "@/lib/nav-preferences";
-import { createReservation, updateReservation } from "./actions";
+import {
+  createReservation,
+  getReservationQuote,
+  updateReservation,
+} from "./actions";
 import {
   createUnifiedReservationSchema,
   type CreateReservationInput,
@@ -116,6 +119,14 @@ function dayAfter(dateValue: string) {
   }
 
   return formatISO(addDays(parsed, 1), { representation: "date" });
+}
+
+function pricingKey(
+  arrivalDate: string,
+  departureDate: string,
+  roomTypeIds: string[],
+) {
+  return `${arrivalDate}|${departureDate}|${roomTypeIds.join(",")}`;
 }
 
 function nightsBetween(arrivalDate: string, departureDate: string) {
@@ -340,27 +351,95 @@ export function ReservationForm({
   const nights = nightsBetween(arrivalDate, departureDate);
   const minDeparture = arrivalDate ? dayAfter(arrivalDate) : undefined;
   const depositAmount = Number(depositValue || 0);
-  const quotedStayDates = useMemo(
-    () => dateOnlyRange(arrivalDate, departureDate),
-    [arrivalDate, departureDate],
+  const roomTypeIds = useMemo(
+    () => watchedRoomRows.map((room) => room.roomTypeId),
+    [watchedRoomRows],
   );
-  const quotedRoomSubtotal = watchedRoomRows.reduce((total, room) => {
-    const roomType = roomTypes.find(
-      (option) => option.id === Number(room.roomTypeId || 0),
-    );
-    const nightlyQuote = roomType
-      ? quotedStayDates.map((date) => ({
-          date,
-          rateAmount: roomType.nightlyRateQuote,
-        }))
-      : [];
+  const currentPricingKey = pricingKey(
+    arrivalDate,
+    departureDate,
+    roomTypeIds,
+  );
+  const initialPricingKey = pricingKey(
+    defaultValues.arrivalDate,
+    defaultValues.departureDate,
+    [defaultValues.roomTypeId],
+  );
+  const pricingChanged = mode === "edit" && currentPricingKey !== initialPricingKey;
+  const [resolvedQuote, setResolvedQuote] = useState<{
+    key: string;
+    total: number | null;
+    error: string | null;
+  } | null>(null);
+  const canResolveQuote =
+    !isViewMode &&
+    nights > 0 &&
+    roomTypeIds.length > 0 &&
+    roomTypeIds.every((roomTypeId) => Number(roomTypeId) > 0);
 
-    return total + nightlyQuote.reduce((sum, night) => sum + Number(night.rateAmount), 0);
-  }, 0);
-  const roomSubtotal =
-    !isCreateMode && readOnlyStayTotal
-      ? Number(readOnlyStayTotal)
-      : quotedRoomSubtotal;
+  useEffect(() => {
+    if (!canResolveQuote || (mode === "edit" && !pricingChanged)) {
+      return;
+    }
+
+    let ignore = false;
+    const quoteKey = currentPricingKey;
+
+    void getReservationQuote({
+      roomTypeIds,
+      arrivalDate,
+      departureDate,
+    })
+      .then((result) => {
+        if (ignore) {
+          return;
+        }
+
+        setResolvedQuote(
+          result.ok
+            ? {
+                key: quoteKey,
+                total: Number(result.total),
+                error: null,
+              }
+            : { key: quoteKey, total: null, error: result.error },
+        );
+      })
+      .catch(() => {
+        if (!ignore) {
+          setResolvedQuote({
+            key: quoteKey,
+            total: null,
+            error: "Gagal menghitung estimasi harga.",
+          });
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    arrivalDate,
+    canResolveQuote,
+    currentPricingKey,
+    departureDate,
+    mode,
+    pricingChanged,
+    roomTypeIds,
+  ]);
+
+  const activeQuote =
+    resolvedQuote?.key === currentPricingKey ? resolvedQuote : null;
+  const quoteRequested =
+    canResolveQuote && !(mode === "edit" && !pricingChanged);
+  const isQuotePending = quoteRequested && activeQuote === null;
+  const quoteError = activeQuote?.error ?? null;
+  const resolvedQuoteTotal = activeQuote?.total ?? null;
+  const roomSubtotal = isViewMode
+    ? Number(readOnlyStayTotal ?? 0)
+    : mode === "edit" && !pricingChanged
+      ? Number(readOnlyStayTotal ?? 0)
+      : resolvedQuoteTotal;
   const firstSelectedRoomTypeId = Number(watchedRoomRows[0]?.roomTypeId || 0);
   const firstRoomOptions = getRoomOptions({
     activeReservations,
@@ -376,7 +455,13 @@ export function ReservationForm({
   ).length;
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
-  const estimatedTotal = roomSubtotal ? formatIDR(roomSubtotal) : "-";
+  const estimatedTotal = quoteError
+    ? "Tidak tersedia"
+    : isQuotePending
+      ? "Menghitung…"
+      : roomSubtotal
+        ? formatIDR(roomSubtotal)
+        : "-";
   const showFooter = !isViewMode || Boolean(viewFooterActions);
 
   useEffect(() => {
@@ -1115,8 +1200,25 @@ export function ReservationForm({
                 <SummaryRow label="Jumlah malam" value={String(nights)} />
                 <SummaryRow
                   label="Subtotal kamar"
-                  value={roomSubtotal ? formatIDR(roomSubtotal) : "-"}
+                  value={
+                    quoteError
+                      ? "Tidak tersedia"
+                      : isQuotePending
+                        ? "Menghitung…"
+                        : roomSubtotal
+                          ? formatIDR(roomSubtotal)
+                          : "-"
+                  }
                 />
+                {quoteError ? (
+                  <SummaryRow label="Status estimasi" value={quoteError} />
+                ) : null}
+                {pricingChanged && readOnlyStayTotal ? (
+                  <SummaryRow
+                    label="Total terkunci sebelumnya"
+                    value={formatIDR(readOnlyStayTotal)}
+                  />
+                ) : null}
                 <SummaryRow
                   label="Deposit"
                   value={formatIDR(
@@ -1188,8 +1290,8 @@ export function ReservationForm({
                     </Link>
                     <Button
                       type="submit"
-                      disabled={isSubmitting}
-                      className="disabled:cursor-wait disabled:opacity-70"
+                      disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
+                      className="disabled:opacity-70"
                     >
                       {isSubmitting ? "Menyimpan..." : submitLabel}
                     </Button>

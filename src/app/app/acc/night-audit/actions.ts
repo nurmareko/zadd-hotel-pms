@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { computeArr } from "@/lib/arr";
+import { addDateOnlyDays } from "@/lib/date-only";
 import { formatCompactDateTimeID } from "@/lib/format";
 import {
   buildAuditStayChargeLines,
@@ -11,8 +13,13 @@ import {
   type NightAuditLineItemInput,
 } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
-import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
+import {
+  ROOM_CHARGE_ARTICLE_CODE,
+  StayChargePostingError,
+  STAY_CHARGE_ARTICLE_CODES,
+} from "@/lib/stay-charges";
 
+import { toArrDisplayData, type ArrDisplayData } from "../arr-display";
 import { RunNightAuditSchema } from "./schema";
 
 export type NightAuditRunSummary = {
@@ -28,11 +35,14 @@ export type NightAuditRunSummary = {
   roomsCharged?: number;
   lineItemsPosted?: number;
   transactionWriteCount?: number;
+  arr: ArrDisplayData;
 };
 
 export type NightAuditRunResult =
   | { ok: true; summary: NightAuditRunSummary }
   | { ok: false; error: string; warnings?: string[] };
+
+const MAX_AUDIT_ATTEMPTS = 3;
 
 async function canRunNightAudit() {
   const session = await auth();
@@ -70,6 +80,14 @@ function uniqueBusinessDateError(error: unknown) {
   );
 }
 
+function retryableAuditPostingConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2034" ||
+      (error.code === "P2002" && !uniqueBusinessDateError(error)))
+  );
+}
+
 export async function runNightAudit(): Promise<NightAuditRunResult> {
   const userId = await canRunNightAudit();
 
@@ -102,135 +120,237 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
   }
 
   const now = new Date();
-  const roomArticleId = plan.stayChargeArticles.find(
-    (article) => article.code === ROOM_CHARGE_ARTICLE_CODE,
-  )?.id;
 
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        const lineItemsToCreate: NightAuditLineItemInput[] = [];
-        const chargedFolioIds = new Set<number>();
-
-        // Re-read each open folio's line items inside the transaction and post
-        // only the shortfall, so a check-out catch-up that posted a night
-        // between plan and commit cannot be double-posted here.
-        for (const reservation of plan.stayChargeReservations) {
-          const folio = await tx.folio.findUnique({
-            where: { id: reservation.folioId },
+  for (let attempt = 1; attempt <= MAX_AUDIT_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const articles = await tx.article.findMany({
+            where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
             select: {
-              status: true,
-              lineItems: { select: { articleId: true } },
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              defaultPrice: true,
             },
           });
-
-          // Skip folios closed (e.g. checked out) between plan and commit.
-          if (!folio || folio.status !== "OPEN") {
-            continue;
-          }
-
-          const lines = buildAuditStayChargeLines({
-            reservation,
-            existingLineItems: folio.lineItems,
-            articles: plan.stayChargeArticles,
-            businessDate: plan.businessDate,
-            postedById: userId,
-            postedAt: now,
-            label: plan.postingLabel,
+          const roomArticleId = articles.find(
+            (article) => article.code === ROOM_CHARGE_ARTICLE_CODE,
+          )?.id;
+          const lineItemsToCreate: NightAuditLineItemInput[] = [];
+          const chargedFolioIds = new Set<number>();
+          const chargedReservationIds = new Set<number>();
+          const reservations = await tx.reservation.findMany({
+            where: { status: "CHECKED_IN" },
+            orderBy: { reservationNo: "asc" },
+            select: {
+                id: true,
+                reservationNo: true,
+                status: true,
+                arrangementType: true,
+                arrivalDate: true,
+                departureDate: true,
+                reservationNights: {
+                  select: {
+                    id: true,
+                    reservationId: true,
+                    date: true,
+                    rateAmount: true,
+                  },
+                  orderBy: { date: "asc" },
+                },
+                folio: {
+                  select: {
+                    id: true,
+                    status: true,
+                    lineItems: {
+                      select: {
+                        articleId: true,
+                        fbOrderId: true,
+                        reservationNightId: true,
+                      },
+                    },
+                  },
+                },
+              },
           });
 
-          if (lines.length > 0) {
-            chargedFolioIds.add(reservation.folioId);
-            lineItemsToCreate.push(...lines);
+          for (const reservation of reservations) {
+            if (!reservation.folio) {
+              throw new StayChargePostingError(
+                `Posting stay charge ${reservation.reservationNo} diblokir: folio belum tersedia.`,
+              );
+            }
+
+            if (reservation.folio.status !== "OPEN") {
+              throw new StayChargePostingError(
+                `Posting stay charge ${reservation.reservationNo} diblokir: folio tidak OPEN.`,
+              );
+            }
+
+            const lines = buildAuditStayChargeLines({
+              reservation: {
+                reservationId: reservation.id,
+                reservationNo: reservation.reservationNo,
+                folioId: reservation.folio.id,
+                arrangementType: reservation.arrangementType,
+                arrivalDate: reservation.arrivalDate,
+                departureDate: reservation.departureDate,
+                reservationNights: reservation.reservationNights,
+              },
+              existingLineItems: reservation.folio.lineItems,
+              articles,
+              businessDate: plan.businessDate,
+              postedById: userId,
+              postedAt: now,
+              label: plan.postingLabel,
+            });
+
+            if (lines.length > 0) {
+              chargedFolioIds.add(reservation.folio.id);
+              chargedReservationIds.add(reservation.id);
+              lineItemsToCreate.push(...lines);
+            }
           }
-        }
 
-        let transactionWriteCount = 0;
+          let transactionWriteCount = 0;
 
-        if (lineItemsToCreate.length > 0) {
-          await tx.folioLineItem.createMany({ data: lineItemsToCreate });
+          if (lineItemsToCreate.length > 0) {
+            await tx.folioLineItem.createMany({ data: lineItemsToCreate });
+            transactionWriteCount += 1;
+          }
+
+          // Only rows inserted by this transaction contribute posting revenue.
+          // A concurrent checkout that wins is observed by the retry/re-read and
+          // never counted as revenue posted by this audit.
+          const roomRevenue = lineItemsToCreate
+            .filter((line) => line.articleId === roomArticleId)
+            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+          const inclusionRevenue = lineItemsToCreate
+            .filter((line) => line.articleId !== roomArticleId)
+            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+          const fbRevenue = inclusionRevenue.plus(
+            new Prisma.Decimal(plan.closedFbRevenue),
+          );
+          const totalRevenue = roomRevenue
+            .plus(fbRevenue)
+            .plus(plan.snapshot.otherRevenue);
+
+          const audit = await tx.nightAudit.create({
+            data: {
+              ...plan.snapshot,
+              roomRevenue,
+              fbRevenue,
+              totalRevenue,
+            },
+            select: {
+              id: true,
+              runAt: true,
+              runBy: { select: { fullName: true } },
+            },
+          });
           transactionWriteCount += 1;
-        }
 
-        // Snapshot revenue reflects what was actually posted, not the plan's
-        // projection (which can be larger if a catch-up posted a night first).
-        const roomRevenue = lineItemsToCreate
-          .filter((line) => line.articleId === roomArticleId)
-          .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
-        const inclusionRevenue = lineItemsToCreate
-          .filter((line) => line.articleId !== roomArticleId)
-          .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
-        const fbRevenue = inclusionRevenue.plus(
-          new Prisma.Decimal(plan.closedFbRevenue),
+          return {
+            auditId: audit.id,
+            runAt: audit.runAt,
+            runByName: audit.runBy.fullName,
+            transactionWriteCount,
+            lineItemsPosted: lineItemsToCreate.length,
+            roomsCharged: chargedFolioIds.size,
+            chargedFolioIds: [...chargedFolioIds],
+            chargedReservationIds: [...chargedReservationIds],
+            roomRevenue: roomRevenue.toString(),
+            fbRevenue: fbRevenue.toString(),
+            totalRevenue: totalRevenue.toString(),
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+
+      revalidateNightAuditPaths(
+        result.chargedFolioIds,
+        result.chargedReservationIds,
+      );
+      let arr: ArrDisplayData;
+      try {
+        arr = toArrDisplayData(
+          await computeArr({
+            fromInclusive: plan.businessDate,
+            toExclusive: addDateOnlyDays(plan.businessDate, 1),
+          }),
         );
-        const totalRevenue = roomRevenue
-          .plus(fbRevenue)
-          .plus(plan.snapshot.otherRevenue);
-
-        const audit = await tx.nightAudit.create({
-          data: {
-            ...plan.snapshot,
-            roomRevenue,
-            fbRevenue,
-            totalRevenue,
-          },
-          select: {
-            id: true,
-            runAt: true,
-            runBy: { select: { fullName: true } },
-          },
-        });
-        transactionWriteCount += 1;
-
-        return {
-          auditId: audit.id,
-          runAt: audit.runAt,
-          runByName: audit.runBy.fullName,
-          transactionWriteCount,
-          lineItemsPosted: lineItemsToCreate.length,
-          roomsCharged: chargedFolioIds.size,
-          roomRevenue: roomRevenue.toString(),
-          fbRevenue: fbRevenue.toString(),
-          totalRevenue: totalRevenue.toString(),
+      } catch {
+        const businessDate = plan.businessDate.toISOString().slice(0, 10);
+        arr = {
+          status: "INTEGRITY_ERROR",
+          numerator: "0",
+          paidRoomNights: 0,
+          arr: null,
+          fromInclusive: businessDate,
+          toExclusive: addDateOnlyDays(plan.businessDate, 1)
+            .toISOString()
+            .slice(0, 10),
+          cutoverDate: businessDate,
+          reason:
+            "Night Audit selesai, tetapi query ARR live gagal. Muat ulang dashboard untuk mencoba kembali.",
         };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
+      }
 
-    revalidateNightAuditPaths(
-      plan.affectedFolioIds,
-      plan.affectedReservationIds,
-    );
-
-    return {
-      ok: true,
-      summary: {
-        auditId: result.auditId,
-        businessDateLabel: plan.businessDateLabel,
-        runAtLabel: formatCompactDateTimeID(result.runAt),
-        runByName: result.runByName,
-        roomsCharged: result.roomsCharged,
-        lineItemsPosted: result.lineItemsPosted,
-        roomRevenue: result.roomRevenue,
-        fbRevenue: result.fbRevenue,
-        otherRevenue: plan.otherRevenue,
-        totalRevenue: result.totalRevenue,
-        warnings: plan.warnings,
-        transactionWriteCount: result.transactionWriteCount,
-      },
-    };
-  } catch (error) {
-    if (uniqueBusinessDateError(error)) {
       return {
-        ok: false,
-        error: `Night audit untuk ${plan.businessDateLabel} sudah dijalankan oleh sesi lain.`,
-        warnings: plan.warnings,
+        ok: true,
+        summary: {
+          auditId: result.auditId,
+          businessDateLabel: plan.businessDateLabel,
+          runAtLabel: formatCompactDateTimeID(result.runAt),
+          runByName: result.runByName,
+          roomsCharged: result.roomsCharged,
+          lineItemsPosted: result.lineItemsPosted,
+          roomRevenue: result.roomRevenue,
+          fbRevenue: result.fbRevenue,
+          otherRevenue: plan.otherRevenue,
+          totalRevenue: result.totalRevenue,
+          warnings: plan.warnings,
+          transactionWriteCount: result.transactionWriteCount,
+          arr,
+        },
       };
-    }
+    } catch (error) {
+      if (uniqueBusinessDateError(error)) {
+        return {
+          ok: false,
+          error: `Night audit untuk ${plan.businessDateLabel} sudah dijalankan oleh sesi lain.`,
+          warnings: plan.warnings,
+        };
+      }
 
-    throw error;
+      if (error instanceof StayChargePostingError) {
+        return { ok: false, error: error.message, warnings: plan.warnings };
+      }
+
+      if (retryableAuditPostingConflict(error) && attempt < MAX_AUDIT_ATTEMPTS) {
+        continue;
+      }
+
+      if (retryableAuditPostingConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
+          warnings: plan.warnings,
+        };
+      }
+
+      throw error;
+    }
   }
+
+  return {
+    ok: false,
+    error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
+    warnings: plan.warnings,
+  };
 }

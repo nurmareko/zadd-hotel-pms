@@ -11,10 +11,15 @@ import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import {
+  PricingResolutionError,
+  resolveNightlySchedule,
+} from "@/lib/pricing-resolver";
 import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
   FO_RESERVASI_VIEW_COOKIE,
@@ -36,6 +41,30 @@ type ReservationActionField = "roomTypeId" | "roomId";
 type ActionResult =
   | { ok: true }
   | { ok: false; error: string; field?: ReservationActionField };
+
+type ReservationQuoteResult =
+  | { ok: true; total: string }
+  | { ok: false; error: string };
+
+const ReservationQuoteSchema = z
+  .object({
+    roomTypeIds: z.array(z.coerce.number().int().positive()).min(1).max(20),
+    arrivalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .superRefine((value, context) => {
+    const arrival = Date.parse(`${value.arrivalDate}T00:00:00.000Z`);
+    const departure = Date.parse(`${value.departureDate}T00:00:00.000Z`);
+    const nights = (departure - arrival) / 86_400_000;
+
+    if (!Number.isFinite(nights) || nights < 1 || nights > 366) {
+      context.addIssue({
+        code: "custom",
+        path: ["departureDate"],
+        message: "Periode estimasi harus antara 1 dan 366 malam.",
+      });
+    }
+  });
 
 const ACTIVE_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
@@ -309,6 +338,25 @@ async function runCreateReservationTransaction(
         }
       }
 
+      const arrivalDate = formatISO(input.arrivalDate, { representation: "date" });
+      const departureDate = formatISO(input.departureDate, {
+        representation: "date",
+      });
+      const resolvedSchedules = new Map<
+        number,
+        Awaited<ReturnType<typeof resolveNightlySchedule>>
+      >();
+
+      for (const roomTypeId of requestedByRoomTypeId.keys()) {
+        resolvedSchedules.set(
+          roomTypeId,
+          await resolveNightlySchedule(
+            { roomTypeId, arrivalDate, departureDate },
+            tx,
+          ),
+        );
+      }
+
       const guest = await tx.guest.create({
         data: {
           fullName: input.fullName,
@@ -329,7 +377,13 @@ async function runCreateReservationTransaction(
       const reservationIds: number[] = [];
 
       for (const [index, room] of input.rooms.entries()) {
-        const { roomType, room: selectedRoom } = assignments[index];
+        const { room: selectedRoom } = assignments[index];
+        const resolvedSchedule = resolvedSchedules.get(room.roomTypeId);
+
+        if (!resolvedSchedule?.[0]) {
+          throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
+        }
+
         const reservation = await tx.reservation.create({
           data: {
             reservationNo: reservationNumbers[index],
@@ -345,7 +399,7 @@ async function runCreateReservationTransaction(
             adults: room.adults,
             children: room.children,
             status: ReservationStatus.CONFIRMED,
-            rateAmount: roomType.baseRate,
+            rateAmount: resolvedSchedule[0].rate,
             deposit: input.deposit,
             notes: input.notes,
             createdById: userId,
@@ -356,9 +410,7 @@ async function runCreateReservationTransaction(
         await tx.reservationNight.createMany({
           data: createReservationNightSchedule({
             reservationId: reservation.id,
-            arrivalDate: input.arrivalDate,
-            departureDate: input.departureDate,
-            rateAmount: roomType.baseRate,
+            resolvedSchedule,
           }),
         });
 
@@ -424,7 +476,7 @@ async function runUpdateReservationTransaction(
         return validatedAssignment;
       }
 
-      const { roomType, room } = validatedAssignment.assignment;
+      const { room } = validatedAssignment.assignment;
       const isPricingRelevant =
         existingReservation.roomTypeId !== input.roomTypeId ||
         !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
@@ -455,6 +507,9 @@ async function runUpdateReservationTransaction(
         }
       }
 
+      let resolvedSchedule: Awaited<ReturnType<typeof resolveNightlySchedule>> | null =
+        null;
+
       if (isPricingRelevant) {
         const validatedCapacity = await validateRoomTypeCapacity(
           {
@@ -468,6 +523,21 @@ async function runUpdateReservationTransaction(
 
         if (!validatedCapacity.ok) {
           return validatedCapacity;
+        }
+
+        resolvedSchedule = await resolveNightlySchedule(
+          {
+            roomTypeId: input.roomTypeId,
+            arrivalDate: formatISO(input.arrivalDate, { representation: "date" }),
+            departureDate: formatISO(input.departureDate, {
+              representation: "date",
+            }),
+          },
+          tx,
+        );
+
+        if (!resolvedSchedule[0]) {
+          throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
         }
       }
 
@@ -492,7 +562,7 @@ async function runUpdateReservationTransaction(
           departureDate: input.departureDate,
           adults: input.adults,
           children: input.children,
-          ...(isPricingRelevant ? { rateAmount: roomType.baseRate } : {}),
+          ...(resolvedSchedule ? { rateAmount: resolvedSchedule[0].rate } : {}),
           deposit: input.deposit,
           notes: input.notes,
           arrangementType: input.arrangementType,
@@ -500,16 +570,14 @@ async function runUpdateReservationTransaction(
         },
       });
 
-      if (isPricingRelevant) {
+      if (resolvedSchedule) {
         await tx.reservationNight.deleteMany({
           where: { reservationId },
         });
         await tx.reservationNight.createMany({
           data: createReservationNightSchedule({
             reservationId,
-            arrivalDate: input.arrivalDate,
-            departureDate: input.departureDate,
-            rateAmount: roomType.baseRate,
+            resolvedSchedule,
           }),
         });
       }
@@ -521,6 +589,63 @@ async function runUpdateReservationTransaction(
       ...TRANSACTION_OPTIONS,
     },
   );
+}
+
+export async function getReservationQuote(
+  input: unknown,
+): Promise<ReservationQuoteResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = ReservationQuoteSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: "Data estimasi harga tidak valid." };
+  }
+
+  try {
+    const schedules = new Map<
+      number,
+      Awaited<ReturnType<typeof resolveNightlySchedule>>
+    >();
+
+    for (const roomTypeId of new Set(parsed.data.roomTypeIds)) {
+      schedules.set(
+        roomTypeId,
+        await resolveNightlySchedule({
+          roomTypeId,
+          arrivalDate: parsed.data.arrivalDate,
+          departureDate: parsed.data.departureDate,
+        }),
+      );
+    }
+
+    const total = parsed.data.roomTypeIds.reduce((stayTotal, roomTypeId) => {
+      const schedule = schedules.get(roomTypeId);
+
+      if (!schedule) {
+        throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
+      }
+
+      return schedule.reduce(
+        (roomTotal, night) => roomTotal.plus(night.rate),
+        stayTotal,
+      );
+    }, new Prisma.Decimal(0));
+
+    return { ok: true, total: total.toString() };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof PricingResolutionError
+          ? error.message
+          : "Gagal menghitung estimasi harga.",
+    };
+  }
 }
 
 export async function createReservation(
@@ -549,6 +674,10 @@ export async function createReservation(
       result = await runCreateReservationTransaction(parsed.data, userId);
       break;
     } catch (error) {
+      if (error instanceof PricingResolutionError) {
+        return { ok: false, error: error.message };
+      }
+
       if (attempt < 2 && isRetryableReservationNumberError(error)) {
         retriedAfterConflict = true;
         continue;
@@ -721,6 +850,10 @@ export async function updateReservation(
   try {
     result = await runUpdateReservationTransaction(reservationId, parsed.data);
   } catch (error) {
+    if (error instanceof PricingResolutionError) {
+      return { ok: false, error: error.message };
+    }
+
     if (isSerializationConflict(error)) {
       return {
         ok: false,

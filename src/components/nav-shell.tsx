@@ -16,6 +16,7 @@ import {
   BarChart3,
   ClipboardList,
   Archive,
+  CircleDollarSign,
   Gauge,
   FileText,
   LayoutDashboard,
@@ -198,6 +199,11 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       links: [
         { label: "Pengguna", href: "/app/admin/users", icon: Users },
         { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+        {
+          label: "Aturan Harga",
+          href: "/app/admin/pricing-rules",
+          icon: CircleDollarSign,
+        },
         { label: "Artikel", href: "/app/admin/articles", icon: Tag },
         { label: "Meja", href: "/app/admin/tables", icon: Table2 },
         { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },

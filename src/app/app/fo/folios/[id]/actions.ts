@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { prisma } from "@/lib/prisma";
+import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { PaymentSchema, PostChargeSchema } from "./schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -54,7 +55,7 @@ export async function postCharge(
 
   const article = await prisma.article.findUnique({
     where: { id: parsed.data.articleId },
-    select: { id: true, name: true, type: true },
+    select: { id: true, code: true, name: true, type: true },
   });
 
   if (!article) {
@@ -63,6 +64,10 @@ export async function postCharge(
 
   if (article.type === ArticleType.TAX) {
     return { ok: false, error: "Tax is computed automatically" };
+  }
+
+  if (STAY_CHARGE_ARTICLE_CODES.some((code) => code === article.code)) {
+    return { ok: false, error: "Stay charges are posted automatically" };
   }
 
   const description = parsed.data.description?.trim() || article.name;

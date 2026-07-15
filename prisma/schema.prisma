@@ -398,6 +398,7 @@ model FolioLineItem {
   reservationNight ReservationNight? @relation(fields: [reservationNightId], references: [id])
   postedBy         User              @relation(fields: [postedById], references: [id])
 
+  @@unique([reservationNightId, articleId])
   @@map("folio_line_item")
 }
 
