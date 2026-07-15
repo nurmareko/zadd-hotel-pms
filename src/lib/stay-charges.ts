@@ -81,7 +81,6 @@ function validatePostingSchedule({
   reservationNo,
   arrivalDate,
   departureDate,
-  rateAmount,
   expectedNights,
   reservationNights,
 }: {
@@ -89,14 +88,9 @@ function validatePostingSchedule({
   reservationNo: string;
   arrivalDate: Date;
   departureDate: Date;
-  rateAmount: Prisma.Decimal | null;
   expectedNights: number;
   reservationNights: StayChargeReservationNight[];
 }) {
-  if (rateAmount === null) {
-    postingBlocked(reservationNo, "rate reservasi tidak tersedia.");
-  }
-
   const expectedDates: Date[] = [];
   const departure = dateOnlyBoundary(departureDate);
 
@@ -234,7 +228,6 @@ export function stayChargeShortfallLines({
   reservationId,
   reservationNo,
   arrangementType,
-  rateAmount,
   arrivalDate,
   departureDate,
   expectedNights,
@@ -245,7 +238,6 @@ export function stayChargeShortfallLines({
   reservationId: number;
   reservationNo: string;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
   departureDate: Date;
   expectedNights: number;
@@ -258,7 +250,6 @@ export function stayChargeShortfallLines({
     reservationNo,
     arrivalDate,
     departureDate,
-    rateAmount,
     expectedNights,
     reservationNights,
   });
@@ -309,7 +300,6 @@ export function buildPendingStayChargeLines({
   reservationId,
   reservationNo,
   arrangementType,
-  rateAmount,
   arrivalDate,
   departureDate,
   reservationNights,
@@ -320,7 +310,6 @@ export function buildPendingStayChargeLines({
   reservationId: number;
   reservationNo: string;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
   departureDate: Date;
   reservationNights: StayChargeReservationNight[];
@@ -332,7 +321,6 @@ export function buildPendingStayChargeLines({
     reservationId,
     reservationNo,
     arrangementType,
-    rateAmount,
     arrivalDate,
     departureDate,
     expectedNights: stayNightsThroughCheckout(arrivalDate, now),
@@ -372,7 +360,6 @@ export async function postPendingStayCharges({
                   reservationNo: true,
                   status: true,
                   arrangementType: true,
-                  rateAmount: true,
                   arrivalDate: true,
                   departureDate: true,
                   reservationNights: {
@@ -427,7 +414,6 @@ export async function postPendingStayCharges({
             reservationId: reservation.id,
             reservationNo: reservation.reservationNo,
             arrangementType: reservation.arrangementType,
-            rateAmount: reservation.rateAmount,
             arrivalDate: reservation.arrivalDate,
             departureDate: reservation.departureDate,
             reservationNights: reservation.reservationNights,

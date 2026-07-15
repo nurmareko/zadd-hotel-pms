@@ -402,9 +402,9 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 A few choices worth explaining:
 
-1. **RoomType has a base rate.** `base_rate` remains the current operational rate source. The Phase-0 Dynamic Pricing contract below defines the approved per-night adjustment and locking semantics; Phase 1 adds only dormant storage and does not change any current quote, reader, or posting path.
+1. **RoomType has a base rate.** `base_rate` is the starting point for dynamic pricing. Active pricing rules resolve the persisted rate for each stay date; the per-night adjustment and locking semantics are defined by the Dynamic Pricing contract below.
 2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
-3. **Rate snapshot transition.** `Reservation.rate_amount` remains the authoritative booking-time snapshot in Phase 1. `ReservationNight` is present but empty and unused until a later activation phase; later base-rate or pricing-rule changes must not affect existing reservations, and non-pricing reservation edits must not rewrite `rate_amount`.
+3. **Per-night rate snapshots are authoritative.** `ReservationNight.rate_amount` is the locked pricing source for each stay date end-to-end: quote/display totals, automatic room-charge posting, checkout projection, and ARR integrity all use the nightly model. `Reservation.rate_amount` is retained only as a compatibility field containing the first-night rate; it is not the stay total or an authoritative money source. Later base-rate or pricing-rule changes do not affect existing snapshots, and non-pricing reservation edits do not rewrite either representation.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
@@ -421,7 +421,7 @@ A few choices worth explaining:
 
 ## Dynamic Pricing (per-night model) contract
 
-> **Phase-0 design contract — authoritative semantics.** Phase 1 adds the physical `PricingRule`, `ReservationNight`, and room-charge posting-identity storage described below, but enables no readers, writers, rules, pricing, or backfill. This contract remains the authority for later activation phases.
+> **Implemented end-to-end.** `PricingRule`, `ReservationNight`, and room-charge posting identity are active across quoting, reservation locking and modification, displays and GRC export, automatic posting and checkout, and ARR reporting. The semantics below remain the authoritative contract.
 
 ### Pricing rules
 
@@ -433,14 +433,15 @@ A few choices worth explaining:
 - Constraints: one weekday rule is unique per `(roomType, weekday)`; overlapping active date ranges for one room type are rejected; and a rule that would produce a negative final rate is rejected.
 - `isActive` gates future quoting only. Editing a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
 
-**Phase-1 additive storage:** `PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. Schema-only enforcement is limited to the weekday uniqueness index; exactly-one-selector, non-overlapping active date ranges, and non-negative final-rate validation are deferred to application logic in the later rules phase.
+`PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. The weekday uniqueness index is enforced in the schema; selector shape, active date-range overlap, and non-negative resolved-rate validation are enforced by the application.
 
 ### Per-night snapshot and rate locking
 
-- A reservation must have one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. Phase 1 provides `ReservationNight` storage with a reservation reference, date-only stay date, and persisted nightly rate, but creates no rows yet.
-- Stay total is `SUM` of nightly rates. It is never calculated as `rate × nights`.
-- The rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
-- **Current `rateAmount` rewrite defect:** editing a reservation must not blindly replace `rateAmount` with the current base rate. Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote. Guest, notes, deposit, and physical room-allocation edits must not change pricing.
+- A reservation has one immutable nightly-rate snapshot for every stay date in `[arrivalDate, departureDate)`. `ReservationNight` stores the date-only stay date, resolved rate, revenue class, and optional pricing-rule provenance.
+- `ReservationNight` is the authoritative pricing representation end-to-end. Stay total is `SUM(ReservationNight.rateAmount)` and is never calculated as scalar `Reservation.rateAmount × nights`.
+- `Reservation.rateAmount` is compatibility-only. Create and pricing-relevant modify operations write the resolved first-night rate so legacy consumers and zero-night/incomplete-snapshot display fallbacks remain safe; it is not authoritative for stay value, posting, folio totals, checkout balance, or ARR.
+- The nightly rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
+- Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote and refreshes both the nightly schedule and first-night compatibility value. Guest, notes, deposit, and physical room-allocation edits do not change pricing.
 
 ### Modify and overstay policy — first release
 
@@ -615,7 +616,7 @@ Indexes and deferred constraints:
 | adults | INT | NOT NULL, DEFAULT 1 | Adult guest count |
 | children | INT | NOT NULL, DEFAULT 0 | Child guest count |
 | status | ReservationStatus | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
-| rate_amount | DECIMAL(12,2) | NOT NULL | Rate snapshot at booking time |
+| rate_amount | DECIMAL(12,2) | NOT NULL | Compatibility-only first-night rate. Not authoritative for stay value or financial calculations; use `SUM(reservation_night.rate_amount)` for the stay total. |
 | deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
 | notes | TEXT | — | Canonical reservation note; FO edits it and HK reads it as guest instructions |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
@@ -633,8 +634,8 @@ Indexes and deferred constraints:
 | id | VARCHAR | PRIMARY KEY | Generated nightly snapshot identifier |
 | reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Owning reservation |
 | date | DATE | NOT NULL | Date-only WIB stay date |
-| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Immutable nightly snapshot; unused in Phase 1 |
-| revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification; unused in Phase 1 |
+| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Authoritative immutable rate snapshot for this stay date; summed for stay value and copied unchanged to linked room-charge postings |
+| revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification used by ARR recognition |
 | source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; not a foreign key in Phase 1 |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Snapshot creation time |
 

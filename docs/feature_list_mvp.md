@@ -1,8 +1,8 @@
 # Feature List (MVP)
 
-What we're building in the MVP, grouped by module. In-progress and deferred features are listed at the end with their current status or rationale.
+What we're building in the MVP, grouped by module. Recently completed and deferred features are listed at the end with their current status or rationale.
 
-Last updated: 2026-07-14.
+Last updated: 2026-07-15.
 
 ---
 
@@ -11,6 +11,7 @@ Last updated: 2026-07-14.
 Supports the guest lifecycle from booking to final payment.
 
 - **Reservation management** — create and edit reservations with guest data, stay dates, room type, optional physical-room allocation, and rate. Confirmed reservations can be cancelled (`CONFIRMED → CANCELLED`), releasing room-type inventory capacity and disappearing from the active list and Kalender.
+- **Dynamic per-night pricing** — room-type base rates plus non-stacking weekday/date-range rules resolve an immutable `ReservationNight` schedule. Quotes, reservation totals, detail/check-in/GRC displays, Night Audit and checkout posting all use the nightly snapshots; pricing-relevant edits requote eligible confirmed stays while non-pricing edits preserve locked prices.
 - **Kalender (Tape Chart)** — default Front Office landing page: occupancy visualization as a room × date grid with unified status colors, room-type groups, unallocated-reservation lanes, and a checkout marker. Clicking an empty cell opens the reservation form with Kalender context prefilled.
 - **Overbooking prevention** — reservation create/edit checks room-type inventory capacity (the number of registered physical rooms for that type) across the stay, including unallocated reservations.
 - **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, capture the guest's required digital signature on screen, save `signatureDataUrl` and `signedAt`, embed the signature in the GRC PDF, and auto-open the folio.
@@ -60,6 +61,7 @@ Shipped daily-close workflow for the current WIB hotel date.
 - **Accounting dashboard** — `/app/acc` shows the current WIB business-date night audit status, running revenue snapshot, audit history, and pending Night Audit indicator.
 - **Night Audit** — `/app/acc/night-audit` runs for the current WIB (`Asia/Jakarta`) business date, blocks duplicate audits through the unique `business_date` lock, posts only stay-charge shortfalls per article so missed nights are backfilled without double-posting, treats open F&B orders as warnings, and stores the completed revenue/occupancy snapshot. There is no persisted business-date advancement step.
 - **Night Report** — `/app/acc/reports/[auditId]` shows the consolidated report summarizing revenue, occupancy, and guest list in one document. Exportable as PDF.
+- **ARR (Average Room Rate)** — accounting reporting computes weighted ARR from integrity-checked posted `ROOM-CHARGE` lines linked to paid service-night snapshots, excludes `COMP`, fails closed on malformed identity, and reports pre-cutover periods as unavailable rather than mixing legacy and authoritative revenue.
 
 ## Admin
 
@@ -84,14 +86,12 @@ Shared access features used by all role workspaces.
 
 ---
 
-## In Progress
-
-Work that has an approved design contract and is being prepared for implementation; it is not shipped functionality yet.
+## Recently Completed
 
 | Feature | Module | Status / reference |
 |---|---|---|
-| Dynamic / adjustable room pricing | Front Office | In progress. The approved per-night pricing, locking, modification, and cutover semantics are defined in [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
-| ARR (Average Room Rate) | Accounting | In progress. ARR recognition, paid-night denominator, COMP exclusion, and pre-cutover handling are defined in [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
+| Dynamic / adjustable room pricing | Front Office | **DONE.** Per-night rule resolution, immutable booking snapshots, pricing-relevant requotes, nightly totals/displays/GRC, and snapshot-linked automatic posting are delivered. See [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
+| ARR (Average Room Rate) | Accounting | **DONE.** Weighted paid-night ARR with linked-line integrity, COMP exclusion, and explicit cutover handling is delivered. See [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
 
 ---
 
@@ -104,6 +104,10 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Master Bill + Dummy Bill | Front Office / Accounting | Requires group billing and bill routing beyond the single-reservation MVP flow. |
 | Add reservation in same number | Front Office | Same group-booking need as Master Bill; MVP keeps one reservation number per reservation. |
 | Add room to existing reservation | Front Office | Requires multi-room reservation workflow and billing allocation. |
+| Checked-in stay extension UI | Front Office | The nightly model requires append-only future snapshots for in-house extensions without repricing posted history; the operational UI and confirmation flow remain deferred. |
+| COMP operational workflow | Front Office / Accounting | `ReservationNight.revenueClass` and ARR exclusion are ready, but no user workflow currently creates or approves complimentary service nights. |
+| Per-service-night room-status identity for mid-stay OOO ARR | Accounting / Housekeeping | ARR must not use current `Room.status`; historical exclusion of a charged night that was OOO requires a service-night status snapshot/model. |
+| Manual folio charge/payment writer stale-status race hardening | Front Office / Accounting | Manual charge and payment writers must recheck folio status and relevant balance invariants atomically at insert time so concurrent checkout cannot accept a stale OPEN-state decision. |
 | Multi-outlet F&B | F&B | One outlet (hotel restaurant) is enough for the early praktikum. |
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
 | Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |

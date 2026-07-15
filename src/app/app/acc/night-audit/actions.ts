@@ -149,7 +149,6 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
                 reservationNo: true,
                 status: true,
                 arrangementType: true,
-                rateAmount: true,
                 arrivalDate: true,
                 departureDate: true,
                 reservationNights: {
@@ -196,7 +195,6 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
                 reservationNo: reservation.reservationNo,
                 folioId: reservation.folio.id,
                 arrangementType: reservation.arrangementType,
-                rateAmount: reservation.rateAmount,
                 arrivalDate: reservation.arrivalDate,
                 departureDate: reservation.departureDate,
                 reservationNights: reservation.reservationNights,

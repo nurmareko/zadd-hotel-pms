@@ -38,7 +38,6 @@ type NightAuditReservation = {
   id: number;
   reservationNo: string;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
   departureDate: Date;
   reservationNights: StayChargeReservationNight[];
@@ -62,7 +61,6 @@ export type NightAuditStayChargeReservation = {
   reservationNo: string;
   folioId: number;
   arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
   departureDate: Date;
   reservationNights: StayChargeReservationNight[];
@@ -110,7 +108,6 @@ export type NightAuditPreviewReservation = {
   roomNumber: string;
   folioNo: string;
   arrangementType: ArrangementType;
-  rateAmount: string;
   lineItemCount: number;
   postingTotal: string;
 };
@@ -184,15 +181,7 @@ function addDecimal(
   );
 }
 
-function safeRateAmount(reservation: NightAuditReservation) {
-  const rate = decimal(reservation.rateAmount);
 
-  if (rate.lt(0)) {
-    return ZERO;
-  }
-
-  return rate;
-}
 
 function occupancyRate(roomsOccupied: number, totalRooms: number) {
   if (totalRooms === 0) {
@@ -266,18 +255,6 @@ function validateReservations(reservations: NightAuditReservation[]) {
         `Folio ${reservation.folio.folioNo} untuk ${reservation.reservationNo} tidak OPEN.`,
       );
     }
-
-    const rawRate = decimal(reservation.rateAmount);
-
-    if (reservation.rateAmount === null || rawRate.eq(0)) {
-      warnings.push(
-        `Reservasi ${reservation.reservationNo} memiliki rate 0; room charge akan diposting Rp 0.`,
-      );
-    } else if (rawRate.lt(0)) {
-      warnings.push(
-        `Reservasi ${reservation.reservationNo} memiliki rate negatif; room charge diperlakukan Rp 0.`,
-      );
-    }
   }
 
   return { blockingErrors, warnings };
@@ -317,7 +294,6 @@ export function buildAuditStayChargeLines({
     reservationId: reservation.reservationId,
     reservationNo: reservation.reservationNo,
     arrangementType: reservation.arrangementType,
-    rateAmount: reservation.rateAmount,
     arrivalDate: reservation.arrivalDate,
     departureDate: reservation.departureDate,
     expectedNights: stayNightsThroughAuditDate(
@@ -380,7 +356,6 @@ function buildLineItems({
           reservationNo: reservation.reservationNo,
           folioId: folio.id,
           arrangementType: reservation.arrangementType,
-          rateAmount: reservation.rateAmount,
           arrivalDate: reservation.arrivalDate,
           departureDate: reservation.departureDate,
           reservationNights: reservation.reservationNights,
@@ -415,7 +390,6 @@ function buildLineItems({
       roomNumber: reservation.room?.number ?? "-",
       folioNo: folio.folioNo,
       arrangementType: reservation.arrangementType,
-      rateAmount: safeRateAmount(reservation).toString(),
       lineItemCount: reservationLineItems.length,
       postingTotal: addDecimal(
         reservationLineItems.map((lineItem) => lineItem.amount),
@@ -464,7 +438,6 @@ export async function buildNightAuditPlan({
         id: true,
         reservationNo: true,
         arrangementType: true,
-        rateAmount: true,
         arrivalDate: true,
         departureDate: true,
         reservationNights: {

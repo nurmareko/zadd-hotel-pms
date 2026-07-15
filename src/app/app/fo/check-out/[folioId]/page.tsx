@@ -375,7 +375,6 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
         reservationId: folio.reservation.id,
         reservationNo: folio.reservation.reservationNo,
         arrangementType: folio.reservation.arrangementType,
-        rateAmount: folio.reservation.rateAmount,
         arrivalDate: folio.reservation.arrivalDate,
         departureDate: folio.reservation.departureDate,
         reservationNights: folio.reservation.reservationNights,
