@@ -223,8 +223,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                     {article.name}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {article.amountSource === "reservation-rate"
-                      ? "Reservation rateAmount"
+                    {article.amountSource === "reservation-night-snapshot"
+                      ? "ReservationNight rateAmount"
                       : "Article defaultPrice"}
                   </td>
                   <td className="num px-4 py-3 text-right text-muted-foreground">

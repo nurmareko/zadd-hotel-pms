@@ -16,8 +16,7 @@ import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   postPendingStayCharges,
-  STAY_CHARGE_ARTICLE_CODES,
-  type StayChargeArticle,
+  StayChargePostingError,
 } from "@/lib/stay-charges";
 import { PaymentSchema } from "../../folios/[id]/schema";
 
@@ -35,6 +34,15 @@ const CompleteCheckoutSchema = z.object({
 
 class CheckoutActionError extends Error {}
 
+const MAX_CHECKOUT_ATTEMPTS = 3;
+
+function isCheckoutSerializationConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  );
+}
+
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid check-out data";
 }
@@ -49,12 +57,6 @@ async function canManageFoCheckout() {
   return Number(session.user.id);
 }
 
-function fetchStayChargeArticles(): Promise<StayChargeArticle[]> {
-  return prisma.article.findMany({
-    where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
-    select: { id: true, code: true, name: true, type: true, defaultPrice: true },
-  });
-}
 
 export async function recordFinalPayment(
   formData: FormData,
@@ -71,24 +73,16 @@ export async function recordFinalPayment(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const [folio, settings, stayChargeArticles] = await Promise.all([
+  const [folio, settings] = await Promise.all([
     prisma.folio.findUnique({
       where: { id: parsed.data.folioId },
       include: {
-        reservation: {
-          select: {
-            status: true,
-            arrangementType: true,
-            rateAmount: true,
-            arrivalDate: true,
-          },
-        },
+        reservation: { select: { status: true } },
         lineItems: { include: { article: true } },
         payments: true,
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
-    fetchStayChargeArticles(),
   ]);
 
   if (!folio) {
@@ -113,14 +107,15 @@ export async function recordFinalPayment(
   // Post any room charges the night audit has not yet posted for the nights
   // already stayed, so the final payment can settle the true amount owed even
   // when check-out happens before the night audit runs.
-  await postPendingStayCharges({
-    folioId: folio.id,
-    arrangementType: folio.reservation.arrangementType,
-    rateAmount: folio.reservation.rateAmount,
-    arrivalDate: folio.reservation.arrivalDate,
-    articles: stayChargeArticles,
-    postedById: userId,
-  });
+  try {
+    await postPendingStayCharges({ folioId: folio.id, postedById: userId });
+  } catch (error) {
+    if (error instanceof StayChargePostingError) {
+      return { ok: false, error: error.message };
+    }
+
+    throw error;
+  }
 
   const lineItems = await prisma.folioLineItem.findMany({
     where: { folioId: folio.id },
@@ -183,7 +178,7 @@ export async function completeCheckout(
     return { ok: false, error: validationError(parsed.error) };
   }
 
-  const [folio, settings, stayChargeArticles] = await Promise.all([
+  const [folio, settings] = await Promise.all([
     prisma.folio.findUnique({
       where: { id: parsed.data.folioId },
       include: {
@@ -197,7 +192,6 @@ export async function completeCheckout(
       },
     }),
     prisma.hotelSettings.findUnique({ where: { id: 1 } }),
-    fetchStayChargeArticles(),
   ]);
 
   if (!folio) {
@@ -236,14 +230,15 @@ export async function completeCheckout(
   // already stayed before judging the balance. Persisted up front (not inside
   // the close transaction) so a blocked check-out still surfaces the true
   // outstanding balance on the folio for staff to settle.
-  await postPendingStayCharges({
-    folioId: folio.id,
-    arrangementType: folio.reservation.arrangementType,
-    rateAmount: folio.reservation.rateAmount,
-    arrivalDate: folio.reservation.arrivalDate,
-    articles: stayChargeArticles,
-    postedById: userId,
-  });
+  try {
+    await postPendingStayCharges({ folioId: folio.id, postedById: userId });
+  } catch (error) {
+    if (error instanceof StayChargePostingError) {
+      return { ok: false, error: error.message };
+    }
+
+    throw error;
+  }
 
   const lineItems = await prisma.folioLineItem.findMany({
     where: { folioId: folio.id },
@@ -266,10 +261,11 @@ export async function completeCheckout(
 
   const now = new Date();
 
-  let result: ActionResult;
+  let result: ActionResult | null = null;
 
-  try {
-    result = await prisma.$transaction(
+  for (let attempt = 1; attempt <= MAX_CHECKOUT_ATTEMPTS; attempt += 1) {
+    try {
+      result = await prisma.$transaction(
       async (tx) => {
         const currentFolio = await tx.folio.findUnique({
           where: { id: folio.id },
@@ -344,14 +340,37 @@ export async function completeCheckout(
       {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         ...TRANSACTION_OPTIONS,
-      },
-    );
-  } catch (error) {
-    if (error instanceof CheckoutActionError) {
-      return { ok: false, error: error.message };
-    }
+        },
+      );
+      break;
+    } catch (error) {
+      if (error instanceof CheckoutActionError) {
+        return { ok: false, error: error.message };
+      }
 
-    throw error;
+      if (
+        isCheckoutSerializationConflict(error) &&
+        attempt < MAX_CHECKOUT_ATTEMPTS
+      ) {
+        continue;
+      }
+
+      if (isCheckoutSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik check-out berulang. Muat ulang dan coba lagi.",
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  if (!result) {
+    return {
+      ok: false,
+      error: "Konflik check-out berulang. Muat ulang dan coba lagi.",
+    };
   }
 
   if (!result.ok) {

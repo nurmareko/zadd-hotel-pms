@@ -1,13 +1,16 @@
 import {
   type ArrangementType,
   Prisma,
+  FolioStatus,
   type Article,
   type FolioLineItem,
+  type ReservationNight,
+  ReservationStatus,
 } from "@prisma/client";
-import { differenceInCalendarDays } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 
 import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
-import { hotelTodayDateOnly } from "@/lib/date-only";
+import { dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 export const ROOM_CHARGE_ARTICLE_CODE = "ROOM-CHARGE";
@@ -33,7 +36,19 @@ export type StayChargeArticle = Pick<
   "id" | "code" | "name" | "type" | "defaultPrice"
 >;
 
+export type StayChargeReservationNight = Pick<
+  ReservationNight,
+  "id" | "reservationId" | "date" | "rateAmount"
+>;
+
+export type ExistingStayChargeLine = Pick<
+  FolioLineItem,
+  "articleId" | "fbOrderId" | "reservationNightId"
+>;
+
 export type PendingStayChargeLine = {
+  reservationNightId: string;
+  serviceDate: Date;
   articleId: number;
   article: StayChargeArticle;
   description: string;
@@ -41,6 +56,147 @@ export type PendingStayChargeLine = {
   unitPrice: Prisma.Decimal;
   amount: Prisma.Decimal;
 };
+
+export class StayChargePostingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StayChargePostingError";
+  }
+}
+
+const MAX_POSTING_ATTEMPTS = 3;
+
+function dateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function postingBlocked(reservationNo: string, detail: string): never {
+  throw new StayChargePostingError(
+    `Posting stay charge ${reservationNo} diblokir: ${detail}`,
+  );
+}
+
+function validatePostingSchedule({
+  reservationId,
+  reservationNo,
+  arrivalDate,
+  departureDate,
+  rateAmount,
+  expectedNights,
+  reservationNights,
+}: {
+  reservationId: number;
+  reservationNo: string;
+  arrivalDate: Date;
+  departureDate: Date;
+  rateAmount: Prisma.Decimal | null;
+  expectedNights: number;
+  reservationNights: StayChargeReservationNight[];
+}) {
+  if (rateAmount === null) {
+    postingBlocked(reservationNo, "rate reservasi tidak tersedia.");
+  }
+
+  const expectedDates: Date[] = [];
+  const departure = dateOnlyBoundary(departureDate);
+
+  for (
+    let date = dateOnlyBoundary(arrivalDate);
+    date < departure;
+    date = addDays(date, 1)
+  ) {
+    expectedDates.push(date);
+  }
+
+  if (reservationNights.length !== expectedDates.length) {
+    postingBlocked(
+      reservationNo,
+      `jadwal ReservationNight tidak lengkap (expected ${expectedDates.length}, actual ${reservationNights.length}).`,
+    );
+  }
+
+  for (const [index, night] of reservationNights.entries()) {
+    const expectedDate = expectedDates[index];
+
+    if (!expectedDate || dateKey(night.date) !== dateKey(expectedDate)) {
+      postingBlocked(
+        reservationNo,
+        `jadwal ReservationNight harus berurutan dan kontigu; posisi ${index + 1} expected ${expectedDate ? dateKey(expectedDate) : "none"}, actual ${dateKey(night.date)}.`,
+      );
+    }
+
+    if (night.reservationId !== reservationId) {
+      postingBlocked(
+        reservationNo,
+        `snapshot ${night.id} bukan milik reservasi ini.`,
+      );
+    }
+
+    if (!night.rateAmount.isInteger() || night.rateAmount.isNegative()) {
+      postingBlocked(
+        reservationNo,
+        `rate snapshot ${night.id} (${dateKey(night.date)}) harus whole-IDR dan tidak negatif.`,
+      );
+    }
+
+    if (!night.rateAmount.equals(rateAmount)) {
+      postingBlocked(
+        reservationNo,
+        `rate snapshot ${night.id} (${night.rateAmount.toString()}) tidak sama dengan rate flat reservasi (${rateAmount.toString()}).`,
+      );
+    }
+  }
+
+  if (!Number.isInteger(expectedNights) || expectedNights < 1) {
+    postingBlocked(reservationNo, `expected nights tidak valid (${expectedNights}).`);
+  }
+
+  if (expectedNights > reservationNights.length) {
+    postingBlocked(
+      reservationNo,
+      `membutuhkan ${expectedNights} malam tetapi hanya memiliki ${reservationNights.length} snapshot; perpanjang masa inap / buat snapshot terlebih dahulu.`,
+    );
+  }
+
+  return reservationNights.slice(0, expectedNights);
+}
+
+function requiredArticles({
+  reservationNo,
+  arrangementType,
+  articles,
+}: {
+  reservationNo: string;
+  arrangementType: ArrangementType;
+  articles: StayChargeArticle[];
+}) {
+  const articleByCode = new Map(articles.map((article) => [article.code, article]));
+  const codes = [
+    ROOM_CHARGE_ARTICLE_CODE,
+    ...ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType],
+  ];
+
+  return codes.map((code) => {
+    const article = articleByCode.get(code);
+
+    if (!article) {
+      postingBlocked(reservationNo, `artikel ${code} tidak tersedia.`);
+    }
+
+    if (code !== ROOM_CHARGE_ARTICLE_CODE && article.defaultPrice === null) {
+      postingBlocked(reservationNo, `artikel ${code} belum memiliki default price.`);
+    }
+
+    return article;
+  });
+}
+
+function isRetryablePostingConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2034" || error.code === "P2002")
+  );
+}
 
 /**
  * Nights the guest is liable for by the check-out date. Mirrors the app's
@@ -74,84 +230,67 @@ export function stayNightsThroughAuditDate(
   return Math.max(1, differenceInCalendarDays(businessDate, arrivalDate) + 1);
 }
 
-function roomChargeAmount(rateAmount: Prisma.Decimal | null): Prisma.Decimal {
-  const rate = new Prisma.Decimal(rateAmount ?? 0);
-
-  return rate.lt(0) ? new Prisma.Decimal(0) : rate;
-}
-
 /**
- * The stay charges (room charge + arrangement inclusions) still owed for
- * `expectedNights` nights, given what is already posted. Idempotent and
- * order-independent: per article, only the shortfall between `expectedNights`
- * and the already-posted count is returned, so whichever path posts first (night
- * audit or check-out catch-up) the other posts only the remainder — a night can
- * never post twice. Posts nothing when the folio is already current (shortfall
- * ≤ 0). The single posting algorithm behind both the night audit and check-out.
+ * Builds the ordered snapshot suffix still owed for each canonical stay-charge
+ * article. The shortfall decision remains count-based so reconciled unlinked
+ * legacy lines remain the chronological prefix; every newly emitted line carries
+ * the exact ReservationNight identity that follows that prefix.
  */
 export function stayChargeShortfallLines({
+  reservationId,
+  reservationNo,
   arrangementType,
   rateAmount,
+  arrivalDate,
+  departureDate,
   expectedNights,
+  reservationNights,
   lineItems,
   articles,
 }: {
+  reservationId: number;
+  reservationNo: string;
   arrangementType: ArrangementType;
   rateAmount: Prisma.Decimal | null;
+  arrivalDate: Date;
+  departureDate: Date;
   expectedNights: number;
-  lineItems: Pick<FolioLineItem, "articleId" | "fbOrderId">[];
+  reservationNights: StayChargeReservationNight[];
+  lineItems: ExistingStayChargeLine[];
   articles: StayChargeArticle[];
 }): PendingStayChargeLine[] {
-  const articleByCode = new Map(articles.map((article) => [article.code, article]));
-  const inclusionArticleIds = new Set(
-    ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType]
-      .map((code) => articleByCode.get(code)?.id)
-      .filter((articleId): articleId is number => articleId !== undefined),
-  );
-
-  const postedCountByArticleId = new Map<number, number>();
-  for (const lineItem of lineItems) {
-    if (lineItem.fbOrderId !== null && inclusionArticleIds.has(lineItem.articleId)) {
-      continue;
-    }
-
-    postedCountByArticleId.set(
-      lineItem.articleId,
-      (postedCountByArticleId.get(lineItem.articleId) ?? 0) + 1,
-    );
-  }
-
-  const codes = [
-    ROOM_CHARGE_ARTICLE_CODE,
-    ...ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType],
-  ];
-
+  const eligibleNights = validatePostingSchedule({
+    reservationId,
+    reservationNo,
+    arrivalDate,
+    departureDate,
+    rateAmount,
+    expectedNights,
+    reservationNights,
+  });
+  const postingArticles = requiredArticles({
+    reservationNo,
+    arrangementType,
+    articles,
+  });
   const lines: PendingStayChargeLine[] = [];
 
-  for (const code of codes) {
-    const article = articleByCode.get(code);
+  for (const article of postingArticles) {
+    const alreadyPosted = lineItems.filter(
+      (lineItem) =>
+        lineItem.articleId === article.id && lineItem.fbOrderId === null,
+    ).length;
+    const missingNights = eligibleNights.slice(alreadyPosted);
+    const isRoomCharge = article.code === ROOM_CHARGE_ARTICLE_CODE;
 
-    if (!article) {
-      continue;
-    }
+    for (const missingNight of missingNights) {
+      const unitPrice = isRoomCharge
+        ? missingNight.rateAmount
+        : new Prisma.Decimal(article.defaultPrice!);
 
-    const isRoomCharge = code === ROOM_CHARGE_ARTICLE_CODE;
-    const unitPrice = isRoomCharge
-      ? roomChargeAmount(rateAmount)
-      : article.defaultPrice === null
-        ? null
-        : new Prisma.Decimal(article.defaultPrice);
-
-    // Inclusion article without a default price: skip, matching night audit.
-    if (unitPrice === null) {
-      continue;
-    }
-
-    const alreadyPosted = postedCountByArticleId.get(article.id) ?? 0;
-    const missing = expectedNights - alreadyPosted;
-
-    for (let i = 0; i < missing; i += 1) {
       lines.push({
+        reservationNightId: missingNight.id,
+        serviceDate: missingNight.date,
         articleId: article.id,
         article,
         description: isRoomCharge ? "Room charge" : article.name,
@@ -173,24 +312,37 @@ export function stayChargeShortfallLines({
  * the check-out night count.
  */
 export function buildPendingStayChargeLines({
+  reservationId,
+  reservationNo,
   arrangementType,
   rateAmount,
   arrivalDate,
+  departureDate,
+  reservationNights,
   lineItems,
   articles,
   now = new Date(),
 }: {
+  reservationId: number;
+  reservationNo: string;
   arrangementType: ArrangementType;
   rateAmount: Prisma.Decimal | null;
   arrivalDate: Date;
-  lineItems: Pick<FolioLineItem, "articleId" | "fbOrderId">[];
+  departureDate: Date;
+  reservationNights: StayChargeReservationNight[];
+  lineItems: ExistingStayChargeLine[];
   articles: StayChargeArticle[];
   now?: Date;
 }): PendingStayChargeLine[] {
   return stayChargeShortfallLines({
+    reservationId,
+    reservationNo,
     arrangementType,
     rateAmount,
+    arrivalDate,
+    departureDate,
     expectedNights: stayNightsThroughCheckout(arrivalDate, now),
+    reservationNights,
     lineItems,
     articles,
   });
@@ -205,60 +357,137 @@ export function buildPendingStayChargeLines({
  */
 export async function postPendingStayCharges({
   folioId,
-  arrangementType,
-  rateAmount,
-  arrivalDate,
-  articles,
   postedById,
   now = new Date(),
 }: {
   folioId: number;
-  arrangementType: ArrangementType;
-  rateAmount: Prisma.Decimal | null;
-  arrivalDate: Date;
-  articles: StayChargeArticle[];
   postedById: number;
   now?: Date;
 }): Promise<number> {
-  return prisma.$transaction(
-    async (tx) => {
-      const lineItems = await tx.folioLineItem.findMany({
-        where: { folioId },
-        select: { articleId: true, fbOrderId: true },
-      });
+  for (let attempt = 1; attempt <= MAX_POSTING_ATTEMPTS; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const folio = await tx.folio.findUnique({
+            where: { id: folioId },
+            select: {
+              status: true,
+              reservation: {
+                select: {
+                  id: true,
+                  reservationNo: true,
+                  status: true,
+                  arrangementType: true,
+                  rateAmount: true,
+                  arrivalDate: true,
+                  departureDate: true,
+                  reservationNights: {
+                    select: {
+                      id: true,
+                      reservationId: true,
+                      date: true,
+                      rateAmount: true,
+                    },
+                    orderBy: { date: "asc" },
+                  },
+                },
+              },
+              lineItems: {
+                select: {
+                  articleId: true,
+                  fbOrderId: true,
+                  reservationNightId: true,
+                },
+              },
+            },
+          });
 
-      const pending = buildPendingStayChargeLines({
-        arrangementType,
-        rateAmount,
-        arrivalDate,
-        lineItems,
-        articles,
-        now,
-      });
+          if (!folio) {
+            throw new StayChargePostingError("Folio tidak ditemukan.");
+          }
 
-      if (pending.length === 0) {
-        return 0;
+          if (folio.status !== FolioStatus.OPEN) {
+            throw new StayChargePostingError(
+              "Stay charge tidak dapat diposting ke folio yang tidak OPEN.",
+            );
+          }
+
+          if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
+            throw new StayChargePostingError(
+              "Stay charge hanya dapat diposting untuk reservasi CHECKED_IN.",
+            );
+          }
+
+          const articles = await tx.article.findMany({
+            where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              defaultPrice: true,
+            },
+          });
+          const reservation = folio.reservation;
+          const pending = buildPendingStayChargeLines({
+            reservationId: reservation.id,
+            reservationNo: reservation.reservationNo,
+            arrangementType: reservation.arrangementType,
+            rateAmount: reservation.rateAmount,
+            arrivalDate: reservation.arrivalDate,
+            departureDate: reservation.departureDate,
+            reservationNights: reservation.reservationNights,
+            lineItems: folio.lineItems,
+            articles,
+            now,
+          });
+
+          if (pending.length === 0) {
+            return 0;
+          }
+
+          await tx.folioLineItem.createMany({
+            data: pending.map((line) => ({
+              folioId,
+              articleId: line.articleId,
+              fbOrderId: null,
+              reservationNightId: line.reservationNightId,
+              description: line.description,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              amount: line.amount,
+              postedById,
+              postedAt: now,
+            })),
+          });
+
+          return pending.length;
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+    } catch (error) {
+      if (error instanceof StayChargePostingError) {
+        throw error;
       }
 
-      await tx.folioLineItem.createMany({
-        data: pending.map((line) => ({
-          folioId,
-          articleId: line.articleId,
-          fbOrderId: null,
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          amount: line.amount,
-          postedById,
-          postedAt: now,
-        })),
-      });
+      if (isRetryablePostingConflict(error) && attempt < MAX_POSTING_ATTEMPTS) {
+        continue;
+      }
 
-      return pending.length;
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      ...TRANSACTION_OPTIONS,
-    },
+      if (isRetryablePostingConflict(error)) {
+        throw new StayChargePostingError(
+          "Konflik posting stay charge berulang. Muat ulang dan coba lagi.",
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  throw new StayChargePostingError(
+    "Konflik posting stay charge berulang. Muat ulang dan coba lagi.",
   );
 }
