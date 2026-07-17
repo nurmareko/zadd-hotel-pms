@@ -363,9 +363,9 @@ flowchart TD
 
 ---
 
-## 5. Process Check-out (with «include» Verify Zero-Balance)
+## 5. Process Check-out (with «include» Verify Checkout Balance)
 
-**Use case:** UC-FO-04 Proses Check-out with «include» Verifikasi Zero-Balance
+**Use case:** UC-FO-04 Proses Check-out with «include» Verifikasi Saldo Check-out
 **Actors:** Front Office staff (Receptionist), Guest, System
 **Trigger:** Guest is ready to leave, or departure date is reached
 **Precondition:** Reservation status is CHECKED_IN, folio status is OPEN
@@ -378,29 +378,31 @@ flowchart TD
         R1[Open guest folio]
         R2[Click Check Out]
         R3[Review final bill with guest]
-        R4{Balance positive?}
+        R4{Rounded whole-IDR<br/>balance?}
         R5[Collect final payment]
         R6[Record payment in system]
         R7[Tick confirmation:<br/>guest left, room verified]
         R8[Click Complete Check-Out]
         R9[Download PDF bill]
         R10[Hand bill to guest]
+        R11[Show credit warning;<br/>return excess to guest]
     end
 
     subgraph G[Guest]
         G1[Pay outstanding amount]
         G2[Receive bill, depart]
+        G3[Receive returned excess]
     end
 
     subgraph S[System]
         S1[Post pending stay-charge<br/>catch-up shortfall]
-        S2[Compute folio totals<br/>INCLUDE: Verify Zero-Balance]
+        S2[Compute rounded whole-IDR totals<br/>INCLUDE: Verify Checkout Balance]
         S3[Post catch-up idempotently;<br/>insert Payment record]
         S4[Recompute folio totals]
-        S5{Balance now ≤ 0?}
+        S5{Rounded balance<br/>positive?}
         S6[Post catch-up again<br/>idempotently]
         S7[Recompute folio totals]
-        S8{Balance ≤ 0?}
+        S8{Rounded balance<br/>positive?}
         S9[Re-verify folio status<br/>and reservation status]
         S10{Statuses valid?}
         S11[Begin transaction]
@@ -409,7 +411,7 @@ flowchart TD
         S14[Update Room: status VD]
         S15[Commit transaction]
         S16[Render PDF bill]
-        S17[Show error:<br/>balance still positive]
+        S17[Show error:<br/>rounded whole-IDR balance still positive]
         S18[Show error:<br/>state changed elsewhere]
     end
 
@@ -417,13 +419,14 @@ flowchart TD
 
     Start --> R1 --> R2 --> S1 --> S2 --> R3
     R3 --> R4
-    R4 -->|Yes| R5 --> G1 --> R6 --> S3 --> S4 --> S5
-    S5 -->|No| R5
-    S5 -->|Yes| R7
-    R4 -->|No| R7
+    R4 -->|Positive| R5 --> G1 --> R6 --> S3 --> S4 --> S5
+    S5 -->|Yes| R5
+    S5 -->|No: zero or credit| R7
+    R4 -->|Zero| R7
+    R4 -->|Credit| R11 --> G3 --> R7
     R7 --> R8 --> S6 --> S7 --> S8
-    S8 -->|No| S17 --> R5
-    S8 -->|Yes| S9 --> S10
+    S8 -->|Yes| S17 --> R5
+    S8 -->|No: zero or credit| S9 --> S10
     S10 -->|No| S18
     S10 -->|Yes| S11 --> S12 --> S13 --> S14 --> S15 --> S16 --> R9 --> R10 --> G2 --> End
 
@@ -441,10 +444,10 @@ flowchart TD
 
 **Key logic:**
 
-- **«include» Verify Zero-Balance:** the verification runs whenever check-out is attempted. Before judging the balance, the server posts any pending stay-charge shortfall the night audit has not posted yet. Those charges are committed up front, so a blocked check-out leaves the true outstanding balance visible.
-- **Payment iteration loop:** if balance is positive after first payment, the system computes again and may require another payment. This handles the case where multiple payment methods are needed (e.g., partial cash + partial card).
+- **«include» Verify Checkout Balance:** the verification runs whenever check-out is attempted. Before judging the balance, the server posts any pending stay-charge shortfall the night audit has not posted yet and computes the folio in rounded whole IDR. A positive balance blocks check-out; zero or credit may proceed. Charges posted before a blocked attempt remain visible as the true outstanding balance.
+- **Payment iteration loop:** if the rounded whole-IDR balance remains positive after a payment, the system recomputes the folio and requires another payment. This supports multiple payment methods, such as partial cash followed by partial card.
 - **Three state changes in commit:** Folio close, Reservation flip, Room flip. The PDF generation happens AFTER commit — it's a side effect, not part of the transactional state change.
-- **Acceptable credit balance:** if balance is negative (overpayment), check-out proceeds without further payment. The credit is recorded as a known accounting state — it doesn't block the guest leaving.
+- **Credit balance handling:** if the rounded whole-IDR balance is negative, check-out proceeds without further payment. The system shows a credit warning and instructs the receptionist to return the excess to the guest; the MVP does not post an automated refund transaction.
 
 ---
 
@@ -550,29 +553,21 @@ flowchart TD
 ## 7. Lost & Found
 
 **Use case:** UC-HK-03 Log, search, and resolve Lost & Found
-**Actors:** Housekeeping staff, Front Office staff, Housekeeping supervisor, System
-**Trigger:** HK finds an item during cleaning, or FO searches for a guest's missing item
+**Actors:** Housekeeping staff, Front Office staff, System
+**Trigger:** HK or FO logs a found item, searches the custody list, or returns an item to a claimant
 
 ```mermaid
 flowchart TD
     Start([Item found or guest asks])
 
-    subgraph HK[Housekeeping Staff]
-        HK1[Open Lost & Found<br/>or room detail]
-        HK2[Enter text description<br/>and optional room]
-        HK3[Submit item]
-    end
-
-    subgraph FO[Front Office Staff]
-        FO1[Open Lost & Found]
-        FO2[Search by text,<br/>room, or status]
-        FO3{Guest claims item?}
-    end
-
-    subgraph SUP[HK Supervisor]
-        SUP1[Review unclaimed items]
-        SUP2[Enter claimant or<br/>resolution note]
-        SUP3[Mark returned]
+    subgraph STAFF[FO or HK Staff]
+        ST1[Open Lost & Found<br/>or HK room detail]
+        ST2{Requested action?}
+        ST3[Enter text description<br/>and optional room]
+        ST4[Search by text,<br/>room, or status]
+        ST5{Guest claims item?}
+        ST6[Enter claimant or<br/>resolution note]
+        ST7[Mark returned]
     end
 
     subgraph S[System]
@@ -585,15 +580,17 @@ flowchart TD
     End1([Item held for follow-up])
     End2([Item resolved])
 
-    Start --> HK1 --> HK2 --> HK3 --> S1 --> End1
-    Start --> FO1 --> FO2 --> S2 --> FO3
-    FO3 -->|No| End1
-    FO3 -->|Yes| SUP1 --> SUP2 --> SUP3 --> S3 --> S4 --> End2
+    Start --> ST1 --> ST2
+    ST2 -->|Log| ST3 --> S1 --> End1
+    ST2 -->|Search / return| ST4 --> S2 --> ST5
+    ST5 -->|No| End1
+    ST5 -->|Yes| ST6 --> ST7 --> S3 --> S4 --> End2
 
     style Start fill:#ecfdf5
     style End1 fill:#fffbeb
     style End2 fill:#ecfdf5
-    style FO3 fill:#fffbeb
+    style ST2 fill:#fffbeb
+    style ST5 fill:#fffbeb
     style S1 fill:#eff6ff
     style S3 fill:#eff6ff
     style S4 fill:#eff6ff
@@ -602,7 +599,7 @@ flowchart TD
 **Key logic:**
 
 - **Text-only custody log:** Lost & Found stores text description, optional room, found-by user, status, returned timestamp, and resolution. It does not store photos or create maintenance work.
-- **Shared access:** HK logs found items, FO searches when guests ask, and the HK supervisor can resolve returned items.
+- **Shared access:** both FO and HK can log and search items and mark an item returned with a resolution note; other roles are denied.
 - **Operationally independent:** marking an item returned does not change room status, reservation status, or folio state.
 
 ---

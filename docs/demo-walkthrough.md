@@ -63,9 +63,9 @@ A single guest lifecycle that exercises **every module and every cross-module se
 **Demo note:** *"Supervisor membagi pekerjaan, room boy membersihkan dari HP, lalu supervisor inspeksi sebelum kamar kembali dijual."*
 
 ### 7. HK / FO — Lost & Found
-**Action:** As `hk1`, log a text-only found item from Lost & Found or the room detail. As `fo1`, search Lost & Found for the item. As `hksup`, mark it returned with a resolution note.
+**Action:** As `hk1`, log a text-only found item from Lost & Found or room detail. As `fo1`, search for it and mark it returned with a resolution note; both FO and HK have the same log/search/return permissions.
 **Verify:** Item starts UNCLAIMED, search finds it by text/room/status, and returned resolution sets RETURNED with a returned timestamp.
-**Demo note:** *"Barang tertinggal dicatat oleh HK, bisa dicari FO saat tamu bertanya, lalu diselesaikan oleh supervisor."*
+**Demo note:** *"Barang tertinggal dapat dicatat, dicari, dan diselesaikan oleh petugas HK maupun FO."*
 
 ### 8. ACC — run Night Audit
 **Action:** As `acc1`, open Night Audit. Review the pre-run summary (in-house count, arrangement breakdown). Run it.
@@ -78,9 +78,9 @@ A single guest lifecycle that exercises **every module and every cross-module se
 **Demo note:** *"Semua tagihan terkumpul di satu folio."*
 
 ### 10. FO — check-out  ⚠️ *refactored flow — watch closely*
-**Action:** Check out the guest. Observe the zero-balance gate — settle any balance owed, then confirm.
-**Verify:** Gate blocks while money is owed; after settling, folio → **CLOSED**, reservation → **CHECKED_OUT**, room → **VD**. Bill PDF generates listing **all** charges (F&B + room + inclusions).
-**Demo note:** *"Check-out hanya bisa setelah saldo lunas; tagihan final tercetak."*
+**Action:** Check out the guest. Observe the rounded whole-IDR balance gate: a positive balance must be settled; zero or credit may proceed. If credit remains, follow the warning and return the excess to the guest.
+**Verify:** A positive balance blocks; zero or credit proceeds. On completion, folio → **CLOSED**, reservation → **CHECKED_OUT**, room → **VD**. Bill PDF generates listing **all** charges (F&B + room + inclusions).
+**Demo note:** *"Saldo positif harus dilunasi; saldo nol atau kredit dapat dilanjutkan, dan kelebihan kredit dikembalikan kepada tamu."*
 **Regression check:** the second refactored flow — confirm it completes and the totals aggregate correctly.
 
 ### 11. ACC — Night Report

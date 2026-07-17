@@ -6,11 +6,11 @@ Welcome! This doc gets you from "I just joined" to "I can work on a feature" in 
 
 ## What we're building
 
-A Hotel Property Management System for the hospitality praktikum. Four operational roles (Front Office, Housekeeping, F&B, Accounting) plus Admin. MVP is 29 screens across 5 modules.
+A Hotel Property Management System for the hospitality praktikum, with four operational roles (Front Office, Housekeeping, F&B, Accounting), Admin, and shared/global access. [`screen_inventory_mvp.md`](./screen_inventory_mvp.md) is the single source of truth for the current screen count and IDs.
 
 **Before coding anything, skim these:**
 - `docs/feature_list_mvp.md` — what we're building, per module
-- `docs/screen_inventory_mvp.md` — all 29 screens and what each does
+- `docs/screen_inventory_mvp.md` — authoritative screen count, IDs, routes, and responsibilities
 
 Those two are the source of truth. When in doubt about scope, check them first.
 
@@ -78,7 +78,7 @@ npx prisma generate
 npm run dev
 ```
 
-Open http://localhost:3000 — you should see the Console-themed login page with direct demo-account buttons.
+Open http://localhost:3000 — you should see the V2 light-enterprise login page with direct demo-account buttons.
 
 ### Seed accounts to know
 
@@ -107,7 +107,7 @@ hotel-pms/
 ├── AGENTS.md                        ← Context for AI coding tools. READ THIS.
 ├── docs/
 │   ├── feature_list_mvp.md          ← Features per module
-│   ├── screen_inventory_mvp.md      ← All 29 screens
+│   ├── screen_inventory_mvp.md      ← Authoritative screen inventory and IDs
 │   ├── db_specification_mvp.md      ← Data model in prose
 │   ├── use_case_narrative_mvp.md    ← Use cases & actors
 │   └── onboarding.md                ← This file
@@ -116,11 +116,11 @@ hotel-pms/
 ├── src/app/                         ← Next.js App Router pages
 │   ├── (public)/                    ← Unauthenticated (login)
 │   ├── app/                         ← Authenticated app
-│   │   ├── fo/                      ← Front Office
+│   │   ├── fo/                      ← Front Office, including group booking + Kinerja
 │   │   ├── hk/                      ← Housekeeping
 │   │   ├── fb/                      ← Food & Beverage
-│   │   ├── acc/                     ← Accounting
-│   │   ├── admin/                   ← Admin
+│   │   ├── acc/                     ← Accounting + live ARR
+│   │   ├── admin/                   ← Admin, including Pricing Rules
 │   │   └── profile/                 ← Account metadata + password change
 │   ├── api/
 │   │   ├── auth/[...nextauth]/      ← NextAuth route handlers
@@ -129,6 +129,9 @@ hotel-pms/
 ├── src/auth.config.ts               ← Edge-safe auth config used by proxy
 ├── src/auth.ts                      ← Credentials + Prisma auth config
 ├── src/lib/date-only.ts             ← WIB date helpers
+├── src/lib/format.ts                ← Shared whole-IDR/date formatting
+├── src/lib/pricing-resolver.ts      ← Canonical per-night price resolution
+├── src/lib/folio-totals.ts          ← Canonical folio totals
 ├── src/lib/nav-badges.ts            ← ACC pending Night Audit badge
 ├── src/proxy.ts                     ← Auth + role gating for /app/*
 └── package.json
@@ -142,13 +145,22 @@ All operational "today" calculations use WIB (`Asia/Jakarta`), not the server's 
 
 Navigation badges are intentionally small in scope: `GET /api/nav-badges` serves the single ACC pending Night Audit indicator from `src/lib/nav-badges.ts`.
 
+### Shipped operational concepts
+
+- **Unified single-/multi-room booking:** FO-03 creates 1–20 room reservations in one atomic flow with shared guest/stay details and per-room occupancy/allocation. Multi-room rows share a `groupBookingId`, but each keeps its own reservation number and lifecycle.
+- **Per-night pricing snapshots:** every reservation has authoritative `ReservationNight` rows. Quotes, posting, checkout projection, and ARR use those snapshots; the compatibility scalar on `Reservation` is not the stay total.
+- **Group summary:** `/app/fo/reservasi/grup/[groupBookingId]` coordinates eligible per-room check-in, settlement, and checkout. Its aggregate balance is display-only; there is no master/shared folio.
+- **Pricing Rules:** Admin manages weekday/date-range amount or percentage adjustments at `/app/admin/pricing-rules`. Booking code must use the canonical resolver instead of recomputing rule precedence.
+- **ARR:** Accounting computes weighted ARR live from integrity-checked paid room-charge postings linked to service-night snapshots. It does not use `NightAudit.roomNightsSold`.
+- **Whole-IDR convention:** money input and settlement use whole rupiah. Dynamic pricing calculates in `Decimal`, rounds each final nightly rate once half-up before persistence, and ARR retains Decimal precision until display.
+
 Housekeeping routes are role-aware:
 
 - `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors land on `/app/hk/supervisor`. ADMIN has no HK access.
 - `/app/hk/clean` is My Rooms / Kamar Saya for assigned housekeeper work.
 - `/app/hk/rooms/[id]` is the shared room detail. Housekeepers clean/log; supervisors inspect/history/status.
 - `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. `/app/hk/list` is retired and redirects here.
-- `/app/hk/lost-found` is shared by HK and FO only for text-only item custody.
+- `/app/hk/lost-found` is shared by HK and FO only. Both roles can search/filter, log a text-only item, and mark it returned with a resolution note.
 
 Housekeeping data has two separate responsibilities: `CleaningSession` is the source for assignment, timer, finish, and inspection; `HousekeepingLog` is the audit trail for room-status changes. Reservation comments are not duplicated for HK: `Reservation.notes` is the canonical note, editable by FO and read-only to HK.
 
@@ -196,13 +208,15 @@ git push -u origin feat/your-feature-name
 
 Each person owns one operational module end-to-end:
 
-| Owner | Module | Route prefix | Screens | Spec section |
-|---|---|---|---|---|
-| Person 1 | Front Office | `/app/fo/*` | 7 | `feature_list_mvp.md` §FO |
-| Person 2 | Housekeeping | `/app/hk/*` | 5 | `feature_list_mvp.md` §HK |
-| Person 3 | Food & Beverage | `/app/fb/*` | 5 | `feature_list_mvp.md` §FB |
-| Person 4 | Accounting | `/app/acc/*` | 3 | `feature_list_mvp.md` §ACC |
-| Team lead | Admin, shared code, integration | `/app/admin/*`, `src/lib`, `src/components` | 6 + shared | — |
+Screen IDs and counts are maintained only in [`screen_inventory_mvp.md`](./screen_inventory_mvp.md); this ownership table intentionally does not duplicate them.
+
+| Owner | Module | Route prefix | Spec section |
+|---|---|---|---|
+| Person 1 | Front Office | `/app/fo/*` | `feature_list_mvp.md` §FO |
+| Person 2 | Housekeeping | `/app/hk/*` | `feature_list_mvp.md` §HK |
+| Person 3 | Food & Beverage | `/app/fb/*` | `feature_list_mvp.md` §FB |
+| Person 4 | Accounting | `/app/acc/*` | `feature_list_mvp.md` §ACC |
+| Team lead | Admin, shared code, integration | `/app/admin/*`, `src/lib`, `src/components` | — |
 
 **What "owning" a module means:**
 - You build all screens in that route prefix
@@ -220,10 +234,13 @@ Each person owns one operational module end-to-end:
 The modules touch each other in a few specific places. These are the integration seams where coordination matters:
 
 - **F&B → FO**: "Charge to Room" in F&B Payment (FB-04) writes a line item to the guest's folio from `src/app/app/fb/orders/[orderId]/actions.ts`.
-- **FO → HK**: Check-out (FO-07) auto-sets room status to `VD`; an in-house cleaning request from reservation detail sets `OC → OD`.
-- **HK → FO**: Kalender (FO-02) displays the status HK updates. Room-status changes revalidate cross-module views through `src/lib/revalidate-room-status.ts`.
-- **HK ↔ FO**: Lost & Found lets HK log text-only items and FO search when guests ask. Returning an item is an HK supervisor resolution action.
-- **Everything → ACC**: Night Audit (AC-02) reads across all modules. Accounting owner is the last to build, because they need the other three modules producing data.
+- **FO → HK**: Check-out (FO-06) auto-sets room status to `VD`; an in-house cleaning request from reservation detail sets `OC → OD`.
+- **HK → FO**: Kalender (FO-01) displays the status HK updates. Room-status changes revalidate cross-module views through `src/lib/revalidate-room-status.ts`.
+- **HK ↔ FO**: both roles can log, search, and mark text-only Lost & Found items returned. The route and both server actions reject other roles.
+- **Admin → FO**: Pricing Rules define room-type adjustments consumed by the canonical per-night resolver during reservation quotation and creation.
+- **FO group operations**: `groupBookingId` links normal reservations only. Group actions reuse per-room check-in, payment, and checkout paths; do not introduce parallel master-folio logic.
+- **FO activity reporting**: Kinerja reads `ActivityLog`; FO business actions expected in this report should write the canonical activity event.
+- **Everything → ACC**: Night Audit (AC-02) reads across all modules. ARR separately derives live reporting from validated linked room-charge postings.
 
 When a cross-module seam comes up, don't design it on your own branch. Open a team chat discussion, team lead writes the shared code, all four modules consume it.
 
@@ -237,7 +254,7 @@ A few rules so we don't step on each other:
 
 1. **Read AGENTS.md once.** Your AI tool loads it automatically on every session, but knowing what's in it helps you spot when the AI misses a convention.
 2. **Point the AI at the spec.** Example prompt:
-   > "Implement FO-04 Reservation Form per docs/screen_inventory_mvp.md. Use the Reservation model from prisma/schema.prisma. Zod validation, server action for submit."
+   > "Modify FO-03 Unified Reservation Form / Detail per `docs/screen_inventory_mvp.md`. Preserve one-or-many-room creation, dynamic per-night quotes, capacity checks, pinned actions, and the existing server action."
 3. **Review every line.** Don't commit code you can't explain. If a PR reviewer asks "why did you do X here?" and your answer is "the AI wrote it" — that's a reject.
 4. **Small scopes work better.** Prompt for one screen or one feature at a time, not a whole module.
 5. **Stuck debugging?** Paste the error + the relevant file into the AI and ask "why?" before asking the team. Saves everyone time.

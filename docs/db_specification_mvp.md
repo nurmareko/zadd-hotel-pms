@@ -141,6 +141,7 @@ erDiagram
     int guest_id FK
     int room_type_id FK
     int room_id FK "nullable; NULL = unallocated"
+    varchar group_booking_id "nullable; indexed; shared multi-room booking label"
     date arrival_date
     date departure_date
     int adults
@@ -291,7 +292,7 @@ erDiagram
     int check_in_count
     int check_out_count
     int in_house_count
-    int room_nights_sold
+    int room_nights_sold "nullable; reserved compatibility field; unused by live ARR"
     timestamp created_at
   }
   PAYMENT {
@@ -414,14 +415,14 @@ A few choices worth explaining:
 10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
-13. **ActivityLog records business events, not field-level diffs.** The audit trail is app-wide and action-driven. Front Office is wired first, but the enum can grow with HK, FB, and ACC business events without changing the table shape. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`.
-14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing Phase 5c from posting the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
+13. **ActivityLog records business events, not field-level diffs.** The table is general-purpose, but current write coverage is limited to the enumerated Front Office reservation, check-in, checkout, folio-charge, and payment events. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`. HK, FB, and ACC event logging remains deferred and can extend `ActivityAction` while reusing the same table shape.
+14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing automatic posting from creating the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
 
 ---
 
 ## Dynamic Pricing (per-night model) contract
 
-> **Implemented end-to-end.** `PricingRule`, `ReservationNight`, and room-charge posting identity are active across quoting, reservation locking and modification, displays and GRC export, automatic posting and checkout, and ARR reporting. The semantics below remain the authoritative contract.
+> **Implemented for currently supported flows.** `PricingRule`, `ReservationNight`, and room-charge posting identity are active across quoting, reservation creation, confirmed/unposted pricing-relevant modification, displays and GRC export, automatic posting and checkout, and live ARR reporting. Checked-in extension and the other limitations identified below remain deferred. The semantics below are the authoritative contract.
 
 ### Pricing rules
 
@@ -430,10 +431,10 @@ A few choices worth explaining:
   - **DAY_OF_WEEK** — one weekday; or
   - **DATE_RANGE** — `startsOn` inclusive and `endsBefore` exclusive, using date-only WIB values.
 - Quoting uses **no stacking** and this fixed precedence for the quoted stay date: an active matching date-range rule wins; otherwise an active matching day-of-week rule wins; otherwise the room type base rate applies. For example, a holiday Saturday is `base + 25%`, not `base + 10% + 25%`.
-- Constraints: one weekday rule is unique per `(roomType, weekday)`; overlapping active date ranges for one room type are rejected; and a rule that would produce a negative final rate is rejected.
-- `isActive` gates future quoting only. Editing a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
+- Constraints are split between the database and application. The database unique index permits at most one weekday-rule row per `(roomType, weekday)`, whether active or inactive. Create, update, and activation actions enforce a valid selector shape, `startsOn < endsBefore` for date ranges, room-type existence, no overlapping active date ranges for one room type, and a non-negative resolved nightly rate. These mutation checks run in serializable transactions. The resolver independently validates active rule shapes and fails closed if conflicting active rules are encountered.
+- `isActive` is the live quoting gate: only active rules participate in rate resolution. Editing or toggling a rule affects future quotes and explicit requotes only; it never mutates nightly snapshots already held by a reservation.
 
-`PricingRule` has a room-type reference, adjustment kind and signed value, `isActive`, and fields for both selector shapes. The weekday uniqueness index is enforced in the schema; selector shape, active date-range overlap, and non-negative resolved-rate validation are enforced by the application.
+`PricingRule` has a room-type reference, adjustment kind and signed value, active-state flag, and nullable fields supporting the two selector shapes. Inactive rules remain stored and may be reactivated, but an inactive weekday row still occupies the database-level `(roomType, weekday)` unique key.
 
 ### Per-night snapshot and rate locking
 
@@ -443,12 +444,13 @@ A few choices worth explaining:
 - The nightly rate is locked when the reservation is booked. Later changes to a base rate or pricing rule never re-price an existing reservation.
 - Only a **pricing-relevant** modification — room type, arrival date, or departure date — triggers a requote and refreshes both the nightly schedule and first-night compatibility value. Guest, notes, deposit, and physical room-allocation edits do not change pricing.
 
-### Modify and overstay policy — first release
+### Modify and overstay policy — current behavior and deferred extension
 
-- A `CONFIRMED`, unposted reservation that receives a pricing-relevant modification must be fully requoted: regenerate its nightly rows in one transaction and present the old and new totals before confirmation.
-- For a `CHECKED_IN` or posted stay, only an **extension** is allowed. The extension appends future nightly rows; it must not reprice or rewrite already-posted nights. Shortening a posted stay or changing its room type is not supported until a reversal/adjustment policy exists.
+- A `CONFIRMED`, unposted reservation that receives a pricing-relevant modification is fully requoted: its nightly rows are regenerated in one transaction and its first-night compatibility value is refreshed.
+- `CHECKED_IN` reservations currently accept no pricing-relevant modifications, including departure-date extensions. The current action rejects these edits rather than appending nightly rows.
+- Append-only extension support for an in-house stay remains a future policy. When introduced, it must append snapshots only for newly added future stay dates and must never reprice, rewrite, or remove existing or already-posted nights. Shortening a posted stay or changing its room type also remains unsupported until a reversal/adjustment policy exists.
 - `CHECKED_OUT`, `CANCELLED`, and `NO_SHOW` reservations accept no pricing edits.
-- An overstay beyond the planned departure must be explicitly extended so it has nightly snapshots. Night Audit and checkout must never invent an unsnapshotted rate from current pricing rules.
+- An overstay must not be billed from current base rates or pricing rules without persisted nightly snapshots. Until the extension workflow exists, posting fails closed when the required stay-night snapshots are incomplete.
 
 ### Rounding
 
@@ -459,18 +461,18 @@ A few choices worth explaining:
 ### COMP and revenue classification
 
 - Every nightly row carries an explicit `revenueClass` of `PAID` or `COMP`; it must not be inferred from a rate of zero.
-- This field is required so ARR can exclude complimentary nights correctly. The workflow that creates complimentary stays is outside this first release.
+- This field is required so ARR can exclude complimentary nights correctly. The current system is read-ready for `COMP`, but an operational end-to-end workflow for creating and managing complimentary stays remains deferred.
 
 ### ARR (Average Room Rate)
 
 - ARR is `SUM(recognized nightly ROOM-CHARGE amounts) ÷ COUNT(recognized paid room-nights)`. It reads only posted `FolioLineItem` rows whose article code is `ROOM-CHARGE`, `fb_order_id` is null, `reservation_night_id` is populated, and linked `ReservationNight.revenue_class` is `PAID`.
 - ARR uses Prisma `Decimal` for the numerator and division. It is a weighted range aggregate (`SUM(amounts) / COUNT(lines)`), never an average of daily ARRs. The Decimal result is rounded once to whole IDR only for display, consistent with the app's IDR presentation policy.
-- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights and future or unconsumed nights, including nights after an early departure. The `COMP` filter is read-ready, but an operational end-to-end COMP workflow is not included in Phase 8.
+- The denominator contains only recognized/consumed `PAID` room-nights. It excludes `COMP` nights and future or unconsumed nights, including nights after an early departure. The `COMP` filter is implemented for reporting, but an operational end-to-end COMP workflow is not currently included.
 - OOO is excluded implicitly: an unsold OOO room has no posted room-charge line and therefore cannot enter the denominator. The mid-stay OOO edge case—a charged night whose room was OOO on that service night—is **not handled** because the model has no per-service-night room-status identity. ARR must not inspect current `Room.status`; that snapshot is historically wrong for prior service nights.
 - ARR reads posted room-charge lines tied to their service night through the posting identity, not `Reservation.rate_amount`, `ReservationNight.rate_amount` as revenue, `posted_at`, or any `NightAudit` revenue/occupancy snapshot.
 - Linked line integrity fails closed. Quantity must be 1; amount, unit price, and the linked nightly snapshot must agree; the folio and night must belong to the same reservation; the service date must be inside that reservation's `[arrivalDate, departureDate)` stay; and a service date beyond the hotel-date as-of boundary is invalid. Any violation yields `INTEGRITY_ERROR`, not a partial number.
 - A valid post-cutover period with zero matching paid lines yields `NO_RECOGNIZED_NIGHTS` / N/A, never Rp 0.
-- ARR is live reporting only in Phase 8. The frozen Night Report PDF/HTML intentionally remains unchanged.
+- ARR is computed live for the Accounting dashboard, requested date ranges, and daily audit-history display. It is not persisted in `NightAudit` and does not use `NightAudit.room_nights_sold`. The frozen Night Report PDF/HTML intentionally remains unchanged.
 
 ### Migration and cutover
 
@@ -478,11 +480,11 @@ A few choices worth explaining:
 - The production cutover is configured with the `ARR_CUTOVER_DATE` environment variable as a strict `YYYY-MM-DD` date-only value. This value is the deployment's declared first authoritative service date and must move with the real posting-identity go-live; it is not a source-code calendar constant.
 - When `ARR_CUTOVER_DATE` is absent (including resettable demo data), the application derives cutover from data: classify each folio's valid unlinked legacy `ROOM-CHARGE` lines as its chronological stay prefix, take the latest service date covered by any such prefix, then use the following date. If any unlinked room-charge line cannot be classified as that valid legacy prefix, derivation fails closed until the identity is reconciled. If no legacy prefix exists, use the earliest linked room-charge service date, or the hotel date when no room-charge data exists. This makes `db:reset` safe when relative demo dates shift.
 - A requested period entirely before cutover is `UNAVAILABLE`. A period that straddles cutover is also `UNAVAILABLE` for the full request and is never silently clamped. A period on/after cutover is authoritative subject to linked-line integrity.
-- Phase 5b adds an ordinary composite UNIQUE index on (`folio_line_item.reservation_night_id`, `article_id`) as the database-level duplicate guard for Phase 5c automatic stay-charge posting. PostgreSQL's standard unique-index null semantics permit multiple rows with `reservation_night_id = NULL`; the index does not use `NULLS NOT DISTINCT`, so existing legacy, manual, and F&B lines remain valid.
+- The schema has an ordinary composite UNIQUE index on (`folio_line_item.reservation_night_id`, `article_id`) as the database-level duplicate guard for automatic stay-charge posting. PostgreSQL's standard unique-index null semantics permit multiple rows with `reservation_night_id = NULL`; the index does not use `NULLS NOT DISTINCT`, so existing legacy, manual, and F&B lines remain valid.
 
-### Open questions for Phase 1
+### Open data-model question
 
-- Whether `ReservationNight.sourcePricingRuleId` should become a foreign key and, if so, its rule-deletion policy remains open. It is a nullable provenance ID only in Phase 1.
+- `ReservationNight.sourcePricingRuleId` is currently a nullable provenance value, not a foreign key. Deleting a `PricingRule` therefore does not update or remove existing reservation-night snapshots and may leave a provenance ID that no longer resolves to a live rule. Whether this column should become a foreign key—and whether rule deletion should be restricted, set the provenance to null, or be replaced by soft deletion—remains open. No such foreign key or deletion policy is part of the current schema.
 
 ---
 
@@ -543,15 +545,16 @@ A few choices worth explaining:
 | ends_before | DATE | NULLABLE | Exclusive date-only WIB boundary for `DATE_RANGE` selectors |
 | adjustment_kind | PricingRuleAdjustmentKind | NOT NULL | Signed amount or percent delta kind |
 | adjustment_value | DECIMAL(12,2) | NOT NULL | Signed adjustment value |
-| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Gates future quoting only; unused in Phase 1 |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Live quoting gate. Only active rules participate in rate resolution; changing it does not mutate existing reservation-night snapshots. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
 
-Indexes and deferred constraints:
+Indexes and enforcement:
 
 - INDEX (`room_type_id`) — room-type rule lookup.
-- UNIQUE (`room_type_id`, `day_of_week`) — one weekday rule per room type. PostgreSQL permits repeated nulls, so date-range rules do not conflict.
-- Exactly one selector shape, non-overlapping active date ranges, and rejection of rules producing negative final rates are intentionally application-enforced in the later rules phase.
+- UNIQUE (`room_type_id`, `day_of_week`) — at most one weekday-rule row per room type and weekday, including inactive rows. PostgreSQL permits repeated nulls, so date-range rules do not conflict through this index.
+- Selector shape and date-range ordering are validated by the mutation schema and checked again by the resolver for active data.
+- Room-type existence, non-negative resolved rates, duplicate active weekdays, and overlapping active date ranges are validated by the create, update, and activation actions. These application checks run in serializable transactions.
 
 ### `room`
 
@@ -636,7 +639,7 @@ Indexes and deferred constraints:
 | date | DATE | NOT NULL | Date-only WIB stay date |
 | rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Authoritative immutable rate snapshot for this stay date; summed for stay value and copied unchanged to linked room-charge postings |
 | revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification used by ARR recognition |
-| source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; not a foreign key in Phase 1 |
+| source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; currently not a foreign key. See the open rule-deletion-policy question above. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Snapshot creation time |
 
 Indexes and constraints:
@@ -663,7 +666,7 @@ Indexes and constraints:
 | folio_id | INT | NOT NULL, FOREIGN KEY → folio(id) | Target folio |
 | article_id | INT | NOT NULL, FOREIGN KEY → article(id) | Article (charge code) |
 | fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order (if charge to room) |
-| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Room-charge posting identity; with `article_id`, guards Phase 5c automatic postings while legacy/manual/F&B lines may remain null |
+| reservation_night_id | VARCHAR | NULLABLE, FOREIGN KEY → reservation_night(id), ON DELETE SET NULL | Room-charge posting identity; together with `article_id`, guards automatic stay-charge postings while legacy, manual, and F&B lines may remain null. |
 | description | VARCHAR(255) | NOT NULL | Item description |
 | quantity | DECIMAL(8,2) | NOT NULL, DEFAULT 1 | Quantity |
 | unit_price | DECIMAL(12,2) | NOT NULL | Unit price |
@@ -673,7 +676,7 @@ Indexes and constraints:
 
 Indexes and constraints:
 
-- UNIQUE (`reservation_night_id`, `article_id`) — at most one linked posting of a given article for one reservation night, providing the database duplicate guard for Phase 5c automatic stay charges and inclusions. This is an ordinary PostgreSQL unique index: rows with a non-null reservation-night ID are guarded, while multiple rows with `reservation_night_id = NULL` remain valid because nulls are distinct. `NULLS NOT DISTINCT` is intentionally not used.
+- UNIQUE (`reservation_night_id`, `article_id`) — at most one linked posting of a given article for one reservation night, providing the database duplicate guard for automatic stay charges and inclusions. This is an ordinary PostgreSQL unique index: rows with a non-null reservation-night ID are guarded, while multiple rows with `reservation_night_id = NULL` remain valid because nulls are distinct. `NULLS NOT DISTINCT` is intentionally not used.
 
 ### `menu_item`
 
@@ -826,7 +829,7 @@ Lost & Found is text-only in the MVP. Records may be room-specific or public-are
 | check_in_count | INT | NOT NULL | Arrival/check-in count snapshot |
 | check_out_count | INT | NOT NULL | Departure/check-out count snapshot |
 | in_house_count | INT | NOT NULL | In-house guest count snapshot |
-| room_nights_sold | INT | NULLABLE | Future ARR denominator; unused in Phase 1 |
+| room_nights_sold | INT | NULLABLE | Reserved compatibility column. Current Night Audit does not populate it, and live ARR does not read it; ARR derives paid room-nights from validated linked room-charge postings. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
 
 > **Night Audit lock**: `business_date` is unique for the shipped daily-close flow. The app stores the completed snapshot for the WIB hotel date and relies on this constraint to prevent duplicate audits for the same business date.
@@ -865,4 +868,4 @@ Indexes:
 - INDEX (`action`) — business-event filtering.
 - INDEX (`created_at`) — date-range audit/report filtering.
 
-ActivityLog is intentionally general. Phase 1 writes Front Office events only; later HK, FB, and ACC events can extend `ActivityAction` and reuse the same table and context/metadata pattern.
+ActivityLog is intentionally general, but current producers are Front Office workflows only. HK, FB, and ACC event logging is not currently implemented; those modules may later extend `ActivityAction` and reuse the same context/metadata pattern without changing the table shape.

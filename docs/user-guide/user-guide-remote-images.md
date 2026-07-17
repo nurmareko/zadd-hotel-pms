@@ -121,7 +121,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    ![Pembayaran akhir tercatat](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/fo-10-checkout-payment-recorded.png)
 
-   Setelah saldo menjadi zero-balance, sistem membuka langkah aksi setelah check-out.
+   Setelah saldo rounded whole-IDR menjadi nol atau kredit, sistem membuka langkah aksi check-out; jika kredit, kembalikan kelebihan pembayaran kepada tamu.
 
 3. Pastikan opsi setelah check-out sudah dicentang, lalu klik **Complete Check-Out**.
 

@@ -1,8 +1,8 @@
 # ZADD Hotel Management — MVP Screen Inventory
 
-Reference document for interface design and Google Stitch / Claude Design prototyping. Revised for MVP scope: 28 screens total across 4 operational modules + admin + shared.
+Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **31 logical screens** across four operational modules, Admin, and shared/global access.
 
-**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes — e.g. FO Reservation Form / Detail (FO-03) covers reservation create, edit, and view. Pure redirect routes (`/app/hk` role landing, `/app/hk/list` → Supervisor Rooms, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens, so they are not counted. The total stays at 28 under this rule.
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` role landing, `/app/hk/list` → Supervisor Rooms, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. Under this rule, **31 is the authoritative total**.
 
 ---
 
@@ -45,20 +45,22 @@ The application is built as a **single Next.js app** with four operational areas
 
 ## 3. Module Screens
 
-### 3.1 Front Office (6 screens)
+### 3.1 Front Office (8 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FO-01 | **Kalender (Tape Chart)** | Page | Default FO landing through `/app/fo/reservasi`: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, and in-house guest selection. |
-| FO-02 | Reservation List | Page | Date-grouped reservations with date/status filters; the whole row opens the reservation detail. |
-| FO-03 | Reservation Form / Detail | Page | Create / edit / view reservation. Detail view uses `Details` and `Folio` tabs; the Folio tab embeds the guest folio after check-in. |
-| FO-04 | Check-in | Page | Assign room, fill GRC inline, capture the required on-screen digital signature, set deposit, create folio |
-| FO-05 | Guest Folio | Page | Line items, add manual charge, record payment, view balance |
-| FO-06 | Check-out | Page | Zero-balance check, final payment, PDF bill download |
+| FO-01 | **Kalender (Tape Chart)** | Page | `/app/fo/reservasi/kalender`: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, and in-house guest selection. `/app/fo/reservasi` redirects to the user's stored Kalender/List preference. |
+| FO-02 | Reservation List | Page | `/app/fo/reservasi/list`: searchable/filterable arrival-window list with in-house carryover, folio balance, and group badges linking to FO-07; the whole row opens reservation detail. |
+| FO-03 | Unified Reservation Form / Detail | Page | `/app/fo/reservasi/new` and `/app/fo/reservasi/[id]`: one form handles single- or multi-room creation with repeatable 1–20 room rows, shared stay/guest data, per-room occupancy and allocation, dynamic nightly quotes, atomic creation, and pinned form actions. Read-only detail/edit uses the same structure, with Details/Folio tabs and group sibling context. |
+| FO-04 | Check-in | Page | `/app/fo/check-in/[reservationId]`: assign room, fill GRC inline, capture the required on-screen digital signature, set deposit, and create folio. |
+| FO-05 | Guest Folio | Page | Embedded as FO-03's `?tab=folio` and available at `/app/fo/folios/[id]`: line items, manual charges, payments, and balance. |
+| FO-06 | Check-out | Page | `/app/fo/check-out/[folioId]`: rounded whole-IDR balance gate—positive blocks; zero or credit proceeds; credit shows a warning and excess-return instruction. Includes final payment and PDF bill download. |
+| FO-07 | Group Booking Summary / Actions | Page | `/app/fo/reservasi/grup/[groupBookingId]`: group-room roll-up with statuses and per-room folio balances; batch eligible check-in with per-room signatures, per-folio settlement, and eligible checkout. Aggregate balance is display-only; there is no master/shared folio. |
+| FO-08 | Kinerja Petugas | Page | `/app/fo/staff-performance` and `/app/fo/staff-performance/[userId]`: ActivityLog-based FO comparison, preset/custom date ranges, sorting, per-user metrics, and paginated activity history. Accessible to FO and ADMIN. |
 
 The retired FO summary route is a compatibility redirect to Reservasi, not a screen. Its departures-due-today queue and occupancy KPI are deferred to a future FO Reports page.
 
-**Cut from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, Guest Database.
+**Still cut/deferred from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
 
 ### 3.2 Housekeeping (5 screens, role-aware)
 
@@ -68,7 +70,7 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 | HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: role-aware detail. Housekeepers start/finish cleaning, add status notes, log found items, and see the live timer. Supervisors inspect VCU rooms, view history, and review status context. |
 | HK-03 | Supervisor Rooms | Page | `/app/hk/rooms`: merged status overview and daily worksheet with current room status, inline supervisor status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
 | HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
-| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: text-only item logging by HK, search by FO/HK, and returned-item resolution. |
+| HK-05 | Lost & Found | Page | `/app/hk/lost-found`: FO and HK can search/filter, log text-only items with optional room context, and mark an item returned with a resolution note; other roles are denied. |
 
 `/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
 
@@ -90,15 +92,15 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| AC-01 | Accounting Dashboard | Page | Today's NA status, revenue summary, un-flushed postings count |
+| AC-01 | Accounting Dashboard | Page | Current WIB business date and audit state; live occupancy, occupied-room, arrival, departure, running-revenue, and latest completed ARR KPIs; selectable range ARR with cutover/integrity state; completed-audit banner; Night Audit history and daily ARR history; live summary card. |
 | AC-02 | Night Audit | Page | Pre-check list → "Run Night Audit" button → progress → result |
 | AC-03 | Night Report | Page | Consolidated report: revenue breakdown, occupancy, guest list, transactions. Export PDF. |
 
-AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report` is the nav/empty-state entry point for AC-03: it redirects to the latest audit's report when one exists (or to `/app/acc/reports/[auditId]` when an `auditId` is passed), and renders the "no audit yet" empty state otherwise. It is a redirect/empty-state surface of AC-03, not a separate screen, so it is not counted in the 29.
+AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report` is the nav/empty-state entry point for AC-03: it redirects to the latest audit's report when one exists (or to `/app/acc/reports/[auditId]` when an `auditId` is passed), and renders the "no audit yet" empty state otherwise. It is a redirect/empty-state surface of AC-03, not a separate screen, so it is not counted in the authoritative total of 31.
 
-**Cut from original**: Report Center, Revenue Distribution Report, Guest Segment Statistics, Guest List Report (all consolidated into AC-03), Manual Bill + List (use Folio line items), standalone Folio Payment page (handled in FO-06).
+**Cut from original**: Report Center, Revenue Distribution Report, Guest Segment Statistics, Guest List Report (all consolidated into AC-03), Manual Bill + List (use Folio line items), standalone Folio Payment page (payment is handled in FO-05 and final settlement in FO-06).
 
-### 3.5 Admin (6 screens)
+### 3.5 Admin (7 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
@@ -108,6 +110,7 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 | AD-04 | F&B Menu | Page | CRUD menu items (single outlet) |
 | AD-05 | F&B Tables | Page | `/app/admin/tables`: CRUD restaurant table master data + Layout tab for drag-to-arrange floor positions per location |
 | AD-06 | Hotel Settings | Page | Hotel info, tax %, service charge %, night-audit cutoff time |
+| AD-07 | Pricing Rules | Page | `/app/admin/pricing-rules`: CRUD/toggle weekday or date-range room-type adjustments using amount or percentage deltas, with precedence/overlap validation and a resolved-price preview. |
 
 **Cut from original**: Admin Dashboard (admins land directly on User Management), Role Management (5 roles hardcoded in seed), Rate Plans (rate inlined into RoomType), Outlets (single outlet hardcoded), Guest Segments.
 
@@ -120,34 +123,37 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 | Module | Pages | Cut from original |
 |---|---:|---:|
 | Global | 3 | 1 (Module Switcher) |
-| Front Office | 6 | 5 |
+| Front Office | 8 | 5 |
 | Housekeeping | 5 | 1 |
 | Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
-| Admin | 6 | 4 |
-| **Total** | **28** | **21 cut** |
+| Admin | 7 | 4 |
+| **Total** | **31** | **21 cut** |
 
-Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-05, not a separate modal.
+Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-04, not a separate modal.
 
 ---
 
 ## 5. Key User Flows
 
-Five core business flows the app must support end-to-end:
+Six core business flows the app supports end-to-end:
 
 **Flow 1 — Reservation to Check-in**
-`FO-01 Kalender` → click empty cell → `FO-03 Reservation Form` with room/type/date context prefilled → submit → `FO-04 Check-in` (assign room + inline GRC + required digital signature) → folio created → `FO-03 Folio tab` / `FO-05 Guest Folio`.
+`FO-01 Kalender` → click empty cell → `FO-03 Unified Reservation Form` with room/type/date context prefilled → optionally add up to 20 room rows → submit atomically → per-room reservation/nightly schedule → `FO-04 Check-in` (assign room + inline GRC + required digital signature) → folio created → `FO-03 Folio tab` / `FO-05 Guest Folio`.
 
 **Flow 2 — Charge F&B to Room**
-`FB-01 Table Picker` → `FB-01A New Order` → `FB-02 Captain Order` → `FB-03 Bill Detail` → Pay → `FB-04 Payment`, choose "Charge to Room" → enter room number → line item posted to `FO-06 Guest Folio`.
+`FB-01 Table Picker` → `FB-01A New Order` → `FB-02 Captain Order` → `FB-03 Bill Detail` → Pay → `FB-04 Payment`, choose "Charge to Room" → enter room number → line item posted to `FO-05 Guest Folio`.
 
 **Flow 3 — Check-out**
-`FO-01 Kalender` (or `FO-03 Folio tab` / `FO-05 Guest Folio`) → Check-out → `FO-06 Check-out` → zero-balance verification → payment if needed → PDF receipt → room status auto-set to VD → visible in `HK-01`.
+`FO-01 Kalender` (or `FO-03 Folio tab` / `FO-05 Guest Folio`) → Check-out → `FO-06 Check-out` → rounded whole-IDR balance verification → positive balance requires payment; zero or credit proceeds → for credit, show warning and return excess to guest → PDF receipt → room status auto-set to VD → visible in `HK-01`.
 
-**Flow 4 — Night Audit**
+**Flow 4 — Group Booking Operations**
+`FO-03 Unified Reservation Form` → add 2–20 room rows → submit → linked per-room reservations → `FO-02 Reservation List` group badge or sibling context in detail → `FO-07 Group Booking Summary` → batch eligible check-in / per-folio settlement / eligible checkout.
+
+**Flow 5 — Night Audit**
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.
 
-**Flow 5 — HK Cleaning + Inspection**
+**Flow 6 — HK Cleaning + Inspection**
 `HK-01 My Rooms` → tap room → `HK-02 Shared Room Detail` → start timer → finish cleaning → `VD → VCU` or `OD → OC` → supervisor opens `HK-04 Supervisor Dashboard` / `HK-03 Supervisor Rooms` → inspect `VCU → VC` or reject `VCU → VD` → syncs to `FO-01 Kalender`.
 
 ---
@@ -158,7 +164,7 @@ Build these seven before opening Stitch / Claude Design:
 
 | Component | Used in | Notes |
 |---|---|---|
-| DataTable | FO-02, FB-01 history tab, AD-01..05 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
+| DataTable | FO-02, FB-01 history tab, AD-01..07 | Sort, filter, paginate (paginate disabled for MVP since data volumes are small) |
 | FormShell | all forms | shadcn `Form` + `zod` |
 | StatusBadge | Kalender, HK dashboard, reservation status | Locked room palette (see docs/design.md): VC green `#22C55E`, OC blue `#3B82F6`, VD amber `#F59E0B`, OD orange `#F97316`, VCU purple `#8B5CF6`, OOO red `#EF4444`, OOS gray `#64748B`. Reservation palette: confirmed amber `#F59E0B`, checked-in green `#22C55E`, checked-out gray `#64748B`; Kalender's unallocated lane is blue `#3B82F6`. |
 | Dialog | cancellation, destructive Admin actions, compact CRUD forms | shadcn `Dialog` / `AlertDialog`, reused |
@@ -168,12 +174,14 @@ Build these seven before opening Stitch / Claude Design:
 
 ---
 
-## 7. 8-Week Solo Development Timeline
+## 7. Historical 8-Week Solo Development Timeline
+
+This table records the original delivery plan; the screen inventory above describes the shipped current state.
 
 | Week | Focus | Deliverable |
 |---|---|---|
 | 1 | Setup: Next.js + Prisma + NextAuth + Tailwind + shadcn. Seed. Deploy to Vercel. | Login works, DB migrated, deployed |
-| 2 | Admin module (6 screens). Warm-up CRUD. | Master data manageable |
+| 2 | Admin module (now 7 shipped screens). Warm-up CRUD. | Master data manageable |
 | 3 | FO: Kalender + Reservation List + Reservation Form | Can create reservations, grid renders |
 | 4 | FO: Check-in + Folio creation + Folio Detail (charges + payments) | Full FO spine working |
 | 5 | FO: Check-out + PDF bill. HK module (5 role-aware screens). | Guest lifecycle complete, HK syncs to Kalender |

@@ -148,7 +148,7 @@ The receptionist doesn't manually trigger any of this; it happens automatically 
 
 ## 5. Check-out Process
 
-How a CHECKED_IN stay becomes a CHECKED_OUT historical record. Includes the zero-balance verification that prevents guests from leaving with unpaid bills.
+How a CHECKED_IN stay becomes a CHECKED_OUT historical record. Includes a rounded whole-IDR balance gate: a positive balance blocks check-out, while a zero or credit balance may proceed.
 
 ```mermaid
 flowchart TD
@@ -156,20 +156,21 @@ flowchart TD
     B --> C[Click Check Out]
     C --> D[Post pending stay-charge<br/>catch-up shortfall]
     D --> E[System computes<br/>folio totals]
-    E --> F{Balance?}
+    E --> F{Rounded whole-IDR<br/>balance?}
 
     F -->|Positive<br/>Owes money| G[Show Final Payment<br/>form]
     F -->|Zero<br/>Settled| I[Show Confirm<br/>checkbox]
-    F -->|Negative<br/>Credit| I
+    F -->|Credit<br/>Overpayment| C1[Show credit warning;<br/>return excess to guest]
+    C1 --> I
 
     G --> H[Receptionist records<br/>final payment]
     H --> I
 
     I --> J[Receptionist ticks:<br/>guest has left, room verified]
     J --> K[Post catch-up again<br/>idempotently and recheck balance]
-    K --> L{Balance ≤ 0?}
-    L -->|No| G
-    L -->|Yes| M[Atomic transaction:<br/>close folio, complete stay]
+    K --> L{Rounded whole-IDR<br/>balance positive?}
+    L -->|Yes| G
+    L -->|No: zero or credit| M[Atomic transaction:<br/>close folio, complete stay]
     M --> N[Folio: CLOSED<br/>Reservation: CHECKED_OUT<br/>Room: VD]
     N --> O[Generate PDF bill]
     O --> P([Guest leaves])
@@ -186,11 +187,11 @@ flowchart TD
 
 **Stay-charge catch-up before the gate:** when check-out or final payment is attempted, the server posts any pending room/arrangement stay-charge shortfall the night audit has not posted yet, then recomputes the folio. The shortfall poster is shared with Night Audit and is idempotent, so already-posted nights are not duplicated.
 
-**Zero-balance gate:** the Confirm Check-Out button is disabled until the balance is zero or credit. The server also posts the catch-up charges again idempotently and rechecks the balance before closing the folio. Positive rounded balance blocks checkout and leaves the newly posted charges visible for settlement through the existing payment flow; there is no auto-pay.
+**Rounded whole-IDR balance gate:** the Confirm Check-Out action is unavailable while the rounded whole-IDR balance is positive. A zero or credit balance may proceed. For a credit balance, the system shows a warning instructing the receptionist to return the excess to the guest. The server posts catch-up charges idempotently and rechecks the balance before closing the folio; a positive balance blocks check-out and leaves newly posted charges visible for settlement through the existing payment flow. There is no auto-pay or automated refund posting.
 
 **Whole-folio balance:** the balance covers all folio line items and payments: room/arrangement charges, F&B charged to room, manual or miscellaneous charges, service/tax calculation, and recorded payments.
 
-**Why credit is acceptable:** if the guest overpaid (rare but happens with deposit + low actual usage), the credit is recorded but doesn't block check-out. A small overpayment isn't worth holding the guest at the desk; the credit becomes a known accounting item resolved later.
+**Credit balance handling:** if the rounded whole-IDR balance is negative, check-out may proceed without another payment. The system displays a credit warning and instructs the receptionist to return the excess to the guest before completing check-out. The warning is operational guidance; the MVP does not post a separate automated refund transaction.
 
 ---
 
@@ -248,7 +249,7 @@ flowchart TD
 
 **Reservation note:** `Reservation.notes` is the one reservation comment field. Front Office edits it; Housekeeping reads it as guest instruction/context on lists, cards, and room detail.
 
-**Lost & Found:** HK can log text-only found items from Lost & Found or room detail. FO can search the Lost & Found page when guests ask, and supervisors can mark items returned with a resolution note. This custody flow is independent from room status and folios.
+**Lost & Found:** both HK and FO can log and search text-only found items and mark an item returned with a resolution note; HK can also start from room detail. Other roles are denied. This custody flow is independent from room status and folios.
 
 ---
 
