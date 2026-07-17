@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 export type { AppRole } from "./auth.config";
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const { auth, handlers } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({

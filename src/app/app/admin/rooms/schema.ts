@@ -101,7 +101,3 @@ export const RoomIdSchema = z.object({
 });
 
 export type RoomStatusValue = (typeof roomStatuses)[number];
-export type RoomTypeCreateInput = z.input<typeof RoomTypeCreateSchema>;
-export type RoomTypeCreateValues = z.output<typeof RoomTypeCreateSchema>;
-export type RoomCreateInput = z.input<typeof RoomCreateSchema>;
-export type RoomCreateValues = z.output<typeof RoomCreateSchema>;

@@ -213,7 +213,7 @@ model RoomType {
   name        String  @db.VarChar(50)
   description String? @db.Text
   capacity    Int
-  baseRate    Decimal @map("base_rate") @db.Decimal(12, 2) // fixed, no seasonality
+  baseRate    Decimal @map("base_rate") @db.Decimal(12, 2) // base rate adjusted per night by PricingRule
 
   rooms        Room[]
   reservations Reservation[]
@@ -298,7 +298,7 @@ model Reservation {
   adults          Int                  @default(1)
   children        Int                  @default(0)
   status          ReservationStatus    @default(CONFIRMED)
-  rateAmount      Decimal              @map("rate_amount") @db.Decimal(12, 2) // snapshot of roomType.baseRate at booking time
+  rateAmount      Decimal              @map("rate_amount") @db.Decimal(12, 2) // compatibility-only resolved first-night rate; SUM(ReservationNight.rateAmount) is authoritative
   deposit         Decimal              @default(0) @db.Decimal(12, 2)
   notes           String?              @db.Text
 

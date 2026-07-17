@@ -15,9 +15,7 @@ export function formatDecimalID(
   }).format(Number(value));
 }
 
-export function formatPercentID(value: number | string) {
-  return `${formatDecimalID(value)}%`;
-}
+
 
 export function formatFixedPercent(value: number | string, digits = 2) {
   return `${Number(value).toFixed(digits)}%`;

@@ -33,10 +33,3 @@ export const HotelSettingsUpdateSchema = z.object({
     .max(5, "Mata uang maksimal 5 karakter")
     .transform((value) => value.toUpperCase()),
 });
-
-export type HotelSettingsFormInput = z.input<
-  typeof HotelSettingsUpdateSchema
->;
-export type HotelSettingsFormValues = z.output<
-  typeof HotelSettingsUpdateSchema
->;

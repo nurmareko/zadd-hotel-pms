@@ -180,5 +180,3 @@ export const PricingPreviewSchema = z
       });
     }
   });
-
-export type PricingRuleFormInput = z.input<typeof PricingRuleCreateSchema>;

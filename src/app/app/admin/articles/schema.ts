@@ -53,5 +53,3 @@ export const ArticleIdSchema = z.object({
 });
 
 export type ArticleTypeValue = (typeof articleTypes)[number];
-export type ArticleCreateInput = z.input<typeof ArticleCreateSchema>;
-export type ArticleCreateValues = z.output<typeof ArticleCreateSchema>;

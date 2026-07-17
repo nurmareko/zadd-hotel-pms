@@ -1,6 +1,5 @@
 import { ActivityAction } from "@prisma/client";
 
-import { formatIDR } from "@/lib/format";
 
 export type Metrics = {
   reservationsCreated: number;
@@ -128,64 +127,4 @@ export function actionLabel(action: ActivityAction) {
     case ActivityAction.FOLIO_CHARGE_POSTED:
       return "Charge folio diposting";
   }
-}
-
-export function actionBadgeClass(action: ActivityAction) {
-  switch (action) {
-    case ActivityAction.RESERVATION_CREATED:
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case ActivityAction.CHECK_IN_COMPLETED:
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case ActivityAction.CHECK_OUT_COMPLETED:
-      return "border-indigo-200 bg-indigo-50 text-indigo-700";
-    case ActivityAction.PAYMENT_RECORDED:
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case ActivityAction.FOLIO_CHARGE_POSTED:
-      return "border-violet-200 bg-violet-50 text-violet-700";
-    case ActivityAction.RESERVATION_UPDATED:
-    case ActivityAction.RESERVATION_CANCELLED:
-      return "border-slate-200 bg-slate-50 text-slate-700";
-  }
-}
-
-export function activityContext(activity: ActivityWithContext) {
-  const reservation = activity.reservation
-    ? `Reservasi ${activity.reservation.reservationNo} (${activity.reservation.guest.fullName})`
-    : activity.reservationId
-      ? `Reservasi #${activity.reservationId}`
-      : null;
-  const folio = activity.folio
-    ? `Folio ${activity.folio.folioNo}`
-    : activity.folioId
-      ? `Folio #${activity.folioId}`
-      : null;
-  const room = activity.room
-    ? `Kamar ${activity.room.number}`
-    : activity.roomId
-      ? `Kamar #${activity.roomId}`
-      : null;
-
-  return [reservation, folio, room].filter(Boolean).join(" · ");
-}
-
-export function activityDetail(activity: ActivityWithContext) {
-  if (activity.action === ActivityAction.PAYMENT_RECORDED) {
-    const method = metadataText(activity.metadata, "method");
-    const amount = metadataAmount(activity.metadata);
-
-    return [amount > 0 ? formatIDR(amount) : null, method]
-      .filter(Boolean)
-      .join(" · ");
-  }
-
-  if (activity.action === ActivityAction.FOLIO_CHARGE_POSTED) {
-    const article = metadataText(activity.metadata, "article");
-    const amount = metadataAmount(activity.metadata);
-
-    return [article, amount > 0 ? formatIDR(amount) : null]
-      .filter(Boolean)
-      .join(" · ");
-  }
-
-  return metadataText(activity.metadata, "note") ?? "";
 }

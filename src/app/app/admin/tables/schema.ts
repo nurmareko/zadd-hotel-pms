@@ -69,8 +69,6 @@ export const RestaurantTableLocationSchema = z.object({
   location: z.enum(tableLocations, { error: "Pilih lokasi yang valid" }),
 });
 
-export type TableLocationValue = (typeof tableLocations)[number];
-export type TableStatusValue = (typeof tableStatuses)[number];
 export type RestaurantTableFormInput = z.input<
   typeof RestaurantTableCreateSchema
 >;

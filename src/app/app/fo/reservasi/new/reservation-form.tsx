@@ -49,7 +49,6 @@ type RoomTypeOption = {
   name: string;
   capacity: number;
   baseRate: string;
-  nightlyRateQuote: string;
 };
 
 type RoomOption = {

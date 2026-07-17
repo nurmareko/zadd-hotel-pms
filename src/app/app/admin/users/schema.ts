@@ -62,8 +62,3 @@ export const UserPasswordResetSchema = z.object({
   id: z.coerce.number().int().positive("Pengguna wajib dipilih"),
   password: PasswordSchema,
 });
-
-export type UserCreateInput = z.input<typeof UserCreateSchema>;
-export type UserCreateValues = z.output<typeof UserCreateSchema>;
-export type UserUpdateInput = z.input<typeof UserUpdateSchema>;
-export type UserUpdateValues = z.output<typeof UserUpdateSchema>;

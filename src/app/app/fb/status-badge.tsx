@@ -30,14 +30,7 @@ const orderStatusLabels: Record<FBOrderStatus, string> = {
   VOIDED: "Voided",
 };
 
-export function TableStatusBadge({ status }: { status: TableStatus }) {
-  return (
-    <StatusBadge
-      className={tableStatusStyles[status]}
-      label={tableStatusLabels[status]}
-    />
-  );
-}
+
 
 export function OrderStatusBadge({ status }: { status: FBOrderStatus }) {
   return (

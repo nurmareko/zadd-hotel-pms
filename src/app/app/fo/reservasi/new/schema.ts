@@ -285,7 +285,6 @@ export type CreateReservationInput = {
   deposit: string;
   notes: string;
 };
-export type CreateReservationValues = z.output<typeof CreateReservationSchema>;
 
 export type UnifiedReservationInput = Omit<
   CreateReservationInput,
@@ -301,5 +300,4 @@ export type UnifiedReservationInput = Omit<
 export type UnifiedReservationValues = z.output<typeof UnifiedReservationSchema>;
 
 export const EditReservationSchema = CreateReservationSchema;
-export type EditReservationInput = CreateReservationInput;
 export type EditReservationValues = z.output<typeof EditReservationSchema>;

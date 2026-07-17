@@ -487,7 +487,7 @@ async function runUpdateReservationTransaction(
           return {
             ok: false as const,
             error:
-              "Pricing-relevant edits are not supported after check-in. This phase does not rewrite or append nightly history for an in-house stay.",
+              "Pricing-relevant edits are not supported after check-in because nightly history is not rewritten or appended for an in-house stay.",
           };
         }
 

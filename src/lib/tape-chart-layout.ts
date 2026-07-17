@@ -1,4 +1,4 @@
-export const COLUMN_WIDTH = 80;
+
 export const ROW_HEIGHT = 32;
 export const ROOM_LABEL_WIDTH = 192;
 export const GROUP_HEADER_HEIGHT = 36;

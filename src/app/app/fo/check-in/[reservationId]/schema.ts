@@ -144,7 +144,6 @@ export const CheckInSchema = z
     depositReference: value.depositReference || null,
   }));
 
-export type CheckInInput = z.input<typeof CheckInSchema>;
 export type CheckInValues = z.output<typeof CheckInSchema>;
 export type PurposeOfVisitValue = (typeof purposeOfVisitOptions)[number];
 export type CheckInDepositMethod = (typeof checkInDepositMethods)[number];

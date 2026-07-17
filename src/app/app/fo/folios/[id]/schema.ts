@@ -1,4 +1,4 @@
-import { ArticleType, PaymentMethod, Prisma } from "@prisma/client";
+import { PaymentMethod, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const OptionalDescriptionSchema = z.preprocess(
@@ -57,8 +57,3 @@ export const PaymentSchema = z
       });
     }
   });
-
-export type PostChargeValues = z.output<typeof PostChargeSchema>;
-export type PaymentValues = z.output<typeof PaymentSchema>;
-
-export const nonPostableArticleTypes = [ArticleType.TAX] as const;
