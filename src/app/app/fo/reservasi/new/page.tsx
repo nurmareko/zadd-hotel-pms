@@ -177,7 +177,7 @@ export default async function NewReservationPage({
         </p>
       </div>
 
-      <div className="max-w-6xl">
+      <div className="min-w-0">
         <ReservationForm
           defaultValues={defaultValues}
           roomTypes={roomTypes.map((roomType) => ({
