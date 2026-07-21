@@ -427,6 +427,7 @@ export function DetailPageSkeleton({
   hasTabs = false,
   emptyState = false,
   contentClassName,
+  showHeader = true,
   withShell = true,
 }: {
   cardCount?: number;
@@ -434,6 +435,7 @@ export function DetailPageSkeleton({
   hasTabs?: boolean;
   emptyState?: boolean;
   contentClassName?: string;
+  showHeader?: boolean;
   withShell?: boolean;
 }) {
   if (emptyState) {
@@ -454,7 +456,9 @@ export function DetailPageSkeleton({
 
   const content = (
     <>
-      <PageHeaderSkeleton titleWidth="w-40" subtitleWidth="w-56" />
+      {showHeader ? (
+        <PageHeaderSkeleton titleWidth="w-40" subtitleWidth="w-56" />
+      ) : null}
       {hasTabs ? <TabStripSkeleton className="mb-4" /> : null}
       <div className="space-y-3">
         {Array.from({ length: cardCount }).map((_, index) => (
@@ -478,13 +482,15 @@ export function DetailPageSkeleton({
 export function WorkflowPageSkeleton({
   summaryCount = 3,
   actionRows = 4,
+  showHeader = true,
 }: {
   summaryCount?: number;
   actionRows?: number;
+  showHeader?: boolean;
 }) {
   return (
     <PageShell>
-      <PageHeaderSkeleton actionCount={1} />
+      {showHeader ? <PageHeaderSkeleton actionCount={1} /> : null}
       <KpiStripSkeleton count={summaryCount} className="md:grid-cols-3" />
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">

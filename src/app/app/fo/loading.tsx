@@ -1,7 +1,7 @@
 import {
   CardSkeleton,
   KpiStripSkeleton,
-  PageHeaderSkeleton,
+
   Skeleton,
   TableSkeleton,
 } from "@/components/ui/skeleton";
@@ -9,7 +9,7 @@ import {
 export default function Loading() {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <PageHeaderSkeleton titleWidth="w-72" subtitleWidth="w-80" />
+
 
       <KpiStripSkeleton count={4} />
 

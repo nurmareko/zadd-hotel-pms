@@ -5,7 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { folioBalanceState } from "@/lib/folio-balance-display";
 import { computeFolioTotals } from "@/lib/folio-totals";
-import { formatCompactDateID, formatDayOfMonthID } from "@/lib/format";
+
 import { prisma } from "@/lib/prisma";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { AddChargeDialog } from "./add-charge-dialog";
@@ -19,22 +19,9 @@ type GuestFolioViewProps = {
   folioId: number;
 };
 
-function ErrorState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function ErrorState({ message }: { message: string }) {
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Guest Folio
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">{title}</p>
-      </div>
-
       <section className="rounded-lg border border-red-200 bg-red-50 p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-red-800">
           Folio Blocked
@@ -45,11 +32,7 @@ function ErrorState({
   );
 }
 
-function stayRangeLabel(arrivalDate: Date, departureDate: Date) {
-  return `${formatDayOfMonthID(arrivalDate)} → ${formatCompactDateID(
-    departureDate,
-  )}`;
-}
+
 
 export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
   const [folio, articles, settings] = await Promise.all([
@@ -101,19 +84,13 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
 
   if (!folio) {
     return (
-      <ErrorState
-        title={`folioId=${folioId}`}
-        message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan."
-      />
+      <ErrorState message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan." />
     );
   }
 
   if (!settings) {
     return (
-      <ErrorState
-        title={folio.folioNo}
-        message="Hotel settings belum tersedia, sehingga total folio belum bisa dihitung."
-      />
+      <ErrorState message="Hotel settings belum tersedia, sehingga total folio belum bisa dihitung." />
     );
   }
 
@@ -131,22 +108,7 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Guest Folio · {folio.reservation.guest.fullName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {folio.folioNo} · Kamar {folio.reservation.room?.number ?? "-"} (
-            {folio.reservation.roomType.name}) ·{" "}
-            {stayRangeLabel(
-              folio.reservation.arrivalDate,
-              folio.reservation.departureDate,
-            )}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+      <div className="mb-6 flex flex-wrap items-center gap-2 sm:justify-end">
           <AddChargeDialog
             folioId={folio.id}
             articles={chargeArticles}
@@ -195,7 +157,6 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
               Lanjut ke Check-Out
             </Link>
           ) : null}
-        </div>
       </div>
 
       <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">

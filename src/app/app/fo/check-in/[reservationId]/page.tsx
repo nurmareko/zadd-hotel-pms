@@ -26,22 +26,9 @@ function dateLabel(date: Date) {
   return formatDateID(date);
 }
 
-function ErrorState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function ErrorState({ message }: { message: string }) {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Check-In
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">{title}</p>
-      </div>
-
       <section className="rounded-lg border border-red-200 bg-red-50 p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-red-800">
           Check-In Blocked
@@ -103,10 +90,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
 
   if (reservation.status !== ReservationStatus.CONFIRMED) {
     return (
-      <ErrorState
-        title={reservation.reservationNo}
-        message="Reservation is not in confirmable state"
-      />
+      <ErrorState message="Reservation is not in confirmable state" />
     );
   }
 
@@ -115,10 +99,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
 
   if (arrivalDate > today) {
     return (
-      <ErrorState
-        title={reservation.reservationNo}
-        message="Arrival date is not eligible for check-in yet"
-      />
+      <ErrorState message="Arrival date is not eligible for check-in yet" />
     );
   }
 
@@ -186,19 +167,8 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Check-In · {reservation.guest.fullName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {reservation.reservationNo} · {reservation.roomType.name} ·{" "}
-            {arrivalLabel} → {departureLabel} ({nights} malam)
-          </p>
-        </div>
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-          <Link
+      <div className="mb-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <Link
             href={`/app/fo/reservasi/${reservation.id}`}
             className={buttonVariants({ variant: "outline" })}
           >
@@ -212,11 +182,9 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
             <Download className="h-4 w-4" aria-hidden="true" />
             Cetak GRC
           </a>
-        </div>
       </div>
 
-      <div className="max-w-6xl">
-        <CheckInForm
+      <CheckInForm
           reservationId={reservation.id}
           reservationNo={reservation.reservationNo}
           guest={{
@@ -235,9 +203,8 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
           assignedRoomNumber={reservation.room?.number ?? null}
           existingDeposit={reservation.deposit.toString()}
           availableRoomsCount={availableRoomsCount}
-          roomOptions={roomOptions}
-        />
-      </div>
+        roomOptions={roomOptions}
+      />
     </main>
   );
 }

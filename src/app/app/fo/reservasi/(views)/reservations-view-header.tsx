@@ -34,11 +34,10 @@ import {
 const views: Array<{
   value: FoReservasiView;
   label: string;
-  title: string;
   icon: typeof CalendarDays;
 }> = [
-  { value: "kalender", label: "Kalender", title: "Kalender", icon: CalendarDays },
-  { value: "list", label: "List", title: "Daftar Reservasi", icon: List },
+  { value: "kalender", label: "Kalender", icon: CalendarDays },
+  { value: "list", label: "List", icon: List },
 ];
 
 function rememberView(view: FoReservasiView) {
@@ -131,8 +130,8 @@ export function ReservationsViewHeader() {
   const searchParams = useSearchParams();
   const segment = useSelectedLayoutSegment();
   const currentView: FoReservasiView = segment === "list" ? "list" : "kalender";
-  // Optimistic view drives the toggle pill and title so they respond on click,
-  // before the target page finishes rendering.
+  // Optimistic view drives the toggle pill so it responds on click before the
+  // target page finishes rendering.
   const [view, setOptimisticView] = useOptimistic(currentView);
   const [, startTransition] = useTransition();
 
@@ -160,18 +159,8 @@ export function ReservationsViewHeader() {
     });
   }
 
-  const activeTitle =
-    views.find((candidate) => candidate.value === view)?.title ?? "Kalender";
-
   return (
-    <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
-      <h1
-        key={view}
-        className="animate-in fade-in text-2xl font-bold tracking-tight text-slate-900 duration-300"
-      >
-        {activeTitle}
-      </h1>
-
+    <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <DateWindowNav view={view} />
 
       <div className="flex flex-wrap items-center gap-3 lg:justify-end">

@@ -85,21 +85,14 @@ function ReservationTabs({
 
 function FolioPendingState() {
   return (
-    <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Guest Folio
-        </h1>
-      </div>
-      <section className="max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section className="max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
           {"Folio"}
         </div>
         <p className="p-5 text-sm text-slate-500">
           Folio dibuat saat check-in.
         </p>
-      </section>
-    </>
+    </section>
   );
 }
 
@@ -324,25 +317,13 @@ export default async function ReservationDetailPage({
       <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
       {activeTab === "details" ? (
         <>
-          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                Reservation Form
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {reservation.reservationNo} ·{" "}
-                {reservationStatusLabel(reservation.status)} ·{" "}
-                {reservation.guest.fullName}
-              </p>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-              <Link
-                              href="/app/fo/reservasi"
-                              className={buttonVariants({ variant: "outline" })}
-                            >
-                Kembali
-              </Link>
+          <div className="mb-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <Link
+              href="/app/fo/reservasi"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Kembali
+            </Link>
               {canPrintGrc ? (
                 <a
                                   href={`/api/reservations/${reservation.id}/grc`}
@@ -367,17 +348,16 @@ export default async function ReservationDetailPage({
                   roomStatus={reservation.room?.status ?? null}
                 />
               ) : null}
-            </div>
           </div>
 
-          <div className="max-w-6xl">
-            {reservation.groupBookingId ? (
-              <GroupBookingCard
-                currentReservationId={reservation.id}
-                groupBookingId={reservation.groupBookingId}
-                siblings={groupSiblings}
-              />
-            ) : null}
+          {reservation.groupBookingId ? (
+            <GroupBookingCard
+              currentReservationId={reservation.id}
+              groupBookingId={reservation.groupBookingId}
+              siblings={groupSiblings}
+            />
+          ) : null}
+          <div className="min-w-0">
             <ReservationForm
               defaultValues={defaultValues}
               roomTypes={roomTypes.map((roomType) => ({

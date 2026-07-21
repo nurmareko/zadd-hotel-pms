@@ -271,22 +271,9 @@ function PreviewBill({
   );
 }
 
-function ErrorState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function ErrorState({ message }: { message: string }) {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Check-Out
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">{title}</p>
-      </div>
-
       <StepCard title="Check-Out Blocked">
         <div className="p-5 text-sm text-red-600">{message}</div>
       </StepCard>
@@ -342,19 +329,13 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
   if (!folio) {
     return (
-      <ErrorState
-        title={`folioId=${parsedFolioId}`}
-        message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan."
-      />
+      <ErrorState message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan." />
     );
   }
 
   if (!settings) {
     return (
-      <ErrorState
-        title={folio.folioNo}
-        message="Hotel settings belum tersedia, sehingga check-out belum bisa dihitung."
-      />
+      <ErrorState message="Hotel settings belum tersedia, sehingga check-out belum bisa dihitung." />
     );
   }
 
@@ -383,7 +364,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
       });
     } catch (error) {
       if (error instanceof StayChargePostingError) {
-        return <ErrorState title={folio.folioNo} message={error.message} />;
+        return <ErrorState message={error.message} />;
       }
 
       throw error;
@@ -402,26 +383,13 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Check-out · {folio.reservation.guest.fullName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {folio.folioNo} · Kamar {folio.reservation.room?.number ?? "-"} (
-            {folio.reservation.roomType.name}) · Departure{" "}
-            {dateLabel(folio.reservation.departureDate)}
-          </p>
-        </div>
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-          <Link
-                      href={`/app/fo/folios/${folio.id}`}
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-            Batal
-          </Link>
-        </div>
+      <div className="mb-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <Link
+          href={`/app/fo/folios/${folio.id}`}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Batal
+        </Link>
       </div>
 
       <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">

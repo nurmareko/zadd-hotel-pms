@@ -168,14 +168,7 @@ export default async function NewReservationPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Reservasi Baru
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Isi data tamu dan periode menginap untuk membuat reservasi.
-        </p>
-      </div>
+
 
       <div className="min-w-0">
         <ReservationForm

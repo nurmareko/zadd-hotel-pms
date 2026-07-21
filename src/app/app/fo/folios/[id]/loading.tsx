@@ -1,6 +1,6 @@
 import {
   CardSkeleton,
-  PageHeaderSkeleton,
+
   Skeleton,
   TableSkeleton,
 } from "@/components/ui/skeleton";
@@ -8,11 +8,7 @@ import {
 export default function Loading() {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <PageHeaderSkeleton
-        titleWidth="w-80"
-        subtitleWidth="w-[520px]"
-        actionCount={4}
-      />
+
 
       <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3">

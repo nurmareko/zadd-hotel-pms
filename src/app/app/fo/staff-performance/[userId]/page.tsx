@@ -303,21 +303,13 @@ export default async function StaffHistoryPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Link
-            href="/app/fo/staff-performance"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Kembali ke laporan perbandingan
-          </Link>
-          
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-            {staffer.fullName}
-          </h1>
-        </div>
-      </div>
+      <Link
+        href="/app/fo/staff-performance"
+        className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Kembali ke laporan perbandingan
+      </Link>
 
       <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricCard

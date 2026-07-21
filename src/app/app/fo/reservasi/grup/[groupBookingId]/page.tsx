@@ -150,21 +150,13 @@ export default async function GroupBookingPage({
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <Link
-            href="/app/fo/reservasi/list"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Kembali ke daftar reservasi
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Booking Grup — {reservations.length} kamar
-          </h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            {groupBookingId}
-          </p>
-        </div>
+        <Link
+          href="/app/fo/reservasi/list"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Kembali ke daftar reservasi
+        </Link>
         <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">
           Setiap kamar memiliki reservasi dan folio sendiri. Aksi grup tetap
           menjalankan proses per kamar tersebut.

@@ -397,13 +397,7 @@ export default async function StaffPerformancePage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-            Kinerja Petugas
-          </h1>
-        </div>
-
+      <div className="mb-5 flex justify-end">
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
           <nav
             aria-label="Periode kinerja"

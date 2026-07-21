@@ -6,6 +6,7 @@ export default function Loading() {
       cardCount={2}
       rowsPerCard={6}
       hasTabs
+      showHeader={false}
       contentClassName="max-w-6xl"
     />
   );
