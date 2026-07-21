@@ -700,14 +700,9 @@ export function ReservationForm({
       >
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-slate-200 bg-slate-50 px-5 py-3">
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-3">
               <span className="text-sm font-semibold text-slate-700">
                 Formulir Reservasi
-              </span>
-              <span className="text-xs text-slate-500 num">
-                {nights > 0
-                  ? `${arrivalDate} -> ${departureDate} · ${watchedRoomRows.length} kamar · ${nights} malam`
-                  : "Pilih tanggal menginap"}
               </span>
             </div>
 
