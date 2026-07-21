@@ -48,7 +48,7 @@ export function StatusBadge({
     <span
       style={reservationBadgeStyle}
       className={cn(
-        "inline-flex items-center gap-1.5 border text-xs font-semibold rounded-full uppercase tracking-wider",
+        "inline-flex items-center gap-1.5 whitespace-nowrap border text-xs font-semibold rounded-full uppercase tracking-wider",
         sizeClassNames[size],
         className,
       )}
