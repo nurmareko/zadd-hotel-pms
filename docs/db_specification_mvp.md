@@ -148,7 +148,8 @@ erDiagram
     int children
     varchar status
     decimal rate_amount
-    decimal deposit
+    decimal deposit "required deposit amount"
+    varchar deposit_status "PENDING, COLLECTED"
     text notes
     timestamp grc_filled_at
     varchar purpose_of_visit
@@ -299,6 +300,7 @@ erDiagram
     int id PK
     decimal amount
     varchar method
+    varchar purpose "DEPOSIT, PAYMENT, SETTLEMENT"
     varchar reference
     int folio_id FK
     int fb_order_id FK
@@ -340,7 +342,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 9. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
-10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
+10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, deposit_status, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
 11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, revenue_class, source_pricing_rule_id nullable, created_at)
 12. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
 13. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, reservation_night_id\# nullable, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
@@ -365,7 +367,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Payment**
 
-23. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, reference, received_at)
+23. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, purpose, reference, received_at)
 
 **Activity logging**
 
@@ -389,6 +391,8 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | TableLocation | INDOOR, OUTDOOR, PRIVATE |
 | TableStatus | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
 | PaymentMethod | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
+| PaymentPurpose | DEPOSIT, PAYMENT, SETTLEMENT |
+| DepositStatus | PENDING, COLLECTED |
 | NightAuditStatus | COMPLETED |
 | LostFoundStatus | UNCLAIMED, RETURNED |
 | ActivityAction | RESERVATION_CREATED, RESERVATION_UPDATED, RESERVATION_CANCELLED, CHECK_IN_COMPLETED, CHECK_OUT_COMPLETED, PAYMENT_RECORDED, FOLIO_CHARGE_POSTED |
@@ -417,6 +421,49 @@ A few choices worth explaining:
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
 13. **ActivityLog records business events, not field-level diffs.** The table is general-purpose, but current write coverage is limited to the enumerated Front Office reservation, check-in, checkout, folio-charge, and payment events. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`. HK, FB, and ACC event logging remains deferred and can extend `ActivityAction` while reusing the same table shape.
 14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing automatic posting from creating the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
+
+---
+
+## Deposit (folio credit model)
+
+> **Phase 0 contract and additive data foundation.** The enum values and defaulted columns described here exist in the schema, but application money behavior does not read or enforce them yet. Phase 1 will wire deposit posting, idempotency, and status synchronization through the existing canonical payment paths. `computeFolioTotals`, checkout, and current payment posting behavior remain unchanged in Phase 0.
+
+### Requirement and classification
+
+- `Reservation.deposit` is the **required deposit amount**, equal to the reservation's first-night resolved rate and read-only under Scope A. It records the amount required; it is **not evidence that money was collected** and must never be described as “deposit paid.”
+- `Payment.purpose` classifies a payment as one of:
+  - `DEPOSIT` — money collected to satisfy the reservation's deposit requirement;
+  - `PAYMENT` — an ordinary in-stay payment; or
+  - `SETTLEMENT` — the final checkout payment.
+- `REFUND` is intentionally not a `PaymentPurpose` value in this phase. Refund purpose and refund transactions are deferred until the refund lifecycle is designed and built.
+- `Reservation.depositStatus` is either:
+  - `PENDING` — the deposit is required but no `DEPOSIT`-purpose payment has been posted to the reservation's folio; or
+  - `COLLECTED` — a `DEPOSIT`-purpose payment exists on that folio.
+- There is no `WAIVED` state. This design has no deposit waiver, supervisor override, or related RBAC concept.
+
+### Collection and synchronization policy
+
+- Check-in may post the deposit payment and transition the reservation to `COLLECTED`, or may proceed without collection and leave it `PENDING`. A `PENDING` deposit never blocks check-in, and there is no waiver or override flow.
+- At most one `DEPOSIT`-purpose payment may exist per folio. In Phase 1, the deposit-posting action must guard this one-deposit-per-folio invariant inside its transaction so retries and double-clicks cannot create a second deposit payment.
+- Deposit-payment posting is the **single writer** allowed to transition `Reservation.depositStatus` from `PENDING` to `COLLECTED`. No other action independently marks the status collected. This single-writer discipline keeps the stored status synchronized with the classified payment reality.
+- Phase 0 intentionally does not reconstruct historical collection state. Existing payments default to `PAYMENT` and existing reservations default to `PENDING`; historical payments are not amount-matched or retroactively classified as `DEPOSIT`, because an amount match cannot reliably distinguish a deposit from an ordinary payment. Fresh demo fixtures explicitly classify their modeled check-in deposit payments and mark the corresponding reservations `COLLECTED`.
+
+### Money and group semantics
+
+- A deposit payment enters `computeFolioTotals` through its existing `totalPaid` calculation exactly once, in the same way payments already do. `computeFolioTotals` is not changed for the deposit model.
+- `Reservation.deposit` is never added to folio balance math. Doing so would double-count the payment credit. Checkout does not create an “application” payment or any second credit for a previously collected deposit.
+- Group bookings retain independent financial lifecycles: every room reservation has its own required deposit amount and `DepositStatus`, and every room has its own folio. Group deposit collection is per room; the Phase 1 bulk-post operation loops over eligible sibling reservations and posts each room's deposit independently.
+
+### Deferred money-lifecycle work
+
+The following are future work and are not part of this contract phase:
+
+- `REFUND` purpose and refund transactions;
+- forfeit/no-show lifecycle, Cancellation Revenue, and the associated tax/service-charge policy;
+- ownership of pre-arrival deposit collection;
+- any deposit-related RBAC, supervisor, waiver, or override model.
+
+These belong to the same future money-lifecycle family as the existing [allowance/rebate and historical-correction backlog](./feature_list_mvp.md#deferred-features) and [manual payment writer race-hardening backlog](./feature_list_mvp.md#deferred-features).
 
 ---
 
@@ -620,7 +667,8 @@ Indexes and enforcement:
 | children | INT | NOT NULL, DEFAULT 0 | Child guest count |
 | status | ReservationStatus | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | rate_amount | DECIMAL(12,2) | NOT NULL | Compatibility-only first-night rate. Not authoritative for stay value or financial calculations; use `SUM(reservation_night.rate_amount)` for the stay total. |
-| deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Deposit paid |
+| deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Required deposit amount: the first night's resolved rate. This is a requirement, not evidence of collection, and is never added directly to folio balance math. |
+| deposit_status | DepositStatus | NOT NULL, DEFAULT 'PENDING' | `PENDING` until the single deposit-payment posting path records a `DEPOSIT`-purpose payment; `COLLECTED` afterward. Phase 0 adds storage only. |
 | notes | TEXT | — | Canonical reservation note; FO edits it and HK reads it as guest instructions |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
 | purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
@@ -841,6 +889,7 @@ Lost & Found is text-only in the MVP. Records may be room-specific or public-are
 | id | SERIAL | PRIMARY KEY | Unique payment identifier |
 | amount | DECIMAL(12,2) | NOT NULL | Payment amount |
 | method | PaymentMethod | NOT NULL | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
+| purpose | PaymentPurpose | NOT NULL, DEFAULT 'PAYMENT' | `DEPOSIT` for required-deposit collection, `PAYMENT` for ordinary in-stay payments, or `SETTLEMENT` for final checkout payment. Existing rows safely default to `PAYMENT`; `REFUND` is deferred. |
 | reference | VARCHAR(100) | — | Reference number (bank ref, card last 4) |
 | folio_id | INT | FOREIGN KEY → folio(id), ON DELETE SET NULL | Folio paid (optional) |
 | fb_order_id | INT | FOREIGN KEY → fb_order(id), ON DELETE SET NULL | F&B order paid (optional) |

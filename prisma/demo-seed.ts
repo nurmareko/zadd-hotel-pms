@@ -7,6 +7,8 @@ import {
   LostFoundStatus,
   NightAuditStatus,
   PaymentMethod,
+  PaymentPurpose,
+  DepositStatus,
   ReservationStatus,
   ReservationType,
   ReservationUsageType,
@@ -1322,6 +1324,7 @@ async function main() {
       reservationNo: string;
       reservationId: number;
       arrivalDate: Date;
+      deposit: number;
     }> = [];
     const checkedOutReservations: Array<{
       reservationNo: string;
@@ -1329,6 +1332,7 @@ async function main() {
       arrivalDate: Date;
       departureDate: Date;
       rateAmount: number;
+      deposit: number;
     }> = [];
 
     for (const [index, reservation] of reservations.entries()) {
@@ -1378,6 +1382,9 @@ async function main() {
           status: reservation.status,
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
+          depositStatus: hasCompletedGrc
+            ? DepositStatus.COLLECTED
+            : DepositStatus.PENDING,
           notes: reservation.notes ?? null,
           grcFilledAt,
           purposeOfVisit,
@@ -1397,6 +1404,9 @@ async function main() {
           status: reservation.status,
           rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
+          depositStatus: hasCompletedGrc
+            ? DepositStatus.COLLECTED
+            : DepositStatus.PENDING,
           notes: reservation.notes ?? null,
           grcFilledAt,
           purposeOfVisit,
@@ -1461,6 +1471,7 @@ async function main() {
           reservationNo: reservation.reservationNo,
           reservationId: seededReservation.id,
           arrivalDate,
+          deposit: reservation.deposit ?? 0,
         });
         grcCheckedInCount += 1;
       }
@@ -1472,6 +1483,7 @@ async function main() {
           arrivalDate,
           departureDate,
           rateAmount: Number(roomType.baseRate),
+          deposit: reservation.deposit ?? 0,
         });
         grcCheckedOutCount += 1;
       }
@@ -1508,7 +1520,7 @@ async function main() {
     });
 
     for (const [index, reservation] of checkedInReservations.entries()) {
-      await prisma.folio.upsert({
+      const folio = await prisma.folio.upsert({
         where: { reservationId: reservation.reservationId },
         create: {
           folioNo: `DEMO-FOL-${String(index + 1).padStart(3, "0")}`,
@@ -1522,9 +1534,25 @@ async function main() {
           closedAt: null,
         },
       });
+
+      await prisma.payment.deleteMany({ where: { folioId: folio.id } });
+      await prisma.payment.create({
+        data: {
+          folioId: folio.id,
+          fbOrderId: null,
+          amount: reservation.deposit,
+          method: PaymentMethod.CASH,
+          purpose: PaymentPurpose.DEPOSIT,
+          reference: null,
+          receivedById: createdBy.id,
+          receivedAt: reservation.arrivalDate,
+        },
+      });
     }
 
-    console.log(`✓ seeded ${checkedInReservations.length} open folios`);
+    console.log(
+      `✓ seeded ${checkedInReservations.length} open folios with classified deposit payments`,
+    );
 
     const [roomChargeArticle, hotelSettings] = await Promise.all([
       prisma.article.findUnique({ where: { code: "ROOM-CHARGE" } }),
@@ -1592,16 +1620,29 @@ async function main() {
         totalMismatchCount += 1;
       }
 
-      await prisma.payment.create({
-        data: {
-          folioId: folio.id,
-          fbOrderId: null,
-          amount: totalsBeforePayment.totalCharges,
-          method: PaymentMethod.CASH,
-          reference: null,
-          receivedById: createdBy.id,
-          receivedAt: reservation.departureDate,
-        },
+      await prisma.payment.createMany({
+        data: [
+          {
+            folioId: folio.id,
+            fbOrderId: null,
+            amount: reservation.deposit,
+            method: PaymentMethod.CASH,
+            purpose: PaymentPurpose.DEPOSIT,
+            reference: null,
+            receivedById: createdBy.id,
+            receivedAt: reservation.arrivalDate,
+          },
+          {
+            folioId: folio.id,
+            fbOrderId: null,
+            amount: totalsBeforePayment.totalCharges - reservation.deposit,
+            method: PaymentMethod.CASH,
+            purpose: PaymentPurpose.SETTLEMENT,
+            reference: null,
+            receivedById: createdBy.id,
+            receivedAt: reservation.departureDate,
+          },
+        ],
       });
 
       closedFolioCount += 1;

@@ -48,6 +48,11 @@ enum ReservationStatus {
   NO_SHOW
 }
 
+enum DepositStatus {
+  PENDING
+  COLLECTED
+}
+
 enum ReservationUsageType {
   REGULAR // normal hotel guest
   WALK_IN // ad-hoc non-staying guest (replaces ManualBill)
@@ -103,6 +108,12 @@ enum PaymentMethod {
   TRANSFER
   CARD
   CHARGE_TO_ROOM
+}
+
+enum PaymentPurpose {
+  DEPOSIT
+  PAYMENT
+  SETTLEMENT
 }
 
 enum NightAuditStatus {
@@ -300,6 +311,7 @@ model Reservation {
   status          ReservationStatus    @default(CONFIRMED)
   rateAmount      Decimal              @map("rate_amount") @db.Decimal(12, 2) // compatibility-only resolved first-night rate; SUM(ReservationNight.rateAmount) is authoritative
   deposit         Decimal              @default(0) @db.Decimal(12, 2)
+  depositStatus   DepositStatus        @default(PENDING) @map("deposit_status")
   notes           String?              @db.Text
 
   // GRC fields (inlined from GuestRegistrationCard entity)
@@ -590,14 +602,15 @@ model NightAudit {
 // ============================================================
 
 model Payment {
-  id           Int           @id @default(autoincrement())
-  amount       Decimal       @db.Decimal(12, 2)
+  id           Int            @id @default(autoincrement())
+  amount       Decimal        @db.Decimal(12, 2)
   method       PaymentMethod
-  reference    String?       @db.VarChar(100)
-  folioId      Int?          @map("folio_id")
-  fbOrderId    Int?          @map("fb_order_id")
-  receivedById Int           @map("received_by_id")
-  receivedAt   DateTime      @default(now()) @map("received_at")
+  purpose      PaymentPurpose @default(PAYMENT)
+  reference    String?        @db.VarChar(100)
+  folioId      Int?           @map("folio_id")
+  fbOrderId    Int?           @map("fb_order_id")
+  receivedById Int            @map("received_by_id")
+  receivedAt   DateTime       @default(now()) @map("received_at")
 
   folio      Folio?   @relation(fields: [folioId], references: [id])
   fbOrder    FBOrder? @relation(fields: [fbOrderId], references: [id])
