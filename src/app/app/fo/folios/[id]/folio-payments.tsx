@@ -1,4 +1,4 @@
-import { PaymentMethod } from "@prisma/client";
+import { PaymentMethod, PaymentPurpose } from "@prisma/client";
 import { WalletCards } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -9,6 +9,7 @@ type FolioPayment = {
   id: number;
   amount: { toString(): string };
   method: PaymentMethod;
+  purpose: PaymentPurpose;
   reference: string | null;
   receivedAt: Date;
   receivedBy?: {
@@ -29,6 +30,21 @@ const paymentClassNames: Record<PaymentMethod, string> = {
     "bg-status-ooo-bg text-status-ooo-fg border-status-ooo-pip",
 };
 
+const purposeClassNames: Record<PaymentPurpose, string> = {
+  [PaymentPurpose.DEPOSIT]:
+    "bg-status-vc-bg text-status-vc-fg border-status-vc-pip",
+  [PaymentPurpose.PAYMENT]:
+    "bg-status-oc-bg text-status-oc-fg border-status-oc-pip",
+  [PaymentPurpose.SETTLEMENT]:
+    "bg-status-vcu-bg text-status-vcu-fg border-status-vcu-pip",
+};
+
+const purposeLabels: Record<PaymentPurpose, string> = {
+  [PaymentPurpose.DEPOSIT]: "Deposit",
+  [PaymentPurpose.PAYMENT]: "Pembayaran",
+  [PaymentPurpose.SETTLEMENT]: "Pelunasan",
+};
+
 function receivedAtLabel(date: Date) {
   return formatMonthDayTimeID(date);
 }
@@ -36,6 +52,15 @@ function receivedAtLabel(date: Date) {
 function PaymentBadge({ method }: { method: PaymentMethod }) {
   return (
     <StatusBadge label={method} className={paymentClassNames[method]} />
+  );
+}
+
+function PaymentPurposeBadge({ purpose }: { purpose: PaymentPurpose }) {
+  return (
+    <StatusBadge
+      label={purposeLabels[purpose]}
+      className={purposeClassNames[purpose]}
+    />
   );
 }
 
@@ -58,11 +83,14 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
         />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[640px] w-full border-collapse text-sm">
+          <table className="min-w-180 w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Tanggal
+                </th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
+                  Jenis
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Metode
@@ -86,6 +114,9 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
                 >
                   <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                     {receivedAtLabel(payment.receivedAt)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <PaymentPurposeBadge purpose={payment.purpose} />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <PaymentBadge method={payment.method} />

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
@@ -222,7 +223,7 @@ export default async function GroupBookingPage({
           </span>
         </div>
         <div className="max-w-full overflow-auto">
-          <table className="w-full min-w-[1000px] border-collapse text-sm">
+          <table className="w-full min-w-[1080px] border-collapse text-sm">
             <caption className="sr-only">
               Daftar kamar dalam booking grup {groupBookingId}
             </caption>
@@ -239,6 +240,9 @@ export default async function GroupBookingPage({
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Tanggal
+                </th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
+                  Deposit
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
                   Saldo folio
@@ -284,6 +288,9 @@ export default async function GroupBookingPage({
                       <div className="mt-0.5 text-slate-500">
                         s.d. {formatDateID(reservation.departureDate)}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <DepositStatusBadge status={reservation.depositStatus} />
                     </td>
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-900">
                       {balance === undefined ? (

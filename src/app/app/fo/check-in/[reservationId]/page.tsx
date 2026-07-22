@@ -1,4 +1,9 @@
-import { ReservationStatus, RoomStatus, type Room } from "@prisma/client";
+import {
+  PaymentPurpose,
+  ReservationStatus,
+  RoomStatus,
+  type Room,
+} from "@prisma/client";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { Download } from "lucide-react";
 import Link from "next/link";
@@ -77,6 +82,15 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
       },
       room: { select: { id: true, number: true } },
       roomType: { select: { id: true, code: true, name: true } },
+      folio: {
+        select: {
+          payments: {
+            where: { purpose: PaymentPurpose.DEPOSIT },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
       reservationNights: {
         select: { date: true, rateAmount: true },
         orderBy: { date: "asc" },
@@ -210,6 +224,8 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
           assignedRoomId={reservation.roomId}
           assignedRoomNumber={reservation.room?.number ?? null}
           computedDeposit={firstNight.rateAmount.toString()}
+          depositStatus={reservation.depositStatus}
+          depositAlreadyCollected={Boolean(reservation.folio?.payments.length)}
           availableRoomsCount={availableRoomsCount}
         roomOptions={roomOptions}
       />

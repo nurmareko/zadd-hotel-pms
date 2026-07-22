@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DepositStatus } from "@prisma/client";
 import Link from "next/link";
 import { useState, type BaseSyntheticEvent } from "react";
 import {
@@ -11,6 +12,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import {
   Form,
   FormControl,
@@ -76,6 +78,8 @@ type CheckInFormProps = {
   assignedRoomId: number | null;
   assignedRoomNumber: string | null;
   computedDeposit: string;
+  depositStatus: DepositStatus;
+  depositAlreadyCollected: boolean;
   availableRoomsCount: number;
   roomOptions: RoomOption[];
 };
@@ -130,6 +134,8 @@ export function CheckInForm({
   assignedRoomId,
   assignedRoomNumber,
   computedDeposit,
+  depositStatus,
+  depositAlreadyCollected,
   availableRoomsCount,
   roomOptions,
 }: CheckInFormProps) {
@@ -176,7 +182,7 @@ export function CheckInForm({
     : roomOptions;
 
   const depositNote =
-    "Deposit sama dengan tarif kamar malam pertama, sebelum pajak, dan tidak dapat diedit.";
+    "Deposit sama dengan tarif kamar malam pertama, sebelum pajak, dan tidak dapat diedit. Check-in tetap dapat dilanjutkan tanpa penagihan deposit.";
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
 
@@ -193,16 +199,6 @@ export function CheckInForm({
       event?.currentTarget instanceof HTMLFormElement
         ? event.currentTarget
         : formElement;
-
-    if (depositAmount > 0 && !values.depositMethod) {
-      form.setError(
-        "depositMethod",
-        { type: "required", message: "Pilih metode deposit" },
-        { shouldFocus: true },
-      );
-      focusFirstFormError(submitFormElement);
-      return;
-    }
 
     const formData = submitFormElement
       ? new FormData(submitFormElement)
@@ -543,9 +539,12 @@ export function CheckInForm({
             </div>
             <div className="grid gap-4 p-5 md:grid-cols-2">
               <div className="md:col-span-2">
-                <p className="text-sm font-medium text-slate-700">
-                  Deposit (= tarif malam pertama)
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-700">
+                    Deposit (= tarif malam pertama)
+                  </p>
+                  <DepositStatusBadge status={depositStatus} />
+                </div>
                 <div className="mt-2 flex min-h-11 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 desktop:min-h-10">
                   {formatIDR(depositAmount)}
                 </div>
@@ -554,7 +553,7 @@ export function CheckInForm({
                 </p>
               </div>
 
-              {depositAmount > 0 ? (
+              {depositAmount > 0 && !depositAlreadyCollected ? (
                 <>
                   <FormField
                     control={form.control}
@@ -572,7 +571,7 @@ export function CheckInForm({
                               )
                             }
                           >
-                            <option value="">Pilih metode</option>
+                            <option value="">Tidak dipungut saat check-in</option>
                             {checkInDepositMethods.map((method) => (
                               <option key={method} value={method}>
                                 {method}
@@ -608,6 +607,10 @@ export function CheckInForm({
                     />
                   </div>
                 </>
+              ) : depositAlreadyCollected ? (
+                <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  Deposit sudah tercatat pada folio. Pembayaran deposit tidak dapat diposting ulang.
+                </p>
               ) : null}
             </div>
           </section>

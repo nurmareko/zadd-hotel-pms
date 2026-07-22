@@ -1,6 +1,8 @@
 "use server";
 
 import {
+  DepositStatus,
+  PaymentPurpose,
   Prisma,
   ReservationStatus,
   RoomStatus,
@@ -271,16 +273,41 @@ async function runCheckInTransaction(
       }
 
       if (depositAmount.isPositive() && input.depositMethod) {
-        await tx.payment.create({
-          data: {
+        const existingDepositPayment = await tx.payment.findFirst({
+          where: {
             folioId: folio.id,
-            amount: depositAmount,
-            method: input.depositMethod,
-            reference: input.depositReference,
-            receivedById: userId,
-            receivedAt: now,
+            purpose: PaymentPurpose.DEPOSIT,
           },
+          select: { id: true },
         });
+
+        if (!existingDepositPayment) {
+          await tx.payment.create({
+            data: {
+              folioId: folio.id,
+              amount: depositAmount,
+              method: input.depositMethod,
+              purpose: PaymentPurpose.DEPOSIT,
+              reference: input.depositReference,
+              receivedById: userId,
+              receivedAt: now,
+            },
+          });
+        }
+
+        const collectedReservation = await tx.reservation.updateMany({
+          where: {
+            id: reservation.id,
+            depositStatus: DepositStatus.PENDING,
+          },
+          data: { depositStatus: DepositStatus.COLLECTED },
+        });
+
+        if (!existingDepositPayment && collectedReservation.count === 0) {
+          throw new CheckInActionError(
+            "Status deposit berubah sebelum pembayaran dapat dicatat.",
+          );
+        }
       }
 
       return { ok: true as const, folioId: folio.id };

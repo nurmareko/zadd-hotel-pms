@@ -1,11 +1,13 @@
 import {
   ArrangementType,
+  DepositStatus,
   FolioStatus,
   ReservationStatus,
   ReservationType,
 } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
+import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateID } from "@/lib/format";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
@@ -23,6 +25,7 @@ type FolioHeaderProps = {
       arrivalDate: Date;
       departureDate: Date;
       status: ReservationStatus;
+      depositStatus: DepositStatus;
       guest: {
         fullName: string;
         phone: string | null;
@@ -133,6 +136,10 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
         <InfoRow
           label="Status"
           value={<ReservationStatusBadge status={reservation.status} />}
+        />
+        <InfoRow
+          label="Deposit"
+          value={<DepositStatusBadge status={reservation.depositStatus} />}
         />
         <InfoRow
           label="Periode"

@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
@@ -361,6 +362,17 @@ export default async function ReservationDetailPage({
               siblings={groupSiblings}
             />
           ) : null}
+          <section className="mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">
+                Status deposit
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Status ini mengikuti pembayaran deposit yang tercatat pada folio.
+              </p>
+            </div>
+            <DepositStatusBadge status={reservation.depositStatus} />
+          </section>
           <div className="min-w-0">
             <ReservationForm
               defaultValues={defaultValues}

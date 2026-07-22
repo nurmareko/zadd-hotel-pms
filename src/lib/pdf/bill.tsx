@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import { PaymentPurpose } from "@prisma/client";
 
 import {
   billBalanceAmountLabel,
@@ -42,6 +43,7 @@ type BillPayment = {
   id: number;
   amount: StringableDecimal;
   method: string;
+  purpose: PaymentPurpose;
   reference: string | null;
   receivedAt: Date;
 };
@@ -153,6 +155,12 @@ function dateTimeLabel(date: Date) {
 function qtyLabel(quantity: StringableDecimal) {
   return formatDecimalID(quantity.toString());
 }
+
+const paymentPurposeLabels: Record<PaymentPurpose, string> = {
+  [PaymentPurpose.DEPOSIT]: "Deposit",
+  [PaymentPurpose.PAYMENT]: "Payment",
+  [PaymentPurpose.SETTLEMENT]: "Settlement",
+};
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -282,6 +290,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
               folio.payments.map((payment) => (
                 <View key={payment.id} style={styles.summaryRow}>
                   <Text>
+                    {paymentPurposeLabels[payment.purpose]} ·{" "}
                     {dateTimeLabel(payment.receivedAt)} · {payment.method}
                     {payment.reference ? ` · ${payment.reference}` : ""}
                   </Text>

@@ -426,7 +426,7 @@ A few choices worth explaining:
 
 ## Deposit (folio credit model)
 
-> **Phase 0 contract and additive data foundation.** The enum values and defaulted columns described here exist in the schema, but application money behavior does not read or enforce them yet. Phase 1 will wire deposit posting, idempotency, and status synchronization through the existing canonical payment paths. `computeFolioTotals`, checkout, and current payment posting behavior remain unchanged in Phase 0.
+> **Implemented contract.** Individual check-in classifies a collected deposit as `DEPOSIT`, updates `depositStatus` atomically, and guards against a second deposit-purpose payment through the existing serializable check-in transaction. Check-in without collection remains allowed and leaves the reservation `PENDING`. `computeFolioTotals` remains unchanged: the classified payment enters its existing `totalPaid` calculation exactly once.
 
 ### Requirement and classification
 
@@ -444,7 +444,7 @@ A few choices worth explaining:
 ### Collection and synchronization policy
 
 - Check-in may post the deposit payment and transition the reservation to `COLLECTED`, or may proceed without collection and leave it `PENDING`. A `PENDING` deposit never blocks check-in, and there is no waiver or override flow.
-- At most one `DEPOSIT`-purpose payment may exist per folio. In Phase 1, the deposit-posting action must guard this one-deposit-per-folio invariant inside its transaction so retries and double-clicks cannot create a second deposit payment.
+- At most one `DEPOSIT`-purpose payment may exist per folio. Individual check-in creates the folio in the same serializable transaction, conditionally transitions only a `CONFIRMED` reservation, and is also protected by the folio's unique reservation owner; these existing application/database invariants prevent a retry or double-click from committing a second folio or deposit credit. Before creating the classified payment, the deposit-posting block additionally checks that its folio has no existing `DEPOSIT` payment and skips creation if one exists. A database partial unique index would provide a direct final guard but requires a separate schema migration; Phase 1 intentionally makes no schema change.
 - Deposit-payment posting is the **single writer** allowed to transition `Reservation.depositStatus` from `PENDING` to `COLLECTED`. No other action independently marks the status collected. This single-writer discipline keeps the stored status synchronized with the classified payment reality.
 - Phase 0 intentionally does not reconstruct historical collection state. Existing payments default to `PAYMENT` and existing reservations default to `PENDING`; historical payments are not amount-matched or retroactively classified as `DEPOSIT`, because an amount match cannot reliably distinguish a deposit from an ordinary payment. Fresh demo fixtures explicitly classify their modeled check-in deposit payments and mark the corresponding reservations `COLLECTED`.
 
@@ -452,7 +452,7 @@ A few choices worth explaining:
 
 - A deposit payment enters `computeFolioTotals` through its existing `totalPaid` calculation exactly once, in the same way payments already do. `computeFolioTotals` is not changed for the deposit model.
 - `Reservation.deposit` is never added to folio balance math. Doing so would double-count the payment credit. Checkout does not create an “application” payment or any second credit for a previously collected deposit.
-- Group bookings retain independent financial lifecycles: every room reservation has its own required deposit amount and `DepositStatus`, and every room has its own folio. Group deposit collection is per room; the Phase 1 bulk-post operation loops over eligible sibling reservations and posts each room's deposit independently.
+- Group bookings retain independent financial lifecycles: every room reservation has its own required deposit amount and `DepositStatus`, and every room has its own folio. The current batch check-in deliberately submits no deposit method, creates no deposit payments, and leaves each checked-in sibling `PENDING`. Any future bulk deposit collection must loop over eligible siblings and route each room through the same per-folio deposit-posting rules; it must never synthesize collection.
 
 ### Deferred money-lifecycle work
 
@@ -668,7 +668,7 @@ Indexes and enforcement:
 | status | ReservationStatus | NOT NULL, DEFAULT 'CONFIRMED' | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | rate_amount | DECIMAL(12,2) | NOT NULL | Compatibility-only first-night rate. Not authoritative for stay value or financial calculations; use `SUM(reservation_night.rate_amount)` for the stay total. |
 | deposit | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Required deposit amount: the first night's resolved rate. This is a requirement, not evidence of collection, and is never added directly to folio balance math. |
-| deposit_status | DepositStatus | NOT NULL, DEFAULT 'PENDING' | `PENDING` until the single deposit-payment posting path records a `DEPOSIT`-purpose payment; `COLLECTED` afterward. Phase 0 adds storage only. |
+| deposit_status | DepositStatus | NOT NULL, DEFAULT 'PENDING' | `PENDING` until the single deposit-payment posting path records a `DEPOSIT`-purpose payment; `COLLECTED` afterward. |
 | notes | TEXT | — | Canonical reservation note; FO edits it and HK reads it as guest instructions |
 | grc_filled_at | TIMESTAMP | — | GRC completion time |
 | purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
