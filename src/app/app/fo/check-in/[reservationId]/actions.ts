@@ -203,6 +203,20 @@ async function runCheckInTransaction(
         );
       }
 
+      const firstNight = await tx.reservationNight.findFirst({
+        where: { reservationId: reservation.id },
+        orderBy: { date: "asc" },
+        select: { rateAmount: true },
+      });
+
+      if (!firstNight) {
+        throw new CheckInActionError(
+          "Jadwal harga reservasi tidak tersedia untuk menghitung deposit.",
+        );
+      }
+
+      const depositAmount = firstNight.rateAmount;
+
       await tx.guest.update({
         where: { id: reservation.guestId },
         data: {
@@ -223,7 +237,7 @@ async function runCheckInTransaction(
           purposeOfVisit: input.grcPurposeOfVisit,
           signatureDataUrl: input.signatureDataUrl,
           signedAt: now,
-          deposit: input.depositAmount,
+          deposit: depositAmount,
         },
       });
 
@@ -256,11 +270,11 @@ async function runCheckInTransaction(
         );
       }
 
-      if (input.depositAmount > 0 && input.depositMethod) {
+      if (depositAmount.isPositive() && input.depositMethod) {
         await tx.payment.create({
           data: {
             folioId: folio.id,
-            amount: input.depositAmount,
+            amount: depositAmount,
             method: input.depositMethod,
             reference: input.depositReference,
             receivedById: userId,

@@ -43,7 +43,7 @@ type ActionResult =
   | { ok: false; error: string; field?: ReservationActionField };
 
 type ReservationQuoteResult =
-  | { ok: true; total: string }
+  | { ok: true; total: string; deposits: string[] }
   | { ok: false; error: string };
 
 const ReservationQuoteSchema = z
@@ -400,7 +400,7 @@ async function runCreateReservationTransaction(
             children: room.children,
             status: ReservationStatus.CONFIRMED,
             rateAmount: resolvedSchedule[0].rate,
-            deposit: input.deposit,
+            deposit: resolvedSchedule[0].rate,
             notes: input.notes,
             createdById: userId,
           },
@@ -574,8 +574,12 @@ async function runUpdateReservationTransaction(
           departureDate: input.departureDate,
           adults: input.adults,
           children: input.children,
-          ...(resolvedSchedule ? { rateAmount: resolvedSchedule[0].rate } : {}),
-          deposit: input.deposit,
+          ...(resolvedSchedule
+            ? {
+                rateAmount: resolvedSchedule[0].rate,
+                deposit: resolvedSchedule[0].rate,
+              }
+            : {}),
           notes: input.notes,
           arrangementType: input.arrangementType,
           reservationType: input.reservationType,
@@ -635,12 +639,16 @@ export async function getReservationQuote(
       );
     }
 
+    const deposits: string[] = [];
     const total = parsed.data.roomTypeIds.reduce((stayTotal, roomTypeId) => {
       const schedule = schedules.get(roomTypeId);
+      const firstNight = schedule?.[0];
 
-      if (!schedule) {
+      if (!schedule || !firstNight) {
         throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
       }
+
+      deposits.push(firstNight.rate.toString());
 
       return schedule.reduce(
         (roomTotal, night) => roomTotal.plus(night.rate),
@@ -648,7 +656,7 @@ export async function getReservationQuote(
       );
     }, new Prisma.Decimal(0));
 
-    return { ok: true, total: total.toString() };
+    return { ok: true, total: total.toString(), deposits };
   } catch (error) {
     return {
       ok: false,

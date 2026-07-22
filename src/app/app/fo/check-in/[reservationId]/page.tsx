@@ -94,6 +94,14 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
     );
   }
 
+  const firstNight = reservation.reservationNights[0];
+
+  if (!firstNight) {
+    return (
+      <ErrorState message="Jadwal harga reservasi tidak tersedia untuk menghitung deposit." />
+    );
+  }
+
   const arrivalDate = dateOnlyBoundary(reservation.arrivalDate);
   const { today } = todayDateOnly();
 
@@ -201,7 +209,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
           totalStay={stayTotal.total.toString()}
           assignedRoomId={reservation.roomId}
           assignedRoomNumber={reservation.room?.number ?? null}
-          existingDeposit={reservation.deposit.toString()}
+          computedDeposit={firstNight.rateAmount.toString()}
           availableRoomsCount={availableRoomsCount}
         roomOptions={roomOptions}
       />

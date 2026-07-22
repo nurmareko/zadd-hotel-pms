@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useMemo, useState, type BaseSyntheticEvent } from "react";
+import { useState, type BaseSyntheticEvent } from "react";
 import {
   useForm,
   useWatch,
@@ -54,7 +54,6 @@ type CheckInFormValues = {
   purposeOfVisitOther: string;
   signatureDataUrl: string;
   arrivalConfirmation: boolean;
-  depositAmount: string;
   depositMethod: CheckInDepositMethod | "";
   depositReference: string;
 };
@@ -76,7 +75,7 @@ type CheckInFormProps = {
   totalStay: string;
   assignedRoomId: number | null;
   assignedRoomNumber: string | null;
-  existingDeposit: string;
+  computedDeposit: string;
   availableRoomsCount: number;
   roomOptions: RoomOption[];
 };
@@ -130,7 +129,7 @@ export function CheckInForm({
   totalStay,
   assignedRoomId,
   assignedRoomNumber,
-  existingDeposit,
+  computedDeposit,
   availableRoomsCount,
   roomOptions,
 }: CheckInFormProps) {
@@ -154,29 +153,17 @@ export function CheckInForm({
       purposeOfVisitOther: "",
       signatureDataUrl: "",
       arrivalConfirmation: false,
-      depositAmount: Number(existingDeposit) > 0 ? existingDeposit : "",
       depositMethod: "",
       depositReference: "",
     },
   });
 
-  const [
-    purposeOfVisit,
-    depositMethod,
-    depositAmountValue,
-    selectedRoomId,
-    guestFullName,
-  ] = useWatch({
-    control: form.control,
-    name: [
-      "purposeOfVisit",
-      "depositMethod",
-      "depositAmount",
-      "roomId",
-      "guestFullName",
-    ],
-  });
-  const depositAmount = Number(depositAmountValue || 0);
+  const [purposeOfVisit, depositMethod, selectedRoomId, guestFullName] =
+    useWatch({
+      control: form.control,
+      name: ["purposeOfVisit", "depositMethod", "roomId", "guestFullName"],
+    });
+  const depositAmount = Number(computedDeposit);
   const guestName = guestFullName || guest.fullName;
   const selectedRoom = roomOptions.find(
     (room) => String(room.id) === selectedRoomId,
@@ -188,13 +175,8 @@ export function CheckInForm({
     ? roomOptions.filter((room) => String(room.floor) === floorFilter)
     : roomOptions;
 
-  const depositNote = useMemo(() => {
-    if (Number(existingDeposit) <= 0) {
-      return null;
-    }
-
-    return `Deposit ${formatIDR(existingDeposit)} was recorded at booking. Confirm or update.`;
-  }, [existingDeposit]);
+  const depositNote =
+    "Deposit sama dengan tarif kamar malam pertama, sebelum pajak, dan tidak dapat diedit.";
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
 
@@ -207,11 +189,24 @@ export function CheckInForm({
     event?: BaseSyntheticEvent,
   ) {
     setActionError(null);
-    const formElement =
+    const submitFormElement =
       event?.currentTarget instanceof HTMLFormElement
         ? event.currentTarget
-        : null;
-    const formData = formElement ? new FormData(formElement) : new FormData();
+        : formElement;
+
+    if (depositAmount > 0 && !values.depositMethod) {
+      form.setError(
+        "depositMethod",
+        { type: "required", message: "Pilih metode deposit" },
+        { shouldFocus: true },
+      );
+      focusFirstFormError(submitFormElement);
+      return;
+    }
+
+    const formData = submitFormElement
+      ? new FormData(submitFormElement)
+      : new FormData();
 
     formData.set("reservationId", String(values.reservationId));
     formData.set("roomId", String(formData.get("roomId") || values.roomId));
@@ -224,7 +219,6 @@ export function CheckInForm({
     formData.set("purposeOfVisitOther", values.purposeOfVisitOther ?? "");
     formData.set("signatureDataUrl", values.signatureDataUrl);
     formData.set("arrivalConfirmation", String(values.arrivalConfirmation));
-    formData.set("depositAmount", values.depositAmount ?? "");
     formData.set("depositMethod", values.depositMethod ?? "");
     formData.set("depositReference", values.depositReference ?? "");
 
@@ -548,32 +542,17 @@ export function CheckInForm({
               {"3. Deposit & Pembayaran Awal"}
             </div>
             <div className="grid gap-4 p-5 md:grid-cols-2">
-              {depositNote ? (
-                <p className="text-xs text-slate-500 md:col-span-2">
+              <div className="md:col-span-2">
+                <p className="text-sm font-medium text-slate-700">
+                  Deposit (= tarif malam pertama)
+                </p>
+                <div className="mt-2 flex min-h-11 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 desktop:min-h-10">
+                  {formatIDR(depositAmount)}
+                </div>
+                <p className="mt-1.5 text-xs leading-4 text-slate-500">
                   {depositNote}
                 </p>
-              ) : null}
-
-              <FormField
-                control={form.control}
-                name="depositAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jumlah Deposit</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1}
-                        placeholder="0"
-                        className={fieldClassName}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              </div>
 
               {depositAmount > 0 ? (
                 <>
@@ -582,7 +561,7 @@ export function CheckInForm({
                     name="depositMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Metode</FormLabel>
+                        <FormLabel>Metode pembayaran deposit</FormLabel>
                         <FormControl>
                           <select
                             className={selectClassName}
@@ -664,7 +643,7 @@ export function CheckInForm({
               <div className="my-3 border-t border-slate-100" />
               <SummaryRow label="Subtotal kamar" value={formatIDR(totalStay)} />
               <SummaryRow
-                label="Deposit awal"
+                label="Deposit malam pertama"
                 value={formatIDR(
                   Number.isFinite(depositAmount) ? depositAmount : 0,
                 )}

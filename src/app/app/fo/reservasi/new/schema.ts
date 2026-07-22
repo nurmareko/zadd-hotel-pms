@@ -113,10 +113,6 @@ const CreateReservationObjectSchema = z.object({
       .min(0, "Children cannot be negative"),
     reservationType: z.nativeEnum(ReservationType),
     arrangementType: z.nativeEnum(ArrangementType),
-    deposit: z.coerce
-      .number("Deposit is required")
-      .int("Deposit must be whole rupiah")
-      .min(0, "Deposit cannot be negative"),
     notes: OptionalTextSchema,
 });
 
@@ -282,7 +278,6 @@ export type CreateReservationInput = {
   children: string;
   reservationType: ReservationType;
   arrangementType: ArrangementType;
-  deposit: string;
   notes: string;
 };
 

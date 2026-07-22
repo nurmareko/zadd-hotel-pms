@@ -247,7 +247,6 @@ export function GroupSettlementActions({
         formData.set("purposeOfVisitOther", "");
         formData.set("signatureDataUrl", signatureDataUrl);
         formData.set("arrivalConfirmation", String(arrivalConfirmed));
-        formData.set("depositAmount", "");
         formData.set("depositMethod", "");
         formData.set("depositReference", "");
 

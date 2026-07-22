@@ -84,6 +84,7 @@ type ReservationFormProps = {
   submitLabel?: string;
   viewFooterActions?: ReactNode;
   readOnlyStayTotal?: string;
+  readOnlyDeposit?: string;
   readOnlyNightlySchedule?: Array<{ date: string; rateAmount: string }>;
 };
 
@@ -254,7 +255,6 @@ function unifiedDefaultValues(
     departureDate: defaultValues.departureDate,
     reservationType: defaultValues.reservationType,
     arrangementType: defaultValues.arrangementType,
-    deposit: defaultValues.deposit,
     notes: defaultValues.notes,
     rooms: [
       {
@@ -292,7 +292,6 @@ function firstRoomReservationValues(
     children: firstRoom.children,
     reservationType: values.reservationType,
     arrangementType: values.arrangementType,
-    deposit: values.deposit,
     notes: values.notes,
   };
 }
@@ -310,6 +309,7 @@ export function ReservationForm({
   submitLabel = "Simpan Reservasi",
   viewFooterActions,
   readOnlyStayTotal,
+  readOnlyDeposit,
   readOnlyNightlySchedule = [],
 }: ReservationFormProps) {
   const hasMountedRoomValidation = useRef(false);
@@ -330,11 +330,10 @@ export function ReservationForm({
     control: form.control,
     name: "rooms",
   });
-  const [arrivalDate, departureDate, depositValue, arrangementTypeValue, roomRows] =
-    useWatch({
-      control: form.control,
-      name: ["arrivalDate", "departureDate", "deposit", "arrangementType", "rooms"],
-    });
+  const [arrivalDate, departureDate, arrangementTypeValue, roomRows] = useWatch({
+    control: form.control,
+    name: ["arrivalDate", "departureDate", "arrangementType", "rooms"],
+  });
   const watchedRoomRows = useMemo(() => roomRows ?? [], [roomRows]);
   const articleNamesByCode = useMemo(
     () => new Map(inclusionArticles.map((article) => [article.code, article.name])),
@@ -349,7 +348,6 @@ export function ReservationForm({
   );
   const nights = nightsBetween(arrivalDate, departureDate);
   const minDeparture = arrivalDate ? dayAfter(arrivalDate) : undefined;
-  const depositAmount = Number(depositValue || 0);
   const roomTypeIds = useMemo(
     () => watchedRoomRows.map((room) => room.roomTypeId),
     [watchedRoomRows],
@@ -368,6 +366,7 @@ export function ReservationForm({
   const [resolvedQuote, setResolvedQuote] = useState<{
     key: string;
     total: number | null;
+    deposits: number[];
     error: string | null;
   } | null>(null);
   const canResolveQuote =
@@ -399,9 +398,10 @@ export function ReservationForm({
             ? {
                 key: quoteKey,
                 total: Number(result.total),
+                deposits: result.deposits.map(Number),
                 error: null,
               }
-            : { key: quoteKey, total: null, error: result.error },
+            : { key: quoteKey, total: null, deposits: [], error: result.error },
         );
       })
       .catch(() => {
@@ -409,6 +409,7 @@ export function ReservationForm({
           setResolvedQuote({
             key: quoteKey,
             total: null,
+            deposits: [],
             error: "Gagal menghitung estimasi harga.",
           });
         }
@@ -434,6 +435,22 @@ export function ReservationForm({
   const isQuotePending = quoteRequested && activeQuote === null;
   const quoteError = activeQuote?.error ?? null;
   const resolvedQuoteTotal = activeQuote?.total ?? null;
+  const resolvedDeposits = activeQuote?.deposits ?? [];
+  const displayedDeposits =
+    isViewMode || (mode === "edit" && !pricingChanged)
+      ? [Number(readOnlyDeposit ?? 0)]
+      : resolvedDeposits;
+  const totalDeposit = displayedDeposits.reduce(
+    (total, deposit) => total + deposit,
+    0,
+  );
+  const depositDisplay = quoteError
+    ? "Tidak tersedia"
+    : isQuotePending
+      ? "Menghitung…"
+      : displayedDeposits.length > 0
+        ? formatIDR(totalDeposit)
+        : "-";
   const roomSubtotal = isViewMode
     ? Number(readOnlyStayTotal ?? 0)
     : mode === "edit" && !pricingChanged
@@ -565,10 +582,6 @@ export function ReservationForm({
       arrangementTypeOptions.find(
         (option) => option.value === defaultValues.arrangementType,
       )?.label ?? defaultValues.arrangementType;
-    const totalDeposit = Number.isFinite(depositAmount)
-      ? depositAmount * watchedRoomRows.length
-      : 0;
-
     return (
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-2">
@@ -655,7 +668,10 @@ export function ReservationForm({
                 readOnlyStayTotal ? formatIDR(readOnlyStayTotal) : "—"
               }
             />
-            <ReadOnlyField label="Deposit" value={formatIDR(totalDeposit)} />
+            <ReadOnlyField
+              label="Deposit (= tarif malam pertama)"
+              value={formatIDR(totalDeposit)}
+            />
           </ReadOnlySection>
 
           <ReadOnlySection title="Rincian Tarif per Malam">
@@ -958,28 +974,31 @@ export function ReservationForm({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="deposit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Deposit{watchedRoomRows.length > 1 ? " per kamar" : ""}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={1}
-                            className={fieldClassName}
-                            readOnly={isViewMode}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">
+                      Deposit (= tarif malam pertama)
+                    </p>
+                    <div
+                      role="status"
+                      className="mt-2 flex min-h-11 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 desktop:min-h-10"
+                    >
+                      {depositDisplay}
+                    </div>
+                    <p className="mt-1.5 text-xs leading-4 text-slate-500">
+                      Dihitung otomatis dari tarif malam pertama tiap kamar,
+                      sebelum pajak, dan tidak dapat diedit.
+                    </p>
+                    {displayedDeposits.length > 1 ? (
+                      <p className="mt-1 text-xs leading-4 text-slate-600">
+                        {displayedDeposits
+                          .map(
+                            (deposit, index) =>
+                              `Kamar ${index + 1}: ${formatIDR(deposit)}`,
+                          )
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </section>
 
@@ -1214,12 +1233,12 @@ export function ReservationForm({
                   />
                 ) : null}
                 <SummaryRow
-                  label="Deposit"
-                  value={formatIDR(
-                    Number.isFinite(depositAmount)
-                      ? depositAmount * watchedRoomRows.length
-                      : 0,
-                  )}
+                  label={
+                    watchedRoomRows.length > 1
+                      ? "Total deposit per kamar"
+                      : "Deposit malam pertama"
+                  }
+                  value={depositDisplay}
                 />
                 <div className="my-3 border-t border-slate-100" />
                 <SummaryRow label="Estimasi tagihan" value={estimatedTotal} strong />

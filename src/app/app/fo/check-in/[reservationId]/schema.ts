@@ -49,17 +49,6 @@ const BooleanConfirmationSchema = z.preprocess(
   }),
 );
 
-const MoneySchema = z.preprocess(
-  (value) =>
-    (typeof value === "string" && value.trim() === "") || value == null
-      ? 0
-      : value,
-  z.coerce
-    .number("Jumlah deposit harus berupa angka")
-    .int("Jumlah deposit harus dalam rupiah utuh")
-    .min(0, "Jumlah deposit tidak boleh negatif"),
-);
-
 const SignatureDataUrlSchema = z
   .string()
   .min(1, "Tanda tangan tamu wajib diisi")
@@ -95,7 +84,6 @@ export const CheckInSchema = z
     purposeOfVisitOther: TextOrEmptySchema,
     signatureDataUrl: SignatureDataUrlSchema,
     arrivalConfirmation: BooleanConfirmationSchema,
-    depositAmount: MoneySchema,
     depositMethod: z
       .union([
         z.enum(checkInDepositMethods, { error: "Pilih metode deposit" }),
@@ -114,16 +102,7 @@ export const CheckInSchema = z
       });
     }
 
-    if (value.depositAmount > 0 && !value.depositMethod) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["depositMethod"],
-        message: "Pilih metode deposit",
-      });
-    }
-
     if (
-      value.depositAmount > 0 &&
       value.depositMethod === PaymentMethod.TRANSFER &&
       !value.depositReference
     ) {
@@ -140,7 +119,7 @@ export const CheckInSchema = z
       value.purposeOfVisit === "Lainnya"
         ? value.purposeOfVisitOther
         : value.purposeOfVisit,
-    depositMethod: value.depositAmount > 0 ? value.depositMethod : null,
+    depositMethod: value.depositMethod || null,
     depositReference: value.depositReference || null,
   }));
 

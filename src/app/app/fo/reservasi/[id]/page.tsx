@@ -294,7 +294,6 @@ export default async function ReservationDetailPage({
     children: String(reservation.children),
     reservationType: reservation.reservationType,
     arrangementType: reservation.arrangementType,
-    deposit: reservation.deposit.toString(),
     notes: reservation.notes ?? "",
   };
   const stayTotal = flatReservationNightStayTotal({
@@ -376,6 +375,7 @@ export default async function ReservationDetailPage({
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
               submitLabel="Simpan Perubahan"
               readOnlyStayTotal={stayTotal.total.toString()}
+              readOnlyDeposit={reservation.deposit.toString()}
               readOnlyNightlySchedule={stayTotal.nightlySchedule.map((night) => ({
                 date: toDateInputValue(night.date),
                 rateAmount: night.rateAmount.toString(),
