@@ -30,6 +30,7 @@ import {
   getDefaultStartDate,
   parseStartDate,
 } from "./kalender/date-window";
+import { TapeChartLegend } from "./kalender/tape-chart-legend";
 
 const views: Array<{
   value: FoReservasiView;
@@ -160,10 +161,18 @@ export function ReservationsViewHeader() {
   }
 
   return (
-    <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <DateWindowNav view={view} />
+    <div className="mb-4 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
+      <div className="lg:col-start-2">
+        <DateWindowNav view={view} />
+      </div>
 
-      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+      {view === "kalender" ? (
+        <div className="lg:col-start-1 lg:row-start-1 lg:pr-4">
+          <TapeChartLegend />
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
         <div
           aria-label="Tampilan reservasi"
           role="group"

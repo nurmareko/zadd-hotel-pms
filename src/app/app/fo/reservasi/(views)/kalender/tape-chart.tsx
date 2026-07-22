@@ -16,7 +16,6 @@ import {
   ROOM_LABEL_WIDTH,
   ROW_HEIGHT,
 } from "@/lib/tape-chart-layout";
-import { reservationStatusColors } from "@/lib/reservation-status-colors";
 import type {
   TapeChartData,
   TapeChartReservationData,
@@ -24,6 +23,7 @@ import type {
   TapeChartRoomTypeData,
 } from "@/lib/tape-chart-data";
 
+import { reservationBarColors } from "./tape-chart-legend";
 import styles from "./tape-chart.module.css";
 
 export type TapeChartDay = {
@@ -44,35 +44,7 @@ const BAR_VERTICAL_MARGIN = 4;
 const MIN_DAY_WIDTH = 56;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const reservationBarColors = {
-  CONFIRMED: {
-    label: "Confirmed",
-    bgColor: "#f97316",
-    textColor: "#ffffff",
-  },
-  CHECKED_IN: {
-    label: "Checked-in",
-    bgColor: "#047857",
-    textColor: "#ffffff",
-  },
-  CHECKED_OUT: {
-    label: "Checked-out",
-    bgColor: reservationStatusColors.CHECKED_OUT.backgroundColor,
-    textColor: reservationStatusColors.CHECKED_OUT.foregroundColor,
-  },
-  UNALLOCATED: {
-    label: "Unallocated",
-    bgColor: "#2563eb",
-    textColor: "#ffffff",
-  },
-} as const;
 
-const legendItems = [
-  reservationBarColors.CONFIRMED,
-  reservationBarColors.CHECKED_IN,
-  reservationBarColors.CHECKED_OUT,
-  reservationBarColors.UNALLOCATED,
-] as const;
 
 type AllocatedBarColorKey = Exclude<
   keyof typeof reservationBarColors,
@@ -356,32 +328,7 @@ function getNewReservationHref(params: {
   return `/app/fo/reservasi/new?${searchParams.toString()}`;
 }
 
-function TapeChartLegend() {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-500 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <span>Legenda:</span>
-        {legendItems.map((item) => (
-          <span
-            key={item.label}
-            className="inline-flex h-6 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
-            style={{
-              backgroundColor: item.bgColor,
-              color: item.textColor,
-            }}
-          >
-            <span
-              className={styles.legendSwatch}
-              style={{ backgroundColor: item.bgColor }}
-              aria-hidden="true"
-            />
-            {item.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+
 
 function GroupRow({
   roomType,
@@ -474,10 +421,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <TapeChartLegend />
-
-      <div className={styles.chartShell} style={layoutStyle}>
+    <div className={styles.chartShell} style={layoutStyle}>
         {roomCount === 0 ? (
           <EmptyState
             icon={BedDouble}
@@ -681,7 +625,6 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

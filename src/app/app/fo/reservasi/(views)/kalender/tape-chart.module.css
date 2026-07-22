@@ -239,6 +239,12 @@
   }
 }
 
+@media (width >= 1024px) {
+  .scrollArea {
+    max-height: 720px;
+  }
+}
+
 .barLayer {
   position: absolute;
   display: grid;
@@ -299,24 +305,3 @@
   white-space: nowrap;
 }
 
-.legendSwatch {
-  position: relative;
-  display: inline-block;
-  width: 20px;
-  height: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
-}
-
-.legendSwatch::after {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-right: 6px solid rgb(255 255 255 / 0.88);
-  content: "";
-  transform: translateY(-50%);
-}

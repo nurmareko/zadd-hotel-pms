@@ -7,18 +7,8 @@ export default function Loading() {
   const tableMinWidth = 128 + DAYS * 64;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 shadow-sm">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-6 w-24 border border-slate-200" />
-        ))}
-      </div>
-
-      <div
-        className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
-        style={{ maxHeight: 520, padding: 0 }}
-      >
-        <div style={{ maxHeight: 520, overflow: "auto" }}>
+    <div className="max-h-[560px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm md:max-h-[656px] lg:max-h-[720px]">
+      <div className="max-h-[560px] overflow-auto md:max-h-[656px] lg:max-h-[720px]">
           <table
             className="w-full border-separate border-spacing-0 text-[12px]"
             style={{ minWidth: tableMinWidth, tableLayout: "fixed" }}
@@ -68,7 +58,6 @@ export default function Loading() {
               ))}
             </tbody>
           </table>
-        </div>
       </div>
     </div>
   );
