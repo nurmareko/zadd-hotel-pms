@@ -5,11 +5,22 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
-import { prisma } from "@/lib/prisma";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { PaymentSchema, PostChargeSchema } from "./schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+class PaymentActionError extends Error {}
+
+const MAX_PAYMENT_ATTEMPTS = 3;
+
+function isPaymentSerializationConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  );
+}
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid folio data";
@@ -128,17 +139,75 @@ export async function recordPayment(
     return { ok: false, error: "Cannot record payment on a closed folio" };
   }
 
-  await prisma.payment.create({
-    data: {
-      folioId: folio.id,
-      fbOrderId: null,
-      amount: parsed.data.amount,
-      method: parsed.data.method,
-      reference: parsed.data.reference || null,
-      receivedById: userId,
-      receivedAt: new Date(),
-    },
-  });
+  let paymentRecorded = false;
+
+  for (let attempt = 1; attempt <= MAX_PAYMENT_ATTEMPTS; attempt += 1) {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          const currentFolio = await tx.folio.findUnique({
+            where: { id: folio.id },
+            select: { id: true, status: true },
+          });
+
+          if (!currentFolio) {
+            throw new PaymentActionError("Folio not found");
+          }
+
+          if (currentFolio.status !== FolioStatus.OPEN) {
+            throw new PaymentActionError(
+              "Cannot record payment on a closed folio",
+            );
+          }
+
+          await tx.payment.create({
+            data: {
+              folioId: currentFolio.id,
+              fbOrderId: null,
+              amount: parsed.data.amount,
+              method: parsed.data.method,
+              reference: parsed.data.reference || null,
+              receivedById: userId,
+              receivedAt: new Date(),
+            },
+          });
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+      paymentRecorded = true;
+      break;
+    } catch (error) {
+      if (error instanceof PaymentActionError) {
+        return { ok: false, error: error.message };
+      }
+
+      if (
+        isPaymentSerializationConflict(error) &&
+        attempt < MAX_PAYMENT_ATTEMPTS
+      ) {
+        continue;
+      }
+
+      if (isPaymentSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik pembayaran berulang. Muat ulang dan coba lagi.",
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  if (!paymentRecorded) {
+    return {
+      ok: false,
+      error: "Konflik pembayaran berulang. Muat ulang dan coba lagi.",
+    };
+  }
 
   await logActivity({
     userId,

@@ -2,6 +2,7 @@
 
 import {
   FolioStatus,
+  PaymentPurpose,
   Prisma,
   ReservationStatus,
   RoomStatus,
@@ -33,10 +34,19 @@ const CompleteCheckoutSchema = z.object({
 });
 
 class CheckoutActionError extends Error {}
+class PaymentActionError extends Error {}
 
 const MAX_CHECKOUT_ATTEMPTS = 3;
+const MAX_PAYMENT_ATTEMPTS = 3;
 
 function isCheckoutSerializationConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  );
+}
+
+function isPaymentSerializationConflict(error: unknown) {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2034"
@@ -135,17 +145,114 @@ export async function recordFinalPayment(
     };
   }
 
-  await prisma.payment.create({
-    data: {
-      folioId: folio.id,
-      fbOrderId: null,
-      amount: parsed.data.amount,
-      method: parsed.data.method,
-      reference: parsed.data.reference || null,
-      receivedById: userId,
-      receivedAt: new Date(),
-    },
-  });
+  let paymentRecorded = false;
+
+  for (let attempt = 1; attempt <= MAX_PAYMENT_ATTEMPTS; attempt += 1) {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          const currentFolio = await tx.folio.findUnique({
+            where: { id: folio.id },
+            include: {
+              reservation: { select: { status: true } },
+              lineItems: { include: { article: true } },
+              payments: true,
+            },
+          });
+          const currentSettings = await tx.hotelSettings.findUnique({
+            where: { id: 1 },
+          });
+
+          if (!currentFolio) {
+            throw new PaymentActionError("Folio not found");
+          }
+
+          if (!currentSettings) {
+            throw new PaymentActionError("Hotel settings not found");
+          }
+
+          if (currentFolio.status !== FolioStatus.OPEN) {
+            throw new PaymentActionError(
+              "Cannot record payment on a closed folio",
+            );
+          }
+
+          if (
+            currentFolio.reservation.status !== ReservationStatus.CHECKED_IN
+          ) {
+            throw new PaymentActionError(
+              "Reservation is not in checked-in state",
+            );
+          }
+
+          const currentTotals = computeFolioTotals(
+            currentFolio.lineItems,
+            currentFolio.payments,
+            currentSettings,
+          );
+
+          if (currentTotals.balance <= 0) {
+            throw new PaymentActionError("Tagihan sudah lunas");
+          }
+
+          if (parsed.data.amount > currentTotals.balance) {
+            throw new PaymentActionError(
+              "Jumlah pembayaran melebihi saldo terbaru",
+            );
+          }
+
+          await tx.payment.create({
+            data: {
+              folioId: currentFolio.id,
+              fbOrderId: null,
+              amount: parsed.data.amount,
+              method: parsed.data.method,
+              purpose:
+                parsed.data.amount === currentTotals.balance
+                  ? PaymentPurpose.SETTLEMENT
+                  : PaymentPurpose.PAYMENT,
+              reference: parsed.data.reference || null,
+              receivedById: userId,
+              receivedAt: new Date(),
+            },
+          });
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+      paymentRecorded = true;
+      break;
+    } catch (error) {
+      if (error instanceof PaymentActionError) {
+        return { ok: false, error: error.message };
+      }
+
+      if (
+        isPaymentSerializationConflict(error) &&
+        attempt < MAX_PAYMENT_ATTEMPTS
+      ) {
+        continue;
+      }
+
+      if (isPaymentSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik pembayaran berulang. Muat ulang dan coba lagi.",
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  if (!paymentRecorded) {
+    return {
+      ok: false,
+      error: "Konflik pembayaran berulang. Muat ulang dan coba lagi.",
+    };
+  }
 
   await logActivity({
     userId,
