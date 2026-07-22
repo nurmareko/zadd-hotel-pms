@@ -457,6 +457,18 @@ async function runUpdateReservationTransaction(
       }
 
       if (
+        existingReservation.status === ReservationStatus.CHECKED_OUT ||
+        existingReservation.status === ReservationStatus.CANCELLED ||
+        existingReservation.status === ReservationStatus.NO_SHOW
+      ) {
+        return {
+          ok: false as const,
+          error:
+            "Reservasi yang sudah check-out, dibatalkan, atau no-show bersifat final dan tidak dapat diubah.",
+        };
+      }
+
+      if (
         input.roomId === null &&
         existingReservation.status !== ReservationStatus.CONFIRMED
       ) {

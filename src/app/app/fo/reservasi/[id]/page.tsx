@@ -257,7 +257,12 @@ export default async function ReservationDetailPage({
     : [];
 
   const requestedMode = firstParam(query.mode);
-  const formMode = requestedMode === "edit" ? "edit" : "view";
+  const isTerminalReservation =
+    reservation.status === ReservationStatus.CHECKED_OUT ||
+    reservation.status === ReservationStatus.CANCELLED ||
+    reservation.status === ReservationStatus.NO_SHOW;
+  const formMode =
+    requestedMode === "edit" && !isTerminalReservation ? "edit" : "view";
   const activeTab = resolveReservationTab(
     firstParam(query.tab),
     reservation.status,
@@ -378,14 +383,16 @@ export default async function ReservationDetailPage({
               viewFooterActions={
                 formMode === "view" ? (
                   <>
-                    <Link
-                      href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
-                      className={buttonVariants({
-                                              variant: canCheckIn ? "outline" : "default",
-                                            })}
-                    >
-                      Edit Reservasi
-                    </Link>
+                    {!isTerminalReservation ? (
+                      <Link
+                        href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
+                        className={buttonVariants({
+                          variant: canCheckIn ? "outline" : "default",
+                        })}
+                      >
+                        Edit Reservasi
+                      </Link>
+                    ) : null}
                     {canCheckIn ? (
                       <Link
                                               href={`/app/fo/check-in/${reservation.id}`}
