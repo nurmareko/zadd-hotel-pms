@@ -566,6 +566,42 @@ export function ReservationForm({
     }
   }
 
+  const reservationActionHint = hasBlockingErrors ? (
+    <p className="font-medium text-red-600">
+      Periksa kembali isian yang ditandai merah.
+    </p>
+  ) : (
+    <p className="text-slate-500 num">
+      <span className="font-semibold text-slate-900">
+        {watchedRoomRows.length} kamar
+      </span>
+      {" · Estimasi tagihan "}
+      <span className="font-semibold text-slate-900">{estimatedTotal}</span>
+    </p>
+  );
+  const reservationActions = (
+    <>
+      {viewFooterActions}
+      {!isViewMode ? (
+        <>
+          <Link
+            href={returnHref}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Batal
+          </Link>
+          <Button
+            type="submit"
+            disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
+            className="disabled:opacity-70"
+          >
+            {isSubmitting ? "Menyimpan..." : submitLabel}
+          </Button>
+        </>
+      ) : null}
+    </>
+  );
+
   if (isViewMode) {
     const roomValue = watchedRoomRows[0];
     const roomType = roomTypes.find(
@@ -714,7 +750,7 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 bg-slate-50 px-5 py-3">
               <span className="text-sm font-semibold text-slate-700">
@@ -1200,8 +1236,8 @@ export function ReservationForm({
             </div>
           </div>
 
-          <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[4.75rem] desktop:top-5">
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <aside className="contents desktop:lg:sticky desktop:lg:top-5 desktop:lg:flex desktop:lg:h-[calc(100dvh-2.5rem)] desktop:lg:min-w-0 desktop:lg:flex-col desktop:lg:gap-4">
+            <section className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm desktop:lg:block">
               <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
                 Ringkasan Tarif
               </div>
@@ -1245,7 +1281,7 @@ export function ReservationForm({
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <section className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm desktop:lg:block">
               <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
                 Ketersediaan
               </div>
@@ -1268,52 +1304,16 @@ export function ReservationForm({
                 ) : null}
               </div>
             </section>
+
+            {showFooter ? (
+              <PinnedActionFooter
+                hint={reservationActionHint}
+                actions={reservationActions}
+                desktopPanel
+              />
+            ) : null}
           </aside>
         </div>
-
-        {showFooter ? (
-          <PinnedActionFooter
-            hint={
-              hasBlockingErrors ? (
-                <p className="font-medium text-red-600">
-                  Periksa kembali isian yang ditandai merah.
-                </p>
-              ) : (
-                <p className="text-slate-500 num">
-                  <span className="font-semibold text-slate-900">
-                    {watchedRoomRows.length} kamar
-                  </span>
-                  {" · Estimasi tagihan "}
-                  <span className="font-semibold text-slate-900">
-                    {estimatedTotal}
-                  </span>
-                </p>
-              )
-            }
-            actions={
-              <>
-                {viewFooterActions}
-                {!isViewMode ? (
-                  <>
-                    <Link
-                      href={returnHref}
-                      className={buttonVariants({ variant: "outline" })}
-                    >
-                      Batal
-                    </Link>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
-                      className="disabled:opacity-70"
-                    >
-                      {isSubmitting ? "Menyimpan..." : submitLabel}
-                    </Button>
-                  </>
-                ) : null}
-              </>
-            }
-          />
-        ) : null}
       </form>
     </Form>
   );

@@ -235,6 +235,37 @@ export function CheckInForm({
     }
   }
 
+  const checkInActionHint = actionError ?? errors.root?.message ? (
+    <p className="font-medium text-red-600">
+      {actionError ?? errors.root?.message}
+    </p>
+  ) : hasBlockingErrors ? (
+    <p className="font-medium text-red-600">
+      Periksa kembali isian yang ditandai merah.
+    </p>
+  ) : (
+    <p className="text-slate-500">
+      Lengkapi GRC, tanda tangan tamu, dan konfirmasi kedatangan.
+    </p>
+  );
+  const checkInActions = (
+    <>
+      <Link
+        href={`/app/fo/reservasi/${reservationId}`}
+        className={buttonVariants({ variant: "outline" })}
+      >
+        Batal
+      </Link>
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="disabled:cursor-wait disabled:opacity-70"
+      >
+        {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
+      </Button>
+    </>
+  );
+
   return (
     <Form {...form}>
       <form
@@ -244,7 +275,7 @@ export function CheckInForm({
         noValidate
         className="flex flex-col gap-4"
       >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_320px] desktop:lg:items-start">
           <input
             type="hidden"
             value={reservationId}
@@ -622,8 +653,8 @@ export function CheckInForm({
           ) : null}
         </div>
 
-        <aside className="min-w-0">
-          <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <aside className="contents desktop:lg:sticky desktop:lg:top-5 desktop:lg:flex desktop:lg:h-[calc(100dvh-6.5rem)] desktop:lg:min-w-0 desktop:lg:flex-col desktop:lg:gap-4">
+          <section className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm desktop:lg:block">
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
               {"Ringkasan"}
             </div>
@@ -655,45 +686,15 @@ export function CheckInForm({
             <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
               Folio akan otomatis dibuka setelah check-in.
             </div>
-
           </section>
-          </aside>
-        </div>
 
-        <PinnedActionFooter
-          hint={
-            actionError ?? errors.root?.message ? (
-              <p className="font-medium text-red-600">
-                {actionError ?? errors.root?.message}
-              </p>
-            ) : hasBlockingErrors ? (
-              <p className="font-medium text-red-600">
-                Periksa kembali isian yang ditandai merah.
-              </p>
-            ) : (
-              <p className="text-slate-500">
-                Lengkapi GRC, tanda tangan tamu, dan konfirmasi kedatangan.
-              </p>
-            )
-          }
-          actions={
-            <>
-              <Link
-                href={`/app/fo/reservasi/${reservationId}`}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                Batal
-              </Link>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="disabled:cursor-wait disabled:opacity-70"
-              >
-                {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
-              </Button>
-            </>
-          }
-        />
+          <PinnedActionFooter
+            hint={checkInActionHint}
+            actions={checkInActions}
+            desktopPanel
+          />
+        </aside>
+        </div>
       </form>
     </Form>
   );
