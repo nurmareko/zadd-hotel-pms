@@ -120,7 +120,7 @@ function GroupBookingCard({
   siblings: GroupSibling[];
 }) {
   return (
-    <section className="mb-6 max-w-6xl overflow-hidden rounded-lg border border-sky-200 bg-white shadow-sm">
+    <section className="mb-6 overflow-hidden rounded-lg border border-sky-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-sky-50 px-5 py-4">
         <div>
           <h2 className="text-sm font-semibold text-sky-950">
@@ -362,7 +362,7 @@ export default async function ReservationDetailPage({
               siblings={groupSiblings}
             />
           ) : null}
-          <section className="mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
                 Status deposit
