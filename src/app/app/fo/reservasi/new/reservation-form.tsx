@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { formatDateID, formatIDR } from "@/lib/format";
 import {
   FO_RESERVASI_VIEW_PATHS,
@@ -66,17 +65,11 @@ type ActiveReservation = {
   departureDate: string;
 };
 
-type InclusionArticle = {
-  code: string;
-  name: string;
-};
-
 type ReservationFormProps = {
   defaultValues: CreateReservationInput;
   roomTypes: RoomTypeOption[];
   rooms: RoomOption[];
   activeReservations: ActiveReservation[];
-  inclusionArticles?: InclusionArticle[];
   mode?: "create" | "edit" | "view";
   reservationId?: number;
   createOrigin?: FoReservasiView;
@@ -202,30 +195,6 @@ function ReadOnlySection({
   );
 }
 
-function ArrangementInclusionHint({
-  arrangementType,
-  articleNamesByCode,
-}: {
-  arrangementType: keyof typeof ARRANGEMENT_INCLUSION_ARTICLE_CODES;
-  articleNamesByCode: Map<string, string>;
-}) {
-  const inclusionCodes = ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType];
-
-  if (inclusionCodes.length === 0) {
-    return <p className="text-xs text-slate-500">Tanpa inklusi makan.</p>;
-  }
-
-  return (
-    <p className="text-xs text-slate-500">
-      <span className="font-medium text-slate-600">Termasuk:</span>{" "}
-      {inclusionCodes
-        .map((code) => articleNamesByCode.get(code) ?? code)
-        .join(", ")}
-      .
-    </p>
-  );
-}
-
 function overlapsStay(
   reservation: ActiveReservation,
   arrivalDate: string,
@@ -301,7 +270,6 @@ export function ReservationForm({
   roomTypes,
   rooms,
   activeReservations,
-  inclusionArticles = [],
   mode = "create",
   reservationId,
   createOrigin = "list",
@@ -330,15 +298,11 @@ export function ReservationForm({
     control: form.control,
     name: "rooms",
   });
-  const [arrivalDate, departureDate, arrangementTypeValue, roomRows] = useWatch({
+  const [arrivalDate, departureDate, roomRows] = useWatch({
     control: form.control,
-    name: ["arrivalDate", "departureDate", "arrangementType", "rooms"],
+    name: ["arrivalDate", "departureDate", "rooms"],
   });
   const watchedRoomRows = useMemo(() => roomRows ?? [], [roomRows]);
-  const articleNamesByCode = useMemo(
-    () => new Map(inclusionArticles.map((article) => [article.code, article.name])),
-    [inclusionArticles],
-  );
   const selectedRoomIds = useMemo(
     () =>
       watchedRoomRows
@@ -456,19 +420,6 @@ export function ReservationForm({
     : mode === "edit" && !pricingChanged
       ? Number(readOnlyStayTotal ?? 0)
       : resolvedQuoteTotal;
-  const firstSelectedRoomTypeId = Number(watchedRoomRows[0]?.roomTypeId || 0);
-  const firstRoomOptions = getRoomOptions({
-    activeReservations,
-    allRooms: rooms,
-    arrivalDate,
-    departureDate,
-    roomTypeId: firstSelectedRoomTypeId,
-    selectedRoomIds,
-    currentRoomId: Number(watchedRoomRows[0]?.roomId || 0),
-  });
-  const availableRoomCount = firstRoomOptions.filter(
-    (room) => room.isAvailable,
-  ).length;
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
   const estimatedTotal = quoteError
@@ -570,15 +521,7 @@ export function ReservationForm({
     <p className="font-medium text-red-600">
       Periksa kembali isian yang ditandai merah.
     </p>
-  ) : (
-    <p className="text-slate-500 num">
-      <span className="font-semibold text-slate-900">
-        {watchedRoomRows.length} kamar
-      </span>
-      {" · Estimasi tagihan "}
-      <span className="font-semibold text-slate-900">{estimatedTotal}</span>
-    </p>
-  );
+  ) : null;
   const reservationActions = (
     <>
       {viewFooterActions}
@@ -1021,8 +964,8 @@ export function ReservationForm({
                       {depositDisplay}
                     </div>
                     <p className="mt-1.5 text-xs leading-4 text-slate-500">
-                      Dihitung otomatis dari tarif malam pertama tiap kamar,
-                      sebelum pajak, dan tidak dapat diedit.
+                      Deposit mengikuti tarif malam pertama tiap kamar dan tidak
+                      dapat diedit.
                     </p>
                     {displayedDeposits.length > 1 ? (
                       <p className="mt-1 text-xs leading-4 text-slate-600">
@@ -1108,11 +1051,6 @@ export function ReservationForm({
                             </button>
                           ) : null}
                         </div>
-
-                        <ArrangementInclusionHint
-                          arrangementType={arrangementTypeValue}
-                          articleNamesByCode={articleNamesByCode}
-                        />
 
                         <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-5">
                           <FormField
@@ -1278,30 +1216,6 @@ export function ReservationForm({
                 />
                 <div className="my-3 border-t border-slate-100" />
                 <SummaryRow label="Estimasi tagihan" value={estimatedTotal} strong />
-              </div>
-            </section>
-
-            <section className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm desktop:lg:block">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
-                Ketersediaan
-              </div>
-              <div className="p-5 text-sm">
-                {firstSelectedRoomTypeId ? (
-                  <div className="rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-                    {availableRoomCount} kamar tersedia untuk tipe pertama
-                    pada periode ini.
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
-                    Pilih tipe kamar untuk melihat ketersediaan awal.
-                  </div>
-                )}
-                {watchedRoomRows.length > 1 ? (
-                  <p className="mt-2 text-xs leading-4 text-slate-500">
-                    Semua kamar dalam booking grup dibuat atau ditolak sebagai
-                    satu transaksi.
-                  </p>
-                ) : null}
               </div>
             </section>
 

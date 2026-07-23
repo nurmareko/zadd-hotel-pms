@@ -36,19 +36,22 @@ export function PinnedActionFooter({
             "desktop:lg:flex-col desktop:lg:items-stretch desktop:lg:gap-0 desktop:lg:bg-white desktop:lg:p-0 desktop:lg:backdrop-blur-none",
         )}
       >
-        <div
-          className={cn(
-            "min-w-0 text-sm",
-            desktopPanel && "desktop:lg:px-4 desktop:lg:py-3",
-          )}
-        >
-          {hint}
-        </div>
+        {hint ? (
+          <div
+            className={cn(
+              "min-w-0 text-sm",
+              desktopPanel && "desktop:lg:px-4 desktop:lg:py-3",
+            )}
+          >
+            {hint}
+          </div>
+        ) : null}
         <div
           className={cn(
             "flex flex-wrap items-center gap-2",
             desktopPanel &&
-              "desktop:lg:w-full desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:px-4 desktop:lg:py-3 desktop:lg:[&>*]:flex-1",
+              "desktop:lg:w-full desktop:lg:px-4 desktop:lg:py-3 desktop:lg:[&>*]:flex-1",
+            desktopPanel && hint && "desktop:lg:border-t desktop:lg:border-slate-200",
             actionsClassName,
           )}
         >
