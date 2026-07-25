@@ -55,7 +55,7 @@ The application is built as a **single Next.js app** with four operational areas
 | FO-04 | Check-in | Page | `/app/fo/check-in/[reservationId]`: assign room, fill GRC inline, capture the required on-screen digital signature, set deposit, and create folio. |
 | FO-05 | Guest Folio | Page | Embedded as FO-03's `?tab=folio` and available at `/app/fo/folios/[id]`: line items, manual charges, payments, and balance. |
 | FO-06 | Check-out | Page | `/app/fo/check-out/[folioId]`: rounded whole-IDR balance gate—positive blocks; zero or credit proceeds; credit shows a warning and excess-return instruction. Includes final payment and PDF bill download. |
-| FO-07 | Group Booking Summary / Actions | Page | `/app/fo/reservasi/grup/[groupBookingId]`: group-room roll-up with statuses and per-room folio balances; batch eligible check-in with per-room signatures, per-folio settlement, and eligible checkout. Aggregate balance is display-only; there is no master/shared folio. |
+| FO-07 | Group Booking Summary / Actions | Page | `/app/fo/reservasi/grup/[groupBookingId]`: group-room roll-up with statuses and per-room folio balances; bulk collection of each pending room's own first-night deposit into its own folio, batch eligible check-in with per-room signatures, per-folio settlement, and eligible checkout. Aggregate amounts are display-only; there is no master/shared folio. |
 | FO-08 | Kinerja Petugas | Page | `/app/fo/staff-performance` and `/app/fo/staff-performance/[userId]`: ActivityLog-based FO comparison, preset/custom date ranges, sorting, per-user metrics, and paginated activity history. Accessible to FO and ADMIN. |
 
 The retired FO summary route is a compatibility redirect to Reservasi, not a screen. Its departures-due-today queue and occupancy KPI are deferred to a future FO Reports page.
@@ -148,7 +148,7 @@ Six core business flows the app supports end-to-end:
 `FO-01 Kalender` (or `FO-03 Folio tab` / `FO-05 Guest Folio`) → Check-out → `FO-06 Check-out` → rounded whole-IDR balance verification → positive balance requires payment; zero or credit proceeds → for credit, show warning and return excess to guest → PDF receipt → room status auto-set to VD → visible in `HK-01`.
 
 **Flow 4 — Group Booking Operations**
-`FO-03 Unified Reservation Form` → add 2–20 room rows → submit → linked per-room reservations → `FO-02 Reservation List` group badge or sibling context in detail → `FO-07 Group Booking Summary` → batch eligible check-in / per-folio settlement / eligible checkout.
+`FO-03 Unified Reservation Form` → add 2–20 room rows → submit → linked per-room reservations → `FO-02 Reservation List` group badge or sibling context in detail → `FO-07 Group Booking Summary` → bulk per-room deposit collection → batch eligible check-in / per-folio settlement / eligible checkout.
 
 **Flow 5 — Night Audit**
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.

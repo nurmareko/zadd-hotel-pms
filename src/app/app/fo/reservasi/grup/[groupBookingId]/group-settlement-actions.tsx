@@ -5,18 +5,20 @@ import {
   PaymentMethod,
   ReservationStatus,
 } from "@prisma/client";
-import { CreditCard, LogIn, LogOut, XCircle } from "lucide-react";
+import { Banknote, CreditCard, LogIn, LogOut, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatIDR } from "@/lib/format";
 
 import { completeCheckIn } from "../../../check-in/[reservationId]/actions";
 import { SignaturePadField } from "../../../check-in/[reservationId]/signature-pad-field";
 import {
   checkoutEligibleGroupRooms,
+  collectGroupDeposits,
   settleGroupBalances,
   type GroupRoomActionResult,
 } from "./actions";
@@ -40,6 +42,7 @@ export type GroupCheckInRoom = {
   status: ReservationStatus;
   depositStatus: DepositStatus;
   arrivalDate: string;
+  requiredDeposit: string | null;
   guest: {
     fullName: string;
     idNumber: string | null;
@@ -63,6 +66,31 @@ function checkInSkipReason(room: GroupCheckInRoom, todayIso: string) {
   if (!room.roomId) return "Kamar belum ditugaskan.";
   if (room.arrivalDate > todayIso) {
     return `Belum waktunya check-in (arrival ${room.arrivalDate}).`;
+  }
+
+  return null;
+}
+
+function depositSkipReason(room: GroupCheckInRoom, todayIso: string) {
+  if (room.status === ReservationStatus.CHECKED_IN) return "Sudah check-in.";
+  if (room.status === ReservationStatus.CHECKED_OUT) return "Sudah check-out.";
+  if (room.status === ReservationStatus.CANCELLED) return "Reservasi dibatalkan.";
+  if (room.status === ReservationStatus.NO_SHOW) return "Reservasi no-show.";
+  if (room.status !== ReservationStatus.CONFIRMED) {
+    return "Reservasi tidak dapat mengumpulkan deposit.";
+  }
+  if (room.depositStatus === DepositStatus.COLLECTED) {
+    return "Deposit sudah dikumpulkan.";
+  }
+  if (room.arrivalDate > todayIso) {
+    return `Belum waktunya mengumpulkan deposit (arrival ${room.arrivalDate}).`;
+  }
+  if (
+    room.requiredDeposit === null ||
+    !Number.isFinite(Number(room.requiredDeposit)) ||
+    Number(room.requiredDeposit) <= 0
+  ) {
+    return "Tarif malam pertama tidak tersedia atau tidak valid.";
   }
 
   return null;
@@ -133,23 +161,33 @@ export function GroupSettlementActions({
   groupBookingId,
   checkInRooms,
   todayIso,
+  pendingDepositTotal,
 }: {
   groupBookingId: string;
   checkInRooms: GroupCheckInRoom[];
   todayIso: string;
+  pendingDepositTotal: string;
 }) {
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [reference, setReference] = useState("");
+  const [depositMethod, setDepositMethod] = useState<PaymentMethod>(
+    PaymentMethod.CASH,
+  );
+  const [depositReference, setDepositReference] = useState("");
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
   const [isCheckInPanelOpen, setIsCheckInPanelOpen] = useState(false);
   const [groupPurposeOfVisit, setGroupPurposeOfVisit] = useState("Bisnis");
   const [arrivalConfirmed, setArrivalConfirmed] = useState(false);
   const [signatures, setSignatures] = useState<Record<number, string>>({});
+  const [isCollectingDeposits, startDepositTransition] = useTransition();
   const [isSettling, startSettleTransition] = useTransition();
   const [isCheckingOut, startCheckoutTransition] = useTransition();
   const [isCheckingIn, startCheckInTransition] = useTransition();
 
+  const depositEligibleRooms = checkInRooms.filter(
+    (room) => !depositSkipReason(room, todayIso),
+  );
   const checkInEligibleRooms = checkInRooms.filter(
     (room) => !checkInSkipReason(room, todayIso),
   );
@@ -174,6 +212,37 @@ export function GroupSettlementActions({
     if (completedCount > 0) {
       toast.success(`${completedCount} kamar berhasil ${successLabel}.`);
     }
+  }
+
+  function collectDeposits() {
+    setBatchResult(null);
+
+    startDepositTransition(async () => {
+      try {
+        const result = await collectGroupDeposits({
+          groupBookingId,
+          method: depositMethod,
+          reference: depositReference,
+        });
+
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+
+        showBatchOutcome(
+          "Hasil pengumpulan deposit grup",
+          result.results,
+          "dikumpulkan depositnya",
+        );
+      } catch {
+        toast.error(
+          "Koneksi terputus saat memproses deposit. Muat ulang untuk memeriksa hasil tiap kamar.",
+        );
+      } finally {
+        router.refresh();
+      }
+    });
   }
 
   function settleBalances() {
@@ -278,7 +347,8 @@ export function GroupSettlementActions({
     });
   }
 
-  const isPending = isSettling || isCheckingOut || isCheckingIn;
+  const isPending =
+    isCollectingDeposits || isSettling || isCheckingOut || isCheckingIn;
 
   return (
     <section className="mb-6 overflow-hidden rounded-lg border border-sky-200 bg-white shadow-sm">
@@ -288,7 +358,76 @@ export function GroupSettlementActions({
           Setiap pembayaran dan check-out tetap diproses pada folio kamar masing-masing.
         </p>
       </div>
-      <div className="grid gap-5 p-5 lg:grid-cols-3">
+      <div className="grid gap-5 p-5 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
+          <div className="flex items-start gap-3">
+            <Banknote className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
+            <div>
+              <h3 className="font-semibold text-slate-900">
+                Kumpulkan deposit semua kamar
+              </h3>
+              <p className="mt-1 text-sm leading-5 text-slate-600">
+                Catat tarif malam pertama setiap kamar ke folionya sendiri. Deposit yang sudah terkumpul akan dilewati.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-md border border-emerald-200 bg-white px-3 py-2.5">
+            <p className="text-xs font-semibold text-emerald-800">
+              Total deposit kamar pending
+            </p>
+            <p className="mt-0.5 font-bold tabular-nums text-emerald-950">
+              {formatIDR(pendingDepositTotal)} untuk {depositEligibleRooms.length} kamar
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3">
+            <label className="block">
+              <span className="text-xs font-semibold text-slate-500">
+                Metode deposit batch
+              </span>
+              <select
+                value={depositMethod}
+                onChange={(event) =>
+                  setDepositMethod(event.target.value as PaymentMethod)
+                }
+                disabled={isPending}
+                className="mt-1 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 desktop:h-10"
+              >
+                {paymentMethods.map((paymentMethod) => (
+                  <option key={paymentMethod} value={paymentMethod}>
+                    {paymentMethod}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-slate-500">
+                Referensi {depositMethod === PaymentMethod.TRANSFER ? "(wajib)" : "(opsional)"}
+              </span>
+              <Input
+                value={depositReference}
+                onChange={(event) => setDepositReference(event.target.value)}
+                disabled={isPending}
+                maxLength={100}
+                placeholder="BCA TRF 12345"
+                className="mt-1 h-11 border-slate-300 desktop:h-10"
+              />
+            </label>
+          </div>
+          <Button
+            type="button"
+            onClick={collectDeposits}
+            disabled={isPending || depositEligibleRooms.length === 0}
+            className="mt-4"
+          >
+            <Banknote className="h-4 w-4" aria-hidden="true" />
+            {isCollectingDeposits
+              ? "Memproses..."
+              : depositEligibleRooms.length === 0
+                ? "Tidak ada deposit pending"
+                : `Kumpulkan ${formatIDR(pendingDepositTotal)} untuk ${depositEligibleRooms.length} kamar`}
+          </Button>
+        </div>
+
         <div className="rounded-lg border border-slate-200 p-4">
           <div className="flex items-start gap-3">
             <CreditCard className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
