@@ -58,6 +58,34 @@ const SignatureDataUrlSchema = z
     "Format tanda tangan tidak valid. Hapus lalu coba lagi.",
   );
 
+export const DepositCollectionSchema = z
+  .object({
+    reservationId: z.coerce
+      .number("Reservasi wajib dipilih")
+      .int("Reservasi tidak valid")
+      .positive("Reservasi wajib dipilih"),
+    depositMethod: z.enum(checkInDepositMethods, {
+      error: "Pilih metode pembayaran deposit",
+    }),
+    depositReference: TextOrEmptySchema,
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.depositMethod === PaymentMethod.TRANSFER &&
+      !value.depositReference
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["depositReference"],
+        message: "Referensi deposit wajib diisi untuk transfer",
+      });
+    }
+  })
+  .transform((value) => ({
+    ...value,
+    depositReference: value.depositReference || null,
+  }));
+
 export const CheckInSchema = z
   .object({
     reservationId: z.coerce
@@ -123,6 +151,7 @@ export const CheckInSchema = z
     depositReference: value.depositReference || null,
   }));
 
+export type DepositCollectionValues = z.output<typeof DepositCollectionSchema>;
 export type CheckInValues = z.output<typeof CheckInSchema>;
 export type PurposeOfVisitValue = (typeof purposeOfVisitOptions)[number];
 export type CheckInDepositMethod = (typeof checkInDepositMethods)[number];

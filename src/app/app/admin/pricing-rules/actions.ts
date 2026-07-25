@@ -139,10 +139,10 @@ async function validateRuleConstraints(
     data.adjustmentValue,
   );
 
-  if (finalRate.isNegative()) {
+  if (!finalRate.isPositive()) {
     return {
       ok: false,
-      error: "Penyesuaian menghasilkan tarif malam negatif",
+      error: "Penyesuaian harus menghasilkan tarif malam lebih besar dari 0",
       field: "adjustmentValue",
     };
   }

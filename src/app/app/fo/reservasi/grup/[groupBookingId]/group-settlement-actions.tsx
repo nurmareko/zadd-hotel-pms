@@ -1,6 +1,10 @@
 "use client";
 
-import { PaymentMethod, ReservationStatus } from "@prisma/client";
+import {
+  DepositStatus,
+  PaymentMethod,
+  ReservationStatus,
+} from "@prisma/client";
 import { CreditCard, LogIn, LogOut, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -34,6 +38,7 @@ export type GroupCheckInRoom = {
   roomId: number | null;
   roomNumber: string | null;
   status: ReservationStatus;
+  depositStatus: DepositStatus;
   arrivalDate: string;
   guest: {
     fullName: string;
@@ -51,6 +56,9 @@ function checkInSkipReason(room: GroupCheckInRoom, todayIso: string) {
   if (room.status === ReservationStatus.NO_SHOW) return "Reservasi no-show.";
   if (room.status !== ReservationStatus.CONFIRMED) {
     return "Reservasi tidak dalam status yang bisa check-in.";
+  }
+  if (room.depositStatus === DepositStatus.PENDING) {
+    return "Deposit belum dibayar.";
   }
   if (!room.roomId) return "Kamar belum ditugaskan.";
   if (room.arrivalDate > todayIso) {
@@ -216,9 +224,9 @@ export function GroupSettlementActions({
     startCheckInTransition(async () => {
       const results: GroupRoomActionResult[] = [];
 
-      // Each room delegates to the same completeCheckIn action as the
-      // individual flow. The action owns its transaction, folio creation,
-      // room update, and CHECK_IN_COMPLETED activity log.
+      // Each eligible room delegates to the same completeCheckIn action as
+      // the individual flow. Deposit collection remains an explicit separate
+      // step; Phase 1 skips PENDING siblings instead of silently failing them.
       for (const room of checkInRooms) {
         const skipReason = checkInSkipReason(room, todayIso);
 

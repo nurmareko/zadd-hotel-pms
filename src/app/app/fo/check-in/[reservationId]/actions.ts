@@ -17,9 +17,27 @@ import { logActivity } from "@/lib/activity-log";
 // Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
-import { CheckInSchema, type CheckInValues } from "./schema";
+import {
+  CheckInSchema,
+  DepositCollectionSchema,
+  type CheckInValues,
+  type DepositCollectionValues,
+} from "./schema";
 
-export type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
+type ActionFailure = { ok: false; error: string; field?: string };
+
+export type ActionResult = { ok: true } | ActionFailure;
+
+export type CollectDepositResult =
+  | {
+      ok: true;
+      payment: {
+        amount: string;
+        method: string;
+        reference: string | null;
+      };
+    }
+  | ActionFailure;
 
 type CompleteCheckInOptions = {
   /**
@@ -57,7 +75,7 @@ class CheckInActionError extends Error {}
 
 function validationFailure(error: {
   issues: { message: string; path: PropertyKey[] }[];
-}): ActionResult {
+}): ActionFailure {
   const issue = error.issues[0];
   const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
 
@@ -180,11 +198,9 @@ async function nextFolioNumber(now: Date) {
 async function runCheckInTransaction(
   input: CheckInValues,
   context: CheckInContext,
-  userId: number,
 ) {
   const { reservation, room, arrivalDate, departureDate } = context;
   const now = new Date();
-  const folioNo = await nextFolioNumber(now);
 
   return prisma.$transaction(
     async (tx) => {
@@ -218,6 +234,35 @@ async function runCheckInTransaction(
       }
 
       const depositAmount = firstNight.rateAmount;
+      const currentReservation = await tx.reservation.findUnique({
+        where: { id: reservation.id },
+        select: {
+          status: true,
+          depositStatus: true,
+          folio: { select: { id: true } },
+        },
+      });
+
+      if (
+        !currentReservation ||
+        currentReservation.status !== ReservationStatus.CONFIRMED
+      ) {
+        throw new CheckInActionError(
+          "Reservasi tidak dalam status yang bisa check-in",
+        );
+      }
+
+      if (currentReservation.depositStatus === DepositStatus.PENDING) {
+        throw new CheckInActionError(
+          "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
+        );
+      }
+
+      if (!currentReservation.folio) {
+        throw new CheckInActionError(
+          "Folio deposit tidak ditemukan. Kumpulkan deposit sebelum check-in.",
+        );
+      }
 
       await tx.guest.update({
         where: { id: reservation.guestId },
@@ -231,7 +276,11 @@ async function runCheckInTransaction(
       });
 
       const updatedReservation = await tx.reservation.updateMany({
-        where: { id: reservation.id, status: ReservationStatus.CONFIRMED },
+        where: {
+          id: reservation.id,
+          status: ReservationStatus.CONFIRMED,
+          depositStatus: DepositStatus.COLLECTED,
+        },
         data: {
           status: ReservationStatus.CHECKED_IN,
           roomId: room.id,
@@ -244,18 +293,10 @@ async function runCheckInTransaction(
       });
 
       if (updatedReservation.count === 0) {
-        throw new CheckInActionError("Reservation is not in confirmable state");
+        throw new CheckInActionError(
+          "Status reservasi atau deposit berubah sebelum check-in dapat diselesaikan.",
+        );
       }
-
-      const folio = await tx.folio.create({
-        data: {
-          folioNo,
-          reservationId: reservation.id,
-          status: "OPEN",
-          openedAt: now,
-        },
-        select: { id: true },
-      });
 
       const updatedRoom = await tx.room.updateMany({
         where: {
@@ -272,51 +313,197 @@ async function runCheckInTransaction(
         );
       }
 
-      if (depositAmount.isPositive() && input.depositMethod) {
-        const existingDepositPayment = await tx.payment.findFirst({
-          where: {
-            folioId: folio.id,
-            purpose: PaymentPurpose.DEPOSIT,
-          },
-          select: { id: true },
-        });
-
-        if (!existingDepositPayment) {
-          await tx.payment.create({
-            data: {
-              folioId: folio.id,
-              amount: depositAmount,
-              method: input.depositMethod,
-              purpose: PaymentPurpose.DEPOSIT,
-              reference: input.depositReference,
-              receivedById: userId,
-              receivedAt: now,
-            },
-          });
-        }
-
-        const collectedReservation = await tx.reservation.updateMany({
-          where: {
-            id: reservation.id,
-            depositStatus: DepositStatus.PENDING,
-          },
-          data: { depositStatus: DepositStatus.COLLECTED },
-        });
-
-        if (!existingDepositPayment && collectedReservation.count === 0) {
-          throw new CheckInActionError(
-            "Status deposit berubah sebelum pembayaran dapat dicatat.",
-          );
-        }
-      }
-
-      return { ok: true as const, folioId: folio.id };
+      return { ok: true as const, folioId: currentReservation.folio.id };
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       ...TRANSACTION_OPTIONS,
     },
   );
+}
+
+async function runDepositCollectionTransaction(
+  input: DepositCollectionValues,
+  userId: number,
+) {
+  const now = new Date();
+  const folioNo = await nextFolioNumber(now);
+
+  return prisma.$transaction(
+    async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: input.reservationId },
+        select: {
+          status: true,
+          depositStatus: true,
+          arrivalDate: true,
+          folio: {
+            select: {
+              id: true,
+              payments: {
+                where: { purpose: PaymentPurpose.DEPOSIT },
+                select: { amount: true, method: true, reference: true },
+                take: 1,
+              },
+            },
+          },
+          reservationNights: {
+            orderBy: { date: "asc" },
+            select: { rateAmount: true },
+            take: 1,
+          },
+        },
+      });
+
+      if (!reservation || reservation.status !== ReservationStatus.CONFIRMED) {
+        throw new CheckInActionError(
+          "Reservasi tidak dalam status yang bisa mengumpulkan deposit",
+        );
+      }
+
+      const { today } = todayDateOnly();
+      if (dateOnlyBoundary(reservation.arrivalDate) > today) {
+        throw new CheckInActionError(
+          "Deposit check-in baru dapat dikumpulkan pada hari kedatangan",
+        );
+      }
+
+      const existingPayment = reservation.folio?.payments[0];
+      if (reservation.depositStatus === DepositStatus.COLLECTED) {
+        if (!existingPayment) {
+          throw new CheckInActionError(
+            "Status deposit tidak sesuai dengan pembayaran pada folio.",
+          );
+        }
+
+        return {
+          amount: existingPayment.amount,
+          method: existingPayment.method,
+          reference: existingPayment.reference,
+        };
+      }
+
+      const firstNight = reservation.reservationNights[0];
+      if (!firstNight) {
+        throw new CheckInActionError(
+          "Jadwal harga reservasi tidak tersedia untuk menghitung deposit.",
+        );
+      }
+
+      if (!firstNight.rateAmount.isPositive()) {
+        throw new CheckInActionError(
+          "Tarif malam pertama harus lebih besar dari 0 sebelum deposit dapat dikumpulkan.",
+        );
+      }
+
+      if (existingPayment) {
+        throw new CheckInActionError(
+          "Pembayaran deposit sudah ada tetapi status deposit belum diperbarui.",
+        );
+      }
+
+      const folio = reservation.folio
+        ? { id: reservation.folio.id }
+        : await tx.folio.create({
+            data: {
+              folioNo,
+              reservationId: input.reservationId,
+              status: "OPEN",
+              openedAt: now,
+            },
+            select: { id: true },
+          });
+      const payment = await tx.payment.create({
+        data: {
+          folioId: folio.id,
+          amount: firstNight.rateAmount,
+          method: input.depositMethod,
+          purpose: PaymentPurpose.DEPOSIT,
+          reference: input.depositReference,
+          receivedById: userId,
+          receivedAt: now,
+        },
+        select: { amount: true, method: true, reference: true },
+      });
+      const collectedReservation = await tx.reservation.updateMany({
+        where: {
+          id: input.reservationId,
+          status: ReservationStatus.CONFIRMED,
+          depositStatus: DepositStatus.PENDING,
+        },
+        data: {
+          deposit: firstNight.rateAmount,
+          depositStatus: DepositStatus.COLLECTED,
+        },
+      });
+
+      if (collectedReservation.count === 0) {
+        throw new CheckInActionError(
+          "Status deposit berubah sebelum pembayaran dapat dicatat.",
+        );
+      }
+
+      return payment;
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    },
+  );
+}
+
+export async function collectCheckInDeposit(
+  formData: FormData,
+): Promise<CollectDepositResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = DepositCollectionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return validationFailure(parsed.error);
+  }
+
+  const userId = Number(session.user.id);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const payment = await runDepositCollectionTransaction(parsed.data, userId);
+
+      revalidatePath(`/app/fo/check-in/${parsed.data.reservationId}`);
+      revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
+
+      return {
+        ok: true,
+        payment: {
+          amount: payment.amount.toString(),
+          method: payment.method,
+          reference: payment.reference,
+        },
+      };
+    } catch (error) {
+      if (error instanceof CheckInActionError) {
+        return { ok: false, error: error.message };
+      }
+
+      if (attempt < 2 && isRetryableFolioNumberError(error)) {
+        continue;
+      }
+
+      if (isSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Status deposit berubah bersamaan. Muat ulang lalu coba lagi.",
+        };
+      }
+
+      return { ok: false, error: "Gagal mencatat pembayaran deposit" };
+    }
+  }
+
+  return { ok: false, error: "Gagal mencatat pembayaran deposit" };
 }
 
 export async function completeCheckIn(
@@ -347,11 +534,7 @@ export async function completeCheckIn(
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      result = await runCheckInTransaction(
-        parsed.data,
-        prepared.context,
-        userId,
-      );
+      result = await runCheckInTransaction(parsed.data, prepared.context);
       break;
     } catch (error) {
       if (error instanceof CheckInActionError) {

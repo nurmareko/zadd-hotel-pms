@@ -144,6 +144,7 @@ export default async function GroupBookingPage({
     roomId: reservation.roomId,
     roomNumber: reservation.room?.number ?? null,
     status: reservation.status,
+    depositStatus: reservation.depositStatus,
     arrivalDate: formatISODate(reservation.arrivalDate),
     guest: reservation.guest,
   }));

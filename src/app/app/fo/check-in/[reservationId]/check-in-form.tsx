@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DepositStatus } from "@prisma/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type BaseSyntheticEvent } from "react";
 import {
   useForm,
@@ -26,7 +27,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { focusFirstFormError } from "@/lib/form-error-focus";
 import { formatIDR } from "@/lib/format";
-import { completeCheckIn } from "./actions";
+import { collectCheckInDeposit, completeCheckIn } from "./actions";
 import {
   checkInDepositMethods,
   CheckInSchema,
@@ -60,6 +61,12 @@ type CheckInFormValues = {
   depositReference: string;
 };
 
+type DepositPaymentSummary = {
+  amount: string;
+  method: string;
+  reference: string | null;
+};
+
 type CheckInFormProps = {
   reservationId: number;
   reservationNo: string;
@@ -79,7 +86,7 @@ type CheckInFormProps = {
   assignedRoomNumber: string | null;
   computedDeposit: string;
   depositStatus: DepositStatus;
-  depositAlreadyCollected: boolean;
+  initialDepositPayment: DepositPaymentSummary | null;
   availableRoomsCount: number;
   roomOptions: RoomOption[];
 };
@@ -135,11 +142,15 @@ export function CheckInForm({
   assignedRoomNumber,
   computedDeposit,
   depositStatus,
-  depositAlreadyCollected,
+  initialDepositPayment,
   availableRoomsCount,
   roomOptions,
 }: CheckInFormProps) {
+  const router = useRouter();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [depositPayment, setDepositPayment] =
+    useState<DepositPaymentSummary | null>(initialDepositPayment);
+  const [isCollectingDeposit, setIsCollectingDeposit] = useState(false);
   const [floorFilter, setFloorFilter] = useState("");
   const [formElement, setFormElement] = useState<HTMLFormElement | null>(null);
   const form = useForm<CheckInFormValues>({
@@ -182,7 +193,7 @@ export function CheckInForm({
     : roomOptions;
 
   const depositNote =
-    "Deposit sama dengan tarif kamar malam pertama, sebelum pajak, dan tidak dapat diedit. Check-in tetap dapat dilanjutkan tanpa penagihan deposit.";
+    "Deposit wajib dibayar sebesar tarif kamar malam pertama sebelum check-in dapat dikonfirmasi.";
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
 
@@ -190,11 +201,52 @@ export function CheckInForm({
     focusFirstFormError(formElement);
   }
 
+  async function collectDeposit() {
+    setActionError(null);
+    form.clearErrors(["depositMethod", "depositReference"]);
+    setIsCollectingDeposit(true);
+
+    const formData = new FormData();
+    formData.set("reservationId", String(reservationId));
+    formData.set("depositMethod", form.getValues("depositMethod"));
+    formData.set("depositReference", form.getValues("depositReference") ?? "");
+
+    try {
+      const result = await collectCheckInDeposit(formData);
+
+      if (!result.ok) {
+        if (result.field) {
+          form.setError(result.field as FieldPath<CheckInFormValues>, {
+            type: "server",
+            message: result.error,
+          });
+        }
+        setActionError(result.error);
+        toast.error(result.error);
+        return;
+      }
+
+      setDepositPayment(result.payment);
+      toast.success("Deposit berhasil dikumpulkan.");
+      router.refresh();
+    } finally {
+      setIsCollectingDeposit(false);
+    }
+  }
+
   async function onSubmit(
     values: CheckInFormValues,
     event?: BaseSyntheticEvent,
   ) {
     setActionError(null);
+
+    if (!depositPayment) {
+      const message = "Kumpulkan deposit terlebih dahulu sebelum check-in.";
+      setActionError(message);
+      toast.error(message);
+      return;
+    }
+
     const submitFormElement =
       event?.currentTarget instanceof HTMLFormElement
         ? event.currentTarget
@@ -235,7 +287,11 @@ export function CheckInForm({
     }
   }
 
-  const checkInActionHint = actionError ?? errors.root?.message ? (
+  const checkInActionHint = !depositPayment ? (
+    <p className="font-medium text-amber-700">
+      Kumpulkan deposit terlebih dahulu sebelum check-in.
+    </p>
+  ) : actionError ?? errors.root?.message ? (
     <p className="font-medium text-red-600">
       {actionError ?? errors.root?.message}
     </p>
@@ -258,8 +314,8 @@ export function CheckInForm({
       </Link>
       <Button
         type="submit"
-        disabled={isSubmitting}
-        className="disabled:cursor-wait disabled:opacity-70"
+        disabled={isSubmitting || !depositPayment}
+        className="disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
       </Button>
@@ -574,7 +630,11 @@ export function CheckInForm({
                   <p className="text-sm font-medium text-slate-700">
                     Deposit (= tarif malam pertama)
                   </p>
-                  <DepositStatusBadge status={depositStatus} />
+                  <DepositStatusBadge
+                    status={
+                      depositPayment ? DepositStatus.COLLECTED : depositStatus
+                    }
+                  />
                 </div>
                 <div className="mt-2 flex min-h-11 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 desktop:min-h-10">
                   {formatIDR(depositAmount)}
@@ -584,7 +644,7 @@ export function CheckInForm({
                 </p>
               </div>
 
-              {depositAmount > 0 && !depositAlreadyCollected ? (
+              {!depositPayment ? (
                 <>
                   <FormField
                     control={form.control}
@@ -602,7 +662,7 @@ export function CheckInForm({
                               )
                             }
                           >
-                            <option value="">Tidak dipungut saat check-in</option>
+                            <option value="">Pilih metode pembayaran</option>
                             {checkInDepositMethods.map((method) => (
                               <option key={method} value={method}>
                                 {method}
@@ -623,7 +683,7 @@ export function CheckInForm({
                         <FormItem>
                           <FormLabel>
                             Referensi
-                            {depositMethod === "TRANSFER" ? " / Required" : ""}
+                            {depositMethod === "TRANSFER" ? " / Wajib" : ""}
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -637,12 +697,43 @@ export function CheckInForm({
                       )}
                     />
                   </div>
+                  <div className="md:col-span-2 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={collectDeposit}
+                      disabled={isCollectingDeposit}
+                    >
+                      {isCollectingDeposit
+                        ? "Mencatat Deposit..."
+                        : "Kumpulkan Deposit"}
+                    </Button>
+                  </div>
                 </>
-              ) : depositAlreadyCollected ? (
-                <p className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  Deposit sudah tercatat pada folio. Pembayaran deposit tidak dapat diposting ulang.
-                </p>
-              ) : null}
+              ) : (
+                <div className="md:col-span-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-950">
+                  <p className="font-semibold">
+                    Deposit sudah tercatat pada folio dan tidak dapat diposting ulang.
+                  </p>
+                  <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-3">
+                    <div>
+                      <dt className="text-emerald-700">Jumlah</dt>
+                      <dd className="font-medium">
+                        {formatIDR(Number(depositPayment.amount))}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-emerald-700">Metode</dt>
+                      <dd className="font-medium">{depositPayment.method}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-emerald-700">Referensi</dt>
+                      <dd className="font-medium">
+                        {depositPayment.reference || "—"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
             </div>
           </section>
 
