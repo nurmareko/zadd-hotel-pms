@@ -86,7 +86,11 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
         select: {
           payments: {
             where: { purpose: PaymentPurpose.DEPOSIT },
-            select: { id: true },
+            select: {
+              amount: true,
+              method: true,
+              reference: true,
+            },
             take: 1,
           },
         },
@@ -186,6 +190,7 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
   });
   const arrivalLabel = dateLabel(reservation.arrivalDate);
   const departureLabel = dateLabel(reservation.departureDate);
+  const depositPayment = reservation.folio?.payments[0] ?? null;
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
@@ -225,7 +230,15 @@ export default async function CheckInPage({ params }: CheckInPageProps) {
           assignedRoomNumber={reservation.room?.number ?? null}
           computedDeposit={firstNight.rateAmount.toString()}
           depositStatus={reservation.depositStatus}
-          depositAlreadyCollected={Boolean(reservation.folio?.payments.length)}
+          initialDepositPayment={
+            depositPayment
+              ? {
+                  amount: depositPayment.amount.toString(),
+                  method: depositPayment.method,
+                  reference: depositPayment.reference,
+                }
+              : null
+          }
           availableRoomsCount={availableRoomsCount}
         roomOptions={roomOptions}
       />

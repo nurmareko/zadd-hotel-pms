@@ -57,7 +57,7 @@ export const RoomTypeCreateSchema = z.object({
   baseRate: formNumber(
     z
       .number({ error: "Base rate wajib diisi dan harus berupa angka" })
-      .min(0, "Base rate tidak boleh negatif"),
+      .positive("Base rate harus lebih besar dari 0"),
   ),
 });
 

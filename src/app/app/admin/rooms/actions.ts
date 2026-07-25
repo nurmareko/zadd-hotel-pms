@@ -150,19 +150,20 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
           },
         });
         const nextBaseRate = new Prisma.Decimal(data.baseRate);
-        const producesNegativeRate = activeRules.some((rule) =>
-          applyPricingRuleAdjustment(
-            nextBaseRate,
-            rule.adjustmentKind,
-            rule.adjustmentValue,
-          ).isNegative(),
+        const producesNonPositiveRate = activeRules.some(
+          (rule) =>
+            !applyPricingRuleAdjustment(
+              nextBaseRate,
+              rule.adjustmentKind,
+              rule.adjustmentValue,
+            ).isPositive(),
         );
 
-        if (producesNegativeRate) {
+        if (producesNonPositiveRate) {
           return {
             ok: false as const,
             error:
-              "Base rate ini membuat aturan harga aktif menghasilkan tarif malam negatif",
+              "Base rate ini membuat aturan harga aktif menghasilkan tarif malam 0 atau negatif",
             field: "baseRate",
           };
         }

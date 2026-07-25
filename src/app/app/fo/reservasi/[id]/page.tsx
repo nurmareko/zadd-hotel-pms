@@ -1,4 +1,4 @@
-import { ReservationStatus } from "@prisma/client";
+import { DepositStatus, ReservationStatus } from "@prisma/client";
 import { formatISO } from "date-fns";
 import { Download } from "lucide-react";
 import Link from "next/link";
@@ -372,7 +372,9 @@ export default async function ReservationDetailPage({
                 Status deposit
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                Status ini mengikuti pembayaran deposit yang tercatat pada folio.
+                {reservation.depositStatus === DepositStatus.PENDING
+                  ? "Kumpulkan deposit di langkah check-in sebelum tamu dapat di-check-in."
+                  : "Deposit sudah tercatat pada folio dan check-in dapat dilanjutkan."}
               </p>
             </div>
             <DepositStatusBadge status={reservation.depositStatus} />
@@ -410,12 +412,36 @@ export default async function ReservationDetailPage({
                       </Link>
                     ) : null}
                     {canCheckIn ? (
-                      <Link
-                                              href={`/app/fo/check-in/${reservation.id}`}
-                                              className={buttonVariants({ variant: "default" })}
-                                            >
-                        Check In Guest
-                      </Link>
+                      reservation.depositStatus === DepositStatus.COLLECTED ? (
+                        <Link
+                          href={`/app/fo/check-in/${reservation.id}`}
+                          className={buttonVariants({ variant: "default" })}
+                        >
+                          Check In Guest
+                        </Link>
+                      ) : (
+                        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
+                          <span
+                            aria-disabled="true"
+                            className={buttonVariants({
+                              variant: "default",
+                              className:
+                                "cursor-not-allowed opacity-50 pointer-events-none",
+                            })}
+                          >
+                            Check In Guest
+                          </span>
+                          <Link
+                            href={`/app/fo/check-in/${reservation.id}`}
+                            className={buttonVariants({ variant: "outline" })}
+                          >
+                            Kumpulkan Deposit
+                          </Link>
+                          <span className="text-xs font-medium text-amber-700 sm:max-w-40">
+                            Kumpulkan deposit terlebih dahulu.
+                          </span>
+                        </div>
+                      )
                     ) : null}
                   </>
                 ) : undefined
