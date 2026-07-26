@@ -559,7 +559,6 @@ export async function collectCheckInDeposit(
     return result;
   }
 
-  revalidatePath(`/app/fo/check-in/${parsed.data.reservationId}`);
   revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
 
   return result;

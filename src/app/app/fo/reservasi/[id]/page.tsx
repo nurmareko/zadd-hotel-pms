@@ -19,7 +19,10 @@ import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
-import { CheckInDetailPanel } from "./check-in-detail-panel";
+import {
+  CheckInDetailAffordance,
+  CheckInDetailPanel,
+} from "./check-in-detail-panel";
 import { RequestCleaningButton } from "./request-cleaning-button";
 
 export const dynamic = "force-dynamic";
@@ -504,12 +507,10 @@ export default async function ReservationDetailPage({
                     ) : null}
                     {canCheckIn ? (
                       reservation.depositStatus === DepositStatus.COLLECTED ? (
-                        <Link
-                          href={`/app/fo/check-in/${reservation.id}`}
-                          className={buttonVariants({ variant: "default" })}
-                        >
-                          Check In Guest
-                        </Link>
+                        <CheckInDetailAffordance
+                          intent="review"
+                          label="Check In Guest"
+                        />
                       ) : (
                         <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
                           <span
@@ -522,12 +523,11 @@ export default async function ReservationDetailPage({
                           >
                             Check In Guest
                           </span>
-                          <Link
-                            href={`/app/fo/check-in/${reservation.id}`}
-                            className={buttonVariants({ variant: "outline" })}
-                          >
-                            Kumpulkan Deposit
-                          </Link>
+                          <CheckInDetailAffordance
+                            intent="deposit"
+                            label="Kumpulkan Deposit"
+                            variant="outline"
+                          />
                           <span className="text-xs font-medium text-amber-700 sm:max-w-40">
                             Kumpulkan deposit terlebih dahulu.
                           </span>

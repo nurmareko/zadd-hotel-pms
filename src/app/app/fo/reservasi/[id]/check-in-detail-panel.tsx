@@ -35,6 +35,12 @@ type CheckInDetailPanelProps = {
   initialReview: CheckInReview;
 };
 
+type CheckInDetailAffordanceProps = {
+  intent: "deposit" | "review";
+  label: string;
+  variant?: "default" | "outline";
+};
+
 const selectClassName =
   "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500";
 const fieldClassName =
@@ -53,6 +59,45 @@ function ReadOnlyItem({ label, value }: { label: string; value: string }) {
 
 function reviewKey(review: CheckInReview) {
   return JSON.stringify(review);
+}
+
+export function CheckInDetailAffordance({
+  intent,
+  label,
+  variant = "default",
+}: CheckInDetailAffordanceProps) {
+  function activateDetailFlow() {
+    const reviewButton = document.getElementById("check-in-detail-review-button");
+
+    if (
+      intent === "review" &&
+      reviewButton instanceof HTMLButtonElement &&
+      !reviewButton.disabled
+    ) {
+      reviewButton.click();
+      return;
+    }
+
+    const step = document.getElementById(
+      intent === "deposit"
+        ? "check-in-detail-deposit"
+        : "check-in-detail-purpose",
+    );
+    const control = document.getElementById(
+      intent === "deposit"
+        ? "check-in-detail-deposit-method"
+        : "check-in-detail-purpose-select",
+    );
+
+    step?.scrollIntoView({ behavior: "smooth", block: "center" });
+    control?.focus({ preventScroll: true });
+  }
+
+  return (
+    <Button type="button" variant={variant} onClick={activateDetailFlow}>
+      {label}
+    </Button>
+  );
 }
 
 export function CheckInDetailPanel({
@@ -275,7 +320,10 @@ export function CheckInDetailPanel({
 
   return (
     <>
-      <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section
+        id="check-in-detail-panel"
+        className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+      >
         <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">
             Check-in dari detail reservasi
@@ -287,7 +335,7 @@ export function CheckInDetailPanel({
         </div>
 
         <div className="grid gap-5 p-5 desktop:lg:grid-cols-3">
-          <div className="space-y-3">
+          <div id="check-in-detail-deposit" className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-slate-900">1. Deposit</h3>
               <DepositStatusBadge
@@ -314,6 +362,7 @@ export function CheckInDetailPanel({
                 <label className="block text-xs font-medium text-slate-700">
                   Metode pembayaran
                   <select
+                    id="check-in-detail-deposit-method"
                     value={depositMethod}
                     onChange={(event) =>
                       setDepositMethod(
@@ -361,7 +410,7 @@ export function CheckInDetailPanel({
             )}
           </div>
 
-          <div className="space-y-3">
+          <div id="check-in-detail-purpose" className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-900">
               2. Kamar & tujuan
             </h3>
@@ -398,6 +447,7 @@ export function CheckInDetailPanel({
             <label className="block text-xs font-medium text-slate-700">
               Tujuan kunjungan
               <select
+                id="check-in-detail-purpose-select"
                 value={purposeOfVisit}
                 onChange={(event) =>
                   setPurposeOfVisit(
@@ -440,7 +490,12 @@ export function CheckInDetailPanel({
                 menentukan hasil check-in.
               </p>
             </div>
-            <Button type="button" disabled={!canOpenReview} onClick={openReview}>
+            <Button
+              id="check-in-detail-review-button"
+              type="button"
+              disabled={!canOpenReview}
+              onClick={openReview}
+            >
               Review & Tanda Tangani GRC
             </Button>
           </div>

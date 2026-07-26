@@ -133,7 +133,6 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activePaths: [
             { href: "/app/fo/reservations", match: "startsWith" },
             { href: "/app/fo/tape-chart", match: "startsWith" },
-            { href: "/app/fo/check-in", match: "startsWith" },
             { href: "/app/fo/check-out", match: "startsWith" },
             { href: "/app/fo/folios", match: "startsWith" },
           ],
