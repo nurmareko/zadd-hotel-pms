@@ -1,4 +1,9 @@
-import { FolioStatus, ReservationStatus } from "@prisma/client";
+import {
+  DepositStatus,
+  FolioStatus,
+  Prisma,
+  ReservationStatus,
+} from "@prisma/client";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,7 +16,7 @@ import { formatDateID, formatIDR, formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 import { GroupSettlementActions } from "./group-settlement-actions";
-import { todayDateOnly } from "@/lib/date-only";
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +83,11 @@ export default async function GroupBookingPage({
         },
         room: { select: { number: true } },
         roomType: { select: { name: true } },
+        reservationNights: {
+          orderBy: { date: "asc" },
+          select: { rateAmount: true },
+          take: 1,
+        },
         folio: {
           include: {
             lineItems: { include: { article: true } },
@@ -138,6 +148,19 @@ export default async function GroupBookingPage({
     statusCount(reservations, ReservationStatus.CANCELLED) +
     statusCount(reservations, ReservationStatus.NO_SHOW);
   const { today } = todayDateOnly();
+  const pendingDepositTotal = reservations.reduce(
+    (total, reservation) => {
+      const firstNight = reservation.reservationNights[0];
+      const isEligible =
+        reservation.status === ReservationStatus.CONFIRMED &&
+        reservation.depositStatus === DepositStatus.PENDING &&
+        dateOnlyBoundary(reservation.arrivalDate) <= today &&
+        firstNight?.rateAmount.isPositive();
+
+      return isEligible ? total.plus(firstNight.rateAmount) : total;
+    },
+    new Prisma.Decimal(0),
+  );
   const checkInRooms = reservations.map((reservation) => ({
     reservationId: reservation.id,
     reservationNo: reservation.reservationNo,
@@ -146,6 +169,8 @@ export default async function GroupBookingPage({
     status: reservation.status,
     depositStatus: reservation.depositStatus,
     arrivalDate: formatISODate(reservation.arrivalDate),
+    requiredDeposit:
+      reservation.reservationNights[0]?.rateAmount.toString() ?? null,
     guest: reservation.guest,
   }));
 
@@ -169,6 +194,7 @@ export default async function GroupBookingPage({
         groupBookingId={groupBookingId}
         checkInRooms={checkInRooms}
         todayIso={formatISODate(today)}
+        pendingDepositTotal={pendingDepositTotal.toString()}
       />
 
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">

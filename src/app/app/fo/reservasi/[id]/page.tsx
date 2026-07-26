@@ -1,5 +1,10 @@
-import { DepositStatus, ReservationStatus } from "@prisma/client";
-import { formatISO } from "date-fns";
+import {
+  DepositStatus,
+  PaymentPurpose,
+  ReservationStatus,
+  RoomStatus,
+} from "@prisma/client";
+import { differenceInCalendarDays, formatISO } from "date-fns";
 import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,11 +13,16 @@ import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
+import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
+import {
+  CheckInDetailAffordance,
+  CheckInDetailPanel,
+} from "./check-in-detail-panel";
 import { RequestCleaningButton } from "./request-cleaning-button";
 
 export const dynamic = "force-dynamic";
@@ -194,9 +204,21 @@ export default async function ReservationDetailPage({
       where: { id: reservationId },
       include: {
         guest: true,
-        room: { select: { number: true, status: true } },
+        room: {
+          select: { id: true, number: true, status: true, roomTypeId: true },
+        },
         roomType: { select: { name: true } },
-        folio: { select: { id: true } },
+        folio: {
+          select: {
+            id: true,
+            payments: {
+              where: { purpose: PaymentPurpose.DEPOSIT },
+              select: { amount: true, method: true, reference: true },
+              orderBy: { receivedAt: "asc" },
+              take: 1,
+            },
+          },
+        },
         reservationNights: {
           select: { date: true, rateAmount: true },
           orderBy: { date: "asc" },
@@ -303,6 +325,73 @@ export default async function ReservationDetailPage({
     rateAmount: reservation.rateAmount,
     reservationNights: reservation.reservationNights,
   });
+  const assignedRoomHasOverlap = reservation.room
+    ? activeReservations.some(
+        (activeReservation) =>
+          activeReservation.roomId === reservation.room?.id &&
+          activeReservation.arrivalDate < reservation.departureDate &&
+          activeReservation.departureDate > reservation.arrivalDate,
+      )
+    : false;
+  const roomReady = Boolean(
+    reservation.room &&
+      reservation.room.roomTypeId === reservation.roomTypeId &&
+      reservation.room.status !== RoomStatus.OOO &&
+      !assignedRoomHasOverlap,
+  );
+  const depositPayment = reservation.folio?.payments[0] ?? null;
+  const initialCheckInReview = {
+    snapshotVersion: reservation.updatedAt.toISOString(),
+    reservationId: reservation.id,
+    reservationNo: reservation.reservationNo,
+    reservationType: reservation.reservationType,
+    arrangementType: reservation.arrangementType,
+    status: reservation.status,
+    arrivalDue: canCheckIn,
+    guest: {
+      fullName: reservation.guest.fullName,
+      idNumber: reservation.guest.idNumber,
+      phone: reservation.guest.phone,
+      email: reservation.guest.email,
+      nationality: reservation.guest.nationality,
+    },
+    stay: {
+      arrivalLabel: formatDateID(reservation.arrivalDate),
+      departureLabel: formatDateID(reservation.departureDate),
+      nights: differenceInCalendarDays(
+        reservation.departureDate,
+        reservation.arrivalDate,
+      ),
+      adults: reservation.adults,
+      children: reservation.children,
+      total: stayTotal.total.toString(),
+      nightlySchedule: stayTotal.nightlySchedule.map((night) => ({
+        dateLabel: formatDateID(night.date),
+        rateAmount: night.rateAmount.toString(),
+      })),
+    },
+    room: reservation.room
+      ? {
+          id: reservation.room.id,
+          number: reservation.room.number,
+          status: reservation.room.status,
+          typeName: reservation.roomType.name,
+        }
+      : null,
+    roomReady,
+    deposit: {
+      status: reservation.depositStatus,
+      requiredAmount:
+        reservation.reservationNights[0]?.rateAmount.toString() ?? null,
+      payment: depositPayment
+        ? {
+            amount: depositPayment.amount.toString(),
+            method: depositPayment.method,
+            reference: depositPayment.reference,
+          }
+        : null,
+    },
+  };
   const allocatedActiveReservations = activeReservations.flatMap(
     (activeReservation) =>
       activeReservation.roomId === null
@@ -366,6 +455,11 @@ export default async function ReservationDetailPage({
               siblings={groupSiblings}
             />
           ) : null}
+          {formMode === "view" &&
+          !isTerminalReservation &&
+          !reservation.groupBookingId ? (
+            <CheckInDetailPanel initialReview={initialCheckInReview} />
+          ) : null}
           <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
@@ -413,12 +507,10 @@ export default async function ReservationDetailPage({
                     ) : null}
                     {canCheckIn ? (
                       reservation.depositStatus === DepositStatus.COLLECTED ? (
-                        <Link
-                          href={`/app/fo/check-in/${reservation.id}`}
-                          className={buttonVariants({ variant: "default" })}
-                        >
-                          Check In Guest
-                        </Link>
+                        <CheckInDetailAffordance
+                          intent="review"
+                          label="Check In Guest"
+                        />
                       ) : (
                         <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
                           <span
@@ -431,12 +523,11 @@ export default async function ReservationDetailPage({
                           >
                             Check In Guest
                           </span>
-                          <Link
-                            href={`/app/fo/check-in/${reservation.id}`}
-                            className={buttonVariants({ variant: "outline" })}
-                          >
-                            Kumpulkan Deposit
-                          </Link>
+                          <CheckInDetailAffordance
+                            intent="deposit"
+                            label="Kumpulkan Deposit"
+                            variant="outline"
+                          />
                           <span className="text-xs font-medium text-amber-700 sm:max-w-40">
                             Kumpulkan deposit terlebih dahulu.
                           </span>

@@ -36,6 +36,7 @@ export type CollectDepositResult =
         method: string;
         reference: string | null;
       };
+      alreadyCollected: boolean;
     }
   | ActionFailure;
 
@@ -325,6 +326,7 @@ async function runCheckInTransaction(
 async function runDepositCollectionTransaction(
   input: DepositCollectionValues,
   userId: number,
+  expectedGroupBookingId?: string,
 ) {
   const now = new Date();
   const folioNo = await nextFolioNumber(now);
@@ -337,6 +339,7 @@ async function runDepositCollectionTransaction(
           status: true,
           depositStatus: true,
           arrivalDate: true,
+          groupBookingId: true,
           folio: {
             select: {
               id: true,
@@ -361,6 +364,15 @@ async function runDepositCollectionTransaction(
         );
       }
 
+      if (
+        expectedGroupBookingId !== undefined &&
+        reservation.groupBookingId !== expectedGroupBookingId
+      ) {
+        throw new CheckInActionError(
+          "Reservasi tidak lagi termasuk dalam booking grup ini.",
+        );
+      }
+
       const { today } = todayDateOnly();
       if (dateOnlyBoundary(reservation.arrivalDate) > today) {
         throw new CheckInActionError(
@@ -377,9 +389,12 @@ async function runDepositCollectionTransaction(
         }
 
         return {
-          amount: existingPayment.amount,
-          method: existingPayment.method,
-          reference: existingPayment.reference,
+          payment: {
+            amount: existingPayment.amount,
+            method: existingPayment.method,
+            reference: existingPayment.reference,
+          },
+          alreadyCollected: true,
         };
       }
 
@@ -443,7 +458,7 @@ async function runDepositCollectionTransaction(
         );
       }
 
-      return payment;
+      return { payment, alreadyCollected: false };
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -452,36 +467,27 @@ async function runDepositCollectionTransaction(
   );
 }
 
-export async function collectCheckInDeposit(
-  formData: FormData,
+async function collectValidatedDeposit(
+  input: DepositCollectionValues,
+  userId: number,
+  expectedGroupBookingId?: string,
 ): Promise<CollectDepositResult> {
-  const session = await auth();
-
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = DepositCollectionSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    return validationFailure(parsed.error);
-  }
-
-  const userId = Number(session.user.id);
-
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const payment = await runDepositCollectionTransaction(parsed.data, userId);
-
-      revalidatePath(`/app/fo/check-in/${parsed.data.reservationId}`);
-      revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
+      const result = await runDepositCollectionTransaction(
+        input,
+        userId,
+        expectedGroupBookingId,
+      );
 
       return {
         ok: true,
         payment: {
-          amount: payment.amount.toString(),
-          method: payment.method,
-          reference: payment.reference,
+          amount: result.payment.amount.toString(),
+          method: result.payment.method,
+          reference: result.payment.reference,
         },
+        alreadyCollected: result.alreadyCollected,
       };
     } catch (error) {
       if (error instanceof CheckInActionError) {
@@ -504,6 +510,58 @@ export async function collectCheckInDeposit(
   }
 
   return { ok: false, error: "Gagal mencatat pembayaran deposit" };
+}
+
+export async function collectCheckInDepositForGroup(input: {
+  reservationId: number;
+  depositMethod: string;
+  depositReference?: string;
+  groupBookingId: string;
+}): Promise<CollectDepositResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = DepositCollectionSchema.safeParse(input);
+  const groupBookingId = input.groupBookingId.trim();
+  if (!parsed.success) {
+    return validationFailure(parsed.error);
+  }
+  if (!groupBookingId) {
+    return { ok: false, error: "Booking grup tidak valid" };
+  }
+
+  return collectValidatedDeposit(
+    parsed.data,
+    Number(session.user.id),
+    groupBookingId,
+  );
+}
+
+export async function collectCheckInDeposit(
+  formData: FormData,
+): Promise<CollectDepositResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = DepositCollectionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return validationFailure(parsed.error);
+  }
+
+  const result = await collectValidatedDeposit(parsed.data, Number(session.user.id));
+  if (!result.ok) {
+    return result;
+  }
+
+  revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
+
+  return result;
 }
 
 export async function completeCheckIn(
@@ -578,7 +636,7 @@ export async function completeCheckIn(
   revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
 
   if (options.redirectToFolio !== false) {
-    redirect(`/app/fo/folios/${result.folioId}`);
+    redirect("/app/fo/reservasi");
   }
 
   return { ok: true };

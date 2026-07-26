@@ -1,6 +1,11 @@
 "use server";
 
-import { FolioStatus, PaymentMethod, ReservationStatus } from "@prisma/client";
+import {
+  DepositStatus,
+  FolioStatus,
+  PaymentMethod,
+  ReservationStatus,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -9,6 +14,8 @@ import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { formatDateID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
+import { collectCheckInDepositForGroup } from "@/lib/check-in/actions";
+import { checkInDepositMethods } from "@/lib/check-in/schema";
 import {
   completeCheckout,
   recordFinalPayment,
@@ -16,21 +23,34 @@ import {
 
 const GroupBookingIdSchema = z.string().trim().min(1, "Booking grup tidak valid");
 
+const GroupDepositSchema = z
+  .object({
+    groupBookingId: GroupBookingIdSchema,
+    method: z.enum(checkInDepositMethods),
+    reference: z.string().trim().max(100).optional(),
+  })
+  .superRefine(requireTransferReference);
+
 const SettleGroupBalancesSchema = z
   .object({
     groupBookingId: GroupBookingIdSchema,
     method: z.enum(PaymentMethod),
     reference: z.string().trim().max(100).optional(),
   })
-  .superRefine((value, ctx) => {
-    if (value.method === PaymentMethod.TRANSFER && !value.reference) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["reference"],
-        message: "Referensi wajib diisi untuk pembayaran transfer",
-      });
-    }
-  });
+  .superRefine(requireTransferReference);
+
+function requireTransferReference(
+  value: { method: PaymentMethod; reference?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (value.method === PaymentMethod.TRANSFER && !value.reference) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["reference"],
+      message: "Referensi wajib diisi untuk pembayaran transfer",
+    });
+  }
+}
 
 type GroupActionStatus = "completed" | "skipped" | "failed";
 
@@ -86,8 +106,14 @@ function actionFormData(entries: Record<string, string>) {
 }
 
 function revalidateGroup(groupBookingId: string) {
-  revalidatePath(`/app/fo/reservasi/grup/${groupBookingId}`);
-  revalidatePath("/app/fo/reservasi/list");
+  try {
+    revalidatePath(`/app/fo/reservasi/grup/${groupBookingId}`);
+    revalidatePath("/app/fo/reservasi/list");
+  } catch (error) {
+    // Financial mutations may already be committed per room. Preserve and
+    // return their outcomes even if cache invalidation itself fails.
+    console.error("Failed to revalidate group reservation paths", error);
+  }
 }
 
 function unexpectedActionError(error: unknown) {
@@ -96,14 +122,107 @@ function unexpectedActionError(error: unknown) {
     : "Terjadi kegagalan saat memproses kamar ini.";
 }
 
-async function callExistingAction(
-  action: () => Promise<DelegatedActionResult>,
-): Promise<DelegatedActionResult> {
+async function callExistingAction<T extends DelegatedActionResult>(
+  action: () => Promise<T>,
+): Promise<T | { ok: false; error: string }> {
   try {
     return await action();
   } catch (error) {
     return { ok: false, error: unexpectedActionError(error) };
   }
+}
+
+export async function collectGroupDeposits(input: {
+  groupBookingId: string;
+  method: PaymentMethod;
+  reference?: string;
+}): Promise<GroupActionResult> {
+  if (!(await canManageGroupCheckout())) {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = GroupDepositSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Data deposit tidak valid",
+    };
+  }
+
+  const { groupBookingId, method, reference } = parsed.data;
+  const { today } = todayDateOnly();
+  const reservations = await prisma.reservation.findMany({
+    where: { groupBookingId },
+    include: {
+      room: { select: { number: true } },
+    },
+    orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
+  });
+
+  if (reservations.length === 0) {
+    return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
+  }
+
+  const results: GroupRoomActionResult[] = [];
+
+  // Each sibling deliberately keeps the canonical deposit writer's own
+  // serializable transaction. This matches the existing per-room batch model:
+  // successful rooms remain collected if a later sibling fails, and every
+  // skipped or failed room is returned to the operator.
+  for (const reservation of reservations) {
+    if (reservation.status !== ReservationStatus.CONFIRMED) {
+      const reason =
+        reservation.status === ReservationStatus.CHECKED_IN
+          ? "Sudah check-in."
+          : reservation.status === ReservationStatus.CHECKED_OUT
+            ? "Sudah check-out."
+            : reservation.status === ReservationStatus.CANCELLED
+              ? "Reservasi dibatalkan."
+              : "Reservasi no-show.";
+      results.push(resultFor(reservation, "skipped", reason));
+      continue;
+    }
+
+    if (reservation.depositStatus === DepositStatus.COLLECTED) {
+      results.push(resultFor(reservation, "skipped", "Deposit sudah dikumpulkan."));
+      continue;
+    }
+
+    if (dateOnlyBoundary(reservation.arrivalDate) > today) {
+      results.push(
+        resultFor(
+          reservation,
+          "skipped",
+          `Belum waktunya mengumpulkan deposit (arrival ${formatDateID(reservation.arrivalDate)}).`,
+        ),
+      );
+      continue;
+    }
+
+    const deposit = await callExistingAction(() =>
+      collectCheckInDepositForGroup({
+        reservationId: reservation.id,
+        depositMethod: method,
+        depositReference: reference,
+        groupBookingId,
+      }),
+    );
+
+    results.push(
+      !deposit.ok
+        ? resultFor(reservation, "failed", deposit.error)
+        : deposit.alreadyCollected
+          ? resultFor(reservation, "skipped", "Deposit sudah dikumpulkan.")
+          : resultFor(
+              reservation,
+              "completed",
+              `Deposit ${deposit.payment.amount} dicatat pada folio kamar ini.`,
+            ),
+    );
+  }
+
+  revalidateGroup(groupBookingId);
+  return { ok: true, results };
 }
 
 export async function settleGroupBalances(input: {
