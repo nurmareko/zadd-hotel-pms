@@ -637,7 +637,7 @@ export async function completeCheckIn(
   revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
 
   if (options.redirectToFolio !== false) {
-    redirect(`/app/fo/folios/${result.folioId}`);
+    redirect("/app/fo/reservasi");
   }
 
   return { ok: true };

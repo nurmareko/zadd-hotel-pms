@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatIDR } from "@/lib/format";
 
-import { completeCheckIn } from "../../../check-in/[reservationId]/actions";
-import { SignaturePadField } from "../../../check-in/[reservationId]/signature-pad-field";
+import { completeCheckIn } from "@/lib/check-in/actions";
+import { SignaturePadField } from "@/components/check-in/signature-pad-field";
 import {
   checkoutEligibleGroupRooms,
   collectGroupDeposits,

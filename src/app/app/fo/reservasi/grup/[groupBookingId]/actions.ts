@@ -14,8 +14,8 @@ import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { formatDateID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
-import { collectCheckInDepositForGroup } from "../../../check-in/[reservationId]/actions";
-import { checkInDepositMethods } from "../../../check-in/[reservationId]/schema";
+import { collectCheckInDepositForGroup } from "@/lib/check-in/actions";
+import { checkInDepositMethods } from "@/lib/check-in/schema";
 import {
   completeCheckout,
   recordFinalPayment,

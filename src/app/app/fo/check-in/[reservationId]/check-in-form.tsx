@@ -27,15 +27,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { focusFirstFormError } from "@/lib/form-error-focus";
 import { formatIDR } from "@/lib/format";
-import { collectCheckInDeposit, completeCheckIn } from "./actions";
+import { collectCheckInDeposit, completeCheckIn } from "@/lib/check-in/actions";
 import {
   checkInDepositMethods,
   CheckInSchema,
   purposeOfVisitOptions,
   type CheckInDepositMethod,
   type PurposeOfVisitValue,
-} from "./schema";
-import { SignaturePadField } from "./signature-pad-field";
+} from "@/lib/check-in/schema";
+import { SignaturePadField } from "@/components/check-in/signature-pad-field";
 
 type RoomOption = {
   id: number;
