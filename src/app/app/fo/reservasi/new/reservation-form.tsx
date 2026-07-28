@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays, formatISO, parseISO } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowRight, BedDouble, CalendarDays, Plus, Tag, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -90,10 +90,14 @@ const fieldScrollMarginClassName = "scroll-mt-24 scroll-mb-40";
 const fieldClassName = `h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
 const textareaClassName = `min-h-20 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
 const selectClassName = `h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${fieldScrollMarginClassName}`;
-const sectionTitleClassName =
-  "mb-4 text-sm font-semibold tracking-tight text-slate-900";
+const sectionTitleClassName = "text-base font-semibold text-slate-900";
+const cardClassName =
+  "overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm";
+const cardHeaderClassName =
+  "flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 desktop:px-5";
+const cardContentClassName = "p-4 desktop:p-5";
 const iconButtonClassName =
-  "inline-flex size-11 desktop:size-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+  "inline-flex size-11 desktop:size-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50";
 
 const reservationTypeOptions = [
   { value: "INDIVIDUAL", label: "Individual" },
@@ -141,26 +145,35 @@ function nightsBetween(arrivalDate: string, departureDate: string) {
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
+function stayDateParts(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  if (!value || Number.isNaN(date.getTime())) {
+    return { date: "—", weekday: "—" };
+  }
+
+  return {
+    date: new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(date),
+    weekday: new Intl.DateTimeFormat("id-ID", {
+      weekday: "long",
+      timeZone: "UTC",
+    }).format(date),
+  };
+}
+
+function RequiredMark() {
   return (
-    <div
-      className={`flex items-center justify-between py-1.5 ${
-        strong ? "text-base font-semibold" : "text-sm"
-      }`}
-    >
-      <span className={strong ? "text-slate-900" : "text-slate-500"}>
-        {label}
+    <>
+      <span className="text-red-500" aria-hidden="true">
+        *
       </span>
-      <span className="text-right font-medium text-slate-900">{value}</span>
-    </div>
+      <span className="sr-only"> (wajib)</span>
+    </>
   );
 }
 
@@ -418,13 +431,7 @@ export function ReservationForm({
     (total, deposit) => total + deposit,
     0,
   );
-  const depositDisplay = quoteError
-    ? "Tidak tersedia"
-    : isQuotePending
-      ? "Menghitung…"
-      : displayedDeposits.length > 0
-        ? formatIDR(totalDeposit)
-        : "-";
+
   const roomSubtotal = isViewMode
     ? Number(readOnlyStayTotal ?? 0)
     : mode === "edit" && !pricingChanged
@@ -537,19 +544,19 @@ export function ReservationForm({
       {viewFooterActions}
       {!isViewMode ? (
         <>
-          <Link
-            href={returnHref}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Batal
-          </Link>
           <Button
             type="submit"
             disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
-            className="disabled:opacity-70"
+            className="desktop:lg:h-11! desktop:lg:text-sm disabled:opacity-70"
           >
             {isSubmitting ? "Menyimpan..." : submitLabel}
           </Button>
+          <Link
+            href={returnHref}
+            className={`${buttonVariants({ variant: "outline" })} border-2! border-red-800! bg-white text-red-700 hover:bg-red-50 hover:text-red-800 focus-visible:border-red-800 focus-visible:ring-red-300/50 desktop:lg:h-11! desktop:lg:text-sm`}
+          >
+            Batal
+          </Link>
         </>
       ) : null}
     </>
@@ -700,6 +707,129 @@ export function ReservationForm({
     );
   }
 
+  const arrivalSummary = stayDateParts(arrivalDate);
+  const departureSummary = stayDateParts(departureDate);
+  const roomRateDisplay = (index: number) =>
+    quoteError
+      ? "Tidak tersedia"
+      : isQuotePending
+        ? "Menghitung…"
+        : displayedDeposits[index]
+          ? formatIDR(displayedDeposits[index])
+          : "—";
+  const reservationSummary = (
+    <section
+      className={`${cardClassName} desktop:lg:flex desktop:lg:min-h-0 desktop:lg:flex-1 desktop:lg:flex-col desktop:lg:rounded-none desktop:lg:border-0 desktop:lg:shadow-none`}
+    >
+      <div className={cardHeaderClassName}>
+        <h2 className={sectionTitleClassName}>Ringkasan Reservasi</h2>
+      </div>
+      <div className={`${cardContentClassName} desktop:lg:flex desktop:lg:flex-1 desktop:lg:flex-col`}>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+          <div>
+            <p className="num text-sm font-semibold text-slate-900">
+              {arrivalSummary.date}
+            </p>
+            <p className="mt-1 text-xs font-medium capitalize text-slate-500">
+              {arrivalSummary.weekday}
+            </p>
+          </div>
+          <ArrowRight className="mt-0.5 h-4 w-4 text-slate-400" aria-hidden="true" />
+          <div className="text-right">
+            <p className="num text-sm font-semibold text-slate-900">
+              {departureSummary.date}
+            </p>
+            <p className="mt-1 text-xs font-medium capitalize text-slate-500">
+              {departureSummary.weekday}
+            </p>
+          </div>
+        </div>
+
+        <div className="my-4 flex justify-center">
+          <span className="num rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+            {nights} malam
+          </span>
+        </div>
+
+        <div className="space-y-4 border-y border-slate-200 py-4">
+          <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
+            <BedDouble className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+            <span className="num">
+              {watchedRoomRows.length} kamar · {nights} malam
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {watchedRoomRows.map((room, index) => {
+              const roomType = roomTypes.find(
+                (option) => option.id === Number(room.roomTypeId || 0),
+              );
+              const selectedRoom = rooms.find(
+                (option) => option.id === Number(room.roomId || 0),
+              );
+
+              return (
+                <div key={roomsFieldArray.fields[index]?.id ?? index} className="flex gap-3">
+                  <CalendarDays
+                    className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium text-slate-800">
+                      {roomType
+                        ? `${roomType.code} · ${roomType.name}`
+                        : `Kamar ${index + 1} · Tipe belum dipilih`}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {selectedRoom
+                        ? `Kamar ${selectedRoom.number} · Lantai ${selectedRoom.floor}`
+                        : "Nomor kamar belum dialokasikan"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <Tag className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+            <div className="min-w-0 flex-1 space-y-2">
+              {watchedRoomRows.map((_, index) => (
+                <div
+                  key={roomsFieldArray.fields[index]?.id ?? index}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="text-slate-500">
+                    Tarif kamar {watchedRoomRows.length > 1 ? index + 1 : ""}
+                  </span>
+                  <span className="num text-right font-medium text-slate-900">
+                    {roomRateDisplay(index)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {quoteError ? (
+          <p className="mt-4 text-sm font-medium text-red-600">{quoteError}</p>
+        ) : null}
+        {pricingChanged && readOnlyStayTotal ? (
+          <div className="mt-4 flex items-baseline justify-between gap-3 text-xs text-slate-500">
+            <span>Total terkunci sebelumnya</span>
+            <span className="num font-medium text-slate-700">
+              {formatIDR(readOnlyStayTotal)}
+            </span>
+          </div>
+        ) : null}
+        <div className="mt-4 flex items-baseline justify-between gap-4 desktop:lg:mt-auto desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:pt-4">
+          <span className="text-sm font-semibold text-slate-900">Total reservasi</span>
+          <span className="num text-lg font-bold text-slate-900">{estimatedTotal}</span>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <Form {...form}>
       <form
@@ -707,30 +837,190 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
-        <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 bg-slate-50 px-5 py-3">
-              <span className="text-sm font-semibold text-slate-700">
-                Formulir Reservasi
-              </span>
-            </div>
 
-            <div className="flex flex-col p-5">
-              <section className="order-2 mt-6 border-t border-slate-100 pt-6">
-                <h2 className={sectionTitleClassName}>Data Tamu</h2>
-                <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+
+        <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
+          <div className="flex min-w-0 flex-col gap-4">
+            <section className={cardClassName} aria-labelledby="stay-details-title">
+              <div className={cardHeaderClassName}>
+                <h2 id="stay-details-title" className={sectionTitleClassName}>
+                  Detail Menginap
+                </h2>
+              </div>
+              <div className={cardContentClassName}>
+                <div className="grid items-start gap-3.5 md:grid-cols-2 desktop:min-[1400px]:grid-cols-[1.1fr_1.1fr_auto_1fr_1.1fr]">
+                  <FormField
+                    control={form.control}
+                    name="reservationType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Tipe Reservasi <RequiredMark />
+                        </FormLabel>
+                        <FormControl>
+                          <select className={selectClassName} disabled={isViewMode} {...field}>
+                            {reservationTypeOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="arrivalDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Kedatangan <RequiredMark />
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            className={fieldClassName}
+                            readOnly={isViewMode}
+                            {...field}
+                            onChange={(event) => {
+                              const nextArrival = event.target.value;
+                              field.onChange(nextArrival);
+
+                              if (isViewMode || !nextArrival) {
+                                return;
+                              }
+
+                              const currentDeparture = form.getValues("departureDate");
+
+                              if (!currentDeparture || currentDeparture <= nextArrival) {
+                                const bumped = dayAfter(nextArrival);
+
+                                if (bumped) {
+                                  form.setValue("departureDate", bumped, {
+                                    shouldValidate: true,
+                                  });
+                                }
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex h-11 items-center justify-center self-end md:col-span-2 desktop:h-10 desktop:min-[1400px]:col-span-1">
+                    <span className="num rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-slate-600">
+                      {nights} malam
+                    </span>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="departureDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Keberangkatan <RequiredMark />
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            className={fieldClassName}
+                            readOnly={isViewMode}
+                            min={minDeparture}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="arrangementType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Paket Menginap <RequiredMark />
+                        </FormLabel>
+                        <FormControl>
+                          <select className={selectClassName} disabled={isViewMode} {...field}>
+                            {arrangementTypeOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className={cardClassName} aria-labelledby="guest-data-title">
+              <div className={cardHeaderClassName}>
+                <div>
+                  <h2 id="guest-data-title" className={sectionTitleClassName}>
+                    Data Tamu
+                  </h2>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Data sesuai identitas tamu utama
+                  </p>
+                </div>
+              </div>
+              <div className={cardContentClassName}>
+                <div className="grid gap-3.5 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nama Lengkap</FormLabel>
+                        <FormLabel>
+                          Nama Lengkap <RequiredMark />
+                        </FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
+                            placeholder="Nama sesuai identitas"
                             readOnly={isViewMode}
                             {...field}
                           />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nomor Telepon</FormLabel>
+                        <FormControl>
+                          <div className="flex">
+                            <span
+                              className="flex h-11 shrink-0 items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-3 text-sm font-medium text-slate-600 desktop:h-10"
+                              aria-hidden="true"
+                            >
+                              +62
+                            </span>
+                            <Input
+                              className={`${fieldClassName} rounded-l-none`}
+                              inputMode="tel"
+                              placeholder="812 3456 7890"
+                              readOnly={isViewMode}
+                              {...field}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -743,7 +1033,7 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {isCreateMode ? "Jenis Identitas *" : "Jenis Identitas"}
+                          Jenis Identitas {isCreateMode ? <RequiredMark /> : null}
                         </FormLabel>
                         <FormControl>
                           <select className={selectClassName} {...field}>
@@ -771,24 +1061,7 @@ export function ReservationForm({
                         <FormControl>
                           <Input
                             className={fieldClassName}
-                            readOnly={isViewMode}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telepon</FormLabel>
-                        <FormControl>
-                          <Input
-                            className={fieldClassName}
+                            placeholder="Nomor identitas"
                             readOnly={isViewMode}
                             {...field}
                           />
@@ -808,6 +1081,7 @@ export function ReservationForm({
                           <Input
                             type="email"
                             className={fieldClassName}
+                            placeholder="nama@email.com"
                             readOnly={isViewMode}
                             {...field}
                           />
@@ -824,27 +1098,26 @@ export function ReservationForm({
                       <FormItem>
                         <FormLabel>Kewarganegaraan</FormLabel>
                         <FormControl>
-                          <Input
-                            className={fieldClassName}
-                            readOnly={isViewMode}
-                            {...field}
-                          />
+                          <Input className={fieldClassName} readOnly={isViewMode} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="md:col-span-2 xl:col-span-4">
+                  <div className="md:col-span-2">
                     <FormField
                       control={form.control}
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Alamat *</FormLabel>
+                          <FormLabel>
+                            Alamat <RequiredMark />
+                          </FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
+                              placeholder="Alamat sesuai identitas"
                               readOnly={isViewMode}
                               {...field}
                             />
@@ -855,13 +1128,13 @@ export function ReservationForm({
                     />
                   </div>
 
-                  <div className="md:col-span-2 xl:col-span-4">
+                  <div className="md:col-span-2">
                     <FormField
                       control={form.control}
                       name="notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Catatan</FormLabel>
+                          <FormLabel>Catatan (opsional)</FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
@@ -876,392 +1149,224 @@ export function ReservationForm({
                     />
                   </div>
                 </div>
-              </section>
-
-              <section className="order-1 rounded-lg bg-slate-50/80 p-4 ring-1 ring-slate-100">
-                <h2 className={sectionTitleClassName}>Detail Reservasi</h2>
-                <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
-                  <FormField
-                    control={form.control}
-                    name="reservationType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipe Reservasi</FormLabel>
-                        <FormControl>
-                          <select
-                            className={selectClassName}
-                            disabled={isViewMode}
-                            {...field}
-                          >
-                            {reservationTypeOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="arrivalDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Arrival</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            className={fieldClassName}
-                            readOnly={isViewMode}
-                            {...field}
-                            onChange={(event) => {
-                              const nextArrival = event.target.value;
-                              field.onChange(nextArrival);
-
-                              if (isViewMode || !nextArrival) {
-                                return;
-                              }
-
-                              const currentDeparture =
-                                form.getValues("departureDate");
-
-                              if (
-                                !currentDeparture ||
-                                currentDeparture <= nextArrival
-                              ) {
-                                const bumped = dayAfter(nextArrival);
-
-                                if (bumped) {
-                                  form.setValue("departureDate", bumped, {
-                                    shouldValidate: true,
-                                  });
-                                }
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="departureDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Departure</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            className={fieldClassName}
-                            readOnly={isViewMode}
-                            min={minDeparture}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="arrangementType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipe Arrangement</FormLabel>
-                        <FormControl>
-                          <select
-                            className={selectClassName}
-                            disabled={isViewMode}
-                            {...field}
-                          >
-                            {arrangementTypeOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">
-                      Deposit (= tarif malam pertama)
-                    </p>
-                    <div
-                      role="status"
-                      className="mt-2 flex min-h-11 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900 desktop:min-h-10"
-                    >
-                      {depositDisplay}
-                    </div>
-                    <p className="mt-1.5 text-xs leading-4 text-slate-500">
-                      Deposit mengikuti tarif malam pertama tiap kamar dan tidak
-                      dapat diedit.
-                    </p>
-                    {displayedDeposits.length > 1 ? (
-                      <p className="mt-1 text-xs leading-4 text-slate-600">
-                        {displayedDeposits
-                          .map(
-                            (deposit, index) =>
-                              `Kamar ${index + 1}: ${formatIDR(deposit)}`,
-                          )
-                          .join(" · ")}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-
-              <section className="order-3 mt-6 border-t border-slate-100 pt-6">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <h2 className={sectionTitleClassName}>Kamar</h2>
-                  {isCreateMode ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        roomsFieldArray.append({
-                          roomTypeId: "",
-                          roomId: "",
-                          adults: "1",
-                          children: "0",
-                        })
-                      }
-                    >
-                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                      Tambah kamar
-                    </Button>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {roomsFieldArray.fields.map((roomField, index) => {
-                    const rowValue = watchedRoomRows[index];
-                    const rowRoomTypeId = Number(rowValue?.roomTypeId || 0);
-                    const rowRoomId = Number(rowValue?.roomId || 0);
-                    const rowRoomType = roomTypes.find(
-                      (roomType) => roomType.id === rowRoomTypeId,
-                    );
-                    const rowTotalGuests =
-                      Number(rowValue?.adults || 0) +
-                      Number(rowValue?.children || 0);
-                    const rowRoomOptions = getRoomOptions({
-                      activeReservations,
-                      allRooms: rooms,
-                      arrivalDate,
-                      departureDate,
-                      roomTypeId: rowRoomTypeId,
-                      selectedRoomIds,
-                      currentRoomId: rowRoomId,
-                    });
-
-                    return (
-                      <div
-                        key={roomField.id}
-                        className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                      >
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <div className="text-sm font-semibold text-slate-800">
-                            Kamar {index + 1}
-                            {rowRoomType ? (
-                              <span className="ml-2 text-xs font-normal text-slate-500">
-                                {rowTotalGuests || 0}/{rowRoomType.capacity} pax
-                              </span>
-                            ) : null}
-                          </div>
-                          {isCreateMode ? (
-                            <button
-                              type="button"
-                              className={iconButtonClassName}
-                              disabled={roomsFieldArray.fields.length <= 1}
-                              aria-label={`Hapus kamar ${index + 1}`}
-                              title={`Hapus kamar ${index + 1}`}
-                              onClick={() => roomsFieldArray.remove(index)}
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden="true" />
-                            </button>
-                          ) : null}
-                        </div>
-
-                        <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-5">
-                          <FormField
-                            control={form.control}
-                            name={`rooms.${index}.roomTypeId`}
-                            render={({ field }) => (
-                              <FormItem className="xl:col-span-2">
-                                <FormLabel>Tipe Kamar</FormLabel>
-                                <FormControl>
-                                  <select
-                                    className={selectClassName}
-                                    disabled={isViewMode}
-                                    {...field}
-                                    onChange={(event) => {
-                                      field.onChange(event.target.value);
-
-                                      if (!isViewMode) {
-                                        form.setValue(
-                                          `rooms.${index}.roomId`,
-                                          "",
-                                          { shouldValidate: true },
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    <option value="">Pilih tipe kamar</option>
-                                    {roomTypes.map((roomType) => (
-                                      <option
-                                        key={roomType.id}
-                                        value={String(roomType.id)}
-                                      >
-                                        {roomType.code} - {roomType.name} -{" "}
-                                        {roomType.capacity} pax -{" "}
-                                        {formatIDR(roomType.baseRate)}/mlm
-                                      </option>
-                                    ))}
-                                  </select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`rooms.${index}.roomId`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Kamar</FormLabel>
-                                <FormControl>
-                                  <select
-                                    className={selectClassName}
-                                    disabled={isViewMode || !rowRoomTypeId}
-                                    {...field}
-                                  >
-                                    <option value="">Belum dialokasikan</option>
-                                    {rowRoomOptions.map((room) => (
-                                      <option
-                                        key={room.id}
-                                        value={String(room.id)}
-                                        disabled={!room.isAvailable}
-                                      >
-                                        {room.number} / Lantai {room.floor}
-                                        {!room.isAvailable ? " / unavailable" : ""}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`rooms.${index}.adults`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Dewasa</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    className={fieldClassName}
-                                    readOnly={isViewMode}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`rooms.${index}.children`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Anak</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    className={fieldClassName}
-                                    readOnly={isViewMode}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
-          </div>
-
-          <aside className="contents desktop:lg:sticky desktop:lg:top-5 desktop:lg:flex desktop:lg:h-[calc(100dvh-2.5rem)] desktop:lg:min-w-0 desktop:lg:flex-col desktop:lg:gap-4">
-            <section className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm desktop:lg:block">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
-                Ringkasan Tarif
-              </div>
-              <div className="p-5">
-                <SummaryRow
-                  label="Jumlah kamar"
-                  value={String(watchedRoomRows.length)}
-                />
-                <SummaryRow label="Jumlah malam" value={String(nights)} />
-                <SummaryRow
-                  label="Subtotal kamar"
-                  value={
-                    quoteError
-                      ? "Tidak tersedia"
-                      : isQuotePending
-                        ? "Menghitung…"
-                        : roomSubtotal
-                          ? formatIDR(roomSubtotal)
-                          : "-"
-                  }
-                />
-                {quoteError ? (
-                  <SummaryRow label="Status estimasi" value={quoteError} />
-                ) : null}
-                {pricingChanged && readOnlyStayTotal ? (
-                  <SummaryRow
-                    label="Total terkunci sebelumnya"
-                    value={formatIDR(readOnlyStayTotal)}
-                  />
-                ) : null}
-                <SummaryRow
-                  label={
-                    watchedRoomRows.length > 1
-                      ? "Total deposit per kamar"
-                      : "Deposit malam pertama"
-                  }
-                  value={depositDisplay}
-                />
-                <div className="my-3 border-t border-slate-100" />
-                <SummaryRow label="Estimasi tagihan" value={estimatedTotal} strong />
               </div>
             </section>
+
+            <section className={cardClassName} aria-labelledby="rooms-title">
+              <div className={cardHeaderClassName}>
+                <h2 id="rooms-title" className={sectionTitleClassName}>
+                  Kamar
+                </h2>
+                {isCreateMode ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      roomsFieldArray.append({
+                        roomTypeId: "",
+                        roomId: "",
+                        adults: "1",
+                        children: "0",
+                      })
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                    Tambah Kamar
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className={`${cardContentClassName} flex flex-col gap-3`}>
+                {roomsFieldArray.fields.map((roomField, index) => {
+                  const rowValue = watchedRoomRows[index];
+                  const rowRoomTypeId = Number(rowValue?.roomTypeId || 0);
+                  const rowRoomId = Number(rowValue?.roomId || 0);
+                  const rowRoomType = roomTypes.find(
+                    (roomType) => roomType.id === rowRoomTypeId,
+                  );
+                  const rowTotalGuests =
+                    Number(rowValue?.adults || 0) + Number(rowValue?.children || 0);
+                  const rowRoomOptions = getRoomOptions({
+                    activeReservations,
+                    allRooms: rooms,
+                    arrivalDate,
+                    departureDate,
+                    roomTypeId: rowRoomTypeId,
+                    selectedRoomIds,
+                    currentRoomId: rowRoomId,
+                  });
+
+                  return (
+                    <div
+                      key={roomField.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50/70 p-4"
+                    >
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-slate-800">
+                          Kamar {index + 1}
+                          {rowRoomType ? (
+                            <span className="ml-2 text-xs font-normal text-slate-500">
+                              {rowTotalGuests || 0}/{rowRoomType.capacity} pax
+                            </span>
+                          ) : null}
+                        </div>
+                        {isCreateMode ? (
+                          <button
+                            type="button"
+                            className={iconButtonClassName}
+                            disabled={roomsFieldArray.fields.length <= 1}
+                            aria-label={`Hapus kamar ${index + 1}`}
+                            title={`Hapus kamar ${index + 1}`}
+                            onClick={() => roomsFieldArray.remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="grid items-start gap-3.5 md:grid-cols-2 desktop:min-[1400px]:grid-cols-12">
+                        <FormField
+                          control={form.control}
+                          name={`rooms.${index}.roomTypeId`}
+                          render={({ field }) => (
+                            <FormItem className="desktop:min-[1400px]:col-span-3">
+                              <FormLabel>
+                                Tipe Kamar <RequiredMark />
+                              </FormLabel>
+                              <FormControl>
+                                <select
+                                  className={selectClassName}
+                                  disabled={isViewMode}
+                                  {...field}
+                                  onChange={(event) => {
+                                    field.onChange(event.target.value);
+
+                                    if (!isViewMode) {
+                                      form.setValue(`rooms.${index}.roomId`, "", {
+                                        shouldValidate: true,
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <option value="">Pilih tipe kamar</option>
+                                  {roomTypes.map((roomType) => (
+                                    <option key={roomType.id} value={String(roomType.id)}>
+                                      {roomType.code} - {roomType.name} - {roomType.capacity} pax -{" "}
+                                      {formatIDR(roomType.baseRate)}/mlm
+                                    </option>
+                                  ))}
+                                </select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`rooms.${index}.roomId`}
+                          render={({ field }) => (
+                            <FormItem className="desktop:min-[1400px]:col-span-3">
+                              <FormLabel>Kamar</FormLabel>
+                              <FormControl>
+                                <select
+                                  className={selectClassName}
+                                  disabled={isViewMode || !rowRoomTypeId}
+                                  {...field}
+                                >
+                                  <option value="">Belum dialokasikan</option>
+                                  {rowRoomOptions.map((room) => (
+                                    <option
+                                      key={room.id}
+                                      value={String(room.id)}
+                                      disabled={!room.isAvailable}
+                                    >
+                                      {room.number} / Lantai {room.floor}
+                                      {!room.isAvailable ? " / unavailable" : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`rooms.${index}.adults`}
+                          render={({ field }) => (
+                            <FormItem className="desktop:min-[1400px]:col-span-2">
+                              <FormLabel>
+                                Dewasa <RequiredMark />
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  step={1}
+                                  className={fieldClassName}
+                                  readOnly={isViewMode}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`rooms.${index}.children`}
+                          render={({ field }) => (
+                            <FormItem className="desktop:min-[1400px]:col-span-2">
+                              <FormLabel>
+                                Anak <RequiredMark />
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={1}
+                                  className={fieldClassName}
+                                  readOnly={isViewMode}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="md:col-span-2 desktop:min-[1400px]:col-span-2">
+                          <p className="text-sm font-medium text-slate-700">Tarif kamar</p>
+                          <div
+                            role="status"
+                            className="num mt-2 flex min-h-11 items-center text-sm font-semibold text-slate-900 desktop:min-h-10"
+                          >
+                            {roomRateDisplay(index)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          <aside className="contents desktop:lg:sticky desktop:lg:top-5 desktop:lg:flex desktop:lg:h-[calc(100dvh-2.5rem)] desktop:lg:min-w-0 desktop:lg:flex-col desktop:lg:overflow-hidden desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
+            <div className="desktop:lg:hidden">{reservationSummary}</div>
+            <div className="hidden desktop:lg:flex desktop:lg:min-h-0 desktop:lg:flex-1">
+              {reservationSummary}
+            </div>
 
             {showFooter ? (
               <PinnedActionFooter
                 hint={reservationActionHint}
                 actions={reservationActions}
+                actionsClassName="desktop:lg:flex-col desktop:lg:gap-3 desktop:lg:px-5 desktop:lg:py-5 desktop:lg:[&>*]:w-full desktop:lg:[&>*]:flex-none"
+                className="desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:[&>div]:rounded-none desktop:lg:[&>div]:border-0 desktop:lg:[&>div]:shadow-none"
                 desktopPanel
               />
             ) : null}
