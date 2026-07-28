@@ -1,4 +1,8 @@
-import { ArrangementType, ReservationType } from "@prisma/client";
+import {
+  ArrangementType,
+  GuestIdType,
+  ReservationType,
+} from "@prisma/client";
 import { z } from "zod";
 
 function toUtcDateOnly(value: string) {
@@ -34,6 +38,21 @@ const OptionalTextSchema = z
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
+
+const RequiredAddressSchema = z
+  .string()
+  .trim()
+  .min(1, "Address is required")
+  .max(500, "Address must be 500 characters or fewer");
+
+const RequiredGuestIdTypeSchema = z.nativeEnum(GuestIdType, {
+  error: "ID type is required",
+});
+
+const OptionalGuestIdTypeSchema = z
+  .union([z.nativeEnum(GuestIdType), z.literal("")])
+  .optional()
+  .transform((value) => value || null);
 
 const OptionalShortTextSchema = z
   .string()
@@ -79,6 +98,7 @@ const CreateReservationObjectSchema = z.object({
       .trim()
       .min(1, "Guest name is required")
       .max(100, "Guest name must be 100 characters or fewer"),
+    idType: RequiredGuestIdTypeSchema,
     idNumber: OptionalShortTextSchema,
     phone: z
       .string()
@@ -88,7 +108,7 @@ const CreateReservationObjectSchema = z.object({
       .optional()
       .transform((value) => (value ? value : null)),
     email: OptionalEmailSchema,
-    address: OptionalTextSchema,
+    address: RequiredAddressSchema,
     nationality: z
       .string()
       .trim()
@@ -116,7 +136,19 @@ const CreateReservationObjectSchema = z.object({
     notes: OptionalTextSchema,
 });
 
+const EditReservationObjectSchema = CreateReservationObjectSchema.extend({
+  idType: OptionalGuestIdTypeSchema,
+});
+
 const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
+  (value) => value.departureDate > value.arrivalDate,
+  {
+    message: "Departure must be after arrival",
+    path: ["departureDate"],
+  },
+);
+
+const BaseEditReservationSchema = EditReservationObjectSchema.refine(
   (value) => value.departureDate > value.arrivalDate,
   {
     message: "Departure must be after arrival",
@@ -140,18 +172,32 @@ const ReservationRoomRowSchema = z.object({
     .min(0, "Children cannot be negative"),
 });
 
+const UnifiedRoomFields = {
+  rooms: z
+    .array(ReservationRoomRowSchema)
+    .min(1, "Tambahkan minimal 1 kamar")
+    .max(20, "Booking maksimal 20 kamar"),
+};
+
 const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
   roomTypeId: true,
   roomId: true,
   adults: true,
   children: true,
 })
-  .extend({
-    rooms: z
-      .array(ReservationRoomRowSchema)
-      .min(1, "Tambahkan minimal 1 kamar")
-      .max(20, "Booking maksimal 20 kamar"),
-  })
+  .extend(UnifiedRoomFields)
+  .refine((value) => value.departureDate > value.arrivalDate, {
+    message: "Departure must be after arrival",
+    path: ["departureDate"],
+  });
+
+const BaseUnifiedEditReservationSchema = EditReservationObjectSchema.omit({
+  roomTypeId: true,
+  roomId: true,
+  adults: true,
+  children: true,
+})
+  .extend(UnifiedRoomFields)
   .refine((value) => value.departureDate > value.arrivalDate, {
     message: "Departure must be after arrival",
     path: ["departureDate"],
@@ -200,6 +246,47 @@ export function createReservationSchema(
 }
 
 export const CreateReservationSchema = createReservationSchema();
+
+export function createEditReservationSchema(
+  roomTypes: ReservationRoomTypeCapacity[] = [],
+) {
+  const capacityByRoomTypeId = new Map(
+    roomTypes.map((roomType) => [roomType.id, roomType.capacity]),
+  );
+
+  return BaseEditReservationSchema.superRefine((value, context) => {
+    const totalGuests = value.adults + value.children;
+    const capacity = capacityByRoomTypeId.get(value.roomTypeId);
+
+    if (totalGuests < 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["adults"],
+        message: "Jumlah tamu minimal 1",
+      });
+    }
+
+    if (typeof capacity === "undefined") {
+      if (roomTypes.length > 0) {
+        context.addIssue({
+          code: "custom",
+          path: ["roomTypeId"],
+          message: "Tipe kamar tidak valid",
+        });
+      }
+
+      return;
+    }
+
+    if (totalGuests > capacity) {
+      context.addIssue({
+        code: "custom",
+        path: ["children"],
+        message: reservationCapacityError(totalGuests, capacity),
+      });
+    }
+  });
+}
 
 export function createUnifiedReservationSchema(
   roomTypes: ReservationRoomTypeCapacity[] = [],
@@ -263,8 +350,69 @@ export function createUnifiedReservationSchema(
 
 export const UnifiedReservationSchema = createUnifiedReservationSchema();
 
+export function createUnifiedEditReservationSchema(
+  roomTypes: ReservationRoomTypeCapacity[] = [],
+) {
+  const capacityByRoomTypeId = new Map(
+    roomTypes.map((roomType) => [roomType.id, roomType.capacity]),
+  );
+
+  return BaseUnifiedEditReservationSchema.superRefine((value, context) => {
+    const selectedRoomIds = new Set<number>();
+
+    value.rooms.forEach((room, index) => {
+      const totalGuests = room.adults + room.children;
+
+      if (totalGuests < 1) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "adults"],
+          message: "Jumlah tamu minimal 1",
+        });
+      }
+
+      const capacity = capacityByRoomTypeId.get(room.roomTypeId);
+
+      if (typeof capacity === "undefined") {
+        if (roomTypes.length > 0) {
+          context.addIssue({
+            code: "custom",
+            path: ["rooms", index, "roomTypeId"],
+            message: "Tipe kamar tidak valid",
+          });
+        }
+
+        return;
+      }
+
+      if (totalGuests > capacity) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "children"],
+          message: reservationCapacityError(totalGuests, capacity),
+        });
+      }
+
+      if (room.roomId === null) {
+        return;
+      }
+
+      if (selectedRoomIds.has(room.roomId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["rooms", index, "roomId"],
+          message: "Kamar fisik yang sama tidak boleh dipilih dua kali",
+        });
+      }
+
+      selectedRoomIds.add(room.roomId);
+    });
+  });
+}
+
 export type CreateReservationInput = {
   fullName: string;
+  idType: GuestIdType | "";
   idNumber: string;
   phone: string;
   email: string;
@@ -294,5 +442,5 @@ export type UnifiedReservationInput = Omit<
 };
 export type UnifiedReservationValues = z.output<typeof UnifiedReservationSchema>;
 
-export const EditReservationSchema = CreateReservationSchema;
+export const EditReservationSchema = createEditReservationSchema();
 export type EditReservationValues = z.output<typeof EditReservationSchema>;

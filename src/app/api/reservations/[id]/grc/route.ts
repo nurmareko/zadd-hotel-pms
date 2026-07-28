@@ -35,6 +35,7 @@ export async function GET(
         guest: {
           select: {
             fullName: true,
+            idType: true,
             idNumber: true,
             phone: true,
             email: true,

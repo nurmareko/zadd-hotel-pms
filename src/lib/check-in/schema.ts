@@ -1,4 +1,4 @@
-import { PaymentMethod } from "@prisma/client";
+import { GuestIdType, PaymentMethod } from "@prisma/client";
 import { z } from "zod";
 
 export const purposeOfVisitOptions = [
@@ -102,6 +102,10 @@ export const CheckInSchema = z
       .min(1, "Nama tamu wajib diisi")
       .min(2, "Nama tamu minimal 2 karakter")
       .max(100, "Nama tamu maksimal 100 karakter"),
+    guestIdType: z
+      .union([z.nativeEnum(GuestIdType), z.literal("")])
+      .optional()
+      .transform((value) => value || null),
     guestIdNumber: OptionalGuestFieldSchema(50),
     guestPhone: OptionalGuestFieldSchema(20),
     guestEmail: OptionalGuestEmailSchema,

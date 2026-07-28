@@ -2,6 +2,7 @@
 
 import {
   DepositStatus,
+  GuestIdType,
   PaymentMethod,
   ReservationStatus,
 } from "@prisma/client";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatIDR } from "@/lib/format";
+import { formatGuestIdentity } from "@/lib/guest-id-type";
 
 import { completeCheckIn } from "@/lib/check-in/actions";
 import { SignaturePadField } from "@/components/check-in/signature-pad-field";
@@ -45,6 +47,7 @@ export type GroupCheckInRoom = {
   requiredDeposit: string | null;
   guest: {
     fullName: string;
+    idType: GuestIdType | null;
     idNumber: string | null;
     phone: string | null;
     email: string | null;
@@ -316,6 +319,7 @@ export function GroupSettlementActions({
         formData.set("reservationId", String(room.reservationId));
         formData.set("roomId", String(room.roomId));
         formData.set("guestFullName", room.guest.fullName);
+        formData.set("guestIdType", room.guest.idType ?? "");
         formData.set("guestIdNumber", room.guest.idNumber ?? "");
         formData.set("guestPhone", room.guest.phone ?? "");
         formData.set("guestEmail", room.guest.email ?? "");
@@ -565,6 +569,9 @@ export function GroupSettlementActions({
                     {room.roomNumber ? `Kamar ${room.roomNumber}` : room.reservationNo}
                   </p>
                   <p className="mt-0.5 text-sm text-slate-600">{room.guest.fullName} · {room.reservationNo}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Identitas: {formatGuestIdentity(room.guest.idType, room.guest.idNumber)}
+                  </p>
                   <div className="mt-3">
                     <span className="text-xs font-semibold text-slate-600">Tanda tangan tamu</span>
                     <div className="mt-1">

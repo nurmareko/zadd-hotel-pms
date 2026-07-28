@@ -47,6 +47,7 @@ export async function getFreshCheckInReview(reservationId: number) {
       guest: {
         select: {
           fullName: true,
+          idType: true,
           idNumber: true,
           phone: true,
           email: true,

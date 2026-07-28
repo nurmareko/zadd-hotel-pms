@@ -126,6 +126,7 @@ export default async function NewReservationPage({
     : requestedRoomType?.id;
   const defaultValues: CreateReservationInput = {
     fullName: "",
+    idType: "",
     idNumber: "",
     phone: "",
     email: "",

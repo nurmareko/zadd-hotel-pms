@@ -30,7 +30,7 @@ import {
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
-  createReservationSchema,
+  createEditReservationSchema,
   createUnifiedReservationSchema,
   type EditReservationValues,
   type UnifiedReservationValues,
@@ -250,7 +250,7 @@ async function currentReservationSchema() {
     select: { id: true, capacity: true },
   });
 
-  return createReservationSchema(roomTypes);
+  return createEditReservationSchema(roomTypes);
 }
 
 async function currentUnifiedReservationSchema() {
@@ -360,6 +360,7 @@ async function runCreateReservationTransaction(
       const guest = await tx.guest.create({
         data: {
           fullName: input.fullName,
+          idType: input.idType,
           idNumber: input.idNumber,
           phone: input.phone,
           email: input.email,
@@ -557,6 +558,7 @@ async function runUpdateReservationTransaction(
         where: { id: existingReservation.guestId },
         data: {
           fullName: input.fullName,
+          idType: input.idType,
           idNumber: input.idNumber,
           phone: input.phone,
           email: input.email,

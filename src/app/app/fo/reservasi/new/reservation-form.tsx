@@ -28,6 +28,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateID, formatIDR } from "@/lib/format";
 import {
+  guestIdTypeLabel,
+  guestIdTypeOptions,
+} from "@/lib/guest-id-type";
+import {
   FO_RESERVASI_VIEW_PATHS,
   type FoReservasiView,
 } from "@/lib/nav-preferences";
@@ -37,6 +41,7 @@ import {
   updateReservation,
 } from "./actions";
 import {
+  createUnifiedEditReservationSchema,
   createUnifiedReservationSchema,
   type CreateReservationInput,
   type UnifiedReservationInput,
@@ -215,6 +220,7 @@ function unifiedDefaultValues(
 ): UnifiedReservationInput {
   return {
     fullName: defaultValues.fullName,
+    idType: defaultValues.idType,
     idNumber: defaultValues.idNumber,
     phone: defaultValues.phone,
     email: defaultValues.email,
@@ -248,6 +254,7 @@ function firstRoomReservationValues(
 
   return {
     fullName: values.fullName,
+    idType: values.idType,
     idNumber: values.idNumber,
     phone: values.phone,
     email: values.email,
@@ -284,8 +291,11 @@ export function ReservationForm({
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
   const reservationSchema = useMemo(
-    () => createUnifiedReservationSchema(roomTypes),
-    [roomTypes],
+    () =>
+      isCreateMode
+        ? createUnifiedReservationSchema(roomTypes)
+        : createUnifiedEditReservationSchema(roomTypes),
+    [isCreateMode, roomTypes],
   );
   const form = useForm<UnifiedReservationInput>({
     resolver: zodResolver(reservationSchema) as unknown as Resolver<
@@ -567,6 +577,10 @@ export function ReservationForm({
           <ReadOnlySection title="Data Tamu">
             <ReadOnlyField label="Nama Lengkap" value={defaultValues.fullName} />
             <ReadOnlyField
+              label="Jenis Identitas"
+              value={guestIdTypeLabel(defaultValues.idType || null)}
+            />
+            <ReadOnlyField
               label="Nomor Identitas"
               value={defaultValues.idNumber}
             />
@@ -725,6 +739,31 @@ export function ReservationForm({
 
                   <FormField
                     control={form.control}
+                    name="idType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {isCreateMode ? "Jenis Identitas *" : "Jenis Identitas"}
+                        </FormLabel>
+                        <FormControl>
+                          <select className={selectClassName} {...field}>
+                            <option value="">
+                              {isCreateMode ? "Pilih jenis identitas" : "Belum dipilih"}
+                            </option>
+                            {guestIdTypeOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="idNumber"
                     render={({ field }) => (
                       <FormItem>
@@ -802,7 +841,7 @@ export function ReservationForm({
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Alamat</FormLabel>
+                          <FormLabel>Alamat *</FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}

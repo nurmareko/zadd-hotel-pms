@@ -269,6 +269,7 @@ async function runCheckInTransaction(
         where: { id: reservation.guestId },
         data: {
           fullName: input.guestFullName,
+          idType: input.guestIdType,
           idNumber: input.guestIdNumber || null,
           phone: input.guestPhone || null,
           email: input.guestEmail || null,

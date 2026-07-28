@@ -26,6 +26,7 @@ import {
   type PurposeOfVisitValue,
 } from "@/lib/check-in/schema";
 import { formatIDR } from "@/lib/format";
+import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { getFreshCheckInReview } from "./actions";
 
 type FreshReviewResult = Awaited<ReturnType<typeof getFreshCheckInReview>>;
@@ -281,6 +282,7 @@ export function CheckInDetailPanel({
       formData.set("reservationId", String(review.reservationId));
       formData.set("roomId", String(review.room?.id ?? ""));
       formData.set("guestFullName", review.guest.fullName);
+      formData.set("guestIdType", review.guest.idType ?? "");
       formData.set("guestIdNumber", review.guest.idNumber ?? "");
       formData.set("guestPhone", review.guest.phone ?? "");
       formData.set("guestEmail", review.guest.email ?? "");
@@ -534,7 +536,13 @@ export function CheckInDetailPanel({
                   <ReadOnlyItem label="Tipe" value={review.reservationType} />
                   <ReadOnlyItem label="Arrangement" value={review.arrangementType} />
                   <ReadOnlyItem label="Nama tamu" value={review.guest.fullName} />
-                  <ReadOnlyItem label="No. identitas" value={review.guest.idNumber ?? "—"} />
+                  <ReadOnlyItem
+                    label="Identitas"
+                    value={formatGuestIdentity(
+                      review.guest.idType,
+                      review.guest.idNumber,
+                    )}
+                  />
                   <ReadOnlyItem label="Telepon" value={review.guest.phone ?? "—"} />
                   <ReadOnlyItem label="Email" value={review.guest.email ?? "—"} />
                   <ReadOnlyItem label="Kebangsaan" value={review.guest.nationality ?? "—"} />
