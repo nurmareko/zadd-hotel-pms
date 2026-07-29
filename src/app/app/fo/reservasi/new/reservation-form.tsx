@@ -1370,7 +1370,7 @@ export function ReservationForm({
                 : null}
             </div>
 
-            <aside className="contents desktop:lg:sticky desktop:lg:top-17.25 desktop:lg:flex desktop:lg:h-[calc(100dvh-5.5625rem)] desktop:lg:max-h-[calc(100dvh-5.5625rem)] desktop:lg:min-w-0 desktop:lg:self-start desktop:lg:flex-col desktop:lg:overflow-clip desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
+            <aside className="contents desktop:lg:sticky desktop:lg:top-14.25 desktop:lg:flex desktop:lg:h-[calc(100dvh-5.5625rem)] desktop:lg:max-h-[calc(100dvh-5.5625rem)] desktop:lg:min-w-0 desktop:lg:self-start desktop:lg:flex-col desktop:lg:overflow-clip desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
             <div className="desktop:lg:hidden">{reservationSummary}</div>
             <div className="hidden desktop:lg:block">
               {reservationSummary}
