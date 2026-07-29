@@ -206,7 +206,7 @@ function overlapsStay(
 }
 
 function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Unable to create reservation";
+  return typeof error === "string" ? error : "Reservasi tidak dapat dibuat";
 }
 
 function unifiedDefaultValues(
@@ -675,7 +675,7 @@ export function ReservationForm({
             ) : (
               <ReadOnlyField
                 label="Jadwal malam"
-                value="Snapshot malam tidak tersedia; total menggunakan tarif flat."
+                value="Rincian malam tidak tersedia; total menggunakan tarif tetap."
                 wide
               />
             )}
@@ -715,19 +715,19 @@ export function ReservationForm({
         <dl aria-label="Rincian biaya reservasi" className="text-sm">
           <div className="space-y-3">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Room total</dt>
+              <dt className="text-slate-600">Total Kamar</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {summaryAmountDisplay(roomSubtotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Inclusion</dt>
+              <dt className="text-slate-600">Inklusi</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {formatIDR(inclusionTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Extras total</dt>
+              <dt className="text-slate-600">Total Extras</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {formatIDR(extrasTotal)}
               </dd>
@@ -742,7 +742,7 @@ export function ReservationForm({
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Total received</dt>
+              <dt className="text-slate-600">Total Diterima</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {formatIDR(totalReceived)}
               </dd>
@@ -750,9 +750,9 @@ export function ReservationForm({
           </div>
 
           <div className="mt-4 border-t border-slate-200 pt-4">
-            <div className="flex items-baseline justify-between gap-4 rounded-md bg-slate-50 px-3 py-3">
-              <dt className="font-semibold text-slate-900">Total outstanding</dt>
-              <dd className="num text-right text-lg font-bold text-slate-900">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="font-semibold text-slate-900">Sisa Tagihan</dt>
+              <dd className="num text-right font-bold text-slate-900">
                 {summaryAmountDisplay(totalOutstanding)}
               </dd>
             </div>
@@ -1082,7 +1082,7 @@ export function ReservationForm({
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
-                              placeholder="Permintaan khusus, late arrival, atau catatan reservasi."
+                              placeholder="Permintaan khusus, kedatangan terlambat, atau catatan reservasi."
                               readOnly={isViewMode}
                               {...field}
                             />
@@ -1150,7 +1150,7 @@ export function ReservationForm({
                           Kamar {index + 1}
                           {rowRoomType ? (
                             <span className="ml-2 text-xs font-normal text-slate-500">
-                              {rowTotalGuests || 0}/{rowRoomType.capacity} pax
+                              {rowTotalGuests || 0}/{rowRoomType.capacity} tamu
                             </span>
                           ) : null}
                         </div>
@@ -1195,7 +1195,7 @@ export function ReservationForm({
                                   <option value="">Pilih tipe kamar</option>
                                   {roomTypes.map((roomType) => (
                                     <option key={roomType.id} value={String(roomType.id)}>
-                                      {roomType.code} - {roomType.name} - {roomType.capacity} pax -{" "}
+                                      {roomType.code} - {roomType.name} - {roomType.capacity} tamu -{" "}
                                       {formatIDR(roomType.baseRate)}/mlm
                                     </option>
                                   ))}
@@ -1226,7 +1226,7 @@ export function ReservationForm({
                                       disabled={!room.isAvailable}
                                     >
                                       {room.number} / Lantai {room.floor}
-                                      {!room.isAvailable ? " / unavailable" : ""}
+                                      {!room.isAvailable ? " / tidak tersedia" : ""}
                                     </option>
                                   ))}
                                 </select>

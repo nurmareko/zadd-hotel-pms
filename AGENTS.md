@@ -19,6 +19,38 @@ Hotel Property Management System for Telkom University hospitality
 praktikum. Students rotate through 5 operational roles
 (FO / HK / FB / ACC / ADMIN). MVP scope — see docs/feature_list_mvp.md.
 
+## UI copy language
+
+This convention is intentionally duplicated in `docs/design.md` so both agents
+and design contributors see it. Any future change to this convention or glossary
+MUST update both files in the same change.
+
+- All user-facing UI copy MUST be in Indonesian, including labels, headings,
+  buttons, helper and hint text, validation messages, error messages, toasts,
+  empty states, table headers, badges, and confirmation dialogs.
+- Established PMS and technical terms stay in English where they are already the
+  working vocabulary: check-in, check-out, folio, deposit, extras, no-show, GRC,
+  ARR, and room-status codes such as VD, OC, and OOO.
+- Do not re-translate an already-established term. If the codebase already uses
+  an Indonesian form (for example, "Inklusi"), use it; if it already uses English
+  (for example, "check-in" or "deposit"), keep it. Consistency with existing UI
+  copy takes priority over a fresh translation choice.
+- Code is not copy. Identifiers, function and variable names, database columns,
+  Prisma enum values such as `CONFIRMED`, `CHECKED_IN`, `PENDING`, `COLLECTED`,
+  and `DEPOSIT`, file names, and route paths stay in English. This rule governs
+  what the user sees, not the code.
+- Developer-facing documentation under `/docs` stays in English and is not
+  governed by the UI-copy language rule.
+- All new user-facing strings MUST follow this convention. Mixed-language copy
+  within a single screen should be corrected when that screen is touched.
+
+### UI copy glossary
+
+- English kept: check-in, check-out, folio, deposit, extras, no-show, GRC, ARR,
+  VD, OC, OOO.
+- Indonesian established: Kamar, Tamu, Reservasi, Inklusi, Tarif, Kedatangan,
+  Keberangkatan, Ringkasan, Sisa Tagihan, Simpan, Batal, Kumpulkan.
+
 ## Agent workflow overrides
 
 ### Git and commits

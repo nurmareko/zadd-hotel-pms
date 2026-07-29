@@ -12,7 +12,7 @@ function toUtcDateOnly(value: string) {
 
 const DateInputSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required")
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal wajib diisi")
   .transform((value, context) => {
     const date = toUtcDateOnly(value);
 
@@ -22,7 +22,7 @@ const DateInputSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "Date is invalid",
+        message: "Tanggal tidak valid",
       });
 
       return z.NEVER;
@@ -34,7 +34,7 @@ const DateInputSchema = z
 const OptionalTextSchema = z
   .string()
   .trim()
-  .max(500, "Must be 500 characters or fewer")
+  .max(500, "Maksimal 500 karakter")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -42,11 +42,11 @@ const OptionalTextSchema = z
 const RequiredAddressSchema = z
   .string()
   .trim()
-  .min(1, "Address is required")
-  .max(500, "Address must be 500 characters or fewer");
+  .min(1, "Alamat wajib diisi")
+  .max(500, "Alamat maksimal 500 karakter");
 
 const RequiredGuestIdTypeSchema = z.nativeEnum(GuestIdType, {
-  error: "ID type is required",
+  error: "Jenis identitas wajib dipilih",
 });
 
 const OptionalGuestIdTypeSchema = z
@@ -57,7 +57,7 @@ const OptionalGuestIdTypeSchema = z
 const OptionalShortTextSchema = z
   .string()
   .trim()
-  .max(100, "Must be 100 characters or fewer")
+  .max(100, "Maksimal 100 karakter")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -65,8 +65,8 @@ const OptionalShortTextSchema = z
 const OptionalEmailSchema = z
   .string()
   .trim()
-  .email("Email is invalid")
-  .max(100, "Email must be 100 characters or fewer")
+  .email("Format email tidak valid")
+  .max(100, "Email maksimal 100 karakter")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -77,9 +77,9 @@ const OptionalRoomIdSchema = z.preprocess(
       ? null
       : value,
   z.coerce
-    .number("Room is invalid")
-    .int("Room is invalid")
-    .positive("Room is invalid")
+    .number("Kamar tidak valid")
+    .int("Kamar tidak valid")
+    .positive("Kamar tidak valid")
     .nullable(),
 );
 
@@ -96,14 +96,14 @@ const CreateReservationObjectSchema = z.object({
     fullName: z
       .string()
       .trim()
-      .min(1, "Guest name is required")
-      .max(100, "Guest name must be 100 characters or fewer"),
+      .min(1, "Nama tamu wajib diisi")
+      .max(100, "Nama tamu maksimal 100 karakter"),
     idType: RequiredGuestIdTypeSchema,
     idNumber: OptionalShortTextSchema,
     phone: z
       .string()
       .trim()
-      .max(20, "Phone must be 20 characters or fewer")
+      .max(20, "Nomor telepon maksimal 20 karakter")
       .or(z.literal(""))
       .optional()
       .transform((value) => (value ? value : null)),
@@ -112,25 +112,25 @@ const CreateReservationObjectSchema = z.object({
     nationality: z
       .string()
       .trim()
-      .max(50, "Nationality must be 50 characters or fewer")
+      .max(50, "Kewarganegaraan maksimal 50 karakter")
       .or(z.literal(""))
       .optional()
       .transform((value) => (value ? value : null)),
     roomTypeId: z.coerce
-      .number("Room type is required")
-      .int("Room type is required")
-      .positive("Room type is required"),
+      .number("Tipe kamar wajib dipilih")
+      .int("Tipe kamar wajib dipilih")
+      .positive("Tipe kamar wajib dipilih"),
     roomId: OptionalRoomIdSchema,
     arrivalDate: DateInputSchema,
     departureDate: DateInputSchema,
     adults: z.coerce
-      .number("Adults is required")
-      .int("Adults must be a whole number")
-      .min(1, "At least one adult is required"),
+      .number("Jumlah dewasa wajib diisi")
+      .int("Jumlah dewasa harus berupa bilangan bulat")
+      .min(1, "Minimal 1 dewasa"),
     children: z.coerce
-      .number("Children is required")
-      .int("Children must be a whole number")
-      .min(0, "Children cannot be negative"),
+      .number("Jumlah anak wajib diisi")
+      .int("Jumlah anak harus berupa bilangan bulat")
+      .min(0, "Jumlah anak tidak boleh negatif"),
     reservationType: z.nativeEnum(ReservationType),
     arrangementType: z.nativeEnum(ArrangementType),
     notes: OptionalTextSchema,
@@ -143,7 +143,7 @@ const EditReservationObjectSchema = CreateReservationObjectSchema.extend({
 const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
   (value) => value.departureDate > value.arrivalDate,
   {
-    message: "Departure must be after arrival",
+    message: "Keberangkatan harus setelah kedatangan",
     path: ["departureDate"],
   },
 );
@@ -151,32 +151,32 @@ const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
 const BaseEditReservationSchema = EditReservationObjectSchema.refine(
   (value) => value.departureDate > value.arrivalDate,
   {
-    message: "Departure must be after arrival",
+    message: "Keberangkatan harus setelah kedatangan",
     path: ["departureDate"],
   },
 );
 
 const ReservationRoomRowSchema = z.object({
   roomTypeId: z.coerce
-    .number("Room type is required")
-    .int("Room type is required")
-    .positive("Room type is required"),
+    .number("Tipe kamar wajib dipilih")
+    .int("Tipe kamar wajib dipilih")
+    .positive("Tipe kamar wajib dipilih"),
   roomId: OptionalRoomIdSchema,
   adults: z.coerce
-    .number("Adults is required")
-    .int("Adults must be a whole number")
-    .min(1, "At least one adult is required"),
+    .number("Jumlah dewasa wajib diisi")
+    .int("Jumlah dewasa harus berupa bilangan bulat")
+    .min(1, "Minimal 1 dewasa"),
   children: z.coerce
-    .number("Children is required")
-    .int("Children must be a whole number")
-    .min(0, "Children cannot be negative"),
+    .number("Jumlah anak wajib diisi")
+    .int("Jumlah anak harus berupa bilangan bulat")
+    .min(0, "Jumlah anak tidak boleh negatif"),
 });
 
 const UnifiedRoomFields = {
   rooms: z
     .array(ReservationRoomRowSchema)
     .min(1, "Tambahkan minimal 1 kamar")
-    .max(20, "Booking maksimal 20 kamar"),
+    .max(20, "Maksimal 20 kamar per reservasi"),
 };
 
 const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
@@ -187,7 +187,7 @@ const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
 })
   .extend(UnifiedRoomFields)
   .refine((value) => value.departureDate > value.arrivalDate, {
-    message: "Departure must be after arrival",
+    message: "Keberangkatan harus setelah kedatangan",
     path: ["departureDate"],
   });
 
@@ -199,7 +199,7 @@ const BaseUnifiedEditReservationSchema = EditReservationObjectSchema.omit({
 })
   .extend(UnifiedRoomFields)
   .refine((value) => value.departureDate > value.arrivalDate, {
-    message: "Departure must be after arrival",
+    message: "Keberangkatan harus setelah kedatangan",
     path: ["departureDate"],
   });
 
