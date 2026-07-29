@@ -25,6 +25,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateID, formatIDR } from "@/lib/format";
 import {
@@ -112,6 +118,16 @@ const arrangementTypeOptions = [
   { value: "RB", label: "RB (Room + Breakfast)" },
   { value: "FBM", label: "FBM (Full Board Meeting)" },
 ] as const;
+
+const reservationTabs = [
+  { value: "detail", label: "Detail" },
+  { value: "inclusions", label: "Inklusi" },
+  { value: "extras", label: "Extra" },
+  { value: "payments", label: "Pembayaran" },
+  { value: "billing", label: "Tagihan" },
+] as const;
+
+type ReservationTab = (typeof reservationTabs)[number]["value"];
 
 function dayAfter(dateValue: string) {
   const parsed = parseISO(dateValue);
@@ -282,6 +298,7 @@ export function ReservationForm({
   readOnlyNightlySchedule = [],
 }: ReservationFormProps) {
   const hasMountedRoomValidation = useRef(false);
+  const [activeTab, setActiveTab] = useState<ReservationTab>("detail");
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
   const reservationSchema = useMemo(
@@ -523,6 +540,10 @@ export function ReservationForm({
     }
   }
 
+  function onInvalidSubmit() {
+    setActiveTab("detail");
+  }
+
   const reservationActionHint = hasBlockingErrors ? (
     <p className="font-medium text-red-600">
       Periksa kembali isian yang ditandai merah.
@@ -542,7 +563,7 @@ export function ReservationForm({
           </Button>
           <Link
             href={returnHref}
-            className={`${buttonVariants({ variant: "outline" })} desktop:lg:h-11! desktop:lg:text-sm`}
+            className={`${buttonVariants({ variant: "outline" })} border-slate-300! bg-slate-100! text-slate-900! hover:bg-slate-200! desktop:lg:h-11! desktop:lg:text-sm`}
           >
             Batal
           </Link>
@@ -706,12 +727,12 @@ export function ReservationForm({
           : "—";
   const reservationSummary = (
     <section
-      className={`${cardClassName} desktop:lg:flex desktop:lg:min-h-0 desktop:lg:flex-1 desktop:lg:flex-col desktop:lg:rounded-none desktop:lg:border-0 desktop:lg:shadow-none`}
+      className={`${cardClassName} desktop:lg:rounded-none desktop:lg:border-0 desktop:lg:shadow-none`}
     >
       <div className={cardHeaderClassName}>
         <h2 className={sectionTitleClassName}>Ringkasan Reservasi</h2>
       </div>
-      <div className={`${cardContentClassName} desktop:lg:flex desktop:lg:flex-1 desktop:lg:flex-col`}>
+      <div className={cardContentClassName}>
         <dl aria-label="Rincian biaya reservasi" className="text-sm">
           <div className="space-y-3">
             <div className="flex items-baseline justify-between gap-4">
@@ -778,14 +799,36 @@ export function ReservationForm({
     <Form {...form}>
       <form
         id="reservation-form"
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
         className="flex flex-col gap-4"
       >
+        <Tabs
+          value={isCreateMode ? activeTab : "detail"}
+          onValueChange={(value) => setActiveTab(value as ReservationTab)}
+          className="gap-4"
+        >
+          {isCreateMode ? (
+            <TabsList className="-mx-5 -mt-4 sticky top-14.25 z-30 flex h-auto w-[calc(100%+2.5rem)] max-w-none flex-wrap items-stretch justify-start overflow-clip rounded-none border-x-0 border-t-0 border-b border-slate-200 bg-white px-5 py-0 shadow-none md:-mx-6 md:-mt-5 md:w-[calc(100%+3rem)] md:px-6 desktop:top-0">
+              {reservationTabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="h-13 min-w-24 flex-none rounded-none border-b-4 border-transparent bg-transparent px-4 text-sm font-medium text-slate-600 shadow-none hover:bg-transparent hover:text-slate-900 data-active:border-black data-active:bg-transparent data-active:font-semibold data-active:text-slate-950 data-active:shadow-none sm:min-w-28"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          ) : null}
 
-
-        <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
-          <div className="flex min-w-0 flex-col gap-4">
-            <section className={cardClassName} aria-labelledby="stay-details-title">
+          <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
+            <div className="min-w-0 desktop:lg:pt-px">
+              <TabsContent
+                value="detail"
+                keepMounted
+                className="flex flex-col gap-4"
+              >
+                <section className={cardClassName} aria-labelledby="stay-details-title">
               <div className={cardHeaderClassName}>
                 <h2 id="stay-details-title" className={sectionTitleClassName}>
                   Detail Menginap
@@ -1300,12 +1343,36 @@ export function ReservationForm({
                   </div>
                 ) : null}
               </div>
-            </section>
-          </div>
+                </section>
+              </TabsContent>
 
-          <aside className="contents desktop:lg:sticky desktop:lg:top-5 desktop:lg:flex desktop:lg:h-[calc(100dvh-2.5rem)] desktop:lg:min-w-0 desktop:lg:flex-col desktop:lg:overflow-hidden desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
+              {isCreateMode
+                ? reservationTabs.slice(1).map((tab) => (
+                    <TabsContent key={tab.value} value={tab.value} keepMounted>
+                      <section
+                        className={`${cardClassName} flex min-h-64 items-center justify-center p-6 text-center`}
+                        aria-labelledby={`${tab.value}-placeholder-title`}
+                      >
+                        <div className="max-w-sm">
+                          <h2
+                            id={`${tab.value}-placeholder-title`}
+                            className={sectionTitleClassName}
+                          >
+                            {tab.label}
+                          </h2>
+                          <p className="mt-2 text-sm text-slate-500">
+                            Fitur ini akan tersedia setelah reservasi dibuat.
+                          </p>
+                        </div>
+                      </section>
+                    </TabsContent>
+                  ))
+                : null}
+            </div>
+
+            <aside className="contents desktop:lg:sticky desktop:lg:top-17.25 desktop:lg:flex desktop:lg:h-[calc(100dvh-5.5625rem)] desktop:lg:max-h-[calc(100dvh-5.5625rem)] desktop:lg:min-w-0 desktop:lg:self-start desktop:lg:flex-col desktop:lg:overflow-clip desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
             <div className="desktop:lg:hidden">{reservationSummary}</div>
-            <div className="hidden desktop:lg:flex desktop:lg:min-h-0 desktop:lg:flex-1">
+            <div className="hidden desktop:lg:block">
               {reservationSummary}
             </div>
 
@@ -1318,8 +1385,9 @@ export function ReservationForm({
                 desktopPanel
               />
             ) : null}
-          </aside>
-        </div>
+            </aside>
+          </div>
+        </Tabs>
       </form>
     </Form>
   );
