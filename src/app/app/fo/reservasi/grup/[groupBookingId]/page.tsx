@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatDateID, formatIDR, formatISODate } from "@/lib/format";
+import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 import { GroupSettlementActions } from "./group-settlement-actions";
@@ -75,6 +76,7 @@ export default async function GroupBookingPage({
         guest: {
           select: {
             fullName: true,
+            idType: true,
             idNumber: true,
             phone: true,
             email: true,
@@ -211,6 +213,12 @@ export default async function GroupBookingPage({
             <dd className="mt-1 font-semibold text-slate-900">
               {primaryReservation.guest.fullName}
             </dd>
+            <dd className="mt-0.5 text-sm text-slate-600">
+              {formatGuestIdentity(
+                primaryReservation.guest.idType,
+                primaryReservation.guest.idNumber,
+              )}
+            </dd>
             {primaryReservation.guest.phone ? (
               <dd className="mt-0.5 text-sm text-slate-600">
                 {primaryReservation.guest.phone}
@@ -297,6 +305,12 @@ export default async function GroupBookingPage({
                       </Link>
                       <div className="mt-0.5 text-slate-600">
                         {reservation.guest.fullName}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {formatGuestIdentity(
+                          reservation.guest.idType,
+                          reservation.guest.idNumber,
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-700">

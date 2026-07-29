@@ -6,9 +6,11 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import { GuestIdType } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
 import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
+import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { PDF_BRAND_NAME, printColors, printStyles } from "@/lib/pdf/styles";
 
 type StringableDecimal = {
@@ -44,6 +46,7 @@ type GrcProps = {
   };
   guest: {
     fullName: string;
+    idType: GuestIdType | null;
     idNumber: string | null;
     phone: string | null;
     email: string | null;
@@ -225,7 +228,10 @@ export function Grc({
           <Text style={styles.blockHeader}>{"GUEST"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Full Name" value={guest.fullName} />
-            <Field label="ID Number" value={guest.idNumber ?? "-"} />
+            <Field
+              label="Identity"
+              value={formatGuestIdentity(guest.idType, guest.idNumber, "-")}
+            />
             <Field label="Phone" value={guest.phone ?? "-"} />
             <Field label="Email" value={guest.email ?? "-"} />
             <Field label="Nationality" value={guest.nationality ?? "-"} />

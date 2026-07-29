@@ -125,6 +125,7 @@ erDiagram
   GUEST {
     int id PK
     varchar full_name
+    GuestIdType id_type "nullable: KTP, PASSPORT, SIM, OTHER"
     varchar id_number
     varchar phone
     varchar email
@@ -341,7 +342,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 **Front Office**
 
-9. Guest(*id*, full_name, id_number, phone, email, address, nationality, birth_date)
+9. Guest(*id*, full_name, id_type nullable, id_number, phone, email, address, nationality, birth_date)
 10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, deposit_status, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
 11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, revenue_class, source_pricing_rule_id nullable, created_at)
 12. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
@@ -641,6 +642,7 @@ Indexes and enforcement:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique guest identifier |
 | full_name | VARCHAR(100) | NOT NULL | Guest's full name |
+| id_type | GuestIdType | — | Nullable identity-document type: KTP, PASSPORT, SIM, OTHER. Historical rows remain NULL rather than inferring a type. |
 | id_number | VARCHAR(50) | — | ID card / passport number |
 | phone | VARCHAR(20) | — | Phone number |
 | email | VARCHAR(100) | — | Email |

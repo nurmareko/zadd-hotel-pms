@@ -304,6 +304,7 @@ export default async function ReservationDetailPage({
     reservation.status === ReservationStatus.CHECKED_IN;
   const defaultValues: CreateReservationInput = {
     fullName: reservation.guest.fullName,
+    idType: reservation.guest.idType ?? "",
     idNumber: reservation.guest.idNumber ?? "",
     phone: reservation.guest.phone ?? "",
     email: reservation.guest.email ?? "",
@@ -350,6 +351,7 @@ export default async function ReservationDetailPage({
     arrivalDue: canCheckIn,
     guest: {
       fullName: reservation.guest.fullName,
+      idType: reservation.guest.idType,
       idNumber: reservation.guest.idNumber,
       phone: reservation.guest.phone,
       email: reservation.guest.email,

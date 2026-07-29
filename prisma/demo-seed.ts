@@ -4,6 +4,7 @@ import {
   ArticleType,
   FBOrderStatus,
   FolioStatus,
+  GuestIdType,
   LostFoundStatus,
   NightAuditStatus,
   PaymentMethod,
@@ -101,14 +102,14 @@ const hkRoomStatuses: Record<string, RoomStatus> = {
 };
 
 const guests = [
-  "Andi Pratama",
-  "Siti Nuraini",
-  "Budi Santoso",
-  "Hendra Kusuma",
-  "Lina Marlina",
-  "Tomi Wijaya",
-  "Sari Indah",
-  "Rina Anggraini",
+  { fullName: "Andi Pratama", idType: GuestIdType.KTP, idNumber: "3273010101900001" },
+  { fullName: "Siti Nuraini", idType: GuestIdType.KTP, idNumber: "3273010202910002" },
+  { fullName: "Budi Santoso", idType: GuestIdType.KTP, idNumber: "3273010303920003" },
+  { fullName: "Hendra Kusuma", idType: GuestIdType.KTP, idNumber: "3273010404930004" },
+  { fullName: "Lina Marlina", idType: GuestIdType.KTP, idNumber: "3273010505940005" },
+  { fullName: "Tomi Wijaya", idType: GuestIdType.KTP, idNumber: "3273010606950006" },
+  { fullName: "Sari Indah", idType: GuestIdType.KTP, idNumber: "3273010707960007" },
+  { fullName: "Rina Anggraini", idType: GuestIdType.KTP, idNumber: "3273010808970008" },
 ] as const;
 
 const purposeOfVisitPool = ["Bisnis", "Liburan", "Keluarga", "Acara"] as const;
@@ -211,7 +212,7 @@ const restaurantTables = [
 
 const reservations: Array<{
   reservationNo: string;
-  guestFullName: (typeof guests)[number];
+  guestFullName: (typeof guests)[number]["fullName"];
   roomTypeCode: RoomTypeCode;
   roomNumber: string | null;
   arrivalOffset: number;
@@ -1263,21 +1264,23 @@ async function main() {
 
     console.log(`✓ seeded ${rooms.length} rooms`);
 
-    for (const fullName of guests) {
-      const existingGuest = await prisma.guest.findFirst({ where: { fullName } });
+    for (const guest of guests) {
+      const existingGuest = await prisma.guest.findFirst({
+        where: { fullName: guest.fullName },
+      });
       const seededGuest = await prisma.guest.upsert({
         where: { id: existingGuest?.id ?? -1 },
         create: {
-          fullName,
+          ...guest,
           nationality: "Indonesia",
         },
         update: {
-          fullName,
+          ...guest,
           nationality: "Indonesia",
         },
       });
 
-      guestsByFullName.set(fullName, { id: seededGuest.id });
+      guestsByFullName.set(guest.fullName, { id: seededGuest.id });
     }
 
     console.log(`✓ seeded ${guests.length} guests`);
