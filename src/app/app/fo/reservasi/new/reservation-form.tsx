@@ -1101,23 +1101,7 @@ export function ReservationForm({
                 <h2 id="rooms-title" className={sectionTitleClassName}>
                   Kamar
                 </h2>
-                {isCreateMode ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      roomsFieldArray.append({
-                        roomTypeId: "",
-                        roomId: "",
-                        adults: "1",
-                        children: "0",
-                      })
-                    }
-                  >
-                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                    Tambah Kamar
-                  </Button>
-                ) : null}
+
               </div>
 
               <div className={`${cardContentClassName} flex flex-col gap-3`}>
@@ -1295,6 +1279,26 @@ export function ReservationForm({
                     </div>
                   );
                 })}
+
+                {isCreateMode ? (
+                  <div className="flex justify-center pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        roomsFieldArray.append({
+                          roomTypeId: "",
+                          roomId: "",
+                          adults: "1",
+                          children: "0",
+                        })
+                      }
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      Tambah Kamar
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </section>
           </div>
