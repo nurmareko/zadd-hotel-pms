@@ -206,7 +206,7 @@ function validatePostingArticles(
     }
   }
 
-  for (const code of ARRANGEMENT_INCLUSION_ARTICLE_CODES[ArrangementType.FBM]) {
+  for (const code of ARRANGEMENT_INCLUSION_ARTICLE_CODES[ArrangementType.FB]) {
     const article = articleByCode.get(code);
 
     if (article && article.defaultPrice === null) {
@@ -543,10 +543,11 @@ export async function buildNightAuditPlan({
   const otherRevenue = decimal(otherFolioRevenue._sum.amount);
   const totalRevenue = roomRevenue.plus(fbRevenue).plus(otherRevenue);
   const computedOccupancyRate = occupancyRate(roomsOccupied, totalRooms);
-  const arrangementBreakdown = {
+  const arrangementBreakdown: Record<ArrangementType, number> = {
     [ArrangementType.RO]: 0,
-    [ArrangementType.RB]: 0,
-    [ArrangementType.FBM]: 0,
+    [ArrangementType.BB]: 0,
+    [ArrangementType.HB]: 0,
+    [ArrangementType.FB]: 0,
   };
 
   for (const reservation of reservations) {

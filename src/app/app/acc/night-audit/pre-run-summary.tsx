@@ -73,18 +73,22 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <ArrangementBadge
                 arrangement={ArrangementType.RO}
                 count={plan.arrangementBreakdown.RO}
               />
               <ArrangementBadge
-                arrangement={ArrangementType.RB}
-                count={plan.arrangementBreakdown.RB}
+                arrangement={ArrangementType.BB}
+                count={plan.arrangementBreakdown.BB}
               />
               <ArrangementBadge
-                arrangement={ArrangementType.FBM}
-                count={plan.arrangementBreakdown.FBM}
+                arrangement={ArrangementType.HB}
+                count={plan.arrangementBreakdown.HB}
+              />
+              <ArrangementBadge
+                arrangement={ArrangementType.FB}
+                count={plan.arrangementBreakdown.FB}
               />
             </div>
 
@@ -102,7 +106,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       Kamar
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Arrangement
+                      Paket menginap
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Lines

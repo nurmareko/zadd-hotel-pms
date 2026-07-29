@@ -113,10 +113,17 @@ const reservationTypeOptions = [
   { value: "WALK_IN", label: "Walk-in" },
 ] as const;
 
+const arrangementTypeLabels = {
+  RO: "RO (Room Only)",
+  BB: "BB (Bed & Breakfast)",
+  HB: "HB (Half Board)",
+  FB: "FB (Full Board)",
+} as const;
+
 const arrangementTypeOptions = [
-  { value: "RO", label: "RO (Room Only)" },
-  { value: "RB", label: "RB (Room + Breakfast)" },
-  { value: "FBM", label: "FBM (Full Board Meeting)" },
+  { value: "RO", label: arrangementTypeLabels.RO },
+  { value: "BB", label: arrangementTypeLabels.BB },
+  { value: "FB", label: arrangementTypeLabels.FB },
 ] as const;
 
 const reservationTabs = [
@@ -585,9 +592,7 @@ export function ReservationForm({
         (option) => option.value === defaultValues.reservationType,
       )?.label ?? defaultValues.reservationType;
     const arrangementTypeLabel =
-      arrangementTypeOptions.find(
-        (option) => option.value === defaultValues.arrangementType,
-      )?.label ?? defaultValues.arrangementType;
+      arrangementTypeLabels[defaultValues.arrangementType];
     return (
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-2">
@@ -625,7 +630,7 @@ export function ReservationForm({
               value={reservationTypeLabel}
             />
             <ReadOnlyField
-              label="Tipe Arrangement"
+              label="Paket menginap"
               value={arrangementTypeLabel}
             />
             <ReadOnlyField

@@ -1,4 +1,5 @@
 import {
+  ArrangementType,
   DepositStatus,
   FolioStatus,
   Prisma,
@@ -36,6 +37,13 @@ const statusLabels: Record<ReservationStatus, string> = {
 const noShowClassNames = {
   badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
   pip: "bg-status-od-pip",
+};
+
+const mealPlanLabels: Record<ArrangementType, string> = {
+  [ArrangementType.RO]: "RO (Room Only)",
+  [ArrangementType.BB]: "BB (Bed & Breakfast)",
+  [ArrangementType.HB]: "HB (Half Board)",
+  [ArrangementType.FB]: "FB (Full Board)",
 };
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
@@ -258,7 +266,7 @@ export default async function GroupBookingPage({
           </span>
         </div>
         <div className="max-w-full overflow-auto">
-          <table className="w-full min-w-[1080px] border-collapse text-sm">
+          <table className="w-full min-w-[1200px] border-collapse text-sm">
             <caption className="sr-only">
               Daftar kamar dalam booking grup {groupBookingId}
             </caption>
@@ -269,6 +277,9 @@ export default async function GroupBookingPage({
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Kamar / tipe
+                </th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
+                  Paket menginap
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Status
@@ -320,6 +331,9 @@ export default async function GroupBookingPage({
                       <div className="mt-0.5 text-slate-500">
                         {reservation.roomType.name}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {mealPlanLabels[reservation.arrangementType]}
                     </td>
                     <td className="px-4 py-3">
                       <ReservationStatusBadge status={reservation.status} />

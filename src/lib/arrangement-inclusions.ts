@@ -12,8 +12,11 @@ export type ArrangementInclusionArticleCode =
  */
 export const ARRANGEMENT_INCLUSION_ARTICLE_CODES = Object.freeze({
   RO: Object.freeze([]),
-  RB: Object.freeze(["BREAKFAST"]),
-  FBM: Object.freeze([
+  BB: Object.freeze(["BREAKFAST"]),
+  get HB(): readonly ArrangementInclusionArticleCode[] {
+    throw new Error("Posting paket HB belum tersedia sampai Phase 2.");
+  },
+  FB: Object.freeze([
     "BREAKFAST",
     "COFFEE-BREAK",
     "LUNCH",

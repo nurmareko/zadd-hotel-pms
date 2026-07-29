@@ -60,8 +60,20 @@ enum ReservationUsageType {
 
 enum ArrangementType {
   RO // Room Only
-  RB // Room + Breakfast
-  FBM // Full Board Meeting (Room + Breakfast + Coffee Break + Lunch + Dinner)
+  BB // Bed & Breakfast
+  HB // Half Board
+  FB // Full Board
+}
+
+enum ReservationStayFeeKind {
+  EARLY_CHECK_IN
+  LATE_CHECK_OUT
+}
+
+enum ReservationStayFeeStatus {
+  PENDING
+  POSTED
+  CANCELLED
 }
 
 enum ReservationType {
@@ -193,6 +205,7 @@ model User {
   lostFoundItemsFound     LostFoundItem[]          @relation("LostFoundItemFoundBy")
   nightAuditsRun          NightAudit[]
   paymentsReceived        Payment[]
+  stayFeesSelected        ReservationStayFee[]
   activityLogs            ActivityLog[]
 
   @@map("user")
@@ -291,11 +304,11 @@ model Guest {
   fullName    String       @map("full_name") @db.VarChar(100)
   idType      GuestIdType? @map("id_type")
   idNumber    String?      @map("id_number") @db.VarChar(50)
-  phone       String?   @db.VarChar(20)
-  email       String?   @db.VarChar(100)
-  address     String?   @db.Text
-  nationality String?   @db.VarChar(50)
-  birthDate   DateTime? @map("birth_date") @db.Date
+  phone       String?      @db.VarChar(20)
+  email       String?      @db.VarChar(100)
+  address     String?      @db.Text
+  nationality String?      @db.VarChar(50)
+  birthDate   DateTime?    @map("birth_date") @db.Date
 
   reservations Reservation[]
 
@@ -332,13 +345,14 @@ model Reservation {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  guest             Guest              @relation(fields: [guestId], references: [id])
-  roomType          RoomType           @relation(fields: [roomTypeId], references: [id])
-  room              Room?              @relation(fields: [roomId], references: [id])
-  createdBy         User               @relation("ReservationCreator", fields: [createdById], references: [id])
+  guest             Guest                @relation(fields: [guestId], references: [id])
+  roomType          RoomType             @relation(fields: [roomTypeId], references: [id])
+  room              Room?                @relation(fields: [roomId], references: [id])
+  createdBy         User                 @relation("ReservationCreator", fields: [createdById], references: [id])
   folio             Folio?
   activityLogs      ActivityLog[]
   reservationNights ReservationNight[]
+  stayFees          ReservationStayFee[]
 
   @@index([groupBookingId])
   @@map("reservation")
@@ -370,6 +384,10 @@ model ReservationNight {
   reservationId       Int                          @map("reservation_id")
   date                DateTime                     @db.Date
   rateAmount          Decimal                      @map("rate_amount") @db.Decimal(12, 2)
+  mealPlan            ArrangementType?             @map("meal_plan")
+  mealPax             Int?                         @map("meal_pax")
+  mealUnitPrice       Decimal?                     @map("meal_unit_price") @db.Decimal(12, 2)
+  mealAmount          Decimal?                     @map("meal_amount") @db.Decimal(12, 2)
   revenueClass        ReservationNightRevenueClass @default(PAID) @map("revenue_class")
   sourcePricingRuleId String?                      @map("source_pricing_rule_id")
   createdAt           DateTime                     @default(now()) @map("created_at")
@@ -380,6 +398,25 @@ model ReservationNight {
   @@unique([reservationId, date])
   @@index([date])
   @@map("reservation_night")
+}
+
+model ReservationStayFee {
+  id              Int                      @id @default(autoincrement())
+  reservationId   Int                      @map("reservation_id")
+  kind            ReservationStayFeeKind
+  unitPrice       Decimal                  @map("unit_price") @db.Decimal(12, 2)
+  status          ReservationStayFeeStatus @default(PENDING)
+  folioLineItemId Int?                     @unique @map("folio_line_item_id")
+  selectedById    Int                      @map("selected_by_id")
+  selectedAt      DateTime                 @default(now()) @map("selected_at")
+  postedAt        DateTime?                @map("posted_at")
+
+  reservation   Reservation    @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  folioLineItem FolioLineItem? @relation(fields: [folioLineItemId], references: [id], onDelete: Restrict)
+  selectedBy    User           @relation(fields: [selectedById], references: [id])
+
+  @@unique([reservationId, kind])
+  @@map("reservation_stay_fee")
 }
 
 model Folio {
@@ -412,11 +449,12 @@ model FolioLineItem {
   postedById         Int      @map("posted_by_id")
   postedAt           DateTime @default(now()) @map("posted_at")
 
-  folio            Folio             @relation(fields: [folioId], references: [id])
-  article          Article           @relation(fields: [articleId], references: [id])
-  fbOrder          FBOrder?          @relation(fields: [fbOrderId], references: [id])
-  reservationNight ReservationNight? @relation(fields: [reservationNightId], references: [id])
-  postedBy         User              @relation(fields: [postedById], references: [id])
+  folio            Folio               @relation(fields: [folioId], references: [id])
+  article          Article             @relation(fields: [articleId], references: [id])
+  fbOrder          FBOrder?            @relation(fields: [fbOrderId], references: [id])
+  reservationNight ReservationNight?   @relation(fields: [reservationNightId], references: [id])
+  postedBy         User                @relation(fields: [postedById], references: [id])
+  stayFee          ReservationStayFee?
 
   @@unique([reservationNightId, articleId])
   @@map("folio_line_item")
