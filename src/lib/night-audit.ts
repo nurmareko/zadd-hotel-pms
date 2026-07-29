@@ -15,7 +15,7 @@ import {
 } from "@/lib/date-only";
 import { formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+
 import {
   ROOM_CHARGE_ARTICLE_CODE,
   stayChargeShortfallLines,
@@ -60,7 +60,6 @@ export type NightAuditStayChargeReservation = {
   reservationId: number;
   reservationNo: string;
   folioId: number;
-  arrangementType: ArrangementType;
   arrivalDate: Date;
   departureDate: Date;
   reservationNights: StayChargeReservationNight[];
@@ -97,7 +96,7 @@ export type NightAuditSnapshotInput = {
 export type NightAuditPostingArticlePreview = {
   code: NightAuditPostingArticleCode;
   name: string;
-  amountSource: "reservation-night-snapshot" | "article-price";
+  amountSource: "room-rate-snapshot" | "meal-snapshot";
   amount: string | null;
 };
 
@@ -206,14 +205,6 @@ function validatePostingArticles(
     }
   }
 
-  for (const code of ARRANGEMENT_INCLUSION_ARTICLE_CODES[ArrangementType.FB]) {
-    const article = articleByCode.get(code);
-
-    if (article && article.defaultPrice === null) {
-      blockingErrors.push(`Artikel ${code} belum memiliki default price.`);
-    }
-  }
-
   return { articleByCode, blockingErrors };
 }
 
@@ -227,13 +218,10 @@ function buildPostingArticlesPreview(
       code,
       name: article?.name ?? code,
       amountSource:
-        code === "ROOM-CHARGE"
-          ? "reservation-night-snapshot"
-          : "article-price",
-      amount:
-        code === "ROOM-CHARGE"
-          ? null
-          : (article?.defaultPrice?.toString() ?? null),
+        code === ROOM_CHARGE_ARTICLE_CODE
+          ? "room-rate-snapshot"
+          : "meal-snapshot",
+      amount: null,
     };
   });
 }
@@ -263,7 +251,7 @@ function validateReservations(reservations: NightAuditReservation[]) {
 /**
  * Stay-charge line items the night audit should post for one reservation on
  * `businessDate`, computed as the shortfall against what is already on the folio
- * (room charge + arrangement inclusions). Shared by the plan/preview (fed the
+ * (room charge + snapshotted meals). Shared by the plan/preview (fed the
  * line items read up front) and the commit transaction (fed the line items
  * re-read inside the txn), so both are idempotent and identical in logic. A
  * normal nightly run yields exactly one night per article; a night the check-out
@@ -293,7 +281,6 @@ export function buildAuditStayChargeLines({
   const shortfall = stayChargeShortfallLines({
     reservationId: reservation.reservationId,
     reservationNo: reservation.reservationNo,
-    arrangementType: reservation.arrangementType,
     arrivalDate: reservation.arrivalDate,
     departureDate: reservation.departureDate,
     expectedNights: stayNightsThroughAuditDate(
@@ -355,7 +342,6 @@ function buildLineItems({
           reservationId: reservation.id,
           reservationNo: reservation.reservationNo,
           folioId: folio.id,
-          arrangementType: reservation.arrangementType,
           arrivalDate: reservation.arrivalDate,
           departureDate: reservation.departureDate,
           reservationNights: reservation.reservationNights,
@@ -446,6 +432,10 @@ export async function buildNightAuditPlan({
             reservationId: true,
             date: true,
             rateAmount: true,
+            mealPlan: true,
+            mealPax: true,
+            mealUnitPrice: true,
+            mealAmount: true,
           },
           orderBy: { date: "asc" },
         },

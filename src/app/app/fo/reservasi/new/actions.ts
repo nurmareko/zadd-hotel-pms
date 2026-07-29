@@ -15,12 +15,20 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
-import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import {
+  dateOnlyBoundary,
+  hotelTodayDateOnly,
+  hotelTodayISO,
+} from "@/lib/date-only";
 import {
   PricingResolutionError,
   resolveNightlySchedule,
 } from "@/lib/pricing-resolver";
-import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
+import {
+  createReservationNightMealSnapshot,
+  createReservationNightSchedule,
+} from "@/lib/reservation-night-schedule";
 import {
   FO_RESERVASI_VIEW_COOKIE,
   FO_RESERVASI_VIEW_PATHS,
@@ -412,6 +420,10 @@ async function runCreateReservationTransaction(
           data: createReservationNightSchedule({
             reservationId: reservation.id,
             resolvedSchedule,
+            mealSnapshot: {
+              arrangementType: input.arrangementType,
+              mealPax: room.adults + room.children,
+            },
           }),
         });
 
@@ -433,6 +445,7 @@ async function runUpdateReservationTransaction(
 ) {
   return prisma.$transaction(
     async (tx) => {
+      const mealSnapshotBoundary = hotelTodayDateOnly();
       const existingReservation = await tx.reservation.findUnique({
         where: { id: reservationId },
         select: {
@@ -441,7 +454,23 @@ async function runUpdateReservationTransaction(
           roomTypeId: true,
           arrivalDate: true,
           departureDate: true,
+          adults: true,
+          children: true,
+          arrangementType: true,
           status: true,
+          reservationNights: {
+            where: { date: { gte: mealSnapshotBoundary } },
+            select: {
+              id: true,
+              folioLineItems: {
+                where: {
+                  article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                },
+                take: 1,
+                select: { id: true },
+              },
+            },
+          },
           folio: {
             select: {
               lineItems: {
@@ -490,6 +519,10 @@ async function runUpdateReservationTransaction(
       }
 
       const { room } = validatedAssignment.assignment;
+      const isMealSnapshotRelevant =
+        existingReservation.arrangementType !== input.arrangementType ||
+        existingReservation.adults !== input.adults ||
+        existingReservation.children !== input.children;
       const isPricingRelevant =
         existingReservation.roomTypeId !== input.roomTypeId ||
         !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
@@ -596,8 +629,35 @@ async function runUpdateReservationTransaction(
           data: createReservationNightSchedule({
             reservationId,
             resolvedSchedule,
+            mealSnapshot: {
+              arrangementType: input.arrangementType,
+              mealPax: input.adults + input.children,
+            },
           }),
         });
+      } else if (isMealSnapshotRelevant) {
+        const eligibleNightIds = existingReservation.reservationNights
+          .filter((night) => night.folioLineItems.length === 0)
+          .map((night) => night.id);
+
+        if (eligibleNightIds.length > 0) {
+          await tx.reservationNight.updateMany({
+            where: {
+              id: { in: eligibleNightIds },
+              reservationId,
+              date: { gte: mealSnapshotBoundary },
+              folioLineItems: {
+                none: {
+                  article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                },
+              },
+            },
+            data: createReservationNightMealSnapshot(
+              input.arrangementType,
+              input.adults + input.children,
+            ),
+          });
+        }
       }
 
       return { ok: true as const };

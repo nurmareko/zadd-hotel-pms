@@ -475,7 +475,7 @@ These belong to the same future money-lifecycle family as the existing [allowanc
 
 ## Inclusions (meal plans and stay-flexibility fees) contract
 
-> **Phase 1 structure only.** This contract replaces the arrangement taxonomy and adds nullable nightly meal snapshots plus reservation-owned stay-fee records. Current automatic posting remains unchanged until Phase 2: no money path reads the new nightly meal fields or fee table yet, and `computeFolioTotals` remains canonical and unchanged.
+> **Phase 2 meal posting is active.** Nightly meal snapshots are authoritative for automatic meal charges. Reservation-owned stay-fee records remain structure-only for Phase 3; no money path reads the fee table yet. `computeFolioTotals` remains canonical and unchanged.
 
 ### Meal-plan taxonomy and prices
 
@@ -495,7 +495,7 @@ Meal plans use package-level pricing: one plan price per guest per night, not a 
 
 ### Per-night snapshots and plan changes
 
-- Each `ReservationNight` may carry `mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount`. Phase 2 will populate these fields for every applicable stay night and make them the authoritative meal-charge source.
+- Each applicable `ReservationNight` carries `mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount`; these fields are the authoritative meal-charge source. RO nights keep all four fields null.
 - `mealPax` is the snapshotted `adults + children`; `mealUnitPrice` is the plan's per-pax whole-IDR price; and `mealAmount` is `mealPax × mealUnitPrice`, also whole IDR.
 - `Reservation.arrangementType` is the reservation's current plan and is compatibility-only, analogous to `Reservation.rateAmount`. The authoritative meal value is the sum of the per-night `ReservationNight.mealAmount` snapshots, not the scalar current plan multiplied across the stay.
 - Once a nightly meal snapshot has posted to a folio, its plan, pax, unit price, and amount are immutable.
@@ -516,11 +516,11 @@ Meal plans use package-level pricing: one plan price per guest per night, not a 
 - `computeFolioTotals` remains the single canonical folio calculation and is unchanged: meal and fee lines receive the same service-charge and tax treatment as existing non-`TAX`/non-`SERVICE` folio charges.
 - Meal-plan inclusions and stay-flexibility fees are explicitly excluded from ARR. ARR recognizes only valid linked `ROOM-CHARGE` lines; it never includes meal or fee articles.
 
-### Phase 1 compatibility and migration
+### Compatibility and migration
 
 - This project is pre-go-live demo data, so no cutover or policy-version machinery is required.
 - The PostgreSQL migration maps stored values before replacing the enum: `RB → BB` and `FBM → FB`; `RO` remains `RO`. Only after no rows use legacy values is the database enum replaced with `RO`, `BB`, `HB`, and `FB`.
-- During Phase 1, BB retains the old RB posting mapping (`BREAKFAST`) and FB retains the old FBM mapping (`BREAKFAST`, `COFFEE-BREAK`, `LUNCH`, `DINNER`). HB is not selectable and has no automatic posting mapping. This intentionally keeps money behavior unchanged until Phase 2 switches posting to the new package snapshots.
+- Phase 2 posts exactly one linked meal line per snapshotted night: `MEAL-BB`, `MEAL-HB`, or `MEAL-FB`, with quantity and prices copied from that night's snapshot. Arrangement posting no longer uses `BREAKFAST`, `COFFEE-BREAK`, `LUNCH`, or `DINNER`.
 - Existing `BREAKFAST`, `COFFEE-BREAK`, `LUNCH`, and `DINNER` articles remain because F&B operations still use them.
 
 ### Deferred work

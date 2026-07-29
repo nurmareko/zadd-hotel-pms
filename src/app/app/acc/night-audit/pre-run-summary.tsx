@@ -194,23 +194,23 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-          {"POSTING ARTICLES"}
+          {"ARTIKEL POSTING"}
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Code
+                  Kode
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Article
+                  Artikel
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Amount Source
+                  Sumber Nilai
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Article Price
+                  Harga Artikel
                 </th>
               </tr>
             </thead>
@@ -227,9 +227,9 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                     {article.name}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {article.amountSource === "reservation-night-snapshot"
-                      ? "ReservationNight rateAmount"
-                      : "Article defaultPrice"}
+                    {article.amountSource === "room-rate-snapshot"
+                      ? "Snapshot tarif malam"
+                      : "Snapshot paket makan"}
                   </td>
                   <td className="num px-4 py-3 text-right text-muted-foreground">
                     {article.amount ? formatIDR(article.amount) : "-"}

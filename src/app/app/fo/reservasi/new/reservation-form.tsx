@@ -123,6 +123,7 @@ const arrangementTypeLabels = {
 const arrangementTypeOptions = [
   { value: "RO", label: arrangementTypeLabels.RO },
   { value: "BB", label: arrangementTypeLabels.BB },
+  { value: "HB", label: arrangementTypeLabels.HB },
   { value: "FB", label: arrangementTypeLabels.FB },
 ] as const;
 

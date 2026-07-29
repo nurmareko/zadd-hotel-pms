@@ -304,6 +304,10 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                 reservationId: true,
                 date: true,
                 rateAmount: true,
+                mealPlan: true,
+                mealPax: true,
+                mealUnitPrice: true,
+                mealAmount: true,
               },
               orderBy: { date: "asc" },
             },
@@ -355,7 +359,6 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
       pendingStayCharges = buildPendingStayChargeLines({
         reservationId: folio.reservation.id,
         reservationNo: folio.reservation.reservationNo,
-        arrangementType: folio.reservation.arrangementType,
         arrivalDate: folio.reservation.arrivalDate,
         departureDate: folio.reservation.departureDate,
         reservationNights: folio.reservation.reservationNights,

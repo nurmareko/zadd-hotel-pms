@@ -1,25 +1,18 @@
 import type { ArrangementType } from "@prisma/client";
 
-export type ArrangementInclusionArticleCode =
-  | "BREAKFAST"
-  | "COFFEE-BREAK"
-  | "LUNCH"
-  | "DINNER";
+export const MEAL_ARTICLE_CODES = ["MEAL-BB", "MEAL-HB", "MEAL-FB"] as const;
 
-/**
- * Canonical arrangement → nightly inclusion articles. Stay-charge posting
- * consumes this mapping for both night audit and check-out catch-up.
- */
-export const ARRANGEMENT_INCLUSION_ARTICLE_CODES = Object.freeze({
-  RO: Object.freeze([]),
-  BB: Object.freeze(["BREAKFAST"]),
-  get HB(): readonly ArrangementInclusionArticleCode[] {
-    throw new Error("Posting paket HB belum tersedia sampai Phase 2.");
-  },
-  FB: Object.freeze([
-    "BREAKFAST",
-    "COFFEE-BREAK",
-    "LUNCH",
-    "DINNER",
-  ]),
-} satisfies Record<ArrangementType, readonly ArrangementInclusionArticleCode[]>);
+export type MealArticleCode = (typeof MEAL_ARTICLE_CODES)[number];
+
+export type MealPlanDefinition = {
+  articleCode: MealArticleCode;
+  unitPrice: number;
+};
+
+/** Canonical meal-plan metadata used to snapshot and post nightly meals. */
+export const MEAL_PLAN_DEFINITIONS = Object.freeze({
+  RO: null,
+  BB: Object.freeze({ articleCode: "MEAL-BB", unitPrice: 50_000 }),
+  HB: Object.freeze({ articleCode: "MEAL-HB", unitPrice: 150_000 }),
+  FB: Object.freeze({ articleCode: "MEAL-FB", unitPrice: 250_000 }),
+} satisfies Record<ArrangementType, MealPlanDefinition | null>);

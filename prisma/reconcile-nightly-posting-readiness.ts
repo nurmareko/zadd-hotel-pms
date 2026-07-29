@@ -1,6 +1,6 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
 
-import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { prisma } from "@/lib/prisma";
 import {
   hasLegacyNightlyRoomChargeShape,
@@ -46,7 +46,15 @@ const reservationSelection = Prisma.validator<Prisma.ReservationDefaultArgs>()({
     departureDate: true,
     rateAmount: true,
     reservationNights: {
-      select: { id: true, date: true, rateAmount: true },
+      select: {
+        id: true,
+        date: true,
+        rateAmount: true,
+        mealPlan: true,
+        mealPax: true,
+        mealUnitPrice: true,
+        mealAmount: true,
+      },
       orderBy: { date: "asc" },
     },
     folio: {
@@ -66,7 +74,15 @@ const reservationSelection = Prisma.validator<Prisma.ReservationDefaultArgs>()({
             postedAt: true,
             article: { select: { code: true, name: true } },
             reservationNight: {
-              select: { reservationId: true, date: true, rateAmount: true },
+              select: {
+                reservationId: true,
+                date: true,
+                rateAmount: true,
+                mealPlan: true,
+                mealPax: true,
+                mealUnitPrice: true,
+                mealAmount: true,
+              },
             },
           },
           orderBy: [{ postedAt: "asc" }, { id: "asc" }],
@@ -114,7 +130,13 @@ function expectedArticleCodes(
 ): Set<string> {
   return new Set([
     ROOM_CHARGE_ARTICLE_CODE,
-    ...ARRANGEMENT_INCLUSION_ARTICLE_CODES[reservation.arrangementType],
+    ...reservation.reservationNights.flatMap((night) => {
+      const definition = night.mealPlan
+        ? MEAL_PLAN_DEFINITIONS[night.mealPlan]
+        : null;
+
+      return definition ? [definition.articleCode] : [];
+    }),
   ]);
 }
 
@@ -148,6 +170,10 @@ function hasNightlyLineShape(
   reservation: ScannedReservation,
   line: ScannedLineItem,
 ): boolean {
+  if (line.article.code !== ROOM_CHARGE_ARTICLE_CODE) {
+    return false;
+  }
+
   if (
     !line.quantity.equals(1) ||
     !line.amount.equals(line.unitPrice) ||
@@ -167,10 +193,7 @@ function hasNightlyLineShape(
     });
   }
 
-  return (
-    line.description === line.article.name ||
-    line.description.startsWith(`Night Audit ${line.article.name} Inclusion - `)
-  );
+  return false;
 }
 
 function addScheduleFindings(
@@ -397,12 +420,31 @@ function addLineItemFindings(
             serviceDate: line.reservationNight.date,
           }),
         );
-      }
+        linkedByArticle.set(line.article.code, [
+          ...(linkedByArticle.get(line.article.code) ?? []),
+          line,
+        ]);
+      } else {
+        const night = line.reservationNight;
+        const definition = night.mealPlan
+          ? MEAL_PLAN_DEFINITIONS[night.mealPlan]
+          : null;
 
-      linkedByArticle.set(line.article.code, [
-        ...(linkedByArticle.get(line.article.code) ?? []),
-        line,
-      ]);
+        if (
+          !definition ||
+          definition.articleCode !== line.article.code ||
+          night.mealPax === null ||
+          night.mealUnitPrice === null ||
+          night.mealAmount === null ||
+          !line.quantity.equals(night.mealPax) ||
+          !line.unitPrice.equals(night.mealUnitPrice) ||
+          !line.amount.equals(night.mealAmount)
+        ) {
+          linkedViolations.push(
+            `line ${line.id}: meal line does not match snapshot ${line.reservationNightId}`,
+          );
+        }
+      }
     }
 
     for (const [articleCode, lines] of linkedByArticle) {

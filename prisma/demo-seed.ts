@@ -329,7 +329,7 @@ const reservations: Array<{
     roomTypeCode: "DLX",
     roomNumber: "202",
     arrivalOffset: -3,
-    departureOffset: 0,
+    departureOffset: 1,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
     arrangementType: ArrangementType.RO,
@@ -1367,6 +1367,8 @@ async function main() {
       rateAmount: number;
       deposit: number;
     }> = [];
+    let mealSnapshotBackfilledNightCount = 0;
+    let mealSnapshotBackfilledReservationCount = 0;
 
     for (const [index, reservation] of reservations.entries()) {
       const guest = guestsByFullName.get(reservation.guestFullName);
@@ -1449,19 +1451,34 @@ async function main() {
 
       // Demo reservations are a deterministic fixture. Regenerate their local
       // schedule after the upsert so repeated db:demo runs cannot leave nights
-      // at a prior fixture date or rate. This is never used by the additive
-      // production legacy-backfill operation.
+      // at a prior fixture date or rate. Meal snapshots intentionally backfill
+      // only the current/future unelapsed fixture nights.
+      const reservationNightSchedule = createReservationNightSchedule({
+        reservationId: seededReservation.id,
+        arrivalDate,
+        departureDate,
+        rateAmount: seededReservation.rateAmount,
+        mealSnapshot: {
+          arrangementType: reservation.arrangementType,
+          mealPax: reservation.adults + (reservation.children ?? 0),
+          fromDate: dateOnlyBoundary(today),
+        },
+      });
+      const snapshottedMealNights = reservationNightSchedule.filter(
+        (night) => night.mealPlan !== null && night.mealPlan !== undefined,
+      ).length;
+
+      mealSnapshotBackfilledNightCount += snapshottedMealNights;
+      if (snapshottedMealNights > 0) {
+        mealSnapshotBackfilledReservationCount += 1;
+      }
+
       await prisma.$transaction([
         prisma.reservationNight.deleteMany({
           where: { reservationId: seededReservation.id },
         }),
         prisma.reservationNight.createMany({
-          data: createReservationNightSchedule({
-            reservationId: seededReservation.id,
-            arrivalDate,
-            departureDate,
-            rateAmount: seededReservation.rateAmount,
-          }),
+          data: reservationNightSchedule,
         }),
       ]);
 
@@ -1527,6 +1544,9 @@ async function main() {
     }
 
     console.log(`✓ seeded ${reservations.length} reservations`);
+    console.log(
+      `✓ backfilled ${mealSnapshotBackfilledNightCount} future meal-night snapshots across ${mealSnapshotBackfilledReservationCount} demo reservations`,
+    );
     console.log(
       `✓ populated GRC data for ${grcCheckedInCount} checked-in and ${grcCheckedOutCount} checked-out reservations`,
     );
