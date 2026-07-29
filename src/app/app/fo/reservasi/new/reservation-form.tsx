@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays, formatISO, parseISO } from "date-fns";
-import { ArrowRight, BedDouble, CalendarDays, Plus, Tag, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -145,26 +145,7 @@ function nightsBetween(arrivalDate: string, departureDate: string) {
   );
 }
 
-function stayDateParts(value: string) {
-  const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (!value || Number.isNaN(date.getTime())) {
-    return { date: "—", weekday: "—" };
-  }
-
-  return {
-    date: new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(date),
-    weekday: new Intl.DateTimeFormat("id-ID", {
-      weekday: "long",
-      timeZone: "UTC",
-    }).format(date),
-  };
-}
 
 function RequiredMark() {
   return (
@@ -439,13 +420,21 @@ export function ReservationForm({
       : resolvedQuoteTotal;
   const { errors, isSubmitting, submitCount } = form.formState;
   const hasBlockingErrors = submitCount > 0 && Object.keys(errors).length > 0;
-  const estimatedTotal = quoteError
-    ? "Tidak tersedia"
-    : isQuotePending
-      ? "Menghitung…"
-      : roomSubtotal
-        ? formatIDR(roomSubtotal)
-        : "-";
+  const inclusionTotal = 0;
+  const extrasTotal = 0;
+  const totalReceived = 0;
+  const reservationTotal =
+    roomSubtotal === null ? null : roomSubtotal + inclusionTotal + extrasTotal;
+  const totalOutstanding =
+    reservationTotal === null ? null : reservationTotal - totalReceived;
+  const summaryAmountDisplay = (amount: number | null) =>
+    quoteError
+      ? "Tidak tersedia"
+      : isQuotePending
+        ? "Menghitung…"
+        : amount === null
+          ? "-"
+          : formatIDR(amount);
   const showFooter = !isViewMode || Boolean(viewFooterActions);
 
   useEffect(() => {
@@ -553,7 +542,7 @@ export function ReservationForm({
           </Button>
           <Link
             href={returnHref}
-            className={`${buttonVariants({ variant: "outline" })} border-2! border-red-800! bg-white text-red-700 hover:bg-red-50 hover:text-red-800 focus-visible:border-red-800 focus-visible:ring-red-300/50 desktop:lg:h-11! desktop:lg:text-sm`}
+            className={`${buttonVariants({ variant: "outline" })} desktop:lg:h-11! desktop:lg:text-sm`}
           >
             Batal
           </Link>
@@ -707,8 +696,6 @@ export function ReservationForm({
     );
   }
 
-  const arrivalSummary = stayDateParts(arrivalDate);
-  const departureSummary = stayDateParts(departureDate);
   const roomRateDisplay = (index: number) =>
     quoteError
       ? "Tidak tersedia"
@@ -725,91 +712,52 @@ export function ReservationForm({
         <h2 className={sectionTitleClassName}>Ringkasan Reservasi</h2>
       </div>
       <div className={`${cardContentClassName} desktop:lg:flex desktop:lg:flex-1 desktop:lg:flex-col`}>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
-          <div>
-            <p className="num text-sm font-semibold text-slate-900">
-              {arrivalSummary.date}
-            </p>
-            <p className="mt-1 text-xs font-medium capitalize text-slate-500">
-              {arrivalSummary.weekday}
-            </p>
-          </div>
-          <ArrowRight className="mt-0.5 h-4 w-4 text-slate-400" aria-hidden="true" />
-          <div className="text-right">
-            <p className="num text-sm font-semibold text-slate-900">
-              {departureSummary.date}
-            </p>
-            <p className="mt-1 text-xs font-medium capitalize text-slate-500">
-              {departureSummary.weekday}
-            </p>
-          </div>
-        </div>
-
-        <div className="my-4 flex justify-center">
-          <span className="num rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-            {nights} malam
-          </span>
-        </div>
-
-        <div className="space-y-4 border-y border-slate-200 py-4">
-          <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
-            <BedDouble className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-            <span className="num">
-              {watchedRoomRows.length} kamar · {nights} malam
-            </span>
-          </div>
-
+        <dl aria-label="Rincian biaya reservasi" className="text-sm">
           <div className="space-y-3">
-            {watchedRoomRows.map((room, index) => {
-              const roomType = roomTypes.find(
-                (option) => option.id === Number(room.roomTypeId || 0),
-              );
-              const selectedRoom = rooms.find(
-                (option) => option.id === Number(room.roomId || 0),
-              );
-
-              return (
-                <div key={roomsFieldArray.fields[index]?.id ?? index} className="flex gap-3">
-                  <CalendarDays
-                    className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0 text-sm">
-                    <p className="font-medium text-slate-800">
-                      {roomType
-                        ? `${roomType.code} · ${roomType.name}`
-                        : `Kamar ${index + 1} · Tipe belum dipilih`}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {selectedRoom
-                        ? `Kamar ${selectedRoom.number} · Lantai ${selectedRoom.floor}`
-                        : "Nomor kamar belum dialokasikan"}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex gap-3">
-            <Tag className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-            <div className="min-w-0 flex-1 space-y-2">
-              {watchedRoomRows.map((_, index) => (
-                <div
-                  key={roomsFieldArray.fields[index]?.id ?? index}
-                  className="flex items-baseline justify-between gap-3 text-sm"
-                >
-                  <span className="text-slate-500">
-                    Tarif kamar {watchedRoomRows.length > 1 ? index + 1 : ""}
-                  </span>
-                  <span className="num text-right font-medium text-slate-900">
-                    {roomRateDisplay(index)}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-slate-600">Room total</dt>
+              <dd className="num text-right font-medium text-slate-900">
+                {summaryAmountDisplay(roomSubtotal)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-slate-600">Inclusion</dt>
+              <dd className="num text-right font-medium text-slate-900">
+                {formatIDR(inclusionTotal)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-slate-600">Extras total</dt>
+              <dd className="num text-right font-medium text-slate-900">
+                {formatIDR(extrasTotal)}
+              </dd>
             </div>
           </div>
-        </div>
+
+          <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="font-semibold text-slate-900">Total</dt>
+              <dd className="num text-right font-semibold text-slate-900">
+                {summaryAmountDisplay(reservationTotal)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-slate-600">Total received</dt>
+              <dd className="num text-right font-medium text-slate-900">
+                {formatIDR(totalReceived)}
+              </dd>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-slate-200 pt-4">
+            <div className="flex items-baseline justify-between gap-4 rounded-md bg-slate-50 px-3 py-3">
+              <dt className="font-semibold text-slate-900">Total outstanding</dt>
+              <dd className="num text-right text-lg font-bold text-slate-900">
+                {summaryAmountDisplay(totalOutstanding)}
+              </dd>
+            </div>
+          </div>
+        </dl>
 
         {quoteError ? (
           <p className="mt-4 text-sm font-medium text-red-600">{quoteError}</p>
@@ -822,10 +770,6 @@ export function ReservationForm({
             </span>
           </div>
         ) : null}
-        <div className="mt-4 flex items-baseline justify-between gap-4 desktop:lg:mt-auto desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:pt-4">
-          <span className="text-sm font-semibold text-slate-900">Total reservasi</span>
-          <span className="num text-lg font-bold text-slate-900">{estimatedTotal}</span>
-        </div>
       </div>
     </section>
   );
