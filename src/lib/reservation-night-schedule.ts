@@ -29,13 +29,17 @@ type LegacyFlatScheduleInput = {
   mealSnapshot?: MealSnapshotInput;
 };
 
+export type ReservationNightMealSnapshot = {
+  mealPlan: ArrangementType | null;
+  mealPax: number | null;
+  mealUnitPrice: Prisma.Decimal | null;
+  mealAmount: Prisma.Decimal | null;
+};
+
 export function createReservationNightMealSnapshot(
   arrangementType: ArrangementType,
   mealPax: number,
-): Pick<
-  Prisma.ReservationNightCreateManyInput,
-  "mealPlan" | "mealPax" | "mealUnitPrice" | "mealAmount"
-> {
+): ReservationNightMealSnapshot {
   const definition = MEAL_PLAN_DEFINITIONS[arrangementType];
 
   if (!definition) {

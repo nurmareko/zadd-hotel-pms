@@ -73,10 +73,10 @@ const reservationTypeLabels: Record<string, string> = {
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO (Room Only)",
-  [ArrangementType.BB]: "BB (Bed & Breakfast)",
-  [ArrangementType.HB]: "HB (Half Board)",
-  [ArrangementType.FB]: "FB (Full Board)",
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
 };
 
 const styles = StyleSheet.create({
@@ -209,7 +209,7 @@ export function Grc({
             />
             <Field label="Nights" value={String(Math.max(0, nights))} />
             <Field
-              label="Paket menginap"
+              label="Inklusi"
               value={arrangementLabels[reservation.arrangementType]}
             />
             <Field

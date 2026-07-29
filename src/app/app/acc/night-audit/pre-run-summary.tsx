@@ -106,13 +106,13 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       Kamar
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Paket menginap
+                      Inklusi
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Lines
+                      Baris
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Total Posting
+                      Total Diposting
                     </th>
                   </tr>
                 </thead>

@@ -40,10 +40,10 @@ const noShowClassNames = {
 };
 
 const mealPlanLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO (Room Only)",
-  [ArrangementType.BB]: "BB (Bed & Breakfast)",
-  [ArrangementType.HB]: "HB (Half Board)",
-  [ArrangementType.FB]: "FB (Full Board)",
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
 };
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
@@ -279,7 +279,7 @@ export default async function GroupBookingPage({
                   Kamar / tipe
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Paket menginap
+                  Inklusi
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
                   Status

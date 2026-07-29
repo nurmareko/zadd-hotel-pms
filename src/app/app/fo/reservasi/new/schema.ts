@@ -1,6 +1,7 @@
 import {
   ArrangementType,
   GuestIdType,
+  ReservationStayFeeKind,
   ReservationType,
 } from "@prisma/client";
 import { z } from "zod";
@@ -177,6 +178,12 @@ const UnifiedRoomFields = {
     .array(ReservationRoomRowSchema)
     .min(1, "Tambahkan minimal 1 kamar")
     .max(20, "Maksimal 20 kamar per reservasi"),
+  stayFeeKinds: z
+    .array(z.nativeEnum(ReservationStayFeeKind))
+    .max(2, "Maksimal dua biaya fleksibilitas")
+    .refine((kinds) => new Set(kinds).size === kinds.length, {
+      message: "Jenis biaya fleksibilitas tidak boleh duplikat",
+    }),
 };
 
 const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
@@ -297,6 +304,15 @@ export function createUnifiedReservationSchema(
 
   return BaseUnifiedReservationSchema.superRefine((value, context) => {
     const selectedRoomIds = new Set<number>();
+
+    if (value.rooms.length > 1 && value.stayFeeKinds.length > 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["stayFeeKinds"],
+        message:
+          "Fleksibilitas menginap hanya dapat dipilih untuk reservasi satu kamar.",
+      });
+    }
 
     value.rooms.forEach((room, index) => {
       const totalGuests = room.adults + room.children;
@@ -427,6 +443,7 @@ export type CreateReservationInput = {
   reservationType: ReservationType;
   arrangementType: ArrangementType;
   notes: string;
+  stayFeeKinds: ReservationStayFeeKind[];
 };
 
 export type UnifiedReservationInput = Omit<

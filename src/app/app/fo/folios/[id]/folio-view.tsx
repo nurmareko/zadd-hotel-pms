@@ -7,6 +7,7 @@ import { folioBalanceState } from "@/lib/folio-balance-display";
 import { computeFolioTotals } from "@/lib/folio-totals";
 
 import { prisma } from "@/lib/prisma";
+import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { AddChargeDialog } from "./add-charge-dialog";
 import { FolioCharges } from "./folio-charges";
@@ -69,7 +70,12 @@ export async function GuestFolioView({ folioId }: GuestFolioViewProps) {
     prisma.article.findMany({
       where: {
         type: { not: ArticleType.TAX },
-        code: { notIn: [...STAY_CHARGE_ARTICLE_CODES] },
+        code: {
+          notIn: [
+            ...STAY_CHARGE_ARTICLE_CODES,
+            ...STAY_FEE_ARTICLE_CODES,
+          ],
+        },
       },
       orderBy: { code: "asc" },
       select: {

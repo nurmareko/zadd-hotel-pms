@@ -1,19 +1,36 @@
 "use server";
 
 import {
+  ArrangementType,
   PaymentPurpose,
   Prisma,
   ReservationStatus,
+  ReservationStayFeeKind,
+  ReservationStayFeeStatus,
   RoomStatus,
 } from "@prisma/client";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, formatISO } from "date-fns";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { auth } from "@/auth";
-import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import {
+  dateOnlyBoundary,
+  hotelTodayDateOnly,
+  todayDateOnly,
+} from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { createReservationNightMealSnapshot } from "@/lib/reservation-night-schedule";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
+import {
+  createPendingReservationStayFees,
+  postPendingReservationStayFees,
+  reactivatePendingReservationStayFee,
+  ReservationStayFeeError,
+} from "@/lib/reservation-stay-fees";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -169,6 +186,365 @@ function isSerializationConflict(error: unknown) {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2034" || error.code === "P2028")
   );
+}
+
+const MealPlanChangeSchema = z.object({
+  reservationId: z.number().int().positive(),
+  arrangementType: z.nativeEnum(ArrangementType),
+});
+
+type MealPlanChangeResult =
+  | { ok: true; effectiveDate: string; changedNights: number }
+  | { ok: false; error: string };
+
+const StayFeeSelectionSchema = z.object({
+  reservationId: z.number().int().positive(),
+  kind: z.nativeEnum(ReservationStayFeeKind),
+  selected: z.boolean(),
+});
+
+export type StayFeeSelectionResult =
+  | { ok: true; status: ReservationStayFeeStatus }
+  | { ok: false; error: string };
+
+export async function changeReservationMealPlan(
+  input: unknown,
+): Promise<MealPlanChangeResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Unauthorized" };
+  }
+
+  const parsed = MealPlanChangeSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: "Perubahan meal plan tidak valid." };
+  }
+
+  const { reservationId, arrangementType } = parsed.data;
+  const boundary = hotelTodayDateOnly();
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw<Array<{ id: number }>>`
+          SELECT id FROM "reservation" WHERE id = ${reservationId} FOR UPDATE
+        `;
+        await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM "reservation_night"
+          WHERE reservation_id = ${reservationId} AND date >= ${boundary}
+          ORDER BY date ASC
+          FOR UPDATE
+        `;
+
+        const reservation = await tx.reservation.findUnique({
+          where: { id: reservationId },
+          select: {
+            id: true,
+            status: true,
+            adults: true,
+            children: true,
+            reservationNights: {
+              where: { date: { gte: boundary } },
+              orderBy: { date: "asc" },
+              select: {
+                id: true,
+                date: true,
+                folioLineItems: {
+                  where: {
+                    article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                  },
+                  take: 1,
+                  select: { id: true },
+                },
+              },
+            },
+          },
+        });
+
+        if (!reservation) {
+          return { ok: false as const, error: "Reservasi tidak ditemukan." };
+        }
+
+        if (
+          reservation.status === ReservationStatus.CHECKED_OUT ||
+          reservation.status === ReservationStatus.CANCELLED ||
+          reservation.status === ReservationStatus.NO_SHOW
+        ) {
+          return {
+            ok: false as const,
+            error:
+              "Riwayat Inklusi reservasi terminal bersifat final dan tidak dapat diubah.",
+          };
+        }
+
+        const eligibleNights = reservation.reservationNights.filter(
+          (night) => night.folioLineItems.length === 0,
+        );
+        const firstEligibleNight = eligibleNights[0];
+
+        if (!firstEligibleNight) {
+          return {
+            ok: false as const,
+            error: "Tidak ada malam mendatang yang belum diposting untuk diubah.",
+          };
+        }
+
+        const eligibleNightIds = eligibleNights.map((night) => night.id);
+        const updatedNights = await tx.reservationNight.updateMany({
+          where: {
+            id: { in: eligibleNightIds },
+            reservationId,
+            date: { gte: boundary },
+            folioLineItems: {
+              none: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
+            },
+          },
+          data: createReservationNightMealSnapshot(
+            arrangementType,
+            reservation.adults + reservation.children,
+          ),
+        });
+
+        if (updatedNights.count !== eligibleNightIds.length) {
+          throw new Error("MEAL_PLAN_CHANGE_CONFLICT");
+        }
+
+        await tx.reservation.update({
+          where: { id: reservationId },
+          data: { arrangementType },
+        });
+
+        return {
+          ok: true as const,
+          effectiveDate: formatISO(firstEligibleNight.date, {
+            representation: "date",
+          }),
+          changedNights: updatedNights.count,
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        ...TRANSACTION_OPTIONS,
+      },
+    );
+
+    if (result.ok) {
+      revalidatePath(`/app/fo/reservasi/${reservationId}`);
+    }
+
+    return result;
+  } catch (error) {
+    if (
+      isSerializationConflict(error) ||
+      (error instanceof Error && error.message === "MEAL_PLAN_CHANGE_CONFLICT")
+    ) {
+      return {
+        ok: false,
+        error: "Jadwal Inklusi berubah saat disimpan. Muat ulang lalu coba lagi.",
+      };
+    }
+
+    return { ok: false, error: "Gagal mengubah meal plan." };
+  }
+}
+
+export async function setReservationStayFee(
+  input: unknown,
+): Promise<StayFeeSelectionResult> {
+  const session = await auth();
+
+  if (session?.user.role !== "FO") {
+    return { ok: false, error: "Tidak diizinkan" };
+  }
+
+  const parsed = StayFeeSelectionSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: "Pilihan fleksibilitas menginap tidak valid." };
+  }
+
+  const { reservationId, kind, selected } = parsed.data;
+  const userId = Number(session.user.id);
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw<Array<{ id: number }>>`
+            SELECT id FROM "folio" WHERE reservation_id = ${reservationId} FOR UPDATE
+          `;
+          await tx.$queryRaw<Array<{ id: number }>>`
+            SELECT id FROM "reservation" WHERE id = ${reservationId} FOR UPDATE
+          `;
+
+          const reservation = await tx.reservation.findUnique({
+            where: { id: reservationId },
+            select: {
+              id: true,
+              status: true,
+              folio: { select: { id: true, status: true } },
+              stayFees: {
+                where: { kind },
+                take: 1,
+              },
+            },
+          });
+
+          if (!reservation) {
+            return { ok: false as const, error: "Reservasi tidak ditemukan." };
+          }
+
+          if (
+            reservation.status === ReservationStatus.CHECKED_OUT ||
+            reservation.status === ReservationStatus.CANCELLED ||
+            reservation.status === ReservationStatus.NO_SHOW
+          ) {
+            return {
+              ok: false as const,
+              error:
+                "Riwayat fleksibilitas reservasi terminal bersifat final dan tidak dapat diubah.",
+            };
+          }
+
+          const existingFee = reservation.stayFees[0] ?? null;
+
+          if (!selected) {
+            if (!existingFee || existingFee.status === ReservationStayFeeStatus.CANCELLED) {
+              return {
+                ok: true as const,
+                status: ReservationStayFeeStatus.CANCELLED,
+              };
+            }
+
+            if (existingFee.status === ReservationStayFeeStatus.POSTED) {
+              return {
+                ok: false as const,
+                error:
+                  "Biaya yang sudah terposting bersifat terkunci dan tidak dapat dihapus.",
+              };
+            }
+
+            const cancelled = await tx.reservationStayFee.updateMany({
+              where: {
+                id: existingFee.id,
+                reservationId,
+                kind,
+                status: ReservationStayFeeStatus.PENDING,
+                folioLineItemId: null,
+              },
+              data: { status: ReservationStayFeeStatus.CANCELLED },
+            });
+
+            if (cancelled.count !== 1) {
+              throw new ReservationStayFeeError(
+                "Status biaya berubah saat dihapus. Muat ulang lalu coba lagi.",
+              );
+            }
+
+            return {
+              ok: true as const,
+              status: ReservationStayFeeStatus.CANCELLED,
+            };
+          }
+
+          if (existingFee?.status === ReservationStayFeeStatus.POSTED) {
+            return {
+              ok: false as const,
+              error: "Biaya ini sudah terposting dan terkunci.",
+            };
+          }
+
+          if (existingFee?.status === ReservationStayFeeStatus.CANCELLED) {
+            await reactivatePendingReservationStayFee(tx, {
+              feeId: existingFee.id,
+              kind,
+              selectedById: userId,
+              selectedAt: new Date(),
+            });
+          } else if (!existingFee) {
+            await createPendingReservationStayFees(tx, {
+              reservationId,
+              kinds: [kind],
+              selectedById: userId,
+            });
+          }
+
+          if (reservation.status === ReservationStatus.CHECKED_IN) {
+            if (!reservation.folio) {
+              throw new ReservationStayFeeError(
+                "Folio reservasi tidak ditemukan. Biaya tidak diposting.",
+              );
+            }
+
+            const postedCount = await postPendingReservationStayFees(tx, {
+              reservationId,
+              folioId: reservation.folio.id,
+              postedById: userId,
+              postedAt: new Date(),
+              kinds: [kind],
+            });
+
+            if (postedCount !== 1) {
+              throw new ReservationStayFeeError(
+                "Biaya tidak berhasil diposting tepat satu kali.",
+              );
+            }
+
+            return {
+              ok: true as const,
+              status: ReservationStayFeeStatus.POSTED,
+            };
+          }
+
+          if (reservation.status !== ReservationStatus.CONFIRMED) {
+            return {
+              ok: false as const,
+              error: "Status reservasi tidak dapat menerima biaya fleksibilitas.",
+            };
+          }
+
+          return {
+            ok: true as const,
+            status: ReservationStayFeeStatus.PENDING,
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+
+      if (result.ok) {
+        revalidatePath(`/app/fo/reservasi/${reservationId}`);
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof ReservationStayFeeError) {
+        return { ok: false, error: error.message };
+      }
+
+      if (isSerializationConflict(error) && attempt < 3) {
+        continue;
+      }
+
+      if (isSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik perubahan biaya berulang. Muat ulang lalu coba lagi.",
+        };
+      }
+
+      return { ok: false, error: "Gagal mengubah biaya fleksibilitas." };
+    }
+  }
+
+  return {
+    ok: false,
+    error: "Konflik perubahan biaya berulang. Muat ulang lalu coba lagi.",
+  };
 }
 
 export async function requestRoomCleaning(

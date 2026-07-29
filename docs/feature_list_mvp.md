@@ -2,7 +2,7 @@
 
 What we're building in the MVP, grouped by module. Recently completed and deferred features are listed at the end with their current status or rationale.
 
-Last updated: 2026-07-17.
+Last updated: 2026-07-30.
 
 ---
 
@@ -16,6 +16,7 @@ Supports the guest lifecycle from booking to final payment.
 - **Overbooking prevention** — reservation create/edit checks room-type inventory capacity (the number of registered physical rooms for that type) across the stay, including unallocated reservations.
 - **Check-in** — assign a physical room to an arriving guest, fill the Guest Registration Card inline, capture the guest's required digital signature on screen, save `signatureDataUrl` and `signedAt`, embed the signature in the GRC PDF, and auto-open the folio.
 - **Guest Folio** — line-item charges, manual charge posting by staff, payment recording (cash, transfer, card), and post-check-in GRC printing.
+- **Inklusi dan fleksibilitas menginap** — meal plans use per-night snapshots, while optional early check-in and late check-out fees are flat Rp 100.000 per reservation. Booking-time selections remain PENDING until check-in; in-house selections post immediately to an OPEN folio. POSTED fees are immutable, PENDING removals retain CANCELLED history, and multi-room bulk application remains deferred.
 - **Unified reservation form/detail** — FO-03 uses the same form structure for create, read-only detail, and edit. The canonical detail route has Details and Folio tabs; group reservations also show sibling-room context and a link to the group summary.
 - **Check-out** — posts any pending stay-charge shortfall the night audit has not posted yet and verifies the rounded whole-IDR folio balance (room, F&B charge-to-room, and misc). A positive balance blocks for settlement through the existing payment flow; zero or credit may proceed. Credit displays a warning requiring the excess to be returned to the guest. Completion auto-updates room status to Vacant Dirty.
 - **Room cleaning request** — Front Office can mark an in-house room as `Occupied Dirty` (`OC → OD`) for mid-stay cleaning.

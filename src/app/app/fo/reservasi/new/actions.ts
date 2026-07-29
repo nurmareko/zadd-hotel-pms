@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ArrangementType,
   Prisma,
   ReservationStatus,
   ReservationUsageType,
@@ -38,6 +39,11 @@ import {
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
 import {
+  cancelPendingReservationStayFees,
+  createPendingReservationStayFees,
+  ReservationStayFeeError,
+} from "@/lib/reservation-stay-fees";
+import {
   createEditReservationSchema,
   createUnifiedReservationSchema,
   type EditReservationValues,
@@ -51,12 +57,34 @@ type ActionResult =
   | { ok: false; error: string; field?: ReservationActionField };
 
 type ReservationQuoteResult =
-  | { ok: true; total: string; deposits: string[] }
+  | {
+      ok: true;
+      roomTotal: string;
+      inclusionTotal: string;
+      reservationTotal: string;
+      deposits: string[];
+      inclusionRooms: Array<{
+        pax: number;
+        nights: number;
+        unitPrice: string;
+        total: string;
+      }>;
+    }
   | { ok: false; error: string };
 
 const ReservationQuoteSchema = z
   .object({
-    roomTypeIds: z.array(z.coerce.number().int().positive()).min(1).max(20),
+    rooms: z
+      .array(
+        z.object({
+          roomTypeId: z.coerce.number().int().positive(),
+          adults: z.coerce.number().int().min(1),
+          children: z.coerce.number().int().min(0),
+        }),
+      )
+      .min(1)
+      .max(20),
+    arrangementType: z.nativeEnum(ArrangementType),
     arrivalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })
@@ -427,6 +455,14 @@ async function runCreateReservationTransaction(
           }),
         });
 
+        if (input.stayFeeKinds.length > 0) {
+          await createPendingReservationStayFees(tx, {
+            reservationId: reservation.id,
+            kinds: input.stayFeeKinds,
+            selectedById: userId,
+          });
+        }
+
         reservationIds.push(reservation.id);
       }
 
@@ -520,7 +556,6 @@ async function runUpdateReservationTransaction(
 
       const { room } = validatedAssignment.assignment;
       const isMealSnapshotRelevant =
-        existingReservation.arrangementType !== input.arrangementType ||
         existingReservation.adults !== input.adults ||
         existingReservation.children !== input.children;
       const isPricingRelevant =
@@ -616,7 +651,6 @@ async function runUpdateReservationTransaction(
               }
             : {}),
           notes: input.notes,
-          arrangementType: input.arrangementType,
           reservationType: input.reservationType,
         },
       });
@@ -630,7 +664,7 @@ async function runUpdateReservationTransaction(
             reservationId,
             resolvedSchedule,
             mealSnapshot: {
-              arrangementType: input.arrangementType,
+              arrangementType: existingReservation.arrangementType,
               mealPax: input.adults + input.children,
             },
           }),
@@ -653,7 +687,7 @@ async function runUpdateReservationTransaction(
               },
             },
             data: createReservationNightMealSnapshot(
-              input.arrangementType,
+              existingReservation.arrangementType,
               input.adults + input.children,
             ),
           });
@@ -690,7 +724,7 @@ export async function getReservationQuote(
       Awaited<ReturnType<typeof resolveNightlySchedule>>
     >();
 
-    for (const roomTypeId of new Set(parsed.data.roomTypeIds)) {
+    for (const roomTypeId of new Set(parsed.data.rooms.map((room) => room.roomTypeId))) {
       schedules.set(
         roomTypeId,
         await resolveNightlySchedule({
@@ -702,8 +736,17 @@ export async function getReservationQuote(
     }
 
     const deposits: string[] = [];
-    const total = parsed.data.roomTypeIds.reduce((stayTotal, roomTypeId) => {
-      const schedule = schedules.get(roomTypeId);
+    const inclusionRooms: Array<{
+      pax: number;
+      nights: number;
+      unitPrice: string;
+      total: string;
+    }> = [];
+    let roomTotal = new Prisma.Decimal(0);
+    let inclusionTotal = new Prisma.Decimal(0);
+
+    for (const room of parsed.data.rooms) {
+      const schedule = schedules.get(room.roomTypeId);
       const firstNight = schedule?.[0];
 
       if (!schedule || !firstNight) {
@@ -711,14 +754,41 @@ export async function getReservationQuote(
       }
 
       deposits.push(firstNight.rate.toString());
-
-      return schedule.reduce(
-        (roomTotal, night) => roomTotal.plus(night.rate),
-        stayTotal,
+      roomTotal = schedule.reduce(
+        (total, night) => total.plus(night.rate),
+        roomTotal,
       );
-    }, new Prisma.Decimal(0));
 
-    return { ok: true, total: total.toString(), deposits };
+      const pax = room.adults + room.children;
+      const nightlyMealSnapshot = createReservationNightMealSnapshot(
+        parsed.data.arrangementType,
+        pax,
+      );
+      const unitPrice = new Prisma.Decimal(
+        nightlyMealSnapshot.mealUnitPrice ?? 0,
+      );
+      const nightlyAmount = new Prisma.Decimal(
+        nightlyMealSnapshot.mealAmount ?? 0,
+      );
+      const roomInclusionTotal = nightlyAmount.mul(schedule.length);
+
+      inclusionRooms.push({
+        pax,
+        nights: schedule.length,
+        unitPrice: unitPrice.toString(),
+        total: roomInclusionTotal.toString(),
+      });
+      inclusionTotal = inclusionTotal.plus(roomInclusionTotal);
+    }
+
+    return {
+      ok: true,
+      roomTotal: roomTotal.toString(),
+      inclusionTotal: inclusionTotal.toString(),
+      reservationTotal: roomTotal.plus(inclusionTotal).toString(),
+      deposits,
+      inclusionRooms,
+    };
   } catch (error) {
     return {
       ok: false,
@@ -756,7 +826,10 @@ export async function createReservation(
       result = await runCreateReservationTransaction(parsed.data, userId);
       break;
     } catch (error) {
-      if (error instanceof PricingResolutionError) {
+      if (
+        error instanceof PricingResolutionError ||
+        error instanceof ReservationStayFeeError
+      ) {
         return { ok: false, error: error.message };
       }
 
@@ -870,6 +943,8 @@ export async function cancelReservation(
             error: "Status reservasi berubah saat membatalkan. Coba lagi.",
           };
         }
+
+        await cancelPendingReservationStayFees(tx, reservationId);
 
         return { ok: true as const };
       },

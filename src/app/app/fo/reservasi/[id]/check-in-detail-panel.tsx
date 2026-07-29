@@ -48,10 +48,10 @@ const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 const mealPlanLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO (Room Only)",
-  [ArrangementType.BB]: "BB (Bed & Breakfast)",
-  [ArrangementType.HB]: "HB (Half Board)",
-  [ArrangementType.FB]: "FB (Full Board)",
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
 };
 
 function ReadOnlyItem({ label, value }: { label: string; value: string }) {
@@ -542,7 +542,7 @@ export function CheckInDetailPanel({
                   <ReadOnlyItem label="No. reservasi" value={review.reservationNo} />
                   <ReadOnlyItem label="Tipe" value={review.reservationType} />
                   <ReadOnlyItem
-                    label="Paket menginap"
+                    label="Inklusi"
                     value={mealPlanLabels[review.arrangementType]}
                   />
                   <ReadOnlyItem label="Nama tamu" value={review.guest.fullName} />

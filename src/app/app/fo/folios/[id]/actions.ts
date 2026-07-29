@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { PaymentSchema, PostChargeSchema } from "./schema";
 
@@ -77,8 +78,11 @@ export async function postCharge(
     return { ok: false, error: "Tax is computed automatically" };
   }
 
-  if (STAY_CHARGE_ARTICLE_CODES.some((code) => code === article.code)) {
-    return { ok: false, error: "Stay charges are posted automatically" };
+  if (
+    STAY_CHARGE_ARTICLE_CODES.some((code) => code === article.code) ||
+    STAY_FEE_ARTICLE_CODES.some((code) => code === article.code)
+  ) {
+    return { ok: false, error: "Biaya menginap diposting secara otomatis" };
   }
 
   const description = parsed.data.description?.trim() || article.name;

@@ -141,6 +141,7 @@ export default async function NewReservationPage({
     reservationType: "INDIVIDUAL",
     arrangementType: "RO",
     notes: "",
+    stayFeeKinds: [],
   };
   const allocatedActiveReservations = activeReservations.flatMap(
     (reservation) =>

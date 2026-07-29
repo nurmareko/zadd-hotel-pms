@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import {
   ArticleCreateSchema,
   ArticleIdSchema,
@@ -14,6 +15,10 @@ import {
 type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const ARTICLES_PATH = "/app/admin/articles";
+
+function isProtectedStayFeeCode(code: string) {
+  return STAY_FEE_ARTICLE_CODES.some((protectedCode) => protectedCode === code);
+}
 
 function validationFailure(error: {
   issues: { message: string; path: PropertyKey[] }[];
@@ -99,6 +104,19 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
   const { id, ...data } = parsed.data;
 
   try {
+    const currentArticle = await prisma.article.findUnique({
+      where: { id },
+      select: { code: true },
+    });
+
+    if (currentArticle && isProtectedStayFeeCode(currentArticle.code)) {
+      return {
+        ok: false,
+        error:
+          "Artikel biaya fleksibilitas dikelola sistem dan tidak dapat diubah.",
+      };
+    }
+
     const existingCode = await prisma.article.findFirst({
       where: { code: data.code, id: { not: id } },
       select: { id: true },
@@ -133,6 +151,19 @@ export async function deleteArticle(id: number): Promise<ActionResult> {
   }
 
   try {
+    const currentArticle = await prisma.article.findUnique({
+      where: { id: parsed.data.id },
+      select: { code: true },
+    });
+
+    if (currentArticle && isProtectedStayFeeCode(currentArticle.code)) {
+      return {
+        ok: false,
+        error:
+          "Artikel biaya fleksibilitas dikelola sistem dan tidak dapat dihapus.",
+      };
+    }
+
     await prisma.article.delete({
       where: { id: parsed.data.id },
     });

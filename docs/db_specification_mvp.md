@@ -475,7 +475,7 @@ These belong to the same future money-lifecycle family as the existing [allowanc
 
 ## Inclusions (meal plans and stay-flexibility fees) contract
 
-> **Phase 2 meal posting is active.** Nightly meal snapshots are authoritative for automatic meal charges. Reservation-owned stay-fee records remain structure-only for Phase 3; no money path reads the fee table yet. `computeFolioTotals` remains canonical and unchanged.
+> **Phase 4 stay-flexibility posting is active.** Nightly meal snapshots remain authoritative for automatic meal charges. Reservation-owned stay-fee selections snapshot article prices, remain PENDING before arrival, and post through the guarded check-in or in-house selection transaction. `computeFolioTotals` remains canonical and unchanged.
 
 ### Meal-plan taxonomy and prices
 
@@ -508,7 +508,9 @@ Meal plans use package-level pricing: one plan price per guest per night, not a 
 - A fee selected at booking is stored as `PENDING` and posted exactly once at check-in.
 - A fee selected for an in-house reservation with an OPEN folio posts immediately and transitions to `POSTED`.
 - `ReservationStayFee` enforces one row per reservation and fee kind. `folioLineItemId` records the single posted folio line, while `CANCELLED` preserves an unposted selection that no longer applies.
-- Phase 1 creates the fee structure and articles only; no UI or posting path reads or writes fee selections yet.
+- Phase 4 exposes fee selection on the single-room booking form and reservation Inklusi tab. Multi-room bulk application remains deferred.
+- PENDING removal transitions the row to CANCELLED instead of deleting it, preserving selection history. POSTED rows are immutable in the standard workflow.
+- Cancellation transitions PENDING fees to CANCELLED in the same serializable transaction. Any future no-show writer must apply the same transition atomically; the app currently has no operational no-show mutation.
 
 ### Folio, tax, service charge, and ARR
 
