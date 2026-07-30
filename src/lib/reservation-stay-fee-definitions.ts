@@ -3,12 +3,12 @@ import type { ReservationStayFeeKind } from "@prisma/client";
 export const STAY_FEE_DEFINITIONS = Object.freeze({
   EARLY_CHECK_IN: Object.freeze({
     articleCode: "FEE-EARLY-CI",
-    label: "Early check-in",
+    label: "Check-in lebih awal",
     unitPrice: 100_000,
   }),
   LATE_CHECK_OUT: Object.freeze({
     articleCode: "FEE-LATE-CO",
-    label: "Late check-out",
+    label: "Check-out lebih lambat",
     unitPrice: 100_000,
   }),
 } satisfies Record<

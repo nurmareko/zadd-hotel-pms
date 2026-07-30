@@ -508,7 +508,7 @@ Meal plans use package-level pricing: one plan price per guest per night, not a 
 - A fee selected at booking is stored as `PENDING` and posted exactly once at check-in.
 - A fee selected for an in-house reservation with an OPEN folio posts immediately and transitions to `POSTED`.
 - `ReservationStayFee` enforces one row per reservation and fee kind. `folioLineItemId` records the single posted folio line, while `CANCELLED` preserves an unposted selection that no longer applies.
-- Phase 4 exposes fee selection on the single-room booking form and reservation Inklusi tab. Multi-room bulk application remains deferred.
+- The single-room booking form and reservation Inklusi tab manage one reservation only. The group summary provides explicit all/selected bulk application by looping the same canonical per-room actions without an outer transaction. Each action rechecks group membership and lifecycle state in its own serializable transaction; no single-room edit synchronizes siblings.
 - PENDING removal transitions the row to CANCELLED instead of deleting it, preserving selection history. POSTED rows are immutable in the standard workflow.
 - Cancellation transitions PENDING fees to CANCELLED in the same serializable transaction. Any future no-show writer must apply the same transition atomically; the app currently has no operational no-show mutation.
 

@@ -9,7 +9,7 @@ import {
   ReservationStayFeeStatus,
   RoomStatus,
 } from "@prisma/client";
-import { differenceInCalendarDays, formatISO } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -23,7 +23,11 @@ import {
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
-import { createReservationNightMealSnapshot } from "@/lib/reservation-night-schedule";
+
+import {
+  buildReservationMealPlanChange,
+  matchesExpectedMealPlanPreview,
+} from "@/lib/reservation-meal-plan-change";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 import {
   createPendingReservationStayFees,
@@ -188,24 +192,81 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-const MealPlanChangeSchema = z.object({
+function revalidateCommittedInclusion(
+  reservationId: number,
+  groupBookingId?: string,
+) {
+  try {
+    revalidatePath(`/app/fo/reservasi/${reservationId}`);
+    if (groupBookingId) {
+      revalidatePath(`/app/fo/reservasi/grup/${groupBookingId}`);
+    }
+  } catch (error) {
+    console.error("Gagal menyegarkan tampilan Inklusi setelah transaksi", error);
+  }
+}
+
+const ExpectedGroupBookingSchema = z.string().trim().min(1).max(32).optional();
+
+const ExpectedMealPlanPreviewSchema = z.object({
   reservationId: z.number().int().positive(),
-  arrangementType: z.nativeEnum(ArrangementType),
+  groupBookingId: z.string().nullable(),
+  reservationStatus: z.nativeEnum(ReservationStatus),
+  currentPlan: z.nativeEnum(ArrangementType),
+  pax: z.number().int(),
+  nightsAffected: z.number().int().nonnegative(),
+  unitPrice: z.string(),
+  nightlyAmount: z.string(),
+  expectedAmount: z.string(),
+  effectiveDate: z.string(),
 });
 
-type MealPlanChangeResult =
+const ExpectedIneligibleMealPlanPreviewSchema = z.object({
+  reservationId: z.number().int().positive(),
+  groupBookingId: z.string().nullable(),
+  reservationStatus: z.nativeEnum(ReservationStatus).nullable(),
+  currentPlan: z.nativeEnum(ArrangementType).nullable(),
+  pax: z.number().int().nullable(),
+  reason: z.string().min(1),
+});
+
+const MealPlanChangeSchema = z
+  .object({
+    reservationId: z.number().int().positive(),
+    arrangementType: z.nativeEnum(ArrangementType),
+    expectedGroupBookingId: ExpectedGroupBookingSchema,
+    expectedPreview: ExpectedMealPlanPreviewSchema.optional(),
+    expectedIneligiblePreview: ExpectedIneligibleMealPlanPreviewSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.expectedGroupBookingId) return;
+
+    const bindingCount =
+      Number(Boolean(value.expectedPreview)) +
+      Number(Boolean(value.expectedIneligiblePreview));
+    if (bindingCount !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["expectedPreview"],
+        message: "Pratinjau grup wajib terikat tepat satu kali.",
+      });
+    }
+  });
+
+export type MealPlanChangeResult =
   | { ok: true; effectiveDate: string; changedNights: number }
-  | { ok: false; error: string };
+  | { ok: false; error: string; disposition?: "skipped" | "failed" };
 
 const StayFeeSelectionSchema = z.object({
   reservationId: z.number().int().positive(),
   kind: z.nativeEnum(ReservationStayFeeKind),
   selected: z.boolean(),
+  expectedGroupBookingId: ExpectedGroupBookingSchema,
 });
 
 export type StayFeeSelectionResult =
-  | { ok: true; status: ReservationStayFeeStatus }
-  | { ok: false; error: string };
+  | { ok: true; status: ReservationStayFeeStatus; changed: boolean }
+  | { ok: false; error: string; disposition?: "skipped" | "failed" };
 
 export async function changeReservationMealPlan(
   input: unknown,
@@ -222,7 +283,13 @@ export async function changeReservationMealPlan(
     return { ok: false, error: "Perubahan meal plan tidak valid." };
   }
 
-  const { reservationId, arrangementType } = parsed.data;
+  const {
+    reservationId,
+    arrangementType,
+    expectedGroupBookingId,
+    expectedPreview,
+    expectedIneligiblePreview,
+  } = parsed.data;
   const boundary = hotelTodayDateOnly();
 
   try {
@@ -243,8 +310,11 @@ export async function changeReservationMealPlan(
           select: {
             id: true,
             status: true,
+            groupBookingId: true,
+            arrangementType: true,
             adults: true,
             children: true,
+            roomType: { select: { capacity: true } },
             reservationNights: {
               where: { date: { gte: boundary } },
               orderBy: { date: "asc" },
@@ -264,34 +334,79 @@ export async function changeReservationMealPlan(
         });
 
         if (!reservation) {
-          return { ok: false as const, error: "Reservasi tidak ditemukan." };
+          return {
+            ok: false as const,
+            error: "Reservasi tidak ditemukan.",
+            disposition: "failed" as const,
+          };
+        }
+
+        const change = buildReservationMealPlanChange({
+          reservationId: reservation.id,
+          groupBookingId: reservation.groupBookingId,
+          expectedGroupBookingId,
+          status: reservation.status,
+          currentPlan: reservation.arrangementType,
+          targetPlan: arrangementType,
+          adults: reservation.adults,
+          children: reservation.children,
+          roomCapacity: reservation.roomType.capacity,
+          nights: reservation.reservationNights.map((night) => ({
+            id: night.id,
+            date: night.date,
+            posted: night.folioLineItems.length > 0,
+          })),
+        });
+
+        if (expectedIneligiblePreview) {
+          const currentPax = reservation.adults + reservation.children;
+          if (
+            change.ok ||
+            reservation.id !== expectedIneligiblePreview.reservationId ||
+            reservation.groupBookingId !==
+              expectedIneligiblePreview.groupBookingId ||
+            reservation.status !== expectedIneligiblePreview.reservationStatus ||
+            reservation.arrangementType !==
+              expectedIneligiblePreview.currentPlan ||
+            currentPax !== expectedIneligiblePreview.pax ||
+            change.error !== expectedIneligiblePreview.reason
+          ) {
+            return {
+              ok: false as const,
+              error:
+                "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan meal plan.",
+              disposition: "failed" as const,
+            };
+          }
+
+          return {
+            ok: false as const,
+            error: change.error,
+            disposition: change.disposition,
+          };
+        }
+
+        if (!change.ok) {
+          return {
+            ok: false as const,
+            error: change.error,
+            disposition: change.disposition,
+          };
         }
 
         if (
-          reservation.status === ReservationStatus.CHECKED_OUT ||
-          reservation.status === ReservationStatus.CANCELLED ||
-          reservation.status === ReservationStatus.NO_SHOW
+          expectedPreview &&
+          !matchesExpectedMealPlanPreview(change.snapshot, expectedPreview)
         ) {
           return {
             ok: false as const,
             error:
-              "Riwayat Inklusi reservasi terminal bersifat final dan tidak dapat diubah.",
+              "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan meal plan.",
+            disposition: "failed" as const,
           };
         }
 
-        const eligibleNights = reservation.reservationNights.filter(
-          (night) => night.folioLineItems.length === 0,
-        );
-        const firstEligibleNight = eligibleNights[0];
-
-        if (!firstEligibleNight) {
-          return {
-            ok: false as const,
-            error: "Tidak ada malam mendatang yang belum diposting untuk diubah.",
-          };
-        }
-
-        const eligibleNightIds = eligibleNights.map((night) => night.id);
+        const eligibleNightIds = change.snapshot.eligibleNightIds;
         const updatedNights = await tx.reservationNight.updateMany({
           where: {
             id: { in: eligibleNightIds },
@@ -301,10 +416,7 @@ export async function changeReservationMealPlan(
               none: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
             },
           },
-          data: createReservationNightMealSnapshot(
-            arrangementType,
-            reservation.adults + reservation.children,
-          ),
+          data: change.data,
         });
 
         if (updatedNights.count !== eligibleNightIds.length) {
@@ -318,9 +430,7 @@ export async function changeReservationMealPlan(
 
         return {
           ok: true as const,
-          effectiveDate: formatISO(firstEligibleNight.date, {
-            representation: "date",
-          }),
+          effectiveDate: change.snapshot.effectiveDate,
           changedNights: updatedNights.count,
         };
       },
@@ -331,7 +441,7 @@ export async function changeReservationMealPlan(
     );
 
     if (result.ok) {
-      revalidatePath(`/app/fo/reservasi/${reservationId}`);
+      revalidateCommittedInclusion(reservationId, expectedGroupBookingId);
     }
 
     return result;
@@ -346,7 +456,11 @@ export async function changeReservationMealPlan(
       };
     }
 
-    return { ok: false, error: "Gagal mengubah meal plan." };
+    return {
+      ok: false,
+      error: "Gagal mengubah meal plan.",
+      disposition: "failed",
+    };
   }
 }
 
@@ -365,7 +479,7 @@ export async function setReservationStayFee(
     return { ok: false, error: "Pilihan fleksibilitas menginap tidak valid." };
   }
 
-  const { reservationId, kind, selected } = parsed.data;
+  const { reservationId, kind, selected, expectedGroupBookingId } = parsed.data;
   const userId = Number(session.user.id);
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -384,6 +498,7 @@ export async function setReservationStayFee(
             select: {
               id: true,
               status: true,
+              groupBookingId: true,
               folio: { select: { id: true, status: true } },
               stayFees: {
                 where: { kind },
@@ -393,7 +508,22 @@ export async function setReservationStayFee(
           });
 
           if (!reservation) {
-            return { ok: false as const, error: "Reservasi tidak ditemukan." };
+            return {
+              ok: false as const,
+              error: "Reservasi tidak ditemukan.",
+              disposition: "failed" as const,
+            };
+          }
+
+          if (
+            expectedGroupBookingId &&
+            reservation.groupBookingId !== expectedGroupBookingId
+          ) {
+            return {
+              ok: false as const,
+              error: "Reservasi bukan anggota booking grup ini.",
+              disposition: "failed" as const,
+            };
           }
 
           if (
@@ -405,6 +535,7 @@ export async function setReservationStayFee(
               ok: false as const,
               error:
                 "Riwayat fleksibilitas reservasi terminal bersifat final dan tidak dapat diubah.",
+              disposition: "skipped" as const,
             };
           }
 
@@ -415,6 +546,7 @@ export async function setReservationStayFee(
               return {
                 ok: true as const,
                 status: ReservationStayFeeStatus.CANCELLED,
+                changed: false,
               };
             }
 
@@ -423,6 +555,7 @@ export async function setReservationStayFee(
                 ok: false as const,
                 error:
                   "Biaya yang sudah terposting bersifat terkunci dan tidak dapat dihapus.",
+                disposition: "skipped" as const,
               };
             }
 
@@ -446,6 +579,7 @@ export async function setReservationStayFee(
             return {
               ok: true as const,
               status: ReservationStayFeeStatus.CANCELLED,
+              changed: true,
             };
           }
 
@@ -453,6 +587,18 @@ export async function setReservationStayFee(
             return {
               ok: false as const,
               error: "Biaya ini sudah terposting dan terkunci.",
+              disposition: "skipped" as const,
+            };
+          }
+
+          if (
+            existingFee?.status === ReservationStayFeeStatus.PENDING &&
+            reservation.status === ReservationStatus.CONFIRMED
+          ) {
+            return {
+              ok: true as const,
+              status: ReservationStayFeeStatus.PENDING,
+              changed: false,
             };
           }
 
@@ -495,6 +641,7 @@ export async function setReservationStayFee(
             return {
               ok: true as const,
               status: ReservationStayFeeStatus.POSTED,
+              changed: true,
             };
           }
 
@@ -502,12 +649,14 @@ export async function setReservationStayFee(
             return {
               ok: false as const,
               error: "Status reservasi tidak dapat menerima biaya fleksibilitas.",
+              disposition: "skipped" as const,
             };
           }
 
           return {
             ok: true as const,
             status: ReservationStayFeeStatus.PENDING,
+            changed: true,
           };
         },
         {
@@ -517,13 +666,13 @@ export async function setReservationStayFee(
       );
 
       if (result.ok) {
-        revalidatePath(`/app/fo/reservasi/${reservationId}`);
+        revalidateCommittedInclusion(reservationId, expectedGroupBookingId);
       }
 
       return result;
     } catch (error) {
       if (error instanceof ReservationStayFeeError) {
-        return { ok: false, error: error.message };
+        return { ok: false, error: error.message, disposition: "failed" };
       }
 
       if (isSerializationConflict(error) && attempt < 3) {
@@ -537,7 +686,11 @@ export async function setReservationStayFee(
         };
       }
 
-      return { ok: false, error: "Gagal mengubah biaya fleksibilitas." };
+      return {
+        ok: false,
+        error: "Gagal mengubah biaya fleksibilitas.",
+        disposition: "failed",
+      };
     }
   }
 

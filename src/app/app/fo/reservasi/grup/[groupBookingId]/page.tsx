@@ -4,6 +4,8 @@ import {
   FolioStatus,
   Prisma,
   ReservationStatus,
+  ReservationStayFeeKind,
+  ReservationStayFeeStatus,
 } from "@prisma/client";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +19,7 @@ import { formatDateID, formatIDR, formatISODate } from "@/lib/format";
 import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
+import { GroupInclusionActions } from "./group-inclusion-actions";
 import { GroupSettlementActions } from "./group-settlement-actions";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 
@@ -27,11 +30,11 @@ type GroupBookingPageProps = {
 };
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked In",
-  CHECKED_OUT: "Checked Out",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No Show",
+  CONFIRMED: "Terkonfirmasi",
+  CHECKED_IN: "Sudah check-in",
+  CHECKED_OUT: "Sudah check-out",
+  CANCELLED: "Dibatalkan",
+  NO_SHOW: "No-show",
 };
 
 const noShowClassNames = {
@@ -68,6 +71,31 @@ function statusCount(
     .length;
 }
 
+function isTerminalStatus(status: ReservationStatus) {
+  return (
+    status === ReservationStatus.CHECKED_OUT ||
+    status === ReservationStatus.CANCELLED ||
+    status === ReservationStatus.NO_SHOW
+  );
+}
+
+function stayFeeState(
+  stayFees: { kind: ReservationStayFeeKind; status: ReservationStayFeeStatus }[],
+  kind: ReservationStayFeeKind,
+) {
+  const status = stayFees.find((fee) => fee.kind === kind)?.status;
+  if (status === ReservationStayFeeStatus.PENDING) return "Menunggu (PENDING)";
+  if (status === ReservationStayFeeStatus.POSTED) return "Terposting (POSTED)";
+  return "Tidak ada";
+}
+
+function folioStatusLabel(status: FolioStatus | null) {
+  if (status === FolioStatus.OPEN) return "Terbuka (OPEN)";
+  if (status === FolioStatus.CLOSED) return "Tertutup (CLOSED)";
+  if (status === FolioStatus.VOIDED) return "Dibatalkan (VOIDED)";
+  return "Belum ada folio";
+}
+
 export default async function GroupBookingPage({
   params,
 }: GroupBookingPageProps) {
@@ -92,11 +120,23 @@ export default async function GroupBookingPage({
           },
         },
         room: { select: { number: true } },
-        roomType: { select: { name: true } },
+        roomType: { select: { name: true, capacity: true } },
         reservationNights: {
           orderBy: { date: "asc" },
-          select: { rateAmount: true },
-          take: 1,
+          select: {
+            date: true,
+            rateAmount: true,
+            mealAmount: true,
+            folioLineItems: {
+              where: { article: { code: { in: ["MEAL-BB", "MEAL-HB", "MEAL-FB"] } } },
+              take: 1,
+              select: { id: true },
+            },
+          },
+        },
+        stayFees: {
+          select: { kind: true, status: true },
+          orderBy: { kind: "asc" },
         },
         folio: {
           include: {
@@ -183,6 +223,30 @@ export default async function GroupBookingPage({
       reservation.reservationNights[0]?.rateAmount.toString() ?? null,
     guest: reservation.guest,
   }));
+  const inclusionRooms = reservations.map((reservation) => ({
+    reservationId: reservation.id,
+    reservationNo: reservation.reservationNo,
+    roomNumber: reservation.room?.number ?? null,
+    status: reservation.status,
+    adults: reservation.adults,
+    children: reservation.children,
+    currentPlan: reservation.arrangementType,
+    mealTotal: reservation.reservationNights
+      .reduce(
+        (total, night) => total.plus(night.mealAmount ?? 0),
+        new Prisma.Decimal(0),
+      )
+      .toString(),
+    folioStatus: folioStatusLabel(reservation.folio?.status ?? null),
+    earlyFeeStatus: stayFeeState(
+      reservation.stayFees,
+      ReservationStayFeeKind.EARLY_CHECK_IN,
+    ),
+    lateFeeStatus: stayFeeState(
+      reservation.stayFees,
+      ReservationStayFeeKind.LATE_CHECK_OUT,
+    ),
+  }));
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
@@ -205,6 +269,11 @@ export default async function GroupBookingPage({
         checkInRooms={checkInRooms}
         todayIso={formatISODate(today)}
         pendingDepositTotal={pendingDepositTotal.toString()}
+      />
+
+      <GroupInclusionActions
+        groupBookingId={groupBookingId}
+        rooms={inclusionRooms}
       />
 
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -266,46 +335,85 @@ export default async function GroupBookingPage({
           </span>
         </div>
         <div className="max-w-full overflow-auto">
-          <table className="w-full min-w-[1200px] border-collapse text-sm">
+          <table className="w-full min-w-445 border-collapse text-sm">
             <caption className="sr-only">
-              Daftar kamar dalam booking grup {groupBookingId}
+              Daftar kamar, pax, Inklusi, status, dan validasi booking grup {groupBookingId}
             </caption>
             <thead>
               <tr>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Reservasi / tamu
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Kamar / tipe
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Inklusi
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Status
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Tanggal
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Deposit
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                  Saldo folio
-                </th>
-                <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                  Detail
-                </th>
+                {[
+                  "Reservasi / tamu",
+                  "Kamar / tipe",
+                  "Pax",
+                  "Meal plan / total",
+                  "Fleksibilitas",
+                  "Status reservasi / folio",
+                  "Validasi massal",
+                  "Tanggal",
+                  "Deposit",
+                  "Saldo folio",
+                  "Detail",
+                ].map((label) => (
+                  <th
+                    key={label}
+                    className={`bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 ${
+                      label === "Saldo folio" || label === "Detail"
+                        ? "text-right"
+                        : "text-left"
+                    }`}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {reservations.map((reservation) => {
                 const balance = balanceByReservationId.get(reservation.id);
+                const pax = reservation.adults + reservation.children;
+                const mealTotal = reservation.reservationNights.reduce(
+                  (total, night) => total.plus(night.mealAmount ?? 0),
+                  new Prisma.Decimal(0),
+                );
+                const editableMealNights = reservation.reservationNights.filter(
+                  (night) =>
+                    dateOnlyBoundary(night.date) >= today &&
+                    night.folioLineItems.length === 0,
+                ).length;
+                const terminal = isTerminalStatus(reservation.status);
+                const mealValidation = terminal
+                  ? "Reservasi terminal."
+                  : !Number.isInteger(pax) || pax < 1
+                    ? "Pax tidak valid."
+                    : pax > reservation.roomType.capacity
+                      ? `Pax melebihi kapasitas ${reservation.roomType.capacity}.`
+                      : editableMealNights === 0
+                        ? "Tidak ada malam mendatang yang dapat diubah."
+                        : `${editableMealNights} malam dapat diubah.`;
+                const mealEligible =
+                  !terminal &&
+                  Number.isInteger(pax) &&
+                  pax >= 1 &&
+                  pax <= reservation.roomType.capacity &&
+                  editableMealNights > 0;
+                const feeEligible =
+                  !terminal &&
+                  (reservation.status === ReservationStatus.CONFIRMED ||
+                    (reservation.status === ReservationStatus.CHECKED_IN &&
+                      reservation.folio?.status === FolioStatus.OPEN));
+                const feeValidation = terminal
+                  ? "Reservasi terminal."
+                  : reservation.status === ReservationStatus.CONFIRMED
+                    ? "Dapat disimpan PENDING."
+                    : reservation.status === ReservationStatus.CHECKED_IN &&
+                        reservation.folio?.status === FolioStatus.OPEN
+                      ? "Dapat langsung diposting."
+                      : "Folio OPEN diperlukan untuk posting.";
 
                 return (
                   <tr
                     key={reservation.id}
-                    className="border-t border-slate-100 transition-colors hover:bg-slate-50"
+                    className="border-t border-slate-100 align-top transition-colors hover:bg-slate-50"
                   >
                     <td className="px-4 py-3">
                       <Link
@@ -329,14 +437,44 @@ export default async function GroupBookingPage({
                         {reservation.room?.number ?? "Belum dialokasikan"}
                       </div>
                       <div className="mt-0.5 text-slate-500">
-                        {reservation.roomType.name}
+                        {reservation.roomType.name} · kapasitas {reservation.roomType.capacity}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-slate-700">
+                      <div className="font-semibold text-slate-900">{pax} tamu</div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {reservation.adults} dewasa · {reservation.children} anak
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-700">
-                      {mealPlanLabels[reservation.arrangementType]}
+                      <div className="font-medium text-slate-900">
+                        {mealPlanLabels[reservation.arrangementType]}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold tabular-nums text-slate-600">
+                        Total meal plan selama menginap {formatIDR(mealTotal.toString())}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-700">
+                      <div>
+                        Check-in lebih awal: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.EARLY_CHECK_IN)}
+                      </div>
+                      <div className="mt-1">
+                        Check-out lebih lambat: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.LATE_CHECK_OUT)}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <ReservationStatusBadge status={reservation.status} />
+                      <div className="mt-2 text-xs font-semibold text-slate-600">
+                        Folio: {folioStatusLabel(reservation.folio?.status ?? null)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs leading-5">
+                      <div className={mealEligible ? "text-emerald-700" : "text-amber-700"}>
+                        <span className="font-semibold">Meal:</span> {mealValidation}
+                      </div>
+                      <div className={`mt-1 ${feeEligible ? "text-emerald-700" : "text-amber-700"}`}>
+                        <span className="font-semibold">Biaya:</span> {feeValidation}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       <div>{formatDateID(reservation.arrivalDate)}</div>
@@ -350,9 +488,7 @@ export default async function GroupBookingPage({
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-900">
                       {balance === undefined ? (
                         <span className="text-xs font-medium text-slate-400">
-                          {reservation.folio
-                            ? "Folio dibatalkan"
-                            : "Belum check-in"}
+                          {reservation.folio ? "Folio VOIDED" : "Belum check-in"}
                         </span>
                       ) : (
                         formatIDR(roundedFolioBalance(balance))
