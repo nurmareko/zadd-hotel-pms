@@ -57,9 +57,10 @@ const reservationTypeLabels: Record<ReservationType, string> = {
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO",
-  [ArrangementType.RB]: "RB (+ Breakfast)",
-  [ArrangementType.FBM]: "FBM (+ Breakfast, Coffee Break, Lunch, Dinner)",
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
 };
 
 function dateLabel(date: Date) {
@@ -126,7 +127,7 @@ export function FolioHeader({ folio }: FolioHeaderProps) {
             Tipe Reservasi: {reservationTypeLabels[reservation.reservationType]}
           </span>
           <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
-            Arrangement: {arrangementLabels[reservation.arrangementType]}
+            Inklusi: {arrangementLabels[reservation.arrangementType]}
           </span>
         </div>
 

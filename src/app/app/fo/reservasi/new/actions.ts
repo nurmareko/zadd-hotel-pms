@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ArrangementType,
   Prisma,
   ReservationStatus,
   ReservationUsageType,
@@ -15,12 +16,20 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
-import { dateOnlyBoundary, hotelTodayISO } from "@/lib/date-only";
+import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import {
+  dateOnlyBoundary,
+  hotelTodayDateOnly,
+  hotelTodayISO,
+} from "@/lib/date-only";
 import {
   PricingResolutionError,
   resolveNightlySchedule,
 } from "@/lib/pricing-resolver";
-import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
+import {
+  createReservationNightMealSnapshot,
+  createReservationNightSchedule,
+} from "@/lib/reservation-night-schedule";
 import {
   FO_RESERVASI_VIEW_COOKIE,
   FO_RESERVASI_VIEW_PATHS,
@@ -29,6 +38,11 @@ import {
 } from "@/lib/nav-preferences";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
+import {
+  cancelPendingReservationStayFees,
+  createPendingReservationStayFees,
+  ReservationStayFeeError,
+} from "@/lib/reservation-stay-fees";
 import {
   createEditReservationSchema,
   createUnifiedReservationSchema,
@@ -43,12 +57,34 @@ type ActionResult =
   | { ok: false; error: string; field?: ReservationActionField };
 
 type ReservationQuoteResult =
-  | { ok: true; total: string; deposits: string[] }
+  | {
+      ok: true;
+      roomTotal: string;
+      inclusionTotal: string;
+      reservationTotal: string;
+      deposits: string[];
+      inclusionRooms: Array<{
+        pax: number;
+        nights: number;
+        unitPrice: string;
+        total: string;
+      }>;
+    }
   | { ok: false; error: string };
 
 const ReservationQuoteSchema = z
   .object({
-    roomTypeIds: z.array(z.coerce.number().int().positive()).min(1).max(20),
+    rooms: z
+      .array(
+        z.object({
+          roomTypeId: z.coerce.number().int().positive(),
+          adults: z.coerce.number().int().min(1),
+          children: z.coerce.number().int().min(0),
+        }),
+      )
+      .min(1)
+      .max(20),
+    arrangementType: z.nativeEnum(ArrangementType),
     arrivalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })
@@ -412,8 +448,20 @@ async function runCreateReservationTransaction(
           data: createReservationNightSchedule({
             reservationId: reservation.id,
             resolvedSchedule,
+            mealSnapshot: {
+              arrangementType: input.arrangementType,
+              mealPax: room.adults + room.children,
+            },
           }),
         });
+
+        if (input.stayFeeKinds.length > 0) {
+          await createPendingReservationStayFees(tx, {
+            reservationId: reservation.id,
+            kinds: input.stayFeeKinds,
+            selectedById: userId,
+          });
+        }
 
         reservationIds.push(reservation.id);
       }
@@ -433,6 +481,7 @@ async function runUpdateReservationTransaction(
 ) {
   return prisma.$transaction(
     async (tx) => {
+      const mealSnapshotBoundary = hotelTodayDateOnly();
       const existingReservation = await tx.reservation.findUnique({
         where: { id: reservationId },
         select: {
@@ -441,7 +490,23 @@ async function runUpdateReservationTransaction(
           roomTypeId: true,
           arrivalDate: true,
           departureDate: true,
+          adults: true,
+          children: true,
+          arrangementType: true,
           status: true,
+          reservationNights: {
+            where: { date: { gte: mealSnapshotBoundary } },
+            select: {
+              id: true,
+              folioLineItems: {
+                where: {
+                  article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                },
+                take: 1,
+                select: { id: true },
+              },
+            },
+          },
           folio: {
             select: {
               lineItems: {
@@ -490,6 +555,9 @@ async function runUpdateReservationTransaction(
       }
 
       const { room } = validatedAssignment.assignment;
+      const isMealSnapshotRelevant =
+        existingReservation.adults !== input.adults ||
+        existingReservation.children !== input.children;
       const isPricingRelevant =
         existingReservation.roomTypeId !== input.roomTypeId ||
         !sameDateOnly(existingReservation.arrivalDate, input.arrivalDate) ||
@@ -583,7 +651,6 @@ async function runUpdateReservationTransaction(
               }
             : {}),
           notes: input.notes,
-          arrangementType: input.arrangementType,
           reservationType: input.reservationType,
         },
       });
@@ -596,8 +663,35 @@ async function runUpdateReservationTransaction(
           data: createReservationNightSchedule({
             reservationId,
             resolvedSchedule,
+            mealSnapshot: {
+              arrangementType: existingReservation.arrangementType,
+              mealPax: input.adults + input.children,
+            },
           }),
         });
+      } else if (isMealSnapshotRelevant) {
+        const eligibleNightIds = existingReservation.reservationNights
+          .filter((night) => night.folioLineItems.length === 0)
+          .map((night) => night.id);
+
+        if (eligibleNightIds.length > 0) {
+          await tx.reservationNight.updateMany({
+            where: {
+              id: { in: eligibleNightIds },
+              reservationId,
+              date: { gte: mealSnapshotBoundary },
+              folioLineItems: {
+                none: {
+                  article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                },
+              },
+            },
+            data: createReservationNightMealSnapshot(
+              existingReservation.arrangementType,
+              input.adults + input.children,
+            ),
+          });
+        }
       }
 
       return { ok: true as const };
@@ -630,7 +724,7 @@ export async function getReservationQuote(
       Awaited<ReturnType<typeof resolveNightlySchedule>>
     >();
 
-    for (const roomTypeId of new Set(parsed.data.roomTypeIds)) {
+    for (const roomTypeId of new Set(parsed.data.rooms.map((room) => room.roomTypeId))) {
       schedules.set(
         roomTypeId,
         await resolveNightlySchedule({
@@ -642,8 +736,17 @@ export async function getReservationQuote(
     }
 
     const deposits: string[] = [];
-    const total = parsed.data.roomTypeIds.reduce((stayTotal, roomTypeId) => {
-      const schedule = schedules.get(roomTypeId);
+    const inclusionRooms: Array<{
+      pax: number;
+      nights: number;
+      unitPrice: string;
+      total: string;
+    }> = [];
+    let roomTotal = new Prisma.Decimal(0);
+    let inclusionTotal = new Prisma.Decimal(0);
+
+    for (const room of parsed.data.rooms) {
+      const schedule = schedules.get(room.roomTypeId);
       const firstNight = schedule?.[0];
 
       if (!schedule || !firstNight) {
@@ -651,14 +754,41 @@ export async function getReservationQuote(
       }
 
       deposits.push(firstNight.rate.toString());
-
-      return schedule.reduce(
-        (roomTotal, night) => roomTotal.plus(night.rate),
-        stayTotal,
+      roomTotal = schedule.reduce(
+        (total, night) => total.plus(night.rate),
+        roomTotal,
       );
-    }, new Prisma.Decimal(0));
 
-    return { ok: true, total: total.toString(), deposits };
+      const pax = room.adults + room.children;
+      const nightlyMealSnapshot = createReservationNightMealSnapshot(
+        parsed.data.arrangementType,
+        pax,
+      );
+      const unitPrice = new Prisma.Decimal(
+        nightlyMealSnapshot.mealUnitPrice ?? 0,
+      );
+      const nightlyAmount = new Prisma.Decimal(
+        nightlyMealSnapshot.mealAmount ?? 0,
+      );
+      const roomInclusionTotal = nightlyAmount.mul(schedule.length);
+
+      inclusionRooms.push({
+        pax,
+        nights: schedule.length,
+        unitPrice: unitPrice.toString(),
+        total: roomInclusionTotal.toString(),
+      });
+      inclusionTotal = inclusionTotal.plus(roomInclusionTotal);
+    }
+
+    return {
+      ok: true,
+      roomTotal: roomTotal.toString(),
+      inclusionTotal: inclusionTotal.toString(),
+      reservationTotal: roomTotal.plus(inclusionTotal).toString(),
+      deposits,
+      inclusionRooms,
+    };
   } catch (error) {
     return {
       ok: false,
@@ -696,7 +826,10 @@ export async function createReservation(
       result = await runCreateReservationTransaction(parsed.data, userId);
       break;
     } catch (error) {
-      if (error instanceof PricingResolutionError) {
+      if (
+        error instanceof PricingResolutionError ||
+        error instanceof ReservationStayFeeError
+      ) {
         return { ok: false, error: error.message };
       }
 
@@ -810,6 +943,8 @@ export async function cancelReservation(
             error: "Status reservasi berubah saat membatalkan. Coba lagi.",
           };
         }
+
+        await cancelPendingReservationStayFees(tx, reservationId);
 
         return { ok: true as const };
       },

@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import { GuestIdType } from "@prisma/client";
+import { ArrangementType, GuestIdType } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
 import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
@@ -25,7 +25,7 @@ type GrcProps = {
     reservationNo: string;
     arrivalDate: Date;
     departureDate: Date;
-    arrangementType: string;
+    arrangementType: ArrangementType;
     reservationType: string;
     adults: number;
     children: number;
@@ -72,10 +72,11 @@ const reservationTypeLabels: Record<string, string> = {
   WALK_IN: "Walk-in",
 };
 
-const arrangementLabels: Record<string, string> = {
-  RO: "RO",
-  RB: "RB",
-  FBM: "FBM",
+const arrangementLabels: Record<ArrangementType, string> = {
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
 };
 
 const styles = StyleSheet.create({
@@ -208,11 +209,8 @@ export function Grc({
             />
             <Field label="Nights" value={String(Math.max(0, nights))} />
             <Field
-              label="Arrangement"
-              value={
-                arrangementLabels[reservation.arrangementType] ??
-                reservation.arrangementType
-              }
+              label="Inklusi"
+              value={arrangementLabels[reservation.arrangementType]}
             />
             <Field
               label="Reservation Type"

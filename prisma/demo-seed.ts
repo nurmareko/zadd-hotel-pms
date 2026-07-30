@@ -21,6 +21,7 @@ import {
 import { compare, hash } from "bcryptjs";
 import { addDays, format, subHours, subMinutes } from "date-fns";
 
+import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
@@ -89,7 +90,7 @@ const hkRoomStatuses: Record<string, RoomStatus> = {
   "204": RoomStatus.VD,
   "205": RoomStatus.VCU,
   "206": RoomStatus.VC,
-  "207": RoomStatus.VC,
+  "207": RoomStatus.OC,
   "208": RoomStatus.VC,
   "301": RoomStatus.OD,
   "302": RoomStatus.VC,
@@ -138,6 +139,36 @@ const articles = [
     name: "Room Charge",
     type: ArticleType.ROOM,
     defaultPrice: null,
+  },
+  {
+    code: "MEAL-BB",
+    name: "Paket Makan BB",
+    type: ArticleType.FB,
+    defaultPrice: 50000,
+  },
+  {
+    code: "MEAL-HB",
+    name: "Paket Makan HB",
+    type: ArticleType.FB,
+    defaultPrice: 150000,
+  },
+  {
+    code: "MEAL-FB",
+    name: "Paket Makan FB",
+    type: ArticleType.FB,
+    defaultPrice: 250000,
+  },
+  {
+    code: "FEE-EARLY-CI",
+    name: "Biaya Early Check-in",
+    type: ArticleType.MISC,
+    defaultPrice: 100000,
+  },
+  {
+    code: "FEE-LATE-CO",
+    name: "Biaya Late Check-out",
+    type: ArticleType.MISC,
+    defaultPrice: 100000,
   },
   {
     code: "BREAKFAST",
@@ -222,8 +253,10 @@ const reservations: Array<{
   status: ReservationStatus;
   arrangementType: ArrangementType;
   reservationType: ReservationType;
+  groupBookingId?: string;
   deposit?: number;
   notes?: string;
+  seedPostedMeal?: boolean;
 }> = [
   {
     reservationNo: "DEMO-RSV-001",
@@ -240,15 +273,15 @@ const reservations: Array<{
   },
   {
     reservationNo: "DEMO-RSV-002",
-    guestFullName: "Rina Anggraini",
-    roomTypeCode: "SUP",
-    roomNumber: "203",
-    arrivalOffset: -5,
-    departureOffset: -2,
-    adults: 2,
-    children: 2,
-    status: ReservationStatus.CHECKED_OUT,
-    arrangementType: ArrangementType.RB,
+        guestFullName: "Rina Anggraini",
+        roomTypeCode: "SUP",
+        roomNumber: "203",
+        arrivalOffset: -5,
+        departureOffset: -2,
+        adults: 2,
+        children: 2,
+        status: ReservationStatus.CHECKED_OUT,
+        arrangementType: ArrangementType.BB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
@@ -280,14 +313,14 @@ const reservations: Array<{
   },
   {
     reservationNo: "DEMO-RSV-005",
-    guestFullName: "Siti Nuraini",
-    roomTypeCode: "DLX",
-    roomNumber: "103",
-    arrivalOffset: -1,
-    departureOffset: 3,
-    adults: 2,
-    status: ReservationStatus.CHECKED_IN,
-    arrangementType: ArrangementType.RB,
+        guestFullName: "Siti Nuraini",
+        roomTypeCode: "DLX",
+        roomNumber: "103",
+        arrivalOffset: -1,
+        departureOffset: 3,
+        adults: 2,
+        status: ReservationStatus.CHECKED_IN,
+        arrangementType: ArrangementType.BB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes:
@@ -299,7 +332,7 @@ const reservations: Array<{
     roomTypeCode: "DLX",
     roomNumber: "202",
     arrivalOffset: -3,
-    departureOffset: 0,
+    departureOffset: 1,
     adults: 1,
     status: ReservationStatus.CHECKED_IN,
     arrangementType: ArrangementType.RO,
@@ -310,15 +343,15 @@ const reservations: Array<{
   },
   {
     reservationNo: "DEMO-RSV-007",
-    guestFullName: "Lina Marlina",
-    roomTypeCode: "SUP",
-    roomNumber: "203",
-    arrivalOffset: 0,
-    departureOffset: 4,
-    adults: 2,
-    children: 1,
-    status: ReservationStatus.CHECKED_IN,
-    arrangementType: ArrangementType.FBM,
+        guestFullName: "Lina Marlina",
+        roomTypeCode: "SUP",
+        roomNumber: "203",
+        arrivalOffset: 0,
+        departureOffset: 4,
+        adults: 2,
+        children: 1,
+        status: ReservationStatus.CHECKED_IN,
+        arrangementType: ArrangementType.FB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
@@ -352,14 +385,14 @@ const reservations: Array<{
   },
   {
     reservationNo: "DEMO-RSV-010",
-    guestFullName: "Sari Indah",
-    roomTypeCode: "DLX",
-    roomNumber: "201",
-    arrivalOffset: 0,
-    departureOffset: 6,
-    adults: 2,
-    status: ReservationStatus.CONFIRMED,
-    arrangementType: ArrangementType.RB,
+        guestFullName: "Sari Indah",
+        roomTypeCode: "DLX",
+        roomNumber: "201",
+        arrivalOffset: 0,
+        departureOffset: 6,
+        adults: 2,
+        status: ReservationStatus.CONFIRMED,
+        arrangementType: ArrangementType.BB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes: "ETA 16:00. Siapkan VIP amenity sebelum arrival; cek minibar seal.",
@@ -393,14 +426,14 @@ const reservations: Array<{
   },
   {
     reservationNo: "DEMO-RSV-013",
-    guestFullName: "Siti Nuraini",
-    roomTypeCode: "SUP",
-    roomNumber: "306",
-    arrivalOffset: 7,
-    departureOffset: 10,
-    adults: 2,
-    status: ReservationStatus.CONFIRMED,
-    arrangementType: ArrangementType.RB,
+        guestFullName: "Siti Nuraini",
+        roomTypeCode: "SUP",
+        roomNumber: "306",
+        arrivalOffset: 7,
+        departureOffset: 10,
+        adults: 2,
+        status: ReservationStatus.CONFIRMED,
+        arrangementType: ArrangementType.BB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 1250000,
   },
@@ -416,6 +449,93 @@ const reservations: Array<{
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.INDIVIDUAL,
     notes: "Dibatalkan oleh tamu sebelum arrival.",
+  },
+  {
+    reservationNo: "DEMO-GRP-A-001",
+    guestFullName: "Andi Pratama",
+    roomTypeCode: "STD",
+    roomNumber: "303",
+    arrivalOffset: 11,
+    departureOffset: 14,
+    adults: 2,
+    status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-ALL",
+    deposit: 550000,
+  },
+  {
+    reservationNo: "DEMO-GRP-A-002",
+    guestFullName: "Siti Nuraini",
+    roomTypeCode: "SUP",
+    roomNumber: "304",
+    arrivalOffset: 11,
+    departureOffset: 14,
+    adults: 2,
+    children: 1,
+    status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-ALL",
+    deposit: 1250000,
+  },
+  {
+    reservationNo: "DEMO-GRP-A-003",
+    guestFullName: "Budi Santoso",
+    roomTypeCode: "STD",
+    roomNumber: "305",
+    arrivalOffset: 11,
+    departureOffset: 14,
+    adults: 1,
+    status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.HB,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-ALL",
+    deposit: 550000,
+  },
+  {
+    reservationNo: "DEMO-GRP-B-001",
+    guestFullName: "Hendra Kusuma",
+    roomTypeCode: "DLX",
+    roomNumber: "206",
+    arrivalOffset: 0,
+    departureOffset: 3,
+    adults: 2,
+    status: ReservationStatus.CONFIRMED,
+    arrangementType: ArrangementType.RO,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-MIXED",
+    deposit: 850000,
+  },
+  {
+    reservationNo: "DEMO-GRP-B-002",
+    guestFullName: "Lina Marlina",
+    roomTypeCode: "SUP",
+    roomNumber: "207",
+    arrivalOffset: -1,
+    departureOffset: 3,
+    adults: 2,
+    children: 1,
+    status: ReservationStatus.CHECKED_IN,
+    arrangementType: ArrangementType.HB,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-MIXED",
+    deposit: 1250000,
+    seedPostedMeal: true,
+  },
+  {
+    reservationNo: "DEMO-GRP-B-003",
+    guestFullName: "Tomi Wijaya",
+    roomTypeCode: "DLX",
+    roomNumber: "208",
+    arrivalOffset: 0,
+    departureOffset: 3,
+    adults: 2,
+    status: ReservationStatus.CANCELLED,
+    arrangementType: ArrangementType.FB,
+    reservationType: ReservationType.COMPANY,
+    groupBookingId: "DEMO-GRP-INCLUSION-MIXED",
+    notes: "Dibatalkan untuk fixture status campuran booking grup.",
   },
 ];
 
@@ -1328,6 +1448,7 @@ async function main() {
       reservationId: number;
       arrivalDate: Date;
       deposit: number;
+      postedMealPlan: ArrangementType | null;
     }> = [];
     const checkedOutReservations: Array<{
       reservationNo: string;
@@ -1337,6 +1458,8 @@ async function main() {
       rateAmount: number;
       deposit: number;
     }> = [];
+    let mealSnapshotBackfilledNightCount = 0;
+    let mealSnapshotBackfilledReservationCount = 0;
 
     for (const [index, reservation] of reservations.entries()) {
       const guest = guestsByFullName.get(reservation.guestFullName);
@@ -1378,6 +1501,7 @@ async function main() {
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,
+          groupBookingId: reservation.groupBookingId ?? null,
           arrivalDate,
           departureDate,
           adults: reservation.adults,
@@ -1400,6 +1524,7 @@ async function main() {
           guestId: guest.id,
           roomTypeId: roomType.id,
           roomId: room?.id,
+          groupBookingId: reservation.groupBookingId ?? null,
           arrivalDate,
           departureDate,
           adults: reservation.adults,
@@ -1419,21 +1544,76 @@ async function main() {
 
       // Demo reservations are a deterministic fixture. Regenerate their local
       // schedule after the upsert so repeated db:demo runs cannot leave nights
-      // at a prior fixture date or rate. This is never used by the additive
-      // production legacy-backfill operation.
-      await prisma.$transaction([
-        prisma.reservationNight.deleteMany({
+      // at a prior fixture date or rate. Meal snapshots intentionally backfill
+      // only the current/future unelapsed fixture nights.
+      const reservationNightSchedule = createReservationNightSchedule({
+        reservationId: seededReservation.id,
+        arrivalDate,
+        departureDate,
+        rateAmount: seededReservation.rateAmount,
+        mealSnapshot: {
+          arrangementType: reservation.arrangementType,
+          mealPax: reservation.adults + (reservation.children ?? 0),
+          fromDate: dateOnlyBoundary(today),
+        },
+      });
+      const snapshottedMealNights = reservationNightSchedule.filter(
+        (night) => night.mealPlan !== null && night.mealPlan !== undefined,
+      ).length;
+
+      mealSnapshotBackfilledNightCount += snapshottedMealNights;
+      if (snapshottedMealNights > 0) {
+        mealSnapshotBackfilledReservationCount += 1;
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.reservationStayFee.deleteMany({
           where: { reservationId: seededReservation.id },
-        }),
-        prisma.reservationNight.createMany({
-          data: createReservationNightSchedule({
+        });
+        await tx.folioLineItem.deleteMany({
+          where: {
+            folio: { reservationId: seededReservation.id },
+            OR: [
+              { reservationNight: { reservationId: seededReservation.id } },
+              {
+                article: {
+                  code: { in: ["FEE-EARLY-CI", "FEE-LATE-CO"] },
+                },
+              },
+            ],
+          },
+        });
+        const scheduledDates = reservationNightSchedule.map(
+          (night) => new Date(night.date),
+        );
+        await tx.reservationNight.deleteMany({
+          where: {
             reservationId: seededReservation.id,
-            arrivalDate,
-            departureDate,
-            rateAmount: seededReservation.rateAmount,
-          }),
-        }),
-      ]);
+            date: { notIn: scheduledDates },
+          },
+        });
+
+        for (const night of reservationNightSchedule) {
+          await tx.reservationNight.upsert({
+            where: {
+              reservationId_date: {
+                reservationId: seededReservation.id,
+                date: night.date,
+              },
+            },
+            create: night,
+            update: {
+              rateAmount: night.rateAmount,
+              mealPlan: night.mealPlan ?? null,
+              mealPax: night.mealPax ?? null,
+              mealUnitPrice: night.mealUnitPrice ?? null,
+              mealAmount: night.mealAmount ?? null,
+              revenueClass: night.revenueClass,
+              sourcePricingRuleId: night.sourcePricingRuleId ?? null,
+            },
+          });
+        }
+      });
 
       if (hasCompletedGrc && !room) {
         throw new Error(`${reservation.reservationNo} needs an assigned room.`);
@@ -1475,6 +1655,9 @@ async function main() {
           reservationId: seededReservation.id,
           arrivalDate,
           deposit: reservation.deposit ?? 0,
+          postedMealPlan: reservation.seedPostedMeal
+            ? reservation.arrangementType
+            : null,
         });
         grcCheckedInCount += 1;
       }
@@ -1497,6 +1680,9 @@ async function main() {
     }
 
     console.log(`✓ seeded ${reservations.length} reservations`);
+    console.log(
+      `✓ backfilled ${mealSnapshotBackfilledNightCount} future meal-night snapshots across ${mealSnapshotBackfilledReservationCount} demo reservations`,
+    );
     console.log(
       `✓ populated GRC data for ${grcCheckedInCount} checked-in and ${grcCheckedOutCount} checked-out reservations`,
     );
@@ -1521,6 +1707,8 @@ async function main() {
       secondHousekeepingUserId: secondHousekeepingUser.id,
       frontOfficeUserId: createdBy.id,
     });
+
+    let postedGroupMealLineCount = 0;
 
     for (const [index, reservation] of checkedInReservations.entries()) {
       const folio = await prisma.folio.upsert({
@@ -1551,10 +1739,76 @@ async function main() {
           receivedAt: reservation.arrivalDate,
         },
       });
+
+      if (reservation.postedMealPlan) {
+        const mealDefinition = MEAL_PLAN_DEFINITIONS[reservation.postedMealPlan];
+        const currentNight = await prisma.reservationNight.findFirst({
+          where: {
+            reservationId: reservation.reservationId,
+            date: dateOnlyBoundary(today),
+          },
+          select: {
+            id: true,
+            mealPax: true,
+            mealUnitPrice: true,
+            mealAmount: true,
+          },
+        });
+
+        if (!mealDefinition || !currentNight?.mealPax
+          || !currentNight.mealUnitPrice || !currentNight.mealAmount) {
+          throw new Error(
+            `Missing current meal snapshot for ${reservation.reservationNo}.`,
+          );
+        }
+
+        const mealArticle = await prisma.article.findUnique({
+          where: { code: mealDefinition.articleCode },
+        });
+
+        if (!mealArticle) {
+          throw new Error(`Missing ${mealDefinition.articleCode} article.`);
+        }
+
+        await prisma.folioLineItem.upsert({
+          where: {
+            reservationNightId_articleId: {
+              reservationNightId: currentNight.id,
+              articleId: mealArticle.id,
+            },
+          },
+          create: {
+            folioId: folio.id,
+            articleId: mealArticle.id,
+            fbOrderId: null,
+            reservationNightId: currentNight.id,
+            description: `Inklusi demo grup ${reservation.postedMealPlan}`,
+            quantity: currentNight.mealPax,
+            unitPrice: currentNight.mealUnitPrice,
+            amount: currentNight.mealAmount,
+            postedById: accountingUser.id,
+            postedAt: todayTimestampStart,
+          },
+          update: {
+            folioId: folio.id,
+            fbOrderId: null,
+            description: `Inklusi demo grup ${reservation.postedMealPlan}`,
+            quantity: currentNight.mealPax,
+            unitPrice: currentNight.mealUnitPrice,
+            amount: currentNight.mealAmount,
+            postedById: accountingUser.id,
+            postedAt: todayTimestampStart,
+          },
+        });
+        postedGroupMealLineCount += 1;
+      }
     }
 
     console.log(
       `✓ seeded ${checkedInReservations.length} open folios with classified deposit payments`,
+    );
+    console.log(
+      `✓ seeded ${postedGroupMealLineCount} current-night posted group meal line`,
     );
 
     const [roomChargeArticle, hotelSettings] = await Promise.all([

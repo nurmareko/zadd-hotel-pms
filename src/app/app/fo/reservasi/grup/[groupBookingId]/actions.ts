@@ -60,6 +60,11 @@ export type GroupRoomActionResult = {
   roomNumber: string | null;
   status: GroupActionStatus;
   reason: string;
+  details?: Array<{
+    label: string;
+    status: GroupActionStatus;
+    reason: string;
+  }>;
 };
 
 export type GroupActionResult =

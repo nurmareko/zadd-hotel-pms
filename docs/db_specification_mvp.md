@@ -344,35 +344,36 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 9. Guest(*id*, full_name, id_type nullable, id_number, phone, email, address, nationality, birth_date)
 10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, deposit_status, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
-11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, revenue_class, source_pricing_rule_id nullable, created_at)
-12. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
-13. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, reservation_night_id\# nullable, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
+11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, meal_plan nullable, meal_pax nullable, meal_unit_price nullable, meal_amount nullable, revenue_class, source_pricing_rule_id nullable, created_at)
+12. ReservationStayFee(*id*, *reservation_id\#*, kind, unit_price, status, folio_line_item_id\# nullable, *selected_by_id\#*, selected_at, posted_at nullable)
+13. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
+14. FolioLineItem(*id*, *folio_id\#*, *article_id\#*, *fb_order_id\#*, reservation_night_id\# nullable, *posted_by_id\#*, description, quantity, unit_price, amount, posted_at)
 
 **Food & Beverage**
 
-14. MenuItem(*id*, code, name, category, price, is_active)
-15. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
-16. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, service_type, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
-17. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
+15. MenuItem(*id*, code, name, category, price, is_active)
+16. RestaurantTable(*id*, number, capacity, location, status, pos_x, pos_y, notes, created_at, updated_at)
+17. FBOrder(*id*, order_no, *table_id\#*, *charged_folio_id\#*, *waited_by_id\#*, table_no, service_type, guest_count, status, payment_method, subtotal, service_charge, tax, total, opened_at, closed_at)
+18. FBOrderItem(*id*, *fb_order_id\#*, *menu_item_id\#*, quantity, unit_price, amount, notes)
 
 **Housekeeping**
 
-18. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
-19. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
-20. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
-21. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
+19. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
+20. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
+21. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
+22. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
 
 **Accounting**
 
-22. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, room_nights_sold nullable, created_at)
+23. NightAudit(*id*, business_date, *run_by_id\#*, status, run_at, total_rooms, rooms_occupied, occupancy_rate, room_revenue, fb_revenue, other_revenue, total_revenue, check_in_count, check_out_count, in_house_count, room_nights_sold nullable, created_at)
 
 **Payment**
 
-23. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, purpose, reference, received_at)
+24. Payment(*id*, *folio_id\#*, *fb_order_id\#*, *received_by_id\#*, amount, method, purpose, reference, received_at)
 
 **Activity logging**
 
-24. ActivityLog(*id*, *user_id\#*, action, created_at, reservation_id\# nullable, folio_id\# nullable, room_id\# nullable, metadata)
+25. ActivityLog(*id*, *user_id\#*, action, created_at, reservation_id\# nullable, folio_id\# nullable, room_id\# nullable, metadata)
 
 ---
 
@@ -384,7 +385,9 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | ArticleType | ROOM, FB, SERVICE, TAX, MISC |
 | ReservationStatus | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | ReservationUsageType | REGULAR, WALK_IN |
-| ArrangementType | RO, RB, FBM |
+| ArrangementType | RO, BB, HB, FB |
+| ReservationStayFeeKind | EARLY_CHECK_IN, LATE_CHECK_OUT |
+| ReservationStayFeeStatus | PENDING, POSTED, CANCELLED |
 | ReservationType | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
 | FolioStatus | OPEN, CLOSED, VOIDED |
 | FBOrderServiceType | DINE_IN, ROOM_SERVICE |
@@ -422,6 +425,8 @@ A few choices worth explaining:
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
 13. **ActivityLog records business events, not field-level diffs.** The table is general-purpose, but current write coverage is limited to the enumerated Front Office reservation, check-in, checkout, folio-charge, and payment events. Context columns point to common operational entities when relevant, while small action-specific details live in `metadata`. HK, FB, and ACC event logging remains deferred and can extend `ActivityAction` while reusing the same table shape.
 14. **Automatic stay-charge postings have a database duplicate guard.** `FolioLineItem` is unique on (`reservation_night_id`, `article_id`) when the reservation-night link is populated, preventing automatic posting from creating the same article more than once for one stay night. This is an ordinary PostgreSQL composite unique index: nulls remain distinct, so multiple legacy, manual, and F&B lines with `reservation_night_id = NULL` are permitted.
+15. **Meal-plan snapshots are additive in Phase 1.** The nullable meal fields on `ReservationNight` establish the future authoritative per-night inclusion model without changing current posting. Until Phase 2 populates and reads them, the existing arrangement-driven `BREAKFAST` / `COFFEE-BREAK` / `LUNCH` / `DINNER` posting path remains operationally unchanged.
+16. **Reservation stay fees have database-backed identity.** `ReservationStayFee` stores at most one early check-in and one late check-out selection per reservation through UNIQUE (`reservation_id`, `kind`). A nullable unique folio-line link records the single posted result. Phase 1 creates this structure but does not select or post fees.
 
 ---
 
@@ -465,6 +470,70 @@ The following are future work and are not part of this contract phase:
 - any deposit-related RBAC, supervisor, waiver, or override model.
 
 These belong to the same future money-lifecycle family as the existing [allowance/rebate and historical-correction backlog](./feature_list_mvp.md#deferred-features) and [manual payment writer race-hardening backlog](./feature_list_mvp.md#deferred-features).
+
+---
+
+## Inclusions (meal plans and stay-flexibility fees) contract
+
+> **Phase 4 stay-flexibility posting is active.** Nightly meal snapshots remain authoritative for automatic meal charges. Reservation-owned stay-fee selections snapshot article prices, remain PENDING before arrival, and post through the guarded check-in or in-house selection transaction. `computeFolioTotals` remains canonical and unchanged.
+
+### Meal-plan taxonomy and prices
+
+Meal plans use package-level pricing: one plan price per guest per night, not a sum of breakfast/lunch/dinner component prices.
+
+| Plan | Operational inclusion | Price per guest per night |
+|---|---|---:|
+| RO | Room only | Rp 0 |
+| BB | Breakfast | Rp 50.000 |
+| HB | Breakfast plus one main meal (lunch or dinner) | Rp 150.000 |
+| FB | Breakfast, lunch, and dinner | Rp 250.000 |
+
+- Billable meal pax is `Reservation.adults + Reservation.children`. Children are billed at the same rate as adults; there are no child age bands.
+- The HB lunch-or-dinner choice is operational only. The system does not store or track which main meal is chosen.
+- FB deliberately drops the coffee break included by legacy FBM. This is an intentional semantic change, not an omission.
+- Legacy taxonomy maps `RO → RO`, `RB → BB`, and `FBM → FB`. BB at Rp 50.000 per pax exceeds the legacy flat Rp 75.000 RB amount when a room has two or more guests.
+
+### Per-night snapshots and plan changes
+
+- Each applicable `ReservationNight` carries `mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount`; these fields are the authoritative meal-charge source. RO nights keep all four fields null.
+- `mealPax` is the snapshotted `adults + children`; `mealUnitPrice` is the plan's per-pax whole-IDR price; and `mealAmount` is `mealPax × mealUnitPrice`, also whole IDR.
+- `Reservation.arrangementType` is the reservation's current plan and is compatibility-only, analogous to `Reservation.rateAmount`. The authoritative meal value is the sum of the per-night `ReservationNight.mealAmount` snapshots, not the scalar current plan multiplied across the stay.
+- Once a nightly meal snapshot has posted to a folio, its plan, pax, unit price, and amount are immutable.
+- A plan or pax change affects future unposted nights only. Elapsed or posted nights are never repriced or rewritten by the standard reservation flow.
+
+### Stay-flexibility fees
+
+- Early check-in is a flat Rp 100.000 per reservation. It is not per pax and not per night.
+- Late check-out is a flat Rp 100.000 per reservation. It is not per pax and not per night.
+- A fee selected at booking is stored as `PENDING` and posted exactly once at check-in.
+- A fee selected for an in-house reservation with an OPEN folio posts immediately and transitions to `POSTED`.
+- `ReservationStayFee` enforces one row per reservation and fee kind. `folioLineItemId` records the single posted folio line, while `CANCELLED` preserves an unposted selection that no longer applies.
+- The single-room booking form and reservation Inklusi tab manage one reservation only. The group summary provides explicit all/selected bulk application by looping the same canonical per-room actions without an outer transaction. Each action rechecks group membership and lifecycle state in its own serializable transaction; no single-room edit synchronizes siblings.
+- PENDING removal transitions the row to CANCELLED instead of deleting it, preserving selection history. POSTED rows are immutable in the standard workflow.
+- Cancellation transitions PENDING fees to CANCELLED in the same serializable transaction. Any future no-show writer must apply the same transition atomically; the app currently has no operational no-show mutation.
+
+### Folio, tax, service charge, and ARR
+
+- Meal charges use `FB` articles and stay-flexibility fees use `MISC` articles. Both types enter the existing taxable/serviceable base subtotal.
+- `computeFolioTotals` remains the single canonical folio calculation and is unchanged: meal and fee lines receive the same service-charge and tax treatment as existing non-`TAX`/non-`SERVICE` folio charges.
+- Meal-plan inclusions and stay-flexibility fees are explicitly excluded from ARR. ARR recognizes only valid linked `ROOM-CHARGE` lines; it never includes meal or fee articles.
+
+### Compatibility and migration
+
+- This project is pre-go-live demo data, so no cutover or policy-version machinery is required.
+- The PostgreSQL migration maps stored values before replacing the enum: `RB → BB` and `FBM → FB`; `RO` remains `RO`. Only after no rows use legacy values is the database enum replaced with `RO`, `BB`, `HB`, and `FB`.
+- Phase 2 posts exactly one linked meal line per snapshotted night: `MEAL-BB`, `MEAL-HB`, or `MEAL-FB`, with quantity and prices copied from that night's snapshot. Arrangement posting no longer uses `BREAKFAST`, `COFFEE-BREAK`, `LUNCH`, or `DINNER`.
+- Existing `BREAKFAST`, `COFFEE-BREAK`, `LUNCH`, and `DINNER` articles remain because F&B operations still use them.
+
+### Deferred work
+
+The following remain future work:
+
+- correction or reversal of posted inclusion and fee lines;
+- edits to terminal reservations;
+- master/shared folio behavior;
+- child age bands or differentiated child pricing;
+- meal redemption or consumption tracking.
 
 ---
 
@@ -657,7 +726,7 @@ Indexes and enforcement:
 | id | SERIAL | PRIMARY KEY | Unique reservation identifier |
 | reservation_no | VARCHAR(20) | UNIQUE, NOT NULL | Reservation number |
 | type | ReservationUsageType | NOT NULL, DEFAULT 'REGULAR' | Internal usage type: REGULAR, WALK_IN |
-| arrangement_type | ArrangementType | NOT NULL, DEFAULT 'RO' | RO, RB, FBM |
+| arrangement_type | ArrangementType | NOT NULL, DEFAULT 'RO' | Current compatibility meal plan: RO, BB, HB, FB. Per-night meal snapshots become authoritative in Phase 2. |
 | reservation_type | ReservationType | NOT NULL, DEFAULT 'INDIVIDUAL' | INDIVIDUAL, COMPANY, GOVERNMENT, OTA, WALK_IN |
 | guest_id | INT | NOT NULL, FOREIGN KEY → guest(id) | Booking guest |
 | room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type booked |
@@ -687,7 +756,11 @@ Indexes and enforcement:
 | id | VARCHAR | PRIMARY KEY | Generated nightly snapshot identifier |
 | reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Owning reservation |
 | date | DATE | NOT NULL | Date-only WIB stay date |
-| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Authoritative immutable rate snapshot for this stay date; summed for stay value and copied unchanged to linked room-charge postings |
+| rate_amount | DECIMAL(12,2) | NOT NULL, CHECK ≥ 0 | Authoritative immutable room-rate snapshot for this stay date; summed for stay value and copied unchanged to linked room-charge postings |
+| meal_plan | ArrangementType | NULLABLE | Future authoritative meal plan for this stay date. Nullable in Phase 1 and not yet read by posting. |
+| meal_pax | INT | NULLABLE, CHECK ≥ 0 when populated | Future snapshotted billable pax (`adults + children`) for this stay date. |
+| meal_unit_price | DECIMAL(12,2) | NULLABLE, whole IDR and CHECK ≥ 0 when populated | Future snapshotted package price per guest for this stay date. |
+| meal_amount | DECIMAL(12,2) | NULLABLE, whole IDR and CHECK ≥ 0 when populated | Future authoritative nightly meal amount (`meal_pax × meal_unit_price`). |
 | revenue_class | ReservationNightRevenueClass | NOT NULL, DEFAULT 'PAID' | Explicit `PAID` or `COMP` classification used by ARR recognition |
 | source_pricing_rule_id | VARCHAR | NULLABLE | Provenance-only rule ID; currently not a foreign key. See the open rule-deletion-policy question above. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Snapshot creation time |
@@ -696,6 +769,25 @@ Indexes and constraints:
 
 - UNIQUE (`reservation_id`, `date`) — at most one nightly snapshot per reservation stay date.
 - INDEX (`date`) — nightly reporting and future posting lookup.
+
+### `reservation_stay_fee`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Stable fee-selection identifier |
+| reservation_id | INT | NOT NULL, FOREIGN KEY → reservation(id), ON DELETE CASCADE | Owning reservation |
+| kind | ReservationStayFeeKind | NOT NULL | EARLY_CHECK_IN or LATE_CHECK_OUT |
+| unit_price | DECIMAL(12,2) | NOT NULL, whole IDR, CHECK ≥ 0 | Snapshotted flat fee price; Rp 100.000 for both Phase 1 article defaults |
+| status | ReservationStayFeeStatus | NOT NULL, DEFAULT 'PENDING' | PENDING, POSTED, or CANCELLED |
+| folio_line_item_id | INT | NULLABLE, UNIQUE, FOREIGN KEY → folio_line_item(id), ON DELETE RESTRICT | The single immutable posted folio line, when present |
+| selected_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Staff member who selected the fee |
+| selected_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Selection timestamp |
+| posted_at | TIMESTAMP | NULLABLE | Posting timestamp; remains null until POSTED |
+
+Indexes and constraints:
+
+- UNIQUE (`reservation_id`, `kind`) — at most one fee selection of each kind per reservation.
+- UNIQUE (`folio_line_item_id`) — one fee record can identify one posted line, and one posted line cannot satisfy multiple fee selections.
 
 ### `folio`
 

@@ -1,7 +1,10 @@
 import {
+  ArrangementType,
   DepositStatus,
   PaymentPurpose,
+  Prisma,
   ReservationStatus,
+  ReservationStayFeeKind,
   RoomStatus,
 } from "@prisma/client";
 import { differenceInCalendarDays, formatISO } from "date-fns";
@@ -11,10 +14,12 @@ import { notFound } from "next/navigation";
 
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { buttonVariants } from "@/components/ui/button";
+import { MEAL_ARTICLE_CODES, MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
@@ -23,6 +28,7 @@ import {
   CheckInDetailAffordance,
   CheckInDetailPanel,
 } from "./check-in-detail-panel";
+import { InclusionPanel } from "./inclusion-panel";
 import { RequestCleaningButton } from "./request-cleaning-button";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +49,7 @@ function toDateInputValue(date: Date) {
   return formatISO(date, { representation: "date" });
 }
 
-type ReservationTab = "details" | "folio";
+type ReservationTab = "details" | "inclusions" | "folio";
 
 function defaultReservationTab(status: ReservationStatus): ReservationTab {
   return status === ReservationStatus.CHECKED_IN ? "folio" : "details";
@@ -53,7 +59,11 @@ function resolveReservationTab(
   requestedTab: string | undefined,
   status: ReservationStatus,
 ): ReservationTab {
-  if (requestedTab === "details" || requestedTab === "folio") {
+  if (
+    requestedTab === "details" ||
+    requestedTab === "inclusions" ||
+    requestedTab === "folio"
+  ) {
     return requestedTab;
   }
 
@@ -73,7 +83,7 @@ function ReservationTabs({
 }) {
   return (
     <nav
-      aria-label="Reservation detail tabs"
+      aria-label="Tab detail reservasi"
       className="flex items-center gap-3"
     >
       <Link
@@ -81,7 +91,14 @@ function ReservationTabs({
         aria-current={activeTab === "details" ? "page" : undefined}
         className={tabClassName(activeTab === "details")}
       >
-        Details
+        Detail
+      </Link>
+      <Link
+        href={`/app/fo/reservasi/${reservationId}?tab=inclusions`}
+        aria-current={activeTab === "inclusions" ? "page" : undefined}
+        className={tabClassName(activeTab === "inclusions")}
+      >
+        Inklusi
       </Link>
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=folio`}
@@ -219,8 +236,24 @@ export default async function ReservationDetailPage({
             },
           },
         },
+        stayFees: {
+          orderBy: { kind: "asc" },
+        },
         reservationNights: {
-          select: { date: true, rateAmount: true },
+          select: {
+            id: true,
+            date: true,
+            rateAmount: true,
+            mealPlan: true,
+            mealPax: true,
+            mealUnitPrice: true,
+            mealAmount: true,
+            folioLineItems: {
+              where: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
+              take: 1,
+              select: { id: true },
+            },
+          },
           orderBy: { date: "asc" },
         },
       },
@@ -319,6 +352,7 @@ export default async function ReservationDetailPage({
     reservationType: reservation.reservationType,
     arrangementType: reservation.arrangementType,
     notes: reservation.notes ?? "",
+    stayFeeKinds: [],
   };
   const stayTotal = flatReservationNightStayTotal({
     arrivalDate: reservation.arrivalDate,
@@ -326,6 +360,10 @@ export default async function ReservationDetailPage({
     rateAmount: reservation.rateAmount,
     reservationNights: reservation.reservationNights,
   });
+  const inclusionTotal = reservation.reservationNights.reduce(
+    (total, night) => total.plus(night.mealAmount ?? 0),
+    new Prisma.Decimal(0),
+  );
   const assignedRoomHasOverlap = reservation.room
     ? activeReservations.some(
         (activeReservation) =>
@@ -394,6 +432,36 @@ export default async function ReservationDetailPage({
         : null,
     },
   };
+  const mealPlanLabels: Record<ArrangementType, string> = {
+    RO: "RO — Tanpa makan",
+    BB: "BB — Sarapan",
+    HB: "HB — Sarapan + satu kali makan utama",
+    FB: "FB — Sarapan, makan siang, dan makan malam",
+  };
+  const currentMealDefinition = MEAL_PLAN_DEFINITIONS[reservation.arrangementType];
+  const inclusionNights = reservation.reservationNights.map((night) => {
+    const isPosted = night.folioLineItems.length > 0;
+    const isElapsed = dateOnlyBoundary(night.date) < today;
+
+    return {
+      id: night.id,
+      dateLabel: formatDateID(night.date),
+      plan: night.mealPlan ?? ArrangementType.RO,
+      pax: night.mealPax ?? reservation.adults + reservation.children,
+      unitPrice: night.mealUnitPrice?.toString() ?? "0",
+      amount: night.mealAmount?.toString() ?? "0",
+      lockReason: isTerminalReservation
+        ? ("terminal" as const)
+        : isPosted
+          ? ("posted" as const)
+          : isElapsed
+            ? ("elapsed" as const)
+            : null,
+    };
+  });
+  const editableInclusionNights = inclusionNights.filter(
+    (night) => night.lockReason === null,
+  );
   const allocatedActiveReservations = activeReservations.flatMap(
     (activeReservation) =>
       activeReservation.roomId === null
@@ -489,6 +557,7 @@ export default async function ReservationDetailPage({
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
               submitLabel="Simpan Perubahan"
               readOnlyStayTotal={stayTotal.total.toString()}
+              readOnlyInclusionTotal={inclusionTotal.toString()}
               readOnlyDeposit={reservation.deposit.toString()}
               readOnlyNightlySchedule={stayTotal.nightlySchedule.map((night) => ({
                 date: toDateInputValue(night.date),
@@ -542,6 +611,38 @@ export default async function ReservationDetailPage({
             />
           </div>
         </>
+      ) : activeTab === "inclusions" ? (
+        <InclusionPanel
+          reservationId={reservation.id}
+          currentPlan={reservation.arrangementType}
+          currentPlanLabel={mealPlanLabels[reservation.arrangementType]}
+          currentUnitPrice={currentMealDefinition?.unitPrice.toString() ?? "0"}
+          pax={reservation.adults + reservation.children}
+          nights={inclusionNights}
+          options={Object.values(ArrangementType).map((plan) => ({
+            value: plan,
+            label: mealPlanLabels[plan],
+            unitPrice: MEAL_PLAN_DEFINITIONS[plan]?.unitPrice.toString() ?? "0",
+          }))}
+          terminal={isTerminalReservation}
+          effectiveDateLabel={editableInclusionNights[0]?.dateLabel ?? null}
+          editableNightCount={editableInclusionNights.length}
+          inHouse={reservation.status === ReservationStatus.CHECKED_IN}
+          stayFees={(
+            ["EARLY_CHECK_IN", "LATE_CHECK_OUT"] as ReservationStayFeeKind[]
+          ).map((kind) => {
+            const fee = reservation.stayFees.find((item) => item.kind === kind);
+
+            return {
+              kind,
+              label: STAY_FEE_DEFINITIONS[kind].label,
+              unitPrice:
+                fee?.unitPrice.toString() ??
+                STAY_FEE_DEFINITIONS[kind].unitPrice.toString(),
+              status: fee?.status ?? null,
+            };
+          })}
+        />
       ) : reservation.folio ? (
         <GuestFolioView folioId={reservation.folio.id} />
       ) : (

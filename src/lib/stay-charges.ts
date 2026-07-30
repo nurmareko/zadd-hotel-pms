@@ -1,5 +1,4 @@
 import {
-  type ArrangementType,
   Prisma,
   FolioStatus,
   type Article,
@@ -9,24 +8,23 @@ import {
 } from "@prisma/client";
 import { addDays, differenceInCalendarDays } from "date-fns";
 
-import { ARRANGEMENT_INCLUSION_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import {
+  MEAL_ARTICLE_CODES,
+  MEAL_PLAN_DEFINITIONS,
+} from "@/lib/arrangement-inclusions";
 import { dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 export const ROOM_CHARGE_ARTICLE_CODE = "ROOM-CHARGE";
 
 /**
- * Article codes posted as nightly stay charges (room charge plus arrangement
- * inclusions). This is the single source of truth shared by the night audit
- * (which posts them each night) and check-out (which posts any the audit has
- * not yet posted for the nights already stayed).
+ * Article codes posted as nightly stay charges (room charge plus snapshotted
+ * meal plans). This is the single source of truth shared by the night audit
+ * and every check-out projection/catch-up path.
  */
 export const STAY_CHARGE_ARTICLE_CODES = [
-  "ROOM-CHARGE",
-  "BREAKFAST",
-  "COFFEE-BREAK",
-  "LUNCH",
-  "DINNER",
+  ROOM_CHARGE_ARTICLE_CODE,
+  ...MEAL_ARTICLE_CODES,
 ] as const;
 
 export type StayChargeArticleCode = (typeof STAY_CHARGE_ARTICLE_CODES)[number];
@@ -38,7 +36,14 @@ export type StayChargeArticle = Pick<
 
 export type StayChargeReservationNight = Pick<
   ReservationNight,
-  "id" | "reservationId" | "date" | "rateAmount"
+  | "id"
+  | "reservationId"
+  | "date"
+  | "rateAmount"
+  | "mealPlan"
+  | "mealPax"
+  | "mealUnitPrice"
+  | "mealAmount"
 >;
 
 export type ExistingStayChargeLine = Pick<
@@ -133,6 +138,41 @@ function validatePostingSchedule({
       );
     }
 
+    const mealValues = [
+      night.mealPlan,
+      night.mealPax,
+      night.mealUnitPrice,
+      night.mealAmount,
+    ];
+    const mealIsEmpty = mealValues.every((value) => value === null);
+    const mealIsComplete = mealValues.every((value) => value !== null);
+
+    if (!mealIsEmpty && !mealIsComplete) {
+      postingBlocked(
+        reservationNo,
+        `meal snapshot ${night.id} (${dateKey(night.date)}) tidak lengkap.`,
+      );
+    }
+
+    if (mealIsComplete) {
+      const definition = MEAL_PLAN_DEFINITIONS[night.mealPlan!];
+
+      if (
+        !definition ||
+        !Number.isInteger(night.mealPax) ||
+        night.mealPax! < 1 ||
+        !night.mealUnitPrice!.isInteger() ||
+        night.mealUnitPrice!.isNegative() ||
+        !night.mealAmount!.isInteger() ||
+        night.mealAmount!.isNegative() ||
+        !night.mealAmount!.equals(night.mealUnitPrice!.mul(night.mealPax!))
+      ) {
+        postingBlocked(
+          reservationNo,
+          `meal snapshot ${night.id} (${dateKey(night.date)}) tidak valid.`,
+        );
+      }
+    }
   }
 
   if (!Number.isInteger(expectedNights) || expectedNights < 1) {
@@ -149,35 +189,7 @@ function validatePostingSchedule({
   return reservationNights.slice(0, expectedNights);
 }
 
-function requiredArticles({
-  reservationNo,
-  arrangementType,
-  articles,
-}: {
-  reservationNo: string;
-  arrangementType: ArrangementType;
-  articles: StayChargeArticle[];
-}) {
-  const articleByCode = new Map(articles.map((article) => [article.code, article]));
-  const codes = [
-    ROOM_CHARGE_ARTICLE_CODE,
-    ...ARRANGEMENT_INCLUSION_ARTICLE_CODES[arrangementType],
-  ];
 
-  return codes.map((code) => {
-    const article = articleByCode.get(code);
-
-    if (!article) {
-      postingBlocked(reservationNo, `artikel ${code} tidak tersedia.`);
-    }
-
-    if (code !== ROOM_CHARGE_ARTICLE_CODE && article.defaultPrice === null) {
-      postingBlocked(reservationNo, `artikel ${code} belum memiliki default price.`);
-    }
-
-    return article;
-  });
-}
 
 function isRetryablePostingConflict(error: unknown) {
   return (
@@ -219,15 +231,13 @@ export function stayNightsThroughAuditDate(
 }
 
 /**
- * Builds the ordered snapshot suffix still owed for each canonical stay-charge
- * article. The shortfall decision remains count-based so reconciled unlinked
- * legacy lines remain the chronological prefix; every newly emitted line carries
- * the exact ReservationNight identity that follows that prefix.
+ * Builds stay-charge lines still owed. ROOM-CHARGE keeps its reconciled legacy
+ * count-prefix behavior. Meals are driven only by each night's snapshot and use
+ * exact ReservationNight + meal-article identity for idempotency.
  */
 export function stayChargeShortfallLines({
   reservationId,
   reservationNo,
-  arrangementType,
   arrivalDate,
   departureDate,
   expectedNights,
@@ -237,7 +247,6 @@ export function stayChargeShortfallLines({
 }: {
   reservationId: number;
   reservationNo: string;
-  arrangementType: ArrangementType;
   arrivalDate: Date;
   departureDate: Date;
   expectedNights: number;
@@ -253,40 +262,80 @@ export function stayChargeShortfallLines({
     expectedNights,
     reservationNights,
   });
-  const postingArticles = requiredArticles({
-    reservationNo,
-    arrangementType,
-    articles,
-  });
-  const lines: PendingStayChargeLine[] = [];
+  const articleByCode = new Map(articles.map((article) => [article.code, article]));
+  const roomArticle = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE);
 
-  for (const article of postingArticles) {
-    const alreadyPosted = lineItems.filter(
-      (lineItem) =>
-        lineItem.articleId === article.id && lineItem.fbOrderId === null,
-    ).length;
-    const missingNights = eligibleNights.slice(alreadyPosted);
-    const isRoomCharge = article.code === ROOM_CHARGE_ARTICLE_CODE;
-
-    for (const missingNight of missingNights) {
-      const unitPrice = isRoomCharge
-        ? missingNight.rateAmount
-        : new Prisma.Decimal(article.defaultPrice!);
-
-      lines.push({
-        reservationNightId: missingNight.id,
-        serviceDate: missingNight.date,
-        articleId: article.id,
-        article,
-        description: isRoomCharge ? "Room charge" : article.name,
-        quantity: new Prisma.Decimal(1),
-        unitPrice,
-        amount: unitPrice,
-      });
-    }
+  if (!roomArticle) {
+    postingBlocked(
+      reservationNo,
+      `artikel ${ROOM_CHARGE_ARTICLE_CODE} tidak tersedia.`,
+    );
   }
 
-  return lines;
+  const roomLines: PendingStayChargeLine[] = [];
+  const postedRoomCount = lineItems.filter(
+    (lineItem) =>
+      lineItem.articleId === roomArticle.id && lineItem.fbOrderId === null,
+  ).length;
+
+  for (const night of eligibleNights.slice(postedRoomCount)) {
+    roomLines.push({
+      reservationNightId: night.id,
+      serviceDate: night.date,
+      articleId: roomArticle.id,
+      article: roomArticle,
+      description: "Room charge",
+      quantity: new Prisma.Decimal(1),
+      unitPrice: night.rateAmount,
+      amount: night.rateAmount,
+    });
+  }
+
+  const mealLines: PendingStayChargeLine[] = [];
+
+  for (const night of eligibleNights) {
+    if (night.mealPlan === null) {
+      continue;
+    }
+
+    const definition = MEAL_PLAN_DEFINITIONS[night.mealPlan];
+
+    if (!definition) {
+      postingBlocked(
+        reservationNo,
+        `meal plan snapshot ${night.mealPlan} pada ${dateKey(night.date)} tidak dapat diposting.`,
+      );
+    }
+
+    const article = articleByCode.get(definition.articleCode);
+
+    if (!article) {
+      postingBlocked(reservationNo, `artikel ${definition.articleCode} tidak tersedia.`);
+    }
+
+    const alreadyPosted = lineItems.some(
+      (lineItem) =>
+        lineItem.reservationNightId === night.id &&
+        lineItem.articleId === article.id,
+    );
+
+    if (alreadyPosted) {
+      continue;
+    }
+
+    mealLines.push({
+      reservationNightId: night.id,
+      serviceDate: night.date,
+      articleId: article.id,
+      article,
+      description: article.name,
+      quantity: new Prisma.Decimal(night.mealPax!),
+      unitPrice: night.mealUnitPrice!,
+      amount: night.mealAmount!,
+    });
+  }
+
+  return [...roomLines, ...mealLines];
 }
 
 /**
@@ -299,7 +348,6 @@ export function stayChargeShortfallLines({
 export function buildPendingStayChargeLines({
   reservationId,
   reservationNo,
-  arrangementType,
   arrivalDate,
   departureDate,
   reservationNights,
@@ -309,7 +357,6 @@ export function buildPendingStayChargeLines({
 }: {
   reservationId: number;
   reservationNo: string;
-  arrangementType: ArrangementType;
   arrivalDate: Date;
   departureDate: Date;
   reservationNights: StayChargeReservationNight[];
@@ -320,7 +367,6 @@ export function buildPendingStayChargeLines({
   return stayChargeShortfallLines({
     reservationId,
     reservationNo,
-    arrangementType,
     arrivalDate,
     departureDate,
     expectedNights: stayNightsThroughCheckout(arrivalDate, now),
@@ -331,7 +377,7 @@ export function buildPendingStayChargeLines({
 }
 
 /**
- * Persist any stay charges (room charge + arrangement inclusions) the night
+ * Persist any stay charges (room charge + snapshotted meals) the night
  * audit has not yet posted for the nights already stayed. Runs in a serializable
  * transaction and re-reads the folio's line items inside it so a concurrent
  * night audit cannot cause a double posting. Idempotent — posting nothing when
@@ -359,7 +405,6 @@ export async function postPendingStayCharges({
                   id: true,
                   reservationNo: true,
                   status: true,
-                  arrangementType: true,
                   arrivalDate: true,
                   departureDate: true,
                   reservationNights: {
@@ -368,6 +413,10 @@ export async function postPendingStayCharges({
                       reservationId: true,
                       date: true,
                       rateAmount: true,
+                      mealPlan: true,
+                      mealPax: true,
+                      mealUnitPrice: true,
+                      mealAmount: true,
                     },
                     orderBy: { date: "asc" },
                   },
@@ -413,7 +462,6 @@ export async function postPendingStayCharges({
           const pending = buildPendingStayChargeLines({
             reservationId: reservation.id,
             reservationNo: reservation.reservationNo,
-            arrangementType: reservation.arrangementType,
             arrivalDate: reservation.arrivalDate,
             departureDate: reservation.departureDate,
             reservationNights: reservation.reservationNights,

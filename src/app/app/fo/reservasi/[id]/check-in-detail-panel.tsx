@@ -1,6 +1,6 @@
 "use client";
 
-import { DepositStatus, ReservationStatus } from "@prisma/client";
+import { ArrangementType, DepositStatus, ReservationStatus } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -46,6 +46,13 @@ const selectClassName =
   "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500";
 const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
+
+const mealPlanLabels: Record<ArrangementType, string> = {
+  [ArrangementType.RO]: "RO — Tanpa makan",
+  [ArrangementType.BB]: "BB — Sarapan",
+  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
+  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+};
 
 function ReadOnlyItem({ label, value }: { label: string; value: string }) {
   return (
@@ -534,7 +541,10 @@ export function CheckInDetailPanel({
                 <dl className="mt-3 grid gap-4 sm:grid-cols-3">
                   <ReadOnlyItem label="No. reservasi" value={review.reservationNo} />
                   <ReadOnlyItem label="Tipe" value={review.reservationType} />
-                  <ReadOnlyItem label="Arrangement" value={review.arrangementType} />
+                  <ReadOnlyItem
+                    label="Inklusi"
+                    value={mealPlanLabels[review.arrangementType]}
+                  />
                   <ReadOnlyItem label="Nama tamu" value={review.guest.fullName} />
                   <ReadOnlyItem
                     label="Identitas"

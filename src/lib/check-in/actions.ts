@@ -18,6 +18,10 @@ import { logActivity } from "@/lib/activity-log";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
+  postPendingReservationStayFees,
+  ReservationStayFeeError,
+} from "@/lib/reservation-stay-fees";
+import {
   CheckInSchema,
   DepositCollectionSchema,
   type CheckInValues,
@@ -199,6 +203,7 @@ async function nextFolioNumber(now: Date) {
 async function runCheckInTransaction(
   input: CheckInValues,
   context: CheckInContext,
+  userId: number,
 ) {
   const { reservation, room, arrivalDate, departureDate } = context;
   const now = new Date();
@@ -314,6 +319,13 @@ async function runCheckInTransaction(
           `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
         );
       }
+
+      await postPendingReservationStayFees(tx, {
+        reservationId: reservation.id,
+        folioId: currentReservation.folio.id,
+        postedById: userId,
+        postedAt: now,
+      });
 
       return { ok: true as const, folioId: currentReservation.folio.id };
     },
@@ -593,10 +605,13 @@ export async function completeCheckIn(
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      result = await runCheckInTransaction(parsed.data, prepared.context);
+      result = await runCheckInTransaction(parsed.data, prepared.context, userId);
       break;
     } catch (error) {
-      if (error instanceof CheckInActionError) {
+      if (
+        error instanceof CheckInActionError ||
+        error instanceof ReservationStayFeeError
+      ) {
         return { ok: false, error: error.message };
       }
 
