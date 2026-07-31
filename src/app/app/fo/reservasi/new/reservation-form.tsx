@@ -528,21 +528,22 @@ export function ReservationForm({
     isViewMode || (mode === "edit" && !pricingChanged)
       ? Number(readOnlyInclusionTotal ?? 0)
       : resolvedInclusionTotal;
-  const extrasTotal = isCreateMode
+  const stayFeeTotal = isCreateMode
     ? (stayFeeKinds ?? []).reduce(
         (total, kind) => total + STAY_FEE_DEFINITIONS[kind].unitPrice,
         0,
       )
     : 0;
+  const inclusionSummaryTotal = inclusionTotal + stayFeeTotal;
   const totalReceived = 0;
   const reservationTotal =
     isViewMode || (mode === "edit" && !pricingChanged)
       ? roomSubtotal === null
         ? null
-        : roomSubtotal + inclusionTotal + extrasTotal
+        : roomSubtotal + inclusionTotal + stayFeeTotal
       : resolvedReservationTotal === null
         ? null
-        : resolvedReservationTotal + extrasTotal;
+        : resolvedReservationTotal + stayFeeTotal;
   const totalOutstanding =
     reservationTotal === null ? null : reservationTotal - totalReceived;
   const summaryAmountDisplay = (amount: number | null) =>
@@ -849,13 +850,13 @@ export function ReservationForm({
             <div className="flex items-baseline justify-between gap-4">
               <dt className="text-slate-600">Inklusi</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {formatIDR(inclusionTotal)}
+                {formatIDR(inclusionSummaryTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
               <dt className="text-slate-600">Total Extras</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {formatIDR(extrasTotal)}
+                {formatIDR(0)}
               </dd>
             </div>
           </div>
@@ -940,7 +941,7 @@ export function ReservationForm({
                 </h2>
               </div>
               <div className={cardContentClassName}>
-                <div className="grid items-start gap-3.5 md:grid-cols-2 desktop:min-[1400px]:grid-cols-[1.1fr_1.1fr_auto_1fr_1.1fr]">
+                <div className="grid items-start gap-3.5 desktop:xl:grid-cols-[minmax(0,1fr)_minmax(0,2.5fr)]">
                   <FormField
                     control={form.control}
                     name="reservationType"
@@ -963,6 +964,7 @@ export function ReservationForm({
                     )}
                   />
 
+                  <div className="grid items-start gap-3.5 desktop:xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                   <FormField
                     control={form.control}
                     name="arrivalDate"
@@ -1004,7 +1006,7 @@ export function ReservationForm({
                     )}
                   />
 
-                  <div className="flex h-11 items-center justify-center self-end md:col-span-2 desktop:h-10 desktop:min-[1400px]:col-span-1">
+                  <div className="flex h-11 items-center justify-center self-end desktop:h-10">
                     <span className="num rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-slate-600">
                       {nights} malam
                     </span>
@@ -1031,8 +1033,7 @@ export function ReservationForm({
                       </FormItem>
                     )}
                   />
-
-
+                  </div>
                 </div>
               </div>
             </section>
@@ -1513,7 +1514,7 @@ export function ReservationForm({
                         </p>
                       </div>
                       <span className="num text-sm font-bold text-slate-900">
-                        {formatIDR(extrasTotal)}
+                        {formatIDR(stayFeeTotal)}
                       </span>
                     </div>
                     <div className={cardContentClassName}>
