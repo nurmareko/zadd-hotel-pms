@@ -11,6 +11,7 @@
 - [Screen inventory](docs/screen_inventory_mvp.md) — all 27 screens
 - [Database spec](docs/db_specification_mvp.md) — data model in prose
 - [Use case narrative](docs/use_case_narrative_mvp.md) — actors and use cases
+- [Automated testing](docs/testing.md) — pure and dedicated-database test setup
 - [AGENTS.md](AGENTS.md) — context for AI coding tools
 
 ## Running locally

@@ -10,7 +10,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
-    exclude: ["src/**/*.db.test.ts", "tests/db/**"],
+    include: ["tests/db/**/*.db.test.ts"],
+    setupFiles: ["tests/db/setup.ts"],
+    fileParallelism: false,
+    maxWorkers: 1,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
   },
 });

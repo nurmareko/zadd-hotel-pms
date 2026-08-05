@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "tsx scripts/test-db.ts",
     "postinstall": "prisma generate",
     "db:demo": "tsx prisma/demo-seed.ts",
     "db:reset": "prisma migrate reset --force && npm run db:demo",

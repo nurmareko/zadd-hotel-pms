@@ -138,7 +138,7 @@ function resolveFromPricingSet(
       )
     : roundWholeIDR(pricingSet.baseRate);
 
-  if (!rate.isPositive()) {
+  if (rate.lessThanOrEqualTo(0)) {
     throw new PricingResolutionError(
       "Aturan harga harus menghasilkan tarif malam lebih besar dari 0.",
     );
