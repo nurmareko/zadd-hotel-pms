@@ -16,16 +16,22 @@ import {
   RoomStatus,
   TableLocation,
   TableStatus,
-  type Prisma,
+  Prisma,
 } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 import { addDays, format, subHours, subMinutes } from "date-fns";
 
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { computeFolioTotals } from "@/lib/folio-totals";
+import { buildAuditStayChargeLines } from "@/lib/night-audit";
 import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
-  dateOnlyBoundary,
+  ROOM_CHARGE_ARTICLE_CODE,
+  STAY_CHARGE_ARTICLE_CODES,
+} from "@/lib/stay-charges";
+import {
+  addDateOnlyDays,
+  hotelTimestampBoundaryForDate,
   hotelTodayDateOnly,
   hotelTodayTimestampRange,
 } from "@/lib/date-only";
@@ -540,10 +546,11 @@ const reservations: Array<{
 ];
 
 function dateFromOffset(today: Date, offset: number) {
-  const date = addDays(today, offset);
-  date.setHours(12, 0, 0, 0);
+  return new Date(addDateOnlyDays(today, offset).getTime() + 12 * 60 * 60 * 1000);
+}
 
-  return date;
+function localNoonForDateOnly(date: Date) {
+  return new Date(`${date.toISOString().slice(0, 10)}T12:00:00`);
 }
 
 function purposeOfVisitForReservation(index: number) {
@@ -1554,7 +1561,7 @@ async function main() {
         mealSnapshot: {
           arrangementType: reservation.arrangementType,
           mealPax: reservation.adults + (reservation.children ?? 0),
-          fromDate: dateOnlyBoundary(today),
+          fromDate: localNoonForDateOnly(today),
         },
       });
       const snapshottedMealNights = reservationNightSchedule.filter(
@@ -1577,7 +1584,13 @@ async function main() {
               { reservationNight: { reservationId: seededReservation.id } },
               {
                 article: {
-                  code: { in: ["FEE-EARLY-CI", "FEE-LATE-CO"] },
+                  code: {
+                    in: [
+                      ROOM_CHARGE_ARTICLE_CODE,
+                      "FEE-EARLY-CI",
+                      "FEE-LATE-CO",
+                    ],
+                  },
                 },
               },
             ],
@@ -1698,7 +1711,7 @@ async function main() {
       primaryHousekeeperId: housekeepingUser.id,
       secondaryHousekeeperId: secondHousekeepingUser.id,
       inspectedById: housekeepingSupervisor.id,
-      date: dateOnlyBoundary(today),
+      date: today,
     });
 
     await seedLostFoundItems({
@@ -1745,7 +1758,7 @@ async function main() {
         const currentNight = await prisma.reservationNight.findFirst({
           where: {
             reservationId: reservation.reservationId,
-            date: dateOnlyBoundary(today),
+            date: today,
           },
           select: {
             id: true,
@@ -2119,14 +2132,11 @@ async function main() {
       todayStart: todayTimestampStart,
     });
 
-    await prisma.nightAudit.deleteMany({});
-
     const auditSeeds = [
       {
         offset: -1,
         roomsOccupied: 16,
         occupancyRate: 66.67,
-        roomRevenue: 13600000,
         fbRevenue: 2750000,
         otherRevenue: 450000,
         checkInCount: 7,
@@ -2137,7 +2147,6 @@ async function main() {
         offset: -2,
         roomsOccupied: 15,
         occupancyRate: 62.5,
-        roomRevenue: 11700000,
         fbRevenue: 2100000,
         otherRevenue: 325000,
         checkInCount: 6,
@@ -2148,7 +2157,6 @@ async function main() {
         offset: -3,
         roomsOccupied: 14,
         occupancyRate: 58.33,
-        roomRevenue: 11480000,
         fbRevenue: 1850000,
         otherRevenue: 290000,
         checkInCount: 5,
@@ -2159,7 +2167,6 @@ async function main() {
         offset: -4,
         roomsOccupied: 13,
         occupancyRate: 54.17,
-        roomRevenue: 9880000,
         fbRevenue: 1650000,
         otherRevenue: 210000,
         checkInCount: 4,
@@ -2168,36 +2175,186 @@ async function main() {
       },
     ];
 
-    await prisma.nightAudit.createMany({
-      data: auditSeeds.map((audit, index) => {
-        const businessDate = dateOnlyBoundary(addDays(today, audit.offset));
-        const runAt = addDays(businessDate, 1);
-        runAt.setHours(1, 45 + index * 7, 0, 0);
+    const seededAudits = await prisma.$transaction(async (tx) => {
+      await tx.nightAudit.deleteMany({});
 
-        return {
+      const stayChargeArticles = await tx.article.findMany({
+        where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          type: true,
+          defaultPrice: true,
+        },
+      });
+      const roomArticleId = stayChargeArticles.find(
+        (article) => article.code === ROOM_CHARGE_ARTICLE_CODE,
+      )?.id;
+
+      if (!roomArticleId) {
+        throw new Error(`Missing ${ROOM_CHARGE_ARTICLE_CODE} article.`);
+      }
+
+      const historicalReservations = await tx.reservation.findMany({
+        where: {
+          id: { in: checkedInReservations.map((reservation) => reservation.reservationId) },
+        },
+        orderBy: { reservationNo: "asc" },
+        select: {
+          id: true,
+          reservationNo: true,
+          arrivalDate: true,
+          departureDate: true,
+          reservationNights: {
+            select: {
+              id: true,
+              reservationId: true,
+              date: true,
+              rateAmount: true,
+              mealPlan: true,
+              mealPax: true,
+              mealUnitPrice: true,
+              mealAmount: true,
+            },
+            orderBy: { date: "asc" },
+          },
+          folio: {
+            select: { id: true, status: true },
+          },
+        },
+      });
+      const summaries: Array<{
+        businessDate: Date;
+        roomRevenue: Prisma.Decimal;
+        roomNights: number;
+      }> = [];
+
+      for (const audit of [...auditSeeds].sort((left, right) => left.offset - right.offset)) {
+        const businessDate = addDateOnlyDays(today, audit.offset);
+        const nextBusinessDate = addDateOnlyDays(businessDate, 1);
+        const runAt = new Date(
+          hotelTimestampBoundaryForDate(
+            nextBusinessDate.toISOString().slice(0, 10),
+          ).getTime() +
+            (60 + 45 + (Math.abs(audit.offset) - 1) * 7) * 60_000,
+        );
+        const lineItemsToCreate = [];
+
+        for (const reservation of historicalReservations) {
+          if (
+            reservation.arrivalDate > businessDate ||
+            reservation.departureDate <= businessDate
+          ) {
+            continue;
+          }
+          if (!reservation.folio || reservation.folio.status !== FolioStatus.OPEN) {
+            throw new Error(
+              `Historical Night Audit posting requires an OPEN folio for ${reservation.reservationNo}.`,
+            );
+          }
+
+          const existingLineItems = await tx.folioLineItem.findMany({
+            where: { folioId: reservation.folio.id },
+            select: {
+              articleId: true,
+              fbOrderId: true,
+              reservationNightId: true,
+            },
+          });
+          const lines = buildAuditStayChargeLines({
+            reservation: {
+              reservationId: reservation.id,
+              reservationNo: reservation.reservationNo,
+              folioId: reservation.folio.id,
+              arrivalDate: localNoonForDateOnly(reservation.arrivalDate),
+              departureDate: localNoonForDateOnly(reservation.departureDate),
+              reservationNights: reservation.reservationNights,
+            },
+            existingLineItems,
+            articles: stayChargeArticles,
+            businessDate: localNoonForDateOnly(businessDate),
+            postedById: accountingUser.id,
+            postedAt: runAt,
+            label: businessDate.toISOString().slice(0, 10),
+          });
+          lineItemsToCreate.push(...lines);
+        }
+
+        if (lineItemsToCreate.length > 0) {
+          await tx.folioLineItem.createMany({ data: lineItemsToCreate });
+        }
+
+        const roomLines = lineItemsToCreate.filter(
+          (line) => line.articleId === roomArticleId,
+        );
+        const nightDateById = new Map(
+          historicalReservations.flatMap((reservation) =>
+            reservation.reservationNights.map((night) => [night.id, night.date] as const),
+          ),
+        );
+        const wrongServiceDate = roomLines.find(
+          (line) =>
+            nightDateById.get(line.reservationNightId)?.getTime() !==
+            businessDate.getTime(),
+        );
+
+        if (wrongServiceDate) {
+          throw new Error(
+            `Historical Night Audit ${businessDate.toISOString().slice(0, 10)} produced a catch-up room charge outside its service date.`,
+          );
+        }
+
+        const roomRevenue = roomLines.reduce(
+          (sum, line) => sum.plus(line.amount),
+          new Prisma.Decimal(0),
+        );
+        const inclusionRevenue = lineItemsToCreate
+          .filter((line) => line.articleId !== roomArticleId)
+          .reduce(
+            (sum, line) => sum.plus(line.amount),
+            new Prisma.Decimal(0),
+          );
+        const fbRevenue = inclusionRevenue.plus(audit.fbRevenue);
+        const totalRevenue = roomRevenue.plus(fbRevenue).plus(audit.otherRevenue);
+
+        await tx.nightAudit.create({
+          data: {
+            businessDate,
+            status: NightAuditStatus.COMPLETED,
+            runAt,
+            runById: accountingUser.id,
+            totalRooms: rooms.length,
+            roomsOccupied: audit.roomsOccupied,
+            occupancyRate: audit.occupancyRate,
+            roomRevenue,
+            fbRevenue,
+            otherRevenue: audit.otherRevenue,
+            totalRevenue,
+            checkInCount: audit.checkInCount,
+            checkOutCount: audit.checkOutCount,
+            inHouseCount: audit.inHouseCount,
+            createdAt: runAt,
+          },
+        });
+        summaries.push({
           businessDate,
-          status: NightAuditStatus.COMPLETED,
-          runAt,
-          runById: accountingUser.id,
-          totalRooms: rooms.length,
-          roomsOccupied: audit.roomsOccupied,
-          occupancyRate: audit.occupancyRate,
-          roomRevenue: audit.roomRevenue,
-          fbRevenue: audit.fbRevenue,
-          otherRevenue: audit.otherRevenue,
-          totalRevenue:
-            audit.roomRevenue + audit.fbRevenue + audit.otherRevenue,
-          checkInCount: audit.checkInCount,
-          checkOutCount: audit.checkOutCount,
-          inHouseCount: audit.inHouseCount,
-          createdAt: runAt,
-        };
-      }),
+          roomRevenue,
+          roomNights: roomLines.length,
+        });
+      }
+
+      return summaries;
     });
 
     console.log(
-      `✓ seeded ${auditSeeds.length} historical night audits (today left unaudited)`,
+      `✓ seeded ${seededAudits.length} historical night audits with canonical linked room charges (today left unaudited)`,
     );
+    for (const audit of seededAudits) {
+      console.log(
+        `  ${audit.businessDate.toISOString().slice(0, 10)}: ${audit.roomNights} room night(s), room revenue ${audit.roomRevenue.toString()}`,
+      );
+    }
     console.log("✓ demo seed complete");
   } catch (error) {
     console.error(error);
