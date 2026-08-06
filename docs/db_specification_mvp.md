@@ -125,7 +125,7 @@ erDiagram
   GUEST {
     int id PK
     varchar full_name
-    GuestIdType id_type "nullable: KTP, PASSPORT, SIM, OTHER"
+    GuestIdType id_type "nullable: KTP, PASSPORT, SIM, KITAS, KITAP, OTHER"
     varchar id_number
     varchar phone
     varchar email
@@ -711,7 +711,7 @@ Indexes and enforcement:
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique guest identifier |
 | full_name | VARCHAR(100) | NOT NULL | Guest's full name |
-| id_type | GuestIdType | — | Nullable identity-document type: KTP, PASSPORT, SIM, OTHER. Historical rows remain NULL rather than inferring a type. |
+| id_type | GuestIdType | — | Nullable identity-document type: KTP, PASSPORT, SIM, KITAS, KITAP, OTHER. Historical rows remain NULL rather than inferring a type. |
 | id_number | VARCHAR(50) | — | ID card / passport number |
 | phone | VARCHAR(20) | — | Phone number |
 | email | VARCHAR(100) | — | Email |

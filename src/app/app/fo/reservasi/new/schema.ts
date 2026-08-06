@@ -40,11 +40,13 @@ const OptionalTextSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
-const RequiredAddressSchema = z
+const OptionalAddressSchema = z
   .string()
   .trim()
-  .min(1, "Alamat wajib diisi")
-  .max(500, "Alamat maksimal 500 karakter");
+  .max(500, "Alamat maksimal 500 karakter")
+  .or(z.literal(""))
+  .optional()
+  .transform((value) => (value ? value : null));
 
 const RequiredGuestIdTypeSchema = z.nativeEnum(GuestIdType, {
   error: "Jenis identitas wajib dipilih",
@@ -109,7 +111,7 @@ const CreateReservationObjectSchema = z.object({
       .optional()
       .transform((value) => (value ? value : null)),
     email: OptionalEmailSchema,
-    address: RequiredAddressSchema,
+    address: OptionalAddressSchema,
     nationality: z
       .string()
       .trim()

@@ -87,6 +87,8 @@ enum ReservationType {
 enum GuestIdType {
   KTP
   PASSPORT
+  KITAS
+  KITAP
   SIM
   OTHER
 }

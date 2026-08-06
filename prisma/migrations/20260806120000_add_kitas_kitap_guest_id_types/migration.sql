@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "GuestIdType" ADD VALUE 'KITAS';
+ALTER TYPE "GuestIdType" ADD VALUE 'KITAP';

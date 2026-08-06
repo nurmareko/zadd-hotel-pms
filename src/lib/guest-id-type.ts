@@ -3,6 +3,8 @@ import { GuestIdType } from "@prisma/client";
 export const guestIdTypeOptions = [
   { value: GuestIdType.KTP, label: "KTP" },
   { value: GuestIdType.PASSPORT, label: "Paspor" },
+  { value: GuestIdType.KITAS, label: "KITAS" },
+  { value: GuestIdType.KITAP, label: "KITAP" },
   { value: GuestIdType.SIM, label: "SIM" },
   { value: GuestIdType.OTHER, label: "Lainnya" },
 ] as const;

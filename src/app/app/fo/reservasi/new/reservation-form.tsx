@@ -1184,9 +1184,7 @@ export function ReservationForm({
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Alamat <RequiredMark />
-                          </FormLabel>
+                          <FormLabel>Alamat</FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
