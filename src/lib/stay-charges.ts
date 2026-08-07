@@ -62,8 +62,73 @@ export type PendingStayChargeLine = {
   amount: Prisma.Decimal;
 };
 
+export type StayChargePostingBlocker =
+  | {
+      kind: "INCOMPLETE_STAY_SCHEDULE";
+      expectedCount: number;
+      actualCount: number;
+      affectedDate: Date;
+    }
+  | {
+      kind: "OUT_OF_ORDER_STAY_SCHEDULE";
+      position: number;
+      expectedDate: Date | null;
+      actualDate: Date;
+    }
+  | {
+      kind: "NIGHT_OWNERSHIP_MISMATCH";
+      nightId: string;
+      affectedDate: Date;
+      expectedReservationId: number;
+      actualReservationId: number;
+    }
+  | {
+      kind: "INVALID_ROOM_RATE";
+      nightId: string;
+      affectedDate: Date;
+      rateAmount: string;
+    }
+  | {
+      kind: "INCOMPLETE_MEAL_VALUES";
+      nightId: string;
+      affectedDate: Date;
+    }
+  | {
+      kind: "INVALID_MEAL_VALUES";
+      nightId: string;
+      affectedDate: Date;
+      mealPlan: string | null;
+      mealPax: number | null;
+      mealUnitPrice: string | null;
+      mealAmount: string | null;
+    }
+  | {
+      kind: "INVALID_EXPECTED_NIGHT_COUNT";
+      expectedCount: number;
+      affectedDate: Date;
+    }
+  | {
+      kind: "STAY_SCHEDULE_SHORTFALL";
+      expectedCount: number;
+      actualCount: number;
+      affectedDate: Date;
+    }
+  | {
+      kind: "UNSUPPORTED_MEAL_PLAN";
+      mealPlan: string;
+      affectedDate: Date;
+    }
+  | {
+      kind: "MISSING_STAY_CHARGE_ARTICLE";
+      articleCode: string;
+      affectedDate: Date | null;
+    };
+
 export class StayChargePostingError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public readonly blocker?: StayChargePostingBlocker,
+  ) {
     super(message);
     this.name = "StayChargePostingError";
   }
@@ -75,9 +140,14 @@ function dateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function postingBlocked(reservationNo: string, detail: string): never {
+function postingBlocked(
+  reservationNo: string,
+  detail: string,
+  blocker?: StayChargePostingBlocker,
+): never {
   throw new StayChargePostingError(
     `Posting stay charge ${reservationNo} diblokir: ${detail}`,
+    blocker,
   );
 }
 
@@ -111,6 +181,19 @@ function validatePostingSchedule({
     postingBlocked(
       reservationNo,
       `jadwal ReservationNight tidak lengkap (expected ${expectedDates.length}, actual ${reservationNights.length}).`,
+      {
+        kind: "INCOMPLETE_STAY_SCHEDULE",
+        expectedCount: expectedDates.length,
+        actualCount: reservationNights.length,
+        affectedDate:
+          expectedDates.find(
+            (expectedDate, index) =>
+              !reservationNights[index] ||
+              dateKey(reservationNights[index].date) !== dateKey(expectedDate),
+          ) ??
+          reservationNights[expectedDates.length]?.date ??
+          departure,
+      },
     );
   }
 
@@ -121,6 +204,12 @@ function validatePostingSchedule({
       postingBlocked(
         reservationNo,
         `jadwal ReservationNight harus berurutan dan kontigu; posisi ${index + 1} expected ${expectedDate ? dateKey(expectedDate) : "none"}, actual ${dateKey(night.date)}.`,
+        {
+          kind: "OUT_OF_ORDER_STAY_SCHEDULE",
+          position: index + 1,
+          expectedDate: expectedDate ?? null,
+          actualDate: night.date,
+        },
       );
     }
 
@@ -128,6 +217,13 @@ function validatePostingSchedule({
       postingBlocked(
         reservationNo,
         `snapshot ${night.id} bukan milik reservasi ini.`,
+        {
+          kind: "NIGHT_OWNERSHIP_MISMATCH",
+          nightId: night.id,
+          affectedDate: night.date,
+          expectedReservationId: reservationId,
+          actualReservationId: night.reservationId,
+        },
       );
     }
 
@@ -135,6 +231,12 @@ function validatePostingSchedule({
       postingBlocked(
         reservationNo,
         `rate snapshot ${night.id} (${dateKey(night.date)}) harus whole-IDR dan tidak negatif.`,
+        {
+          kind: "INVALID_ROOM_RATE",
+          nightId: night.id,
+          affectedDate: night.date,
+          rateAmount: night.rateAmount.toString(),
+        },
       );
     }
 
@@ -151,6 +253,11 @@ function validatePostingSchedule({
       postingBlocked(
         reservationNo,
         `meal snapshot ${night.id} (${dateKey(night.date)}) tidak lengkap.`,
+        {
+          kind: "INCOMPLETE_MEAL_VALUES",
+          nightId: night.id,
+          affectedDate: night.date,
+        },
       );
     }
 
@@ -170,19 +277,45 @@ function validatePostingSchedule({
         postingBlocked(
           reservationNo,
           `meal snapshot ${night.id} (${dateKey(night.date)}) tidak valid.`,
+          {
+            kind: "INVALID_MEAL_VALUES",
+            nightId: night.id,
+            affectedDate: night.date,
+            mealPlan: night.mealPlan,
+            mealPax: night.mealPax,
+            mealUnitPrice: night.mealUnitPrice?.toString() ?? null,
+            mealAmount: night.mealAmount?.toString() ?? null,
+          },
         );
       }
     }
   }
 
   if (!Number.isInteger(expectedNights) || expectedNights < 1) {
-    postingBlocked(reservationNo, `expected nights tidak valid (${expectedNights}).`);
+    postingBlocked(
+      reservationNo,
+      `expected nights tidak valid (${expectedNights}).`,
+      {
+        kind: "INVALID_EXPECTED_NIGHT_COUNT",
+        expectedCount: expectedNights,
+        affectedDate: dateOnlyBoundary(arrivalDate),
+      },
+    );
   }
 
   if (expectedNights > reservationNights.length) {
     postingBlocked(
       reservationNo,
       `membutuhkan ${expectedNights} malam tetapi hanya memiliki ${reservationNights.length} snapshot; perpanjang masa inap / buat snapshot terlebih dahulu.`,
+      {
+        kind: "STAY_SCHEDULE_SHORTFALL",
+        expectedCount: expectedNights,
+        actualCount: reservationNights.length,
+        affectedDate: addDays(
+          dateOnlyBoundary(arrivalDate),
+          reservationNights.length,
+        ),
+      },
     );
   }
 
@@ -269,6 +402,11 @@ export function stayChargeShortfallLines({
     postingBlocked(
       reservationNo,
       `artikel ${ROOM_CHARGE_ARTICLE_CODE} tidak tersedia.`,
+      {
+        kind: "MISSING_STAY_CHARGE_ARTICLE",
+        articleCode: ROOM_CHARGE_ARTICLE_CODE,
+        affectedDate: eligibleNights[0]?.date ?? null,
+      },
     );
   }
 
@@ -304,13 +442,26 @@ export function stayChargeShortfallLines({
       postingBlocked(
         reservationNo,
         `meal plan snapshot ${night.mealPlan} pada ${dateKey(night.date)} tidak dapat diposting.`,
+        {
+          kind: "UNSUPPORTED_MEAL_PLAN",
+          mealPlan: night.mealPlan,
+          affectedDate: night.date,
+        },
       );
     }
 
     const article = articleByCode.get(definition.articleCode);
 
     if (!article) {
-      postingBlocked(reservationNo, `artikel ${definition.articleCode} tidak tersedia.`);
+      postingBlocked(
+        reservationNo,
+        `artikel ${definition.articleCode} tidak tersedia.`,
+        {
+          kind: "MISSING_STAY_CHARGE_ARTICLE",
+          articleCode: definition.articleCode,
+          affectedDate: night.date,
+        },
+      );
     }
 
     const alreadyPosted = lineItems.some(

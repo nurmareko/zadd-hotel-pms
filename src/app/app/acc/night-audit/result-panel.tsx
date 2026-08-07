@@ -57,7 +57,7 @@ export function ResultPanel({ summary }: ResultPanelProps) {
                   <span className="num font-semibold">
                     {summary.roomsCharged}
                   </span>{" "}
-                  reservasi in-house dikenakan charge, dengan{" "}
+                  reservasi menginap dikenakan charge, dengan{" "}
                   <span className="num font-semibold">
                     {summary.lineItemsPosted}
                   </span>{" "}
@@ -102,8 +102,8 @@ export function ResultPanel({ summary }: ResultPanelProps) {
           </div>
           {summary.transactionWriteCount !== undefined ? (
             <div className="mt-3 border-t border-border pt-2 text-xs leading-5 text-muted-foreground">
-              Transaction writes: {summary.transactionWriteCount} batched operation
-              {summary.transactionWriteCount === 1 ? "" : "s"}.
+              Operasi pencatatan: {summary.transactionWriteCount} proses
+              terkelompok.
             </div>
           ) : null}
         </aside>

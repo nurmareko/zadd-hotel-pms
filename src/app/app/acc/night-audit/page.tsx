@@ -39,7 +39,7 @@ export default async function NightAuditPage() {
     : null;
   const disabledReason =
     plan.blockingErrors.length > 0
-      ? "Perbaiki prerequisite yang berstatus blocking sebelum menjalankan audit."
+      ? "Tindakan pada daftar penghambat di atas harus diselesaikan sebelum Night Audit dapat dijalankan."
       : undefined;
 
   return (

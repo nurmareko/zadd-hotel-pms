@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
 import type { NightAuditPlan } from "@/lib/night-audit";
 
+import { NightAuditBlockerList } from "./blocker-list";
+
 type PreRunSummaryProps = {
   plan: NightAuditPlan;
 };
@@ -24,7 +26,9 @@ function ArrangementBadge({
       <div className="num mt-2 text-[28px] font-bold leading-none text-blue-900">
         {count}
       </div>
-      <div className="mt-1.5 text-xs font-medium text-blue-700/80">reservasi in-house</div>
+      <div className="mt-1.5 text-xs font-medium text-blue-700/80">
+        reservasi menginap
+      </div>
     </div>
   );
 }
@@ -55,21 +59,21 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
       ) : null}
 
       {plan.blockingErrors.length > 0 ? (
-        <section className="border border-red-200 bg-red-50 rounded-lg p-4 text-sm text-red-900">
+        <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-red-800">
             Audit belum bisa dijalankan
           </div>
-          <div className="mt-2 space-y-1 leading-5">
-            {plan.blockingErrors.map((error) => (
-              <div key={error}>{error}</div>
-            ))}
-          </div>
+          <p className="mt-1 leading-5">
+            Perbaiki setiap reservasi atau konfigurasi yang tercantum di bawah ini,
+            lalu muat ulang Night Audit sebelum menjalankan audit.
+          </p>
+          <NightAuditBlockerList blockers={plan.blockingErrors} />
         </section>
       ) : null}
 
       <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-          {"PRE-RUN SUMMARY"}
+          {"RINGKASAN SEBELUM EKSEKUSI"}
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
@@ -122,8 +126,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       <td className="px-3 py-3" colSpan={6}>
                         <EmptyState
                           icon={BedDouble}
-                          title="Tidak ada tamu in-house"
-                          description="Tidak ada reservasi CHECKED_IN untuk business date ini."
+                          title="Tidak ada tamu menginap"
+                          description="Tidak ada reservasi berstatus CHECKED_IN untuk business date ini."
                         />
                       </td>
                     </tr>
@@ -161,27 +165,27 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
           <aside className="border border-border rounded-lg bg-slate-50 p-4 text-sm">
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
-              Snapshot
+              Ringkasan operasional
             </div>
             <MetricRow
-              label="In-house reservations"
+              label="Reservasi menginap"
               value={String(plan.inHouseCount)}
             />
-            <MetricRow label="Line items" value={String(plan.lineItemCount)} />
+            <MetricRow label="Baris charge" value={String(plan.lineItemCount)} />
             <MetricRow
               label="Pendapatan Kamar"
               value={formatIDR(plan.roomRevenue)}
             />
             <MetricRow
-              label="F&B inclusions"
+              label="Inklusi F&B"
               value={formatIDR(plan.fbInclusionRevenue)}
             />
             <MetricRow
-              label="Closed F&B orders"
+              label="Order F&B selesai"
               value={formatIDR(plan.closedFbRevenue)}
             />
             <MetricRow
-              label="Other folio revenue"
+              label="Pendapatan folio lainnya"
               value={formatIDR(plan.otherRevenue)}
             />
             <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
@@ -194,7 +198,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-          {"ARTIKEL POSTING"}
+          {"ARTIKEL YANG DIPOSTING"}
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[720px] border-collapse text-sm">
@@ -228,8 +232,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {article.amountSource === "room-rate-snapshot"
-                      ? "Snapshot tarif malam"
-                      : "Snapshot paket makan"}
+                      ? "Tarif per malam reservasi"
+                      : "Data Inklusi per malam"}
                   </td>
                   <td className="num px-4 py-3 text-right text-muted-foreground">
                     {article.amount ? formatIDR(article.amount) : "-"}

@@ -10,6 +10,7 @@ import { formatCompactDateTimeID } from "@/lib/format";
 import {
   buildAuditStayChargeLines,
   buildNightAuditPlan,
+  type NightAuditBlocker,
   type NightAuditLineItemInput,
 } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
@@ -40,7 +41,12 @@ export type NightAuditRunSummary = {
 
 export type NightAuditRunResult =
   | { ok: true; summary: NightAuditRunSummary }
-  | { ok: false; error: string; warnings?: string[] };
+  | {
+      ok: false;
+      error: string;
+      warnings?: string[];
+      blockingErrors?: NightAuditBlocker[];
+    };
 
 const MAX_AUDIT_ATTEMPTS = 3;
 
@@ -114,8 +120,9 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
   if (plan.blockingErrors.length > 0) {
     return {
       ok: false,
-      error: plan.blockingErrors.join(" "),
+      error: plan.blockingErrors.map((blocker) => blocker.message).join("\n\n"),
       warnings: plan.warnings,
+      blockingErrors: plan.blockingErrors,
     };
   }
 
@@ -332,7 +339,25 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
       }
 
       if (error instanceof StayChargePostingError) {
-        return { ok: false, error: error.message, warnings: plan.warnings };
+        const refreshedPlan = await buildNightAuditPlan({ runById: userId });
+
+        if (refreshedPlan.blockingErrors.length > 0) {
+          return {
+            ok: false,
+            error: refreshedPlan.blockingErrors
+              .map((blocker) => blocker.message)
+              .join("\n\n"),
+            warnings: refreshedPlan.warnings,
+            blockingErrors: refreshedPlan.blockingErrors,
+          };
+        }
+
+        return {
+          ok: false,
+          error:
+            "Data reservasi berubah saat Night Audit dijalankan. Tidak ada charge yang diposting. Muat ulang halaman, tinjau daftar terbaru, lalu coba lagi.",
+          warnings: plan.warnings,
+        };
       }
 
       if (retryableAuditPostingConflict(error) && attempt < MAX_AUDIT_ATTEMPTS) {

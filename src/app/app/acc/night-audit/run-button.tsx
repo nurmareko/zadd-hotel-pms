@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 
 import { ResultPanel } from "./result-panel";
+import { NightAuditBlockerList } from "./blocker-list";
 import { runNightAudit, type NightAuditRunResult } from "./actions";
 
 type RunButtonProps = {
@@ -45,7 +46,13 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
                 <div className="font-semibold uppercase tracking-[0.04em] text-red-800">
                   Audit gagal
                 </div>
-                <div className="mt-1 leading-5 text-sm">{result.error}</div>
+                {result.blockingErrors?.length ? (
+                  <NightAuditBlockerList blockers={result.blockingErrors} />
+                ) : (
+                  <div className="mt-1 whitespace-pre-line text-sm leading-5">
+                    {result.error}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -63,8 +70,9 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
               Konfirmasi Night Audit
             </div>
             <p className="mt-2 leading-5">
-              Proses ini akan memposting charge ke semua folio in-house dan
-              membuat snapshot audit untuk business date hari ini.
+              Proses ini akan memposting charge ke semua folio reservasi yang
+              sedang menginap dan mencatat ringkasan audit untuk business date
+              hari ini.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Button
