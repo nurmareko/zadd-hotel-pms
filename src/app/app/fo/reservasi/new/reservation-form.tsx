@@ -15,11 +15,14 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { CountryCombobox } from "@/components/country-combobox";
+import { CountryPhoneInput } from "@/components/country-phone-input";
 import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,6 +37,11 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
+import {
+  countries,
+  findCountryByName,
+  type Country,
+} from "@/lib/countries";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import {
@@ -555,6 +563,25 @@ export function ReservationForm({
           ? "-"
           : formatIDR(amount);
   const showFooter = !isViewMode || Boolean(viewFooterActions);
+  const nationality = useWatch({ control: form.control, name: "nationality" }) ?? "";
+  const selectedNationality = findCountryByName(nationality);
+  const nationalityOptions = useMemo<Country[]>(
+    () =>
+      selectedNationality || !nationality
+        ? countries
+        : [
+            {
+              name: nationality,
+              iso2: "legacy",
+              dialCode: "",
+              priority: 0,
+            },
+            ...countries,
+          ],
+    [nationality, selectedNationality],
+  );
+  const nationalityCountry =
+    selectedNationality ?? nationalityOptions[0] ?? countries[0];
 
   useEffect(() => {
     if (isViewMode) {
@@ -1075,26 +1102,21 @@ export function ReservationForm({
                   <FormField
                     control={form.control}
                     name="phone"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
                         <FormLabel>Nomor Telepon</FormLabel>
                         <FormControl>
-                          <div className="flex">
-                            <span
-                              className="flex h-11 shrink-0 items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-3 text-sm font-medium text-slate-600 desktop:h-10"
-                              aria-hidden="true"
-                            >
-                              +62
-                            </span>
-                            <Input
-                              className={`${fieldClassName} rounded-l-none`}
-                              inputMode="tel"
-                              placeholder="812 3456 7890"
-                              readOnly={isViewMode}
-                              {...field}
-                            />
-                          </div>
+                          <CountryPhoneInput
+                            name={field.name}
+                            initialValue={field.value ?? ""}
+                            onChangeAction={field.onChange}
+                            onBlurAction={field.onBlur}
+                            invalid={fieldState.invalid}
+                          />
                         </FormControl>
+                        <FormDescription>
+                          Masukkan nomor tanpa 0 awal setelah memilih kode negara.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1167,12 +1189,24 @@ export function ReservationForm({
                   <FormField
                     control={form.control}
                     name="nationality"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
                         <FormLabel>Kewarganegaraan</FormLabel>
                         <FormControl>
-                          <Input className={fieldClassName} readOnly={isViewMode} {...field} />
+                          <CountryCombobox
+                            ariaLabel="Kewarganegaraan"
+                            countries={nationalityOptions}
+                            value={nationalityCountry}
+                            mode="country"
+                            invalid={fieldState.invalid}
+                            onValueChangeAction={(country) => field.onChange(country.name)}
+                          />
                         </FormControl>
+                        {!selectedNationality && nationality ? (
+                          <FormDescription className="text-amber-700">
+                            Nilai lama dipertahankan. Pilih negara dari daftar untuk memperbarui.
+                          </FormDescription>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
