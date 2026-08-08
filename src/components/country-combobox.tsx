@@ -8,7 +8,7 @@ import { countryCodeToFlag, type Country } from "@/lib/countries";
 
 type CountryComboboxProps = {
   countries: Country[];
-  value: Country;
+  value: Country | null;
   onValueChangeAction: (country: Country) => void;
   ariaLabel: string;
   invalid?: boolean;

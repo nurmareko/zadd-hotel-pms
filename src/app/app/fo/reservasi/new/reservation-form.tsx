@@ -36,11 +36,7 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
-import {
-  countries,
-  findCountryByName,
-  type Country,
-} from "@/lib/countries";
+import { countries, findCountryByName } from "@/lib/countries";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import {
@@ -564,23 +560,6 @@ export function ReservationForm({
   const showFooter = !isViewMode || Boolean(viewFooterActions);
   const nationality = useWatch({ control: form.control, name: "nationality" }) ?? "";
   const selectedNationality = findCountryByName(nationality);
-  const nationalityOptions = useMemo<Country[]>(
-    () =>
-      selectedNationality || !nationality
-        ? countries
-        : [
-            {
-              name: nationality,
-              iso2: "legacy",
-              dialCode: "",
-              priority: 0,
-            },
-            ...countries,
-          ],
-    [nationality, selectedNationality],
-  );
-  const nationalityCountry =
-    selectedNationality ?? nationalityOptions[0] ?? countries[0];
 
   useEffect(() => {
     if (isViewMode) {
@@ -1196,17 +1175,12 @@ export function ReservationForm({
                         <FormControl>
                           <CountryCombobox
                             ariaLabel="Kewarganegaraan"
-                            countries={nationalityOptions}
-                            value={nationalityCountry}
+                            countries={countries}
+                            value={selectedNationality}
                             invalid={fieldState.invalid}
                             onValueChangeAction={(country) => field.onChange(country.name)}
                           />
                         </FormControl>
-                        {!selectedNationality && nationality ? (
-                          <FormDescription className="text-amber-700">
-                            Nilai lama dipertahankan. Pilih negara dari daftar untuk memperbarui.
-                          </FormDescription>
-                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}

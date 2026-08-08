@@ -571,27 +571,6 @@ function minutesAgo(minutes: number) {
   return date;
 }
 
-function nightAuditPostedAt(date: Date) {
-  const postedAt = new Date(date);
-  postedAt.setHours(23, 0, 0, 0);
-
-  return postedAt;
-}
-
-function stayNights(arrivalDate: Date, departureDate: Date) {
-  const nights: Date[] = [];
-
-  for (
-    let night = new Date(arrivalDate);
-    night < departureDate;
-    night = addDays(night, 1)
-  ) {
-    nights.push(nightAuditPostedAt(night));
-  }
-
-  return nights;
-}
-
 function activityTimestamp(todayStart: Date, dayOffset: number, hour: number, minute = 0) {
   const businessDayStart = addDays(todayStart, dayOffset);
 
@@ -1462,7 +1441,6 @@ async function main() {
       reservationId: number;
       arrivalDate: Date;
       departureDate: Date;
-      rateAmount: number;
       deposit: number;
     }> = [];
     let mealSnapshotBackfilledNightCount = 0;
@@ -1681,7 +1659,6 @@ async function main() {
           reservationId: seededReservation.id,
           arrivalDate,
           departureDate,
-          rateAmount: Number(roomType.baseRate),
           deposit: reservation.deposit ?? 0,
         });
         grcCheckedOutCount += 1;
@@ -1824,13 +1801,27 @@ async function main() {
       `✓ seeded ${postedGroupMealLineCount} current-night posted group meal line`,
     );
 
-    const [roomChargeArticle, hotelSettings] = await Promise.all([
-      prisma.article.findUnique({ where: { code: "ROOM-CHARGE" } }),
+    const [stayChargeArticles, hotelSettings] = await Promise.all([
+      prisma.article.findMany({
+        where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          type: true,
+          defaultPrice: true,
+        },
+      }),
       prisma.hotelSettings.findUnique({ where: { id: 1 } }),
     ]);
+    const missingStayChargeArticles = STAY_CHARGE_ARTICLE_CODES.filter(
+      (code) => !stayChargeArticles.some((article) => article.code === code),
+    );
 
-    if (!roomChargeArticle) {
-      throw new Error("Missing ROOM-CHARGE article.");
+    if (missingStayChargeArticles.length > 0) {
+      throw new Error(
+        `Missing stay-charge article(s): ${missingStayChargeArticles.join(", ")}.`,
+      );
     }
 
     if (!hotelSettings) {
@@ -1840,92 +1831,179 @@ async function main() {
     const seededHotelSettings = hotelSettings;
     let closedFolioCount = 0;
     let closedFolioLineItemCount = 0;
-    let totalMismatchCount = 0;
 
     for (const [index, reservation] of checkedOutReservations.entries()) {
       const folioNo = `FOL-DEMO-${String(index + 1).padStart(3, "0")}`;
-      const nights = stayNights(reservation.arrivalDate, reservation.departureDate);
-      const folio = await prisma.folio.upsert({
-        where: { folioNo },
-        create: {
-          folioNo,
-          reservationId: reservation.reservationId,
-          status: FolioStatus.CLOSED,
-          openedAt: reservation.arrivalDate,
-          closedAt: reservation.departureDate,
-        },
-        update: {
-          reservationId: reservation.reservationId,
-          status: FolioStatus.CLOSED,
-          openedAt: reservation.arrivalDate,
-          closedAt: reservation.departureDate,
-        },
-      });
-
-      await prisma.folioLineItem.deleteMany({ where: { folioId: folio.id } });
-      await prisma.payment.deleteMany({ where: { folioId: folio.id } });
-
-      await prisma.folioLineItem.createMany({
-        data: nights.map((postedAt) => ({
-          folioId: folio.id,
-          articleId: roomChargeArticle.id,
-          fbOrderId: null,
-          quantity: 1,
-          unitPrice: reservation.rateAmount,
-          amount: reservation.rateAmount,
-          description: "Room charge",
-          postedById: createdBy.id,
-          postedAt,
-        })),
-      });
-
-      const lineItems = await prisma.folioLineItem.findMany({
-        where: { folioId: folio.id },
-        include: { article: true },
-      });
-      const totalsBeforePayment = computeFolioTotals(lineItems, [], hotelSettings);
-      const expectedSubtotal = reservation.rateAmount * nights.length;
-
-      if (Math.round(totalsBeforePayment.subtotal) !== expectedSubtotal) {
-        totalMismatchCount += 1;
-      }
-
-      await prisma.payment.createMany({
-        data: [
-          {
-            folioId: folio.id,
-            fbOrderId: null,
-            amount: reservation.deposit,
-            method: PaymentMethod.CASH,
-            purpose: PaymentPurpose.DEPOSIT,
-            reference: null,
-            receivedById: createdBy.id,
-            receivedAt: reservation.arrivalDate,
+      const lineItemCount = await prisma.$transaction(async (tx) => {
+        const folio = await tx.folio.upsert({
+          where: { folioNo },
+          create: {
+            folioNo,
+            reservationId: reservation.reservationId,
+            status: FolioStatus.CLOSED,
+            openedAt: reservation.arrivalDate,
+            closedAt: reservation.departureDate,
           },
-          {
-            folioId: folio.id,
-            fbOrderId: null,
-            amount: totalsBeforePayment.totalCharges - reservation.deposit,
-            method: PaymentMethod.CASH,
-            purpose: PaymentPurpose.SETTLEMENT,
-            reference: null,
-            receivedById: createdBy.id,
-            receivedAt: reservation.departureDate,
+          update: {
+            reservationId: reservation.reservationId,
+            status: FolioStatus.CLOSED,
+            openedAt: reservation.arrivalDate,
+            closedAt: reservation.departureDate,
           },
-        ],
+        });
+        const seededReservation = await tx.reservation.findUnique({
+          where: { id: reservation.reservationId },
+          select: {
+            id: true,
+            reservationNo: true,
+            arrivalDate: true,
+            departureDate: true,
+            reservationNights: {
+              select: {
+                id: true,
+                reservationId: true,
+                date: true,
+                rateAmount: true,
+                mealPlan: true,
+                mealPax: true,
+                mealUnitPrice: true,
+                mealAmount: true,
+              },
+              orderBy: { date: "asc" },
+            },
+          },
+        });
+
+        if (!seededReservation) {
+          throw new Error(`Missing checked-out reservation ${reservation.reservationNo}.`);
+        }
+
+        await tx.folioLineItem.deleteMany({ where: { folioId: folio.id } });
+        await tx.payment.deleteMany({ where: { folioId: folio.id } });
+
+        const canonicalLines: ReturnType<typeof buildAuditStayChargeLines> = [];
+        const existingLineItems: Array<{
+          articleId: number;
+          fbOrderId: number | null;
+          reservationNightId: string | null;
+        }> = [];
+
+        for (const night of seededReservation.reservationNights) {
+          const lines = buildAuditStayChargeLines({
+            reservation: {
+              reservationId: seededReservation.id,
+              reservationNo: seededReservation.reservationNo,
+              folioId: folio.id,
+              arrivalDate: localNoonForDateOnly(seededReservation.arrivalDate),
+              departureDate: localNoonForDateOnly(seededReservation.departureDate),
+              reservationNights: seededReservation.reservationNights,
+            },
+            existingLineItems,
+            articles: stayChargeArticles,
+            businessDate: localNoonForDateOnly(night.date),
+            postedById: accountingUser.id,
+            postedAt: hotelTimestampBoundaryForDate(
+              addDateOnlyDays(night.date, 1).toISOString().slice(0, 10),
+            ),
+            label: night.date.toISOString().slice(0, 10),
+          });
+
+          canonicalLines.push(...lines);
+          existingLineItems.push(
+            ...lines.map((line) => ({
+              articleId: line.articleId,
+              fbOrderId: line.fbOrderId,
+              reservationNightId: line.reservationNightId,
+            })),
+          );
+        }
+
+        if (canonicalLines.length > 0) {
+          await tx.folioLineItem.createMany({ data: canonicalLines });
+        }
+
+        const lineItems = await tx.folioLineItem.findMany({
+          where: { folioId: folio.id },
+          include: { article: true },
+        });
+        const roomLines = lineItems.filter(
+          (lineItem) => lineItem.article.code === ROOM_CHARGE_ARTICLE_CODE,
+        );
+        const nightlyRates = new Map(
+          seededReservation.reservationNights.map((night) => [
+            night.id,
+            night.rateAmount,
+          ]),
+        );
+        const invalidRoomLine = roomLines.find((lineItem) => {
+          const nightlyRate = lineItem.reservationNightId
+            ? nightlyRates.get(lineItem.reservationNightId)
+            : null;
+
+          return !nightlyRate || !lineItem.amount.equals(nightlyRate);
+        });
+
+        if (
+          roomLines.length !== seededReservation.reservationNights.length ||
+          invalidRoomLine
+        ) {
+          throw new Error(
+            `Canonical room-charge replay mismatch for ${reservation.reservationNo}.`,
+          );
+        }
+
+        const totalsBeforePayment = computeFolioTotals(lineItems, [], hotelSettings);
+        const settlementAmount = totalsBeforePayment.totalCharges - reservation.deposit;
+
+        if (settlementAmount < 0) {
+          throw new Error(
+            `Deposit exceeds total charges for ${reservation.reservationNo}.`,
+          );
+        }
+
+        await tx.payment.createMany({
+          data: [
+            {
+              folioId: folio.id,
+              fbOrderId: null,
+              amount: reservation.deposit,
+              method: PaymentMethod.CASH,
+              purpose: PaymentPurpose.DEPOSIT,
+              reference: null,
+              receivedById: createdBy.id,
+              receivedAt: reservation.arrivalDate,
+            },
+            {
+              folioId: folio.id,
+              fbOrderId: null,
+              amount: settlementAmount,
+              method: PaymentMethod.CASH,
+              purpose: PaymentPurpose.SETTLEMENT,
+              reference: null,
+              receivedById: createdBy.id,
+              receivedAt: reservation.departureDate,
+            },
+          ],
+        });
+
+        const payments = await tx.payment.findMany({ where: { folioId: folio.id } });
+        const settledTotals = computeFolioTotals(lineItems, payments, hotelSettings);
+
+        if (settledTotals.balance !== 0) {
+          throw new Error(
+            `Closed folio ${folioNo} has balance ${settledTotals.balance}.`,
+          );
+        }
+
+        return lineItems.length;
       });
 
       closedFolioCount += 1;
-      closedFolioLineItemCount += lineItems.length;
+      closedFolioLineItemCount += lineItemCount;
     }
 
     console.log(
-      `✓ seeded ${closedFolioCount} closed folios with ${closedFolioLineItemCount} line items`,
-    );
-    console.log(
-      `✓ folio subtotal check: ${
-        totalMismatchCount === 0 ? "all matched expected room-night totals" : `${totalMismatchCount} mismatch(es)`
-      }`,
+      `✓ seeded ${closedFolioCount} settled closed folios with ${closedFolioLineItemCount} canonical linked line items`,
     );
 
     const orderPrefix = `FB-${format(today, "ddMM")}-`;
