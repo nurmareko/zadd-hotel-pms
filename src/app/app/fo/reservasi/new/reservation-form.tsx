@@ -16,7 +16,6 @@ import {
 import { toast } from "sonner";
 
 import { CountryCombobox } from "@/components/country-combobox";
-import { CountryPhoneInput } from "@/components/country-phone-input";
 import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -1102,20 +1101,22 @@ export function ReservationForm({
                   <FormField
                     control={form.control}
                     name="phone"
-                    render={({ field, fieldState }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nomor Telepon</FormLabel>
                         <FormControl>
-                          <CountryPhoneInput
-                            name={field.name}
-                            initialValue={field.value ?? ""}
-                            onChangeAction={field.onChange}
-                            onBlurAction={field.onBlur}
-                            invalid={fieldState.invalid}
+                          <Input
+                            className={fieldClassName}
+                            inputMode="tel"
+                            autoComplete="tel"
+                            placeholder="Contoh: 0812 3456 7890"
+                            readOnly={isViewMode}
+                            {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormDescription>
-                          Masukkan nomor tanpa 0 awal setelah memilih kode negara.
+                          Masukkan nomor telepon sesuai informasi dari tamu.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1197,7 +1198,6 @@ export function ReservationForm({
                             ariaLabel="Kewarganegaraan"
                             countries={nationalityOptions}
                             value={nationalityCountry}
-                            mode="country"
                             invalid={fieldState.invalid}
                             onValueChangeAction={(country) => field.onChange(country.name)}
                           />

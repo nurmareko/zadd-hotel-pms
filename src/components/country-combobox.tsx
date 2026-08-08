@@ -4,25 +4,31 @@ import { Combobox } from "@base-ui/react/combobox";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { useMemo, type ComponentProps } from "react";
 
-import type { Country } from "@/lib/countries";
-import { cn } from "@/lib/utils";
+import { countryCodeToFlag, type Country } from "@/lib/countries";
 
 type CountryComboboxProps = {
   countries: Country[];
   value: Country;
   onValueChangeAction: (country: Country) => void;
-  mode: "country" | "dial-code";
   ariaLabel: string;
   invalid?: boolean;
 } & Pick<ComponentProps<"button">, "id" | "aria-describedby">;
 
-
+function CountryFlag({ iso2 }: { iso2: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex w-6 shrink-0 justify-center text-base leading-none"
+    >
+      {countryCodeToFlag(iso2)}
+    </span>
+  );
+}
 
 export function CountryCombobox({
   countries,
   value,
   onValueChangeAction,
-  mode,
   ariaLabel,
   invalid = false,
   id,
@@ -38,12 +44,10 @@ export function CountryCombobox({
 
       return (
         country.name.toLocaleLowerCase().includes(normalizedQuery) ||
-        country.iso2.toLocaleLowerCase().includes(normalizedQuery) ||
-        (mode === "dial-code" &&
-          `+${country.dialCode}`.includes(normalizedQuery.replace(/\s/g, "")))
+        country.iso2.toLocaleLowerCase().includes(normalizedQuery)
       );
     },
-    [mode],
+    [],
   );
 
   return (
@@ -65,19 +69,15 @@ export function CountryCombobox({
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
         aria-invalid={invalid || undefined}
-        className={cn(
-          "flex h-11 w-full items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 text-left text-sm text-slate-900 outline-none transition-colors hover:bg-slate-50 focus-visible:border-emerald-500 focus-visible:ring-1 focus-visible:ring-emerald-500 aria-invalid:border-red-500 aria-invalid:ring-1 aria-invalid:ring-red-500 desktop:h-10",
-          mode === "dial-code" && "w-28 shrink-0 rounded-r-none border-r-0 px-2.5",
-        )}
+        className="flex h-11 w-full items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 text-left text-sm text-slate-900 outline-none transition-colors hover:bg-slate-50 focus-visible:border-emerald-500 focus-visible:ring-1 focus-visible:ring-emerald-500 aria-invalid:border-red-500 aria-invalid:ring-1 aria-invalid:ring-red-500 desktop:h-10"
       >
         <Combobox.Value>
           {(country: Country | null) =>
             country ? (
-              mode === "country" ? (
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                <CountryFlag iso2={country.iso2} />
                 <span className="min-w-0 flex-1 truncate">{country.name}</span>
-              ) : (
-                <span className="num">+{country.dialCode}</span>
-              )
+              </span>
             ) : null
           }
         </Combobox.Value>
@@ -102,11 +102,7 @@ export function CountryCombobox({
               <Search className="size-4 shrink-0 text-slate-400" aria-hidden="true" />
               <Combobox.Input
                 aria-label={`Cari ${ariaLabel.toLocaleLowerCase()}`}
-                placeholder={
-                  mode === "country"
-                    ? "Cari nama negara atau kode ISO"
-                    : "Cari negara atau kode telepon"
-                }
+                placeholder="Cari nama negara atau kode ISO"
                 className="h-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
@@ -123,11 +119,10 @@ export function CountryCombobox({
                   <Combobox.ItemIndicator className="flex size-4 shrink-0 items-center justify-center text-emerald-600">
                     <Check className="size-4" aria-hidden="true" />
                   </Combobox.ItemIndicator>
+                  <CountryFlag iso2={country.iso2} />
                   <span className="min-w-0 flex-1 truncate">{country.name}</span>
                   <span className="num shrink-0 text-xs text-slate-500">
-                    {mode === "country"
-                      ? country.iso2.toUpperCase()
-                      : `+${country.dialCode}`}
+                    {country.iso2.toUpperCase()}
                   </span>
                 </Combobox.Item>
               )}
