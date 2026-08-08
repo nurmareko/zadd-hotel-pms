@@ -2,10 +2,7 @@ import { Prisma, ReservationStatus } from "@prisma/client";
 
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { prisma } from "@/lib/prisma";
-import {
-  hasLegacyNightlyRoomChargeShape,
-  linkedRoomChargeShapeIssues,
-} from "@/lib/room-charge-integrity";
+import { linkedRoomChargeShapeIssues } from "@/lib/room-charge-integrity";
 import {
   ROOM_CHARGE_ARTICLE_CODE,
   STAY_CHARGE_ARTICLE_CODES,
@@ -18,7 +15,7 @@ const CUTOVER_STATUSES = [
 ] as const;
 
 const BLOCKING_CLASS_NUMBERS = new Set([
-  1, 2, 3, 4, 6, 7, 10, 11, 12, 13,
+  1, 2, 3, 4, 6, 7, 8, 10, 11, 12, 13,
 ]);
 const canonicalArticleCodes = new Set<string>(STAY_CHARGE_ARTICLE_CODES);
 
@@ -166,35 +163,7 @@ function unlinkedCanonicalLines(
   );
 }
 
-function hasNightlyLineShape(
-  reservation: ScannedReservation,
-  line: ScannedLineItem,
-): boolean {
-  if (line.article.code !== ROOM_CHARGE_ARTICLE_CODE) {
-    return false;
-  }
 
-  if (
-    !line.quantity.equals(1) ||
-    !line.amount.equals(line.unitPrice) ||
-    !line.unitPrice.isInteger() ||
-    line.unitPrice.isNegative()
-  ) {
-    return false;
-  }
-
-  if (line.article.code === ROOM_CHARGE_ARTICLE_CODE) {
-    return hasLegacyNightlyRoomChargeShape({
-      description: line.description,
-      quantity: line.quantity,
-      unitPrice: line.unitPrice,
-      amount: line.amount,
-      reservationRateAmount: reservation.rateAmount,
-    });
-  }
-
-  return false;
-}
 
 function addScheduleFindings(
   reservation: ScannedReservation,
@@ -289,9 +258,6 @@ function addLineItemFindings(
     reservation.arrivalDate,
     reservation.departureDate,
   );
-  const expectedDateIndex = new Map(
-    expectedDates.map((date, index) => [date, index]),
-  );
   const applicableCodes = expectedArticleCodes(reservation);
   const unlinked = unlinkedCanonicalLines(reservation);
 
@@ -315,43 +281,19 @@ function addLineItemFindings(
       line,
     ]);
   }
-  const classifiedPrefixByArticle = new Map<string, ScannedLineItem[]>();
-  const manualCanonicalByArticle = new Map<string, ScannedLineItem[]>();
-
-  for (const [articleCode, lines] of unlinkedByArticle) {
-    const prefix: ScannedLineItem[] = [];
-    for (const line of lines) {
-      if (
-        prefix.length >= expectedDates.length ||
-        !applicableCodes.has(articleCode) ||
-        !hasNightlyLineShape(reservation, line)
-      ) {
-        break;
-      }
-      prefix.push(line);
-    }
-    const prefixIds = new Set(prefix.map((line) => line.id));
-    const manual = lines.filter((line) => !prefixIds.has(line.id));
-
-    if (prefix.length > 0) {
-      classifiedPrefixByArticle.set(articleCode, prefix);
-    }
-    if (manual.length > 0) {
-      manualCanonicalByArticle.set(articleCode, manual);
-    }
-  }
 
   for (const [articleCode, lines] of [...unlinkedByArticle].sort(([a], [b]) =>
     a.localeCompare(b),
   )) {
-    const prefixCount = classifiedPrefixByArticle.get(articleCode)?.length ?? 0;
     classes.get(8)?.findings.push(
       folioFinding(
         reservation,
-        `article=${articleCode}; unlinked canonical count=${lines.length}; classifiable legacy prefix count=${prefixCount}; line ids: ${lines.map((line) => line.id).join(", ")}`,
+        `article=${articleCode}; ${lines.length} unlinked canonical line(s) are ignored by exact ReservationNight + article posting identity; line ids: ${lines.map((line) => line.id).join(", ")}`,
       ),
     );
   }
+
+  const manualCanonicalByArticle = new Map<string, ScannedLineItem[]>();
 
   const fbDinnerLines = folio.lineItems.filter(
     (line) => line.article.code === "DINNER" && line.fbOrderId !== null,
@@ -383,7 +325,7 @@ function addLineItemFindings(
     classes.get(10)?.findings.push(
       folioFinding(
         reservation,
-        `article=${articleCode}; ${lines.length} line(s) cannot be a nightly prefix for arrangement ${reservation.arrangementType} with ${expectedDates.length} night(s); line ids: ${lines.map((line) => line.id).join(", ")}`,
+        `article=${articleCode}; ${lines.length} F&B-origin canonical line(s) are excluded from stay-charge identity for arrangement ${reservation.arrangementType}; line ids: ${lines.map((line) => line.id).join(", ")}`,
       ),
     );
   }
@@ -393,7 +335,6 @@ function addLineItemFindings(
   );
   if (linkedLines.length > 0) {
     const linkedViolations: string[] = [];
-    const linkedByArticle = new Map<string, ScannedLineItem[]>();
 
     for (const line of linkedLines) {
       if (line.fbOrderId !== null || !applicableCodes.has(line.article.code)) {
@@ -420,10 +361,6 @@ function addLineItemFindings(
             serviceDate: line.reservationNight.date,
           }),
         );
-        linkedByArticle.set(line.article.code, [
-          ...(linkedByArticle.get(line.article.code) ?? []),
-          line,
-        ]);
       } else {
         const night = line.reservationNight;
         const definition = night.mealPlan
@@ -444,28 +381,6 @@ function addLineItemFindings(
             `line ${line.id}: meal line does not match snapshot ${line.reservationNightId}`,
           );
         }
-      }
-    }
-
-    for (const [articleCode, lines] of linkedByArticle) {
-      const prefixLength = classifiedPrefixByArticle.get(articleCode)?.length ?? 0;
-      const indices = lines
-        .map((line) =>
-          line.reservationNight
-            ? expectedDateIndex.get(dateKey(line.reservationNight.date))
-            : undefined,
-        )
-        .filter((index): index is number => index !== undefined)
-        .sort((a, b) => a - b);
-      const expectedIndices = indices.map((_, offset) => prefixLength + offset);
-
-      if (
-        indices.length !== lines.length ||
-        indices.some((index, offset) => index !== expectedIndices[offset])
-      ) {
-        linkedViolations.push(
-          `article=${articleCode} has legacy prefix count=${prefixLength} and linked schedule indices=[${indices.join(", ")}], expected contiguous suffix indices=[${expectedIndices.join(", ")}]`,
-        );
       }
     }
 
@@ -587,7 +502,7 @@ function printReport(
   if (blockingClasses.length === 0) {
     console.log("GO — no blocking reconciliation anomalies were found.");
     console.log(
-      "Expected/benign observations: class 5 reports activated variable nightly pricing; class 8 is the legacy unlinked nightly prefix to preserve during cutover; class 9 is F&B-origin DINNER intentionally excluded from inclusion counts.",
+      "Expected/benign observations: class 5 reports activated variable nightly pricing; class 9 is F&B-origin DINNER intentionally excluded from inclusion counts.",
     );
   } else {
     console.log("NO-GO — reconcile these blocking classes before Phase 5c:");
@@ -619,10 +534,10 @@ async function main() {
     { number: 5, name: "VARIABLE NIGHTLY RATES", disposition: "EXPECTED / INFORMATIONAL", findings: [] },
     { number: 6, name: "OVER-POSTED", disposition: "BLOCKING", findings: [] },
     { number: 7, name: "EXISTING NON-NULL DUPLICATE (reservationNightId, articleId)", disposition: "BLOCKING", findings: [] },
-    { number: 8, name: "UNLINKED CANONICAL STAY-CHARGE LINES", disposition: "EXPECTED / INFORMATIONAL", findings: [] },
+    { number: 8, name: "UNLINKED CANONICAL STAY-CHARGE LINES", disposition: "BLOCKING", findings: [] },
     { number: 9, name: "F&B-ORIGIN DINNER", disposition: "EXPECTED / INFORMATIONAL", findings: [] },
     { number: 10, name: "MANUAL CANONICAL-ARTICLE LINES", disposition: "BLOCKING", findings: [] },
-    { number: 11, name: "LINKED-PREFIX VALIDITY", disposition: "BLOCKING", findings: [] },
+    { number: 11, name: "LINKED LINE VALIDITY", disposition: "BLOCKING", findings: [] },
     { number: 12, name: "OWNERSHIP", disposition: "BLOCKING", findings: [] },
     { number: 13, name: "SCALAR/FIRST-NIGHT MISMATCH", disposition: "BLOCKING", findings: [] },
   ];

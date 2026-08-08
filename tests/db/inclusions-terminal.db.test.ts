@@ -270,6 +270,93 @@ describe("inclusion snapshots and stay-charge posting", () => {
     expect(new Set(lines.map((line) => line.reservationNightId)).size).toBe(2);
   });
 
+  it("posts an earlier missing room night when a later night was posted first", async () => {
+    const user = await createUser();
+    await createHotelSettings();
+    const roomType = await createRoomType();
+    const guest = await createGuest();
+    const { room } = await createStayChargeArticles();
+    const { reservation, nights } = await createReservationFixture({
+      userId: user.id,
+      roomTypeId: roomType.id,
+      guestId: guest.id,
+      arrivalDate: "2026-08-03",
+      nightlyRates: [510_000, 520_000],
+      status: ReservationStatus.CHECKED_IN,
+    });
+    const folio = await createFolio(reservation.id);
+    await createFolioLine({
+      folioId: folio.id,
+      articleId: room.id,
+      postedById: user.id,
+      reservationNightId: nights[1]!.id,
+      amount: 520_000,
+    });
+
+    const postedCount = await postPendingStayCharges({
+      folioId: folio.id,
+      postedById: user.id,
+      now: FROZEN_NOW,
+    });
+    const roomLines = await prisma.folioLineItem.findMany({
+      where: { folioId: folio.id, articleId: room.id },
+      orderBy: { reservationNight: { date: "asc" } },
+      select: { reservationNightId: true, amount: true },
+    });
+
+    expect(postedCount).toBe(1);
+    expect(roomLines.map((line) => line.reservationNightId)).toEqual([
+      nights[0]!.id,
+      nights[1]!.id,
+    ]);
+    expect(roomLines.map((line) => line.amount.toNumber())).toEqual([
+      510_000,
+      520_000,
+    ]);
+  });
+
+  it("posts every linked room-night identity despite an unlinked ROOM-CHARGE line", async () => {
+    const user = await createUser();
+    await createHotelSettings();
+    const roomType = await createRoomType();
+    const guest = await createGuest();
+    const { room } = await createStayChargeArticles();
+    const { reservation, nights } = await createReservationFixture({
+      userId: user.id,
+      roomTypeId: roomType.id,
+      guestId: guest.id,
+      arrivalDate: "2026-08-03",
+      nightlyRates: [510_000, 520_000],
+      status: ReservationStatus.CHECKED_IN,
+    });
+    const folio = await createFolio(reservation.id);
+    await createFolioLine({
+      folioId: folio.id,
+      articleId: room.id,
+      postedById: user.id,
+      reservationNightId: null,
+      amount: 500_000,
+    });
+
+    const postedCount = await postPendingStayCharges({
+      folioId: folio.id,
+      postedById: user.id,
+      now: FROZEN_NOW,
+    });
+    const roomLines = await prisma.folioLineItem.findMany({
+      where: { folioId: folio.id, articleId: room.id },
+      orderBy: { id: "asc" },
+      select: { reservationNightId: true, amount: true },
+    });
+
+    expect(postedCount).toBe(2);
+    expect(roomLines).toHaveLength(3);
+    expect(roomLines[0]?.reservationNightId).toBeNull();
+    expect(
+      new Set(roomLines.slice(1).map((line) => line.reservationNightId)),
+    ).toEqual(new Set(nights.map((night) => night.id)));
+  });
+
   it.each([
     { pax: 2, expectedAmount: 100_000 },
     { pax: 3, expectedAmount: 150_000 },

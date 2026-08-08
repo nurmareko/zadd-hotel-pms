@@ -364,9 +364,8 @@ export function stayNightsThroughAuditDate(
 }
 
 /**
- * Builds stay-charge lines still owed. ROOM-CHARGE keeps its reconciled legacy
- * count-prefix behavior. Meals are driven only by each night's snapshot and use
- * exact ReservationNight + meal-article identity for idempotency.
+ * Builds stay-charge lines still owed using exact ReservationNight + article
+ * identity for idempotency. F&B-origin lines never satisfy stay-charge identity.
  */
 export function stayChargeShortfallLines({
   reservationId,
@@ -411,12 +410,19 @@ export function stayChargeShortfallLines({
   }
 
   const roomLines: PendingStayChargeLine[] = [];
-  const postedRoomCount = lineItems.filter(
-    (lineItem) =>
-      lineItem.articleId === roomArticle.id && lineItem.fbOrderId === null,
-  ).length;
 
-  for (const night of eligibleNights.slice(postedRoomCount)) {
+  for (const night of eligibleNights) {
+    const alreadyPosted = lineItems.some(
+      (lineItem) =>
+        lineItem.fbOrderId === null &&
+        lineItem.reservationNightId === night.id &&
+        lineItem.articleId === roomArticle.id,
+    );
+
+    if (alreadyPosted) {
+      continue;
+    }
+
     roomLines.push({
       reservationNightId: night.id,
       serviceDate: night.date,
@@ -466,6 +472,7 @@ export function stayChargeShortfallLines({
 
     const alreadyPosted = lineItems.some(
       (lineItem) =>
+        lineItem.fbOrderId === null &&
         lineItem.reservationNightId === night.id &&
         lineItem.articleId === article.id,
     );
