@@ -46,10 +46,10 @@ export type CollectDepositResult =
 
 type CompleteCheckInOptions = {
   /**
-   * The individual check-in page should continue to land on its new folio.
-   * Batch orchestration keeps the operator on its group summary instead.
+   * Individual check-in redirects to `/app/fo/reservasi`. Batch orchestration
+   * suppresses that redirect to remain on the group summary.
    */
-  redirectToFolio?: boolean;
+  redirectAfterCheckIn?: boolean;
 };
 
 const ACTIVE_RESERVATION_STATUSES = [
@@ -651,7 +651,7 @@ export async function completeCheckIn(
   revalidatePath("/app/fo/reservasi/list");
   revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
 
-  if (options.redirectToFolio !== false) {
+  if (options.redirectAfterCheckIn !== false) {
     redirect("/app/fo/reservasi");
   }
 

@@ -63,7 +63,7 @@ export async function postCharge(
 
   const folio = await prisma.folio.findUnique({
     where: { id: parsed.data.folioId },
-    select: { id: true, status: true },
+    select: { id: true, reservationId: true, status: true },
   });
 
   if (!folio) {
@@ -181,6 +181,7 @@ export async function postCharge(
   });
 
   revalidatePath(`/app/fo/folios/${folio.id}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
   return { ok: true };
 }
@@ -202,7 +203,7 @@ export async function recordPayment(
 
   const folio = await prisma.folio.findUnique({
     where: { id: parsed.data.folioId },
-    select: { id: true, status: true },
+    select: { id: true, reservationId: true, status: true },
   });
 
   if (!folio) {
@@ -294,6 +295,7 @@ export async function recordPayment(
   });
 
   revalidatePath(`/app/fo/folios/${folio.id}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
   return { ok: true };
 }

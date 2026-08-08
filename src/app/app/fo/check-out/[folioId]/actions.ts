@@ -266,6 +266,7 @@ export async function recordFinalPayment(
 
   revalidatePath(`/app/fo/check-out/${folio.id}`);
   revalidatePath(`/app/fo/folios/${folio.id}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
   return { ok: true };
 }
@@ -312,6 +313,7 @@ export async function completeCheckout(
   if (folio.status === FolioStatus.CLOSED) {
     revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
     revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
+    revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
     revalidatePath("/app/fo/reservasi/kalender");
     revalidatePath("/app/fo/reservasi/list");
     revalidatePath("/app/hk");
@@ -357,6 +359,7 @@ export async function completeCheckout(
   if (totals.balance > 0) {
     revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
     revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
+    revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
     return {
       ok: false,
@@ -494,6 +497,7 @@ export async function completeCheckout(
 
   revalidatePath(`/app/fo/check-out/${parsed.data.folioId}`);
   revalidatePath(`/app/fo/folios/${parsed.data.folioId}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
   revalidatePath("/app/fo/reservasi/kalender");
   revalidatePath("/app/fo/reservasi/list");
   revalidatePath("/app/hk");

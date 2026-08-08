@@ -332,7 +332,7 @@ export function GroupSettlementActions({
         formData.set("depositReference", "");
 
         const result = await completeCheckIn(formData, {
-          redirectToFolio: false,
+          redirectAfterCheckIn: false
         });
         results.push(
           result.ok
