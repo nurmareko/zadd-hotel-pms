@@ -49,20 +49,29 @@ function toDateInputValue(date: Date) {
   return formatISO(date, { representation: "date" });
 }
 
-type ReservationTab = "details" | "inclusions" | "folio";
+type ReservationTab =
+  | "details"
+  | "inclusions"
+  | "pembayaran"
+  | "tagihan";
 
 function defaultReservationTab(status: ReservationStatus): ReservationTab {
-  return status === ReservationStatus.CHECKED_IN ? "folio" : "details";
+  return status === ReservationStatus.CHECKED_IN ? "tagihan" : "details";
 }
 
 function resolveReservationTab(
   requestedTab: string | undefined,
   status: ReservationStatus,
 ): ReservationTab {
+  if (requestedTab === "folio") {
+    return "tagihan";
+  }
+
   if (
     requestedTab === "details" ||
     requestedTab === "inclusions" ||
-    requestedTab === "folio"
+    requestedTab === "pembayaran" ||
+    requestedTab === "tagihan"
   ) {
     return requestedTab;
   }
@@ -84,42 +93,50 @@ function ReservationTabs({
   return (
     <nav
       aria-label="Tab detail reservasi"
-      className="flex items-center gap-3"
+      className="flex w-full items-center gap-3 overflow-x-auto pb-1 sm:w-auto sm:pb-0"
     >
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=details`}
         aria-current={activeTab === "details" ? "page" : undefined}
-        className={tabClassName(activeTab === "details")}
+        className={`${tabClassName(activeTab === "details")} shrink-0`}
       >
         Detail
       </Link>
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=inclusions`}
         aria-current={activeTab === "inclusions" ? "page" : undefined}
-        className={tabClassName(activeTab === "inclusions")}
+        className={`${tabClassName(activeTab === "inclusions")} shrink-0`}
       >
         Inklusi
       </Link>
       <Link
-        href={`/app/fo/reservasi/${reservationId}?tab=folio`}
-        aria-current={activeTab === "folio" ? "page" : undefined}
-        className={tabClassName(activeTab === "folio")}
+        href={`/app/fo/reservasi/${reservationId}?tab=pembayaran`}
+        aria-current={activeTab === "pembayaran" ? "page" : undefined}
+        className={`${tabClassName(activeTab === "pembayaran")} shrink-0`}
       >
-        Folio
+        Pembayaran
+      </Link>
+      <Link
+        href={`/app/fo/reservasi/${reservationId}?tab=tagihan`}
+        aria-current={activeTab === "tagihan" ? "page" : undefined}
+        className={`${tabClassName(activeTab === "tagihan")} shrink-0`}
+      >
+        Tagihan
       </Link>
     </nav>
   );
 }
 
-function FolioPendingState() {
+function FolioPendingState({ title }: { title: "Pembayaran" | "Tagihan" }) {
   return (
     <section className="max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
-          {"Folio"}
-        </div>
-        <p className="p-5 text-sm text-slate-500">
-          Folio dibuat saat check-in.
-        </p>
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
+        {title}
+      </div>
+      <p className="p-5 text-sm text-slate-500">
+        Folio dibuat saat pengumpulan deposit atau check-in. Setelah folio
+        tersedia, transaksi {title.toLowerCase()} akan ditampilkan di sini.
+      </p>
     </section>
   );
 }
@@ -644,9 +661,14 @@ export default async function ReservationDetailPage({
           })}
         />
       ) : reservation.folio ? (
-        <GuestFolioView folioId={reservation.folio.id} />
+        <GuestFolioView
+          folioId={reservation.folio.id}
+          mode={activeTab === "pembayaran" ? "payments" : "charges"}
+        />
       ) : (
-        <FolioPendingState />
+        <FolioPendingState
+          title={activeTab === "pembayaran" ? "Pembayaran" : "Tagihan"}
+        />
       )}
     </main>
   );

@@ -39,6 +39,7 @@ type FolioHeaderProps = {
       };
     };
   };
+  variant?: "full" | "metadata";
 };
 
 const statusClassNames: Record<FolioStatus, string> = {
@@ -100,8 +101,28 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   );
 }
 
-export function FolioHeader({ folio }: FolioHeaderProps) {
+export function FolioHeader({
+  folio,
+  variant = "full",
+}: FolioHeaderProps) {
   const { reservation } = folio;
+
+  if (variant === "metadata") {
+    return (
+      <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
+          Folio
+        </div>
+        <div className="p-5 text-sm">
+          <InfoRow label="Nomor folio" value={folio.folioNo} />
+          <InfoRow
+            label="Status"
+            value={<FolioStatusBadge status={folio.status} />}
+          />
+        </div>
+      </section>
+    );
+  }
   const nights = differenceInCalendarDays(
     reservation.departureDate,
     reservation.arrivalDate,

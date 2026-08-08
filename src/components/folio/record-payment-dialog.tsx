@@ -59,7 +59,7 @@ function defaultAmount(balance: number) {
 }
 
 function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Unable to record payment";
+  return typeof error === "string" ? error : "Pembayaran tidak dapat dicatat";
 }
 
 export function RecordPaymentDialog({
@@ -211,7 +211,7 @@ export function RecordPaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">
-                      Reference{method === PaymentMethod.TRANSFER ? " / Required" : ""}
+                      Referensi{method === PaymentMethod.TRANSFER ? " / Wajib" : ""}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -244,8 +244,8 @@ export function RecordPaymentDialog({
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
                 >
                   {form.formState.isSubmitting
-                    ? "Recording..."
-                    : "Record Payment"}
+                    ? "Mencatat..."
+                    : "Catat Pembayaran"}
                 </Button>
               </div>
             </form>

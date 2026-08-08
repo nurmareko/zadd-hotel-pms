@@ -55,7 +55,7 @@ const selectClassName =
   "h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
 
 function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Unable to post charge";
+  return typeof error === "string" ? error : "Tagihan tidak dapat dicatat";
 }
 
 export function AddChargeDialog({
@@ -127,7 +127,7 @@ export function AddChargeDialog({
       return;
     }
 
-    toast.success("Biaya dicatat");
+    toast.success("Tagihan dicatat");
     resetAndClose(false);
     router.refresh();
   }
@@ -141,14 +141,14 @@ export function AddChargeDialog({
         onClick={() => setOpen(true)}
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        Tambah Charge
+        Tambah Tagihan
       </Button>
 
       <Dialog open={open} onOpenChange={resetAndClose}>
         <DialogContent className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
-              Tambah Charge
+              Tambah Tagihan
             </DialogTitle>
           </DialogHeader>
 
@@ -287,7 +287,7 @@ export function AddChargeDialog({
                   type="submit"
                   disabled={!form.formState.isValid || form.formState.isSubmitting}
                 >
-                  {form.formState.isSubmitting ? "Posting..." : "Post Charge"}
+                  {form.formState.isSubmitting ? "Mencatat..." : "Catat Tagihan"}
                 </Button>
               </div>
             </form>

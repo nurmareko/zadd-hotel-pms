@@ -57,7 +57,7 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
   return (
     <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
-        <h2 className="text-sm font-semibold">Biaya</h2>
+        <h2 className="text-sm font-semibold">Tagihan</h2>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-slate-500">
             {lineItems.length} baris
@@ -71,7 +71,7 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
           <EmptyState
             icon={ReceiptText}
             title="Belum ada tagihan"
-            description="Line item folio akan muncul setelah charge diposting."
+            description="Baris folio akan muncul setelah tagihan dicatat."
             className="m-5"
           />
         ) : (
@@ -80,22 +80,22 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
               <thead>
                 <tr>
                   <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Date
+                    Tanggal
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Code
+                    Artikel
                   </th>
                   <th className="min-w-64 bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Description
+                    Deskripsi
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Qty
+                    Jumlah
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Unit Price
+                    Harga satuan
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Amount
+                    Nilai
                   </th>
                 </tr>
               </thead>
