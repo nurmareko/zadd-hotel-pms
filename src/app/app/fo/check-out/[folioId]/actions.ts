@@ -12,6 +12,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
+import { PaymentSchema } from "@/lib/folio/schema";
 import { formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
@@ -19,7 +20,6 @@ import {
   postPendingStayCharges,
   StayChargePostingError,
 } from "@/lib/stay-charges";
-import { PaymentSchema } from "../../folios/[id]/schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 

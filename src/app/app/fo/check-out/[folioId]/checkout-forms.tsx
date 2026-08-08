@@ -18,7 +18,7 @@ import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
-import { paymentMethods } from "../../folios/[id]/schema";
+import { paymentMethods } from "@/lib/folio/schema";
 import { completeCheckout, recordFinalPayment } from "./actions";
 
 type FinalPaymentFormProps = {

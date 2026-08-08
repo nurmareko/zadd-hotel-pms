@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { formatIDR } from "@/lib/format";
-import { postCharge } from "./actions";
-import { PostChargeSchema } from "./schema";
+import { postCharge } from "@/lib/folio/actions";
+import { PostChargeSchema } from "@/lib/folio/schema";
 
 export type ChargeArticleOption = {
   id: number;

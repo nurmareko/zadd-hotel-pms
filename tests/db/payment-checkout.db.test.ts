@@ -9,7 +9,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { completeCheckout, recordFinalPayment } from "@/app/app/fo/check-out/[folioId]/actions";
-import { recordPayment } from "@/app/app/fo/folios/[id]/actions";
+import { recordPayment } from "@/lib/folio/actions";
 import { prisma } from "@/lib/prisma";
 import {
   createArticle,

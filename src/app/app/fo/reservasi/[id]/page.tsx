@@ -13,6 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
+import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
 import { MEAL_ARTICLE_CODES, MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
@@ -20,7 +21,6 @@ import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-tota
 import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
-import { GuestFolioView } from "../../folios/[id]/folio-view";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";

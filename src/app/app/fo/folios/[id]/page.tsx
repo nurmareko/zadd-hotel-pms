@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { GuestFolioView } from "./folio-view";
+import { GuestFolioView } from "@/components/folio/folio-view";
 
 export const dynamic = "force-dynamic";
 

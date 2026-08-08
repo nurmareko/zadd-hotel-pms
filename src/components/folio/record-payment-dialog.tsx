@@ -31,8 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { recordPayment } from "./actions";
-import { paymentMethods, PaymentSchema } from "./schema";
+import { recordPayment } from "@/lib/folio/actions";
+import { paymentMethods, PaymentSchema } from "@/lib/folio/schema";
 
 type PaymentFormInput = {
   folioId: number;
