@@ -26,17 +26,24 @@ export function NightAuditBlockerList({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   {blocker.reservation ? (
-                    <Link
-                      className="font-semibold text-foreground underline decoration-red-300 underline-offset-4 hover:text-red-800"
-                      href={`/app/fo/reservasi/${blocker.reservation.id}`}
-                    >
-                      {blocker.reservation.reservationNo} —{" "}
-                      {blocker.reservation.guestName}
-                      <ExternalLink
-                        aria-hidden="true"
-                        className="ml-1 inline h-3.5 w-3.5"
-                      />
-                    </Link>
+                    blocker.folio ? (
+                      <Link
+                        className="font-semibold text-foreground underline decoration-red-300 underline-offset-4 hover:text-red-800"
+                        href={`/app/acc/folios/${blocker.folio.id}`}
+                      >
+                        {blocker.reservation.reservationNo} —{" "}
+                        {blocker.reservation.guestName}
+                        <ExternalLink
+                          aria-hidden="true"
+                          className="ml-1 inline h-3.5 w-3.5"
+                        />
+                      </Link>
+                    ) : (
+                      <div className="font-semibold text-foreground">
+                        {blocker.reservation.reservationNo} —{" "}
+                        {blocker.reservation.guestName}
+                      </div>
+                    )
                   ) : (
                     <div className="font-semibold text-foreground">
                       Konfigurasi Night Audit
@@ -63,11 +70,15 @@ export function NightAuditBlockerList({
               {blocker.folio && blocker.reservation ? (
                 <Link
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-800 underline decoration-red-300 underline-offset-4 hover:text-red-950"
-                  href={`/app/fo/reservasi/${blocker.reservation.id}?tab=tagihan`}
+                  href={`/app/acc/folios/${blocker.folio.id}`}
                 >
                   Folio {blocker.folio.folioNo} · {blocker.folio.status}
                   <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
                 </Link>
+              ) : blocker.kind === "MISSING_FOLIO" && blocker.reservation ? (
+                <div className="mt-2 text-xs font-semibold text-red-800">
+                  Folio belum tersedia; selesaikan pembuatan folio dari Front Office.
+                </div>
               ) : null}
 
               <dl className="mt-3 grid gap-3 text-sm leading-6 md:grid-cols-2">

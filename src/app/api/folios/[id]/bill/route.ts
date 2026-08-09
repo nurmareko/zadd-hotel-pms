@@ -15,6 +15,10 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
+  if (!["FO", "ACC", "ADMIN"].includes(session.user.role)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   const { id } = await params;
   const folioId = Number(id);
 
