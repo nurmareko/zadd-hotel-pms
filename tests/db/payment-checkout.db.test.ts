@@ -9,7 +9,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { completeCheckout, recordFinalPayment } from "@/app/app/fo/check-out/[folioId]/actions";
-import { recordPayment } from "@/app/app/fo/folios/[id]/actions";
+import { postCharge, recordPayment } from "@/lib/folio/actions";
 import { prisma } from "@/lib/prisma";
 import {
   createArticle,
@@ -68,6 +68,28 @@ function checkoutFormData(folioId: number, staleBalance?: number) {
     formData.set("balance", String(staleBalance));
   }
 
+  return formData;
+}
+
+function chargeFormData({
+  folioId,
+  articleId,
+  description = "Laundry",
+  quantity = 2,
+  unitPrice = 25_000,
+}: {
+  folioId: number;
+  articleId: number;
+  description?: string;
+  quantity?: number;
+  unitPrice?: number;
+}) {
+  const formData = new FormData();
+  formData.set("folioId", String(folioId));
+  formData.set("articleId", String(articleId));
+  formData.set("description", description);
+  formData.set("quantity", String(quantity));
+  formData.set("unitPrice", String(unitPrice));
   return formData;
 }
 
@@ -132,6 +154,87 @@ beforeEach(async () => {
 afterAll(async () => {
   vi.useRealTimers();
   await prisma.$disconnect();
+});
+
+describe("postCharge", () => {
+  it("rejects posting a manual charge when a stale read observes a closed folio as open", async () => {
+    const { folio } = await createCheckoutFolio({
+      folioStatus: FolioStatus.CLOSED,
+    });
+    const article = await createArticle({
+      code: "LAUNDRY",
+      name: "Laundry",
+      type: ArticleType.MISC,
+      defaultPrice: 25_000,
+    });
+    const staleFolioLookup = vi
+      .spyOn(prisma.folio, "findUnique")
+      .mockResolvedValueOnce({
+        ...folio,
+        status: FolioStatus.OPEN,
+      });
+
+    let result: Awaited<ReturnType<typeof postCharge>>;
+    try {
+      result = await postCharge(
+        chargeFormData({ folioId: folio.id, articleId: article.id }),
+      );
+    } finally {
+      staleFolioLookup.mockRestore();
+    }
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Tidak dapat memposting charge ke folio yang sudah ditutup",
+    });
+    expect(
+      await prisma.folioLineItem.count({
+        where: { folioId: folio.id, articleId: article.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.activityLog.count({
+        where: {
+          userId: user.id,
+          folioId: folio.id,
+          action: "FOLIO_CHARGE_POSTED",
+        },
+      }),
+    ).toBe(0);
+  });
+
+  it("posts a manual charge to an open folio with the computed amount and activity event", async () => {
+    const { folio } = await createCheckoutFolio();
+    const article = await createArticle({
+      code: "LAUNDRY",
+      name: "Laundry",
+      type: ArticleType.MISC,
+      defaultPrice: 25_000,
+    });
+
+    const result = await postCharge(
+      chargeFormData({ folioId: folio.id, articleId: article.id }),
+    );
+
+    expect(result).toEqual({ ok: true });
+    const lineItem = await prisma.folioLineItem.findFirstOrThrow({
+      where: { folioId: folio.id, articleId: article.id },
+    });
+    expect(lineItem.description).toBe("Laundry");
+    expect(lineItem.quantity.toNumber()).toBe(2);
+    expect(lineItem.unitPrice.toNumber()).toBe(25_000);
+    expect(lineItem.amount.toNumber()).toBe(50_000);
+    expect(lineItem.postedById).toBe(user.id);
+    expect(lineItem.postedAt).toEqual(FROZEN_NOW);
+    const activity = await prisma.activityLog.findFirstOrThrow({
+      where: {
+        userId: user.id,
+        folioId: folio.id,
+        action: "FOLIO_CHARGE_POSTED",
+      },
+    });
+    expect(activity.metadata).toEqual({ amount: 50_000 });
+  });
 });
 
 describe("recordPayment", () => {

@@ -289,7 +289,7 @@ describe("check-in database actions", () => {
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
 
       expect(result).toEqual({
@@ -319,7 +319,7 @@ describe("check-in database actions", () => {
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
 
       expect(result).toEqual({
@@ -350,7 +350,7 @@ describe("check-in database actions", () => {
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
 
       expect(result).toEqual({
@@ -384,7 +384,7 @@ describe("check-in database actions", () => {
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
 
       expect(result).toEqual({ ok: true });
@@ -455,11 +455,11 @@ describe("check-in database actions", () => {
 
       const firstResult = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
       const retryResult = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
-        { redirectToFolio: false },
+        { redirectAfterCheckIn: false },
       );
 
       expect(firstResult).toEqual({ ok: true });

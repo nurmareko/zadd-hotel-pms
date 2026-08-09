@@ -12,9 +12,18 @@ import { PaymentSchema, PostChargeSchema } from "./schema";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+class ChargeActionError extends Error {}
 class PaymentActionError extends Error {}
 
+const MAX_CHARGE_ATTEMPTS = 3;
 const MAX_PAYMENT_ATTEMPTS = 3;
+
+function isChargeSerializationConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  );
+}
 
 function isPaymentSerializationConflict(error: unknown) {
   return (
@@ -54,7 +63,7 @@ export async function postCharge(
 
   const folio = await prisma.folio.findUnique({
     where: { id: parsed.data.folioId },
-    select: { id: true, status: true },
+    select: { id: true, reservationId: true, status: true },
   });
 
   if (!folio) {
@@ -62,7 +71,10 @@ export async function postCharge(
   }
 
   if (folio.status !== FolioStatus.OPEN) {
-    return { ok: false, error: "Cannot post to a closed folio" };
+    return {
+      ok: false,
+      error: "Tidak dapat memposting charge ke folio yang sudah ditutup",
+    };
   }
 
   const article = await prisma.article.findUnique({
@@ -90,18 +102,76 @@ export async function postCharge(
     parsed.data.unitPrice,
   );
 
-  await prisma.folioLineItem.create({
-    data: {
-      articleId: article.id,
-      folioId: folio.id,
-      description,
-      quantity: parsed.data.quantity,
-      unitPrice: parsed.data.unitPrice,
-      amount,
-      postedById: userId,
-      postedAt: new Date(),
-    },
-  });
+  let chargePosted = false;
+
+  for (let attempt = 1; attempt <= MAX_CHARGE_ATTEMPTS; attempt += 1) {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          const currentFolio = await tx.folio.findUnique({
+            where: { id: folio.id },
+            select: { id: true, status: true },
+          });
+
+          if (!currentFolio) {
+            throw new ChargeActionError("Folio not found");
+          }
+
+          if (currentFolio.status !== FolioStatus.OPEN) {
+            throw new ChargeActionError(
+              "Tidak dapat memposting charge ke folio yang sudah ditutup",
+            );
+          }
+
+          await tx.folioLineItem.create({
+            data: {
+              articleId: article.id,
+              folioId: currentFolio.id,
+              description,
+              quantity: parsed.data.quantity,
+              unitPrice: parsed.data.unitPrice,
+              amount,
+              postedById: userId,
+              postedAt: new Date(),
+            },
+          });
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+      chargePosted = true;
+      break;
+    } catch (error) {
+      if (error instanceof ChargeActionError) {
+        return { ok: false, error: error.message };
+      }
+
+      if (
+        isChargeSerializationConflict(error) &&
+        attempt < MAX_CHARGE_ATTEMPTS
+      ) {
+        continue;
+      }
+
+      if (isChargeSerializationConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik posting charge berulang. Muat ulang dan coba lagi.",
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  if (!chargePosted) {
+    return {
+      ok: false,
+      error: "Konflik posting charge berulang. Muat ulang dan coba lagi.",
+    };
+  }
 
   await logActivity({
     userId,
@@ -111,6 +181,7 @@ export async function postCharge(
   });
 
   revalidatePath(`/app/fo/folios/${folio.id}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
   return { ok: true };
 }
@@ -132,7 +203,7 @@ export async function recordPayment(
 
   const folio = await prisma.folio.findUnique({
     where: { id: parsed.data.folioId },
-    select: { id: true, status: true },
+    select: { id: true, reservationId: true, status: true },
   });
 
   if (!folio) {
@@ -224,6 +295,7 @@ export async function recordPayment(
   });
 
   revalidatePath(`/app/fo/folios/${folio.id}`);
+  revalidatePath(`/app/fo/reservasi/${folio.reservationId}`);
 
   return { ok: true };
 }

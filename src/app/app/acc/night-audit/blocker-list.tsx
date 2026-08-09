@@ -60,10 +60,10 @@ export function NightAuditBlockerList({
                 ) : null}
               </div>
 
-              {blocker.folio ? (
+              {blocker.folio && blocker.reservation ? (
                 <Link
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-800 underline decoration-red-300 underline-offset-4 hover:text-red-950"
-                  href={`/app/fo/folios/${blocker.folio.id}`}
+                  href={`/app/fo/reservasi/${blocker.reservation.id}?tab=tagihan`}
                 >
                   Folio {blocker.folio.folioNo} · {blocker.folio.status}
                   <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />

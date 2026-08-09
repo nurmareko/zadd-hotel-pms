@@ -1,16 +1,16 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { GuestFolioView } from "./folio-view";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-type GuestFolioPageProps = {
+type GuestFolioRedirectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function GuestFolioPage({
+export default async function GuestFolioRedirectPage({
   params,
-}: GuestFolioPageProps) {
+}: GuestFolioRedirectPageProps) {
   const { id } = await params;
   const folioId = Number(id);
 
@@ -18,9 +18,14 @@ export default async function GuestFolioPage({
     notFound();
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <GuestFolioView folioId={folioId} />
-    </main>
-  );
+  const folio = await prisma.folio.findUnique({
+    where: { id: folioId },
+    select: { reservationId: true },
+  });
+
+  if (!folio) {
+    notFound();
+  }
+
+  redirect(`/app/fo/reservasi/${folio.reservationId}?tab=tagihan`);
 }

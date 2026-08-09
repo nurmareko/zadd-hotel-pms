@@ -383,12 +383,13 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
   );
   const balanceState = folioBalanceState(totals.balance);
   const hasBalanceDue = balanceState === "due";
+  const reservationTagihanUrl = `/app/fo/reservasi/${folio.reservation.id}?tab=tagihan`;
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
       <div className="mb-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
         <Link
-          href={`/app/fo/folios/${folio.id}`}
+          href={reservationTagihanUrl}
           className={buttonVariants({ variant: "outline" })}
         >
           Batal
@@ -418,7 +419,11 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
               title="2. Pembayaran Akhir"
               meta={checkoutBalanceHeading(totals.balance)}
             >
-              <FinalPaymentForm folioId={folio.id} balance={totals.balance} />
+              <FinalPaymentForm
+                folioId={folio.id}
+                reservationId={folio.reservation.id}
+                balance={totals.balance}
+              />
             </StepCard>
           ) : (
             <StepCard title="2. Pembayaran Akhir">
@@ -465,7 +470,11 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                 </div>
               </div>
             ) : isCheckoutAllowed && !hasBalanceDue ? (
-              <CompleteCheckoutForm folioId={folio.id} balance={totals.balance} />
+              <CompleteCheckoutForm
+                folioId={folio.id}
+                reservationId={folio.reservation.id}
+                balance={totals.balance}
+              />
             ) : (
               <div className="p-5 text-sm text-red-600">
                 Folio ini belum siap untuk check-out.

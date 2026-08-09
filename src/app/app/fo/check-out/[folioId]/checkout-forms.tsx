@@ -18,16 +18,18 @@ import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
-import { paymentMethods } from "../../folios/[id]/schema";
+import { paymentMethods } from "@/lib/folio/schema";
 import { completeCheckout, recordFinalPayment } from "./actions";
 
 type FinalPaymentFormProps = {
   folioId: number;
+  reservationId: number;
   balance: number;
 };
 
 type CompleteCheckoutFormProps = {
   folioId: number;
+  reservationId: number;
   balance: number;
 };
 
@@ -52,7 +54,11 @@ function CheckoutPinnedActionFooter({ children }: { children: ReactNode }) {
   return container ? createPortal(children, container) : null;
 }
 
-export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
+export function FinalPaymentForm({
+  folioId,
+  reservationId,
+  balance,
+}: FinalPaymentFormProps) {
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -160,7 +166,7 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
         actions={
           <>
             <Link
-              href={`/app/fo/folios/${folioId}`}
+              href={`/app/fo/reservasi/${reservationId}?tab=tagihan`}
               className={buttonVariants({
                 variant: "outline",
                 className: "w-full justify-center sm:w-auto",
@@ -187,6 +193,7 @@ export function FinalPaymentForm({ folioId, balance }: FinalPaymentFormProps) {
 
 export function CompleteCheckoutForm({
   folioId,
+  reservationId,
   balance,
 }: CompleteCheckoutFormProps) {
   const router = useRouter();
@@ -331,7 +338,7 @@ export function CompleteCheckoutForm({
         actions={
           <>
             <Link
-              href={`/app/fo/folios/${folioId}`}
+              href={`/app/fo/reservasi/${reservationId}?tab=tagihan`}
               className={buttonVariants({
                 variant: "outline",
                 className: "w-full justify-center sm:w-auto",
