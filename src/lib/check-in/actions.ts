@@ -16,6 +16,10 @@ import { logActivity } from "@/lib/activity-log";
 // Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
 // Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import {
+  buildGrcSnapshot,
+  GRC_SNAPSHOT_SCHEMA_VERSION,
+} from "@/lib/grc-snapshot";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   postPendingReservationStayFees,
@@ -303,6 +307,70 @@ async function runCheckInTransaction(
         throw new CheckInActionError(
           "Status reservasi atau deposit berubah sebelum check-in dapat diselesaikan.",
         );
+      }
+
+      const [snapshotReservation, checkInOperator, hotelSettings] =
+        await Promise.all([
+          tx.reservation.findUniqueOrThrow({
+            where: { id: reservation.id },
+            select: {
+              reservationNo: true,
+              arrivalDate: true,
+              departureDate: true,
+              arrangementType: true,
+              reservationType: true,
+              adults: true,
+              children: true,
+              rateAmount: true,
+              purposeOfVisit: true,
+              grcFilledAt: true,
+              signatureDataUrl: true,
+              signedAt: true,
+              grcSnapshot: true,
+              folio: { select: { folioNo: true } },
+              guest: {
+                select: {
+                  fullName: true,
+                  idType: true,
+                  idNumber: true,
+                  phone: true,
+                  email: true,
+                  nationality: true,
+                },
+              },
+              room: { select: { number: true } },
+              roomType: { select: { name: true } },
+              reservationNights: {
+                select: { date: true, rateAmount: true },
+                orderBy: { date: "asc" },
+              },
+            },
+          }),
+          tx.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { fullName: true },
+          }),
+          tx.hotelSettings.findUnique({
+            where: { id: 1 },
+            select: { address: true },
+          }),
+        ]);
+
+      if (snapshotReservation.grcSnapshot === null) {
+        const snapshot = buildGrcSnapshot({
+          reservation: snapshotReservation,
+          hotelAddress: hotelSettings?.address ?? null,
+          filledByName: checkInOperator.fullName,
+          capturedAt: now,
+        });
+
+        await tx.reservation.update({
+          where: { id: reservation.id },
+          data: {
+            grcSnapshot: snapshot as Prisma.InputJsonValue,
+            grcSnapshotVersion: GRC_SNAPSHOT_SCHEMA_VERSION,
+          },
+        });
       }
 
       const updatedRoom = await tx.room.updateMany({

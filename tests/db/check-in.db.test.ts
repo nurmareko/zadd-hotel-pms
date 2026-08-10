@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   ArticleType,
   DepositStatus,
@@ -13,6 +15,7 @@ import {
   collectCheckInDeposit,
   completeCheckIn,
 } from "@/lib/check-in/actions";
+import { GrcSnapshotSchema } from "@/lib/grc-snapshot";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -20,6 +23,7 @@ import {
   createFolio,
   createFolioPayment,
   createGuest,
+  createHotelSettings,
   createReservationFixture,
   createRoom,
   createRoomType,
@@ -374,13 +378,16 @@ describe("check-in database actions", () => {
     });
 
     it("atomically persists GRC data, checks in the reservation, and marks the room OC", async () => {
-      const { user, guest, reservation, room } = await createBasicReservation({
-        depositStatus: DepositStatus.COLLECTED,
-      });
+      const { user, guest, reservation, room, roomType } =
+        await createBasicReservation({
+          depositStatus: DepositStatus.COLLECTED,
+        });
       const { folio } = await createConsistentCollectedDeposit(
         reservation.id,
         user.id,
       );
+      await createHotelSettings({ address: "Jl. Snapshot No. 1" });
+      const checkInOperator = await createUser();
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
@@ -427,6 +434,174 @@ describe("check-in database actions", () => {
           },
         }),
       ).toBe(1);
+
+      const snapshot = GrcSnapshotSchema.parse(persistedReservation.grcSnapshot);
+      expect(persistedReservation.grcSnapshotVersion).toBe(1);
+      expect(snapshot).toEqual({
+        schemaVersion: 1,
+        templateVersion: 1,
+        capturedAt: FROZEN_NOW.toISOString(),
+        header: {
+          brandName: "ZADD Hotel Management",
+          hotelAddress: "Jl. Snapshot No. 1",
+        },
+        reservation: {
+          reservationNo: reservation.reservationNo,
+          folioNo: folio.folioNo,
+          arrival: "2026-08-05T00:00:00.000Z",
+          departure: "2026-08-07T00:00:00.000Z",
+          nights: 2,
+          arrangementType: "RO",
+          arrangementTypeLabel: "RO — Tanpa makan",
+          reservationType: "INDIVIDUAL",
+          reservationTypeLabel: "Individual",
+        },
+        guest: {
+          fullName: "Tamu Setelah Check-in",
+          idType: "KTP",
+          idNumber: "3273010101010001",
+          phone: "081234567890",
+          email: "tamu@example.com",
+          nationality: "Indonesia",
+        },
+        stay: {
+          roomNumber: room.number,
+          roomTypeName: roomType.name,
+          adults: 2,
+          children: 0,
+          stayTotal: "735000",
+          usesNightlyRates: true,
+          nightlySchedule: [
+            { date: "2026-08-05T00:00:00.000Z", rateAmount: "325000" },
+            { date: "2026-08-06T00:00:00.000Z", rateAmount: "410000" },
+          ],
+        },
+        grcMetadata: {
+          purposeOfVisit: "Bisnis",
+          grcFilledAt: FROZEN_NOW.toISOString(),
+          filledByName: checkInOperator.fullName,
+          signedAt: FROZEN_NOW.toISOString(),
+        },
+        signatureSha256: createHash("sha256")
+          .update("data:image/png;base64,aGVsbG8=", "utf8")
+          .digest("hex"),
+      });
+      expect(snapshot.grcMetadata.filledByName).not.toBe(user.fullName);
+
+      const retryResult = await completeCheckIn(
+        checkInFormData(reservation.id, room.id, {
+          guestFullName: "Nama dari Retry",
+          signatureDataUrl: "data:image/png;base64,d29ybGQ=",
+        }),
+        { redirectAfterCheckIn: false },
+      );
+      expect(retryResult).toEqual({
+        ok: false,
+        error: "Reservasi tidak dalam status yang bisa check-in",
+      });
+
+      await prisma.guest.update({
+        where: { id: guest.id },
+        data: { fullName: "Nama Operasional Terbaru" },
+      });
+      const afterGuestEdit = await prisma.reservation.findUniqueOrThrow({
+        where: { id: reservation.id },
+        select: { grcSnapshot: true, guest: { select: { fullName: true } } },
+      });
+      expect(afterGuestEdit.guest.fullName).toBe("Nama Operasional Terbaru");
+      expect(GrcSnapshotSchema.parse(afterGuestEdit.grcSnapshot)).toEqual(snapshot);
+
+      const groupGuest = await createGuest();
+      const groupRoomType = await createRoomType();
+      const firstGroupRoom = await createRoom(groupRoomType.id);
+      const firstSibling = await createReservationFixture({
+        userId: user.id,
+        roomTypeId: groupRoomType.id,
+        guestId: groupGuest.id,
+        nightlyRates: [200_000],
+        depositStatus: DepositStatus.COLLECTED,
+        adults: 1,
+        children: 0,
+        groupBookingId: "GROUP-SNAPSHOT",
+      });
+      const secondGroupRoom = await createRoom(groupRoomType.id);
+      const secondSibling = await createReservationFixture({
+        userId: user.id,
+        roomTypeId: groupRoomType.id,
+        guestId: groupGuest.id,
+        nightlyRates: [250_000],
+        depositStatus: DepositStatus.COLLECTED,
+        adults: 2,
+        children: 1,
+        groupBookingId: "GROUP-SNAPSHOT",
+      });
+      await createConsistentCollectedDeposit(
+        firstSibling.reservation.id,
+        user.id,
+        200_000,
+      );
+      await createConsistentCollectedDeposit(
+        secondSibling.reservation.id,
+        user.id,
+        250_000,
+      );
+
+      expect(
+        await completeCheckIn(
+          checkInFormData(firstSibling.reservation.id, firstGroupRoom.id, {
+            guestFullName: "Nama Sibling Pertama",
+          }),
+          { redirectAfterCheckIn: false },
+        ),
+      ).toEqual({ ok: true });
+      const firstSnapshotBeforeSiblingCheckIn = await prisma.reservation.findUniqueOrThrow({
+        where: { id: firstSibling.reservation.id },
+        select: { grcSnapshot: true },
+      });
+
+      expect(
+        await completeCheckIn(
+          checkInFormData(secondSibling.reservation.id, secondGroupRoom.id, {
+            guestFullName: "Nama Sibling Kedua",
+          }),
+          { redirectAfterCheckIn: false },
+        ),
+      ).toEqual({ ok: true });
+
+      const [firstAfterSiblingCheckIn, secondAfterCheckIn] = await Promise.all([
+        prisma.reservation.findUniqueOrThrow({
+          where: { id: firstSibling.reservation.id },
+          select: { grcSnapshot: true },
+        }),
+        prisma.reservation.findUniqueOrThrow({
+          where: { id: secondSibling.reservation.id },
+          select: { grcSnapshot: true },
+        }),
+      ]);
+      const firstGroupSnapshot = GrcSnapshotSchema.parse(
+        firstAfterSiblingCheckIn.grcSnapshot,
+      );
+      const secondGroupSnapshot = GrcSnapshotSchema.parse(
+        secondAfterCheckIn.grcSnapshot,
+      );
+
+      expect(firstAfterSiblingCheckIn.grcSnapshot).toEqual(
+        firstSnapshotBeforeSiblingCheckIn.grcSnapshot,
+      );
+      expect(firstGroupSnapshot.guest.fullName).toBe("Nama Sibling Pertama");
+      expect(firstGroupSnapshot.stay).toMatchObject({
+        roomNumber: firstGroupRoom.number,
+        adults: 1,
+        children: 0,
+        stayTotal: "200000",
+      });
+      expect(secondGroupSnapshot.guest.fullName).toBe("Nama Sibling Kedua");
+      expect(secondGroupSnapshot.stay).toMatchObject({
+        roomNumber: secondGroupRoom.number,
+        adults: 2,
+        children: 1,
+        stayTotal: "250000",
+      });
     });
 
     it("posts a pending stay fee exactly once and does not duplicate it on a retry", async () => {

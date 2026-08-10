@@ -156,6 +156,8 @@ erDiagram
     varchar purpose_of_visit
     text signature_data_url
     timestamp signed_at
+    json grc_snapshot "nullable; immutable signed GRC payload"
+    int grc_snapshot_version "nullable; payload schema version"
     int created_by_id FK
     timestamp created_at
     timestamp updated_at
@@ -343,7 +345,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 **Front Office**
 
 9. Guest(*id*, full_name, id_type nullable, id_number, phone, email, address, nationality, birth_date)
-10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, deposit_status, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, created_at, updated_at)
+10. Reservation(*id*, reservation_no, type, arrangement_type, reservation_type, *guest_id\#*, *room_type_id\#*, room_id\# nullable, group_booking_id nullable, *created_by_id\#*, arrival_date, departure_date, adults, children, status, rate_amount, deposit, deposit_status, notes, grc_filled_at, purpose_of_visit, signature_data_url, signed_at, grc_snapshot nullable, grc_snapshot_version nullable, created_at, updated_at)
 11. ReservationNight(*id*, *reservation_id\#*, date, rate_amount, meal_plan nullable, meal_pax nullable, meal_unit_price nullable, meal_amount nullable, revenue_class, source_pricing_rule_id nullable, created_at)
 12. ReservationStayFee(*id*, *reservation_id\#*, kind, unit_price, status, folio_line_item_id\# nullable, *selected_by_id\#*, selected_at, posted_at nullable)
 13. Folio(*id*, folio_no, *reservation_id\#*, status, opened_at, closed_at)
@@ -412,7 +414,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 A few choices worth explaining:
 
 1. **RoomType has a base rate.** `base_rate` is the starting point for dynamic pricing. Active pricing rules resolve the persisted rate for each stay date; the per-night adjustment and locking semantics are defined by the Dynamic Pricing contract below.
-2. **Guest Registration Card (GRC) is inlined into Reservation.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload.
+2. **Guest Registration Card (GRC) is inlined into Reservation and has a versioned immutable snapshot.** The `grc_filled_at`, `purpose_of_visit`, `signature_data_url`, and `signed_at` fields live directly on Reservation because the relationship is at-most-one-to-one and GRC filling happens at check-in. The guest signature is stored as a PNG data URL in text, not as a file or blob upload. `grc_snapshot` is the immutable record of every dynamic GRC value to which the guest attested at signing, and `grc_snapshot_version` identifies its payload schema. The snapshot stores a SHA-256 hash of the signature data rather than duplicating the data URL. Live Reservation, Guest, Room, RoomType, HotelSettings, Folio, User, and ReservationNight data deliberately remain editable/current operational records and are separate from the signed snapshot. The snapshot is validated, written once inside the same check-in transaction as the signature after transaction-local guest and reservation updates, and is never updated; each reservation in a group receives its own snapshot. Phase 1 deliberately corrects snapshot `grcMetadata.filledByName` to the actual check-in operator. The unchanged live PDF still renders the reservation creator in its Filled By field until Phase 2, so that one field intentionally differs between the stored snapshot and the current PDF. Existing signed rows are not backfilled. Amend-and-re-sign is future scope.
 3. **Per-night rate snapshots are authoritative.** `ReservationNight.rate_amount` is the locked pricing source for each stay date end-to-end: quote/display totals, automatic room-charge posting, checkout projection, and ARR integrity all use the nightly model. `Reservation.rate_amount` is retained only as a compatibility field containing the first-night rate; it is not the stay total or an authoritative money source. Later base-rate or pricing-rule changes do not affect existing snapshots, and non-pricing reservation edits do not rewrite either representation.
 4. **Payment is polymorphic.** Exactly one of `folio_id` or `fb_order_id` must be populated per Payment row. Enforced at the database level by `payment_exactly_one_owner_check`.
 5. **Room.status is denormalized.** Current room status lives directly on the Room table to keep Kalender reads fast. HousekeepingLog is the audit trail of every status change.
@@ -745,6 +747,8 @@ Indexes and enforcement:
 | purpose_of_visit | VARCHAR(100) | — | Purpose of visit (GRC field) |
 | signature_data_url | TEXT | — | Guest signature as a PNG data URL captured during check-in |
 | signed_at | TIMESTAMP | — | Guest signature capture time |
+| grc_snapshot | JSONB | NULLABLE | Versioned, immutable signed-GRC payload captured once inside the check-in transaction after transaction-local guest and reservation updates. Contains rendered labels beside codes, ISO date/time strings, decimal-string money, per-night schedule, check-in operator name, template/schema versions, capture time, and the SHA-256 of `signature_data_url`; never contains the signature data URL itself. Existing rows remain NULL and are not backfilled. |
+| grc_snapshot_version | INT | NULLABLE | Payload schema version mirrored from `grc_snapshot.schemaVersion`; NULL when no snapshot exists. Written once with `grc_snapshot` and never updated. |
 | created_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Staff who created the reservation |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
 | updated_at | TIMESTAMP | NOT NULL | Last update time |
