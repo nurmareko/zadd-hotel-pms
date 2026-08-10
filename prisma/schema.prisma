@@ -340,8 +340,10 @@ model Reservation {
   // GRC fields (inlined from GuestRegistrationCard entity)
   grcFilledAt      DateTime? @map("grc_filled_at")
   purposeOfVisit   String?   @map("purpose_of_visit") @db.VarChar(100)
-  signatureDataUrl String?   @map("signature_data_url") @db.Text
-  signedAt         DateTime? @map("signed_at")
+  signatureDataUrl   String?   @map("signature_data_url") @db.Text
+  signedAt           DateTime? @map("signed_at")
+  grcSnapshot        Json?     @map("grc_snapshot")
+  grcSnapshotVersion Int?      @map("grc_snapshot_version")
 
   createdById Int      @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")

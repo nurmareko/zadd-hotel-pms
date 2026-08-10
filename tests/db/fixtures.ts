@@ -61,14 +61,17 @@ export async function createUser() {
 export async function createHotelSettings({
   serviceChargePercent = 0,
   taxPercent = 0,
+  address = null,
 }: {
   serviceChargePercent?: Prisma.Decimal.Value;
   taxPercent?: Prisma.Decimal.Value;
+  address?: string | null;
 } = {}) {
   return prisma.hotelSettings.create({
     data: {
       id: 1,
       hotelName: "Hotel Test",
+      address,
       taxPercent,
       serviceChargePercent,
       nightAuditTime: "23:00",
@@ -140,6 +143,7 @@ export async function createReservationFixture({
   children = 0,
   revenueClasses,
   mealSnapshots,
+  groupBookingId = null,
 }: {
   userId: number;
   roomTypeId: number;
@@ -159,6 +163,7 @@ export async function createReservationFixture({
     mealUnitPrice: Prisma.Decimal.Value | null;
     mealAmount: Prisma.Decimal.Value | null;
   }>;
+  groupBookingId?: string | null;
 }) {
   const arrival = parseISODateOnly(arrivalDate);
   const departure = new Date(
@@ -170,6 +175,7 @@ export async function createReservationFixture({
       guestId,
       roomTypeId,
       roomId,
+      groupBookingId,
       arrivalDate: arrival,
       departureDate: departure,
       adults,
