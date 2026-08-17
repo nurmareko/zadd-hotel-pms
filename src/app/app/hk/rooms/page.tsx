@@ -19,7 +19,7 @@ import {
   type HousekeepingListRow,
 } from "@/lib/housekeeping-list-data";
 
-import { StatusPill } from "../status-pill
+import { StatusPill } from "../status-pill";
 import { RoomFilterForm } from "./room-filter-form";
 import { SupervisorRoomStatusSelect } from "./supervisor-room-status-select";
 

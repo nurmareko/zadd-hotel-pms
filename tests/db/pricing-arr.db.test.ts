@@ -11,7 +11,7 @@ import { computeArr } from "@/lib/arr";
 import { parseISODateOnly } from "@/lib/date-only";
 import {
   PricingResolutionError,
-  resolveNightlyRate,
+  resolveNightlySchedule,
 } from "@/lib/pricing-resolver";
 import { prisma } from "@/lib/prisma";
 
@@ -44,7 +44,12 @@ describe("pricing resolver with persisted rules", () => {
   it("uses the Rp 550.000 base rate when no rule exists", async () => {
     const roomType = await createRoomType({ baseRate: 550_000 });
 
-    const resolved = await resolveNightlyRate(roomType.id, "2026-08-08");
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-08",
+      departureDate: "2026-08-09",
+    });
+    const resolved = schedule[0];
 
     expect(resolved.rate.toNumber()).toBe(550_000);
     expect(resolved.baseRate.toNumber()).toBe(550_000);
@@ -64,7 +69,12 @@ describe("pricing resolver with persisted rules", () => {
       },
     });
 
-    const resolved = await resolveNightlyRate(roomType.id, "2026-08-08");
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-08",
+      departureDate: "2026-08-09",
+    });
+    const resolved = schedule[0];
 
     expect(resolved.rate.toNumber()).toBe(605_000);
     expect(resolved.sourceRule).toEqual({
@@ -88,9 +98,27 @@ describe("pricing resolver with persisted rules", () => {
       },
     });
 
-    const atStart = await resolveNightlyRate(roomType.id, "2026-08-08");
-    const beforeEnd = await resolveNightlyRate(roomType.id, "2026-08-09");
-    const atEnd = await resolveNightlyRate(roomType.id, "2026-08-10");
+    const atStart = (
+      await resolveNightlySchedule({
+        roomTypeId: roomType.id,
+        arrivalDate: "2026-08-08",
+        departureDate: "2026-08-09",
+      })
+    )[0];
+    const beforeEnd = (
+      await resolveNightlySchedule({
+        roomTypeId: roomType.id,
+        arrivalDate: "2026-08-09",
+        departureDate: "2026-08-10",
+      })
+    )[0];
+    const atEnd = (
+      await resolveNightlySchedule({
+        roomTypeId: roomType.id,
+        arrivalDate: "2026-08-10",
+        departureDate: "2026-08-11",
+      })
+    )[0];
 
     expect(atStart.rate.toNumber()).toBe(650_000);
     expect(atStart.sourceRule?.id).toBe(rule.id);
@@ -114,7 +142,12 @@ describe("pricing resolver with persisted rules", () => {
       },
     });
 
-    const resolved = await resolveNightlyRate(roomType.id, "2026-08-08");
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-08",
+      departureDate: "2026-08-09",
+    });
+    const resolved = schedule[0];
 
     expect(resolved.rate.toNumber()).toBe(550_000);
     expect(resolved.sourceRule).toBeNull();
@@ -144,7 +177,12 @@ describe("pricing resolver with persisted rules", () => {
       },
     });
 
-    const resolved = await resolveNightlyRate(roomType.id, "2026-08-08");
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-08",
+      departureDate: "2026-08-09",
+    });
+    const resolved = schedule[0];
 
     expect(resolved.rate.toNumber()).toBe(650_000);
     expect(resolved.rate.toNumber()).not.toBe(705_000);
@@ -177,7 +215,11 @@ describe("pricing resolver with persisted rules", () => {
     });
 
     await expect(
-      resolveNightlyRate(roomType.id, "2026-08-09"),
+      resolveNightlySchedule({
+        roomTypeId: roomType.id,
+        arrivalDate: "2026-08-09",
+        departureDate: "2026-08-10",
+      }),
     ).rejects.toBeInstanceOf(PricingResolutionError);
   });
 
@@ -199,8 +241,104 @@ describe("pricing resolver with persisted rules", () => {
     });
 
     await expect(
-      resolveNightlyRate(roomType.id, "2026-08-08"),
+      resolveNightlySchedule({
+        roomTypeId: roomType.id,
+        arrivalDate: "2026-08-08",
+        departureDate: "2026-08-09",
+      }),
     ).rejects.toBeInstanceOf(PricingResolutionError);
+  });
+
+  it("resolves a multi-night stay in ascending order with a weekday rule on matching nights only", async () => {
+    const roomType = await createRoomType({ baseRate: 550_000 });
+    await prisma.pricingRule.create({
+      data: {
+        roomTypeId: roomType.id,
+        name: "Saturday surcharge",
+        selectorKind: PricingRuleSelectorKind.DAY_OF_WEEK,
+        dayOfWeek: PricingRuleDayOfWeek.SATURDAY,
+        adjustmentKind: PricingRuleAdjustmentKind.PERCENT_DELTA,
+        adjustmentValue: 10,
+      },
+    });
+
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-07",
+      departureDate: "2026-08-10",
+    });
+
+    expect(schedule).toHaveLength(3);
+    expect(schedule.map((night) => night.date.toISOString().slice(0, 10))).toEqual([
+      "2026-08-07",
+      "2026-08-08",
+      "2026-08-09",
+    ]);
+    expect(schedule.map((night) => night.rate.toNumber())).toEqual([
+      550_000,
+      605_000,
+      550_000,
+    ]);
+  });
+
+  it("applies a date-range rule only to nights inside its boundary", async () => {
+    const roomType = await createRoomType({ baseRate: 550_000 });
+    await prisma.pricingRule.create({
+      data: {
+        roomTypeId: roomType.id,
+        name: "August promotion",
+        selectorKind: PricingRuleSelectorKind.DATE_RANGE,
+        startsOn: parseISODateOnly("2026-08-08"),
+        endsBefore: parseISODateOnly("2026-08-10"),
+        adjustmentKind: PricingRuleAdjustmentKind.AMOUNT_DELTA,
+        adjustmentValue: 100_000,
+      },
+    });
+
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-07",
+      departureDate: "2026-08-11",
+    });
+
+    expect(schedule.map((night) => night.date.toISOString().slice(0, 10))).toEqual([
+      "2026-08-07",
+      "2026-08-08",
+      "2026-08-09",
+      "2026-08-10",
+    ]);
+    expect(schedule.map((night) => night.rate.toNumber())).toEqual([
+      550_000,
+      650_000,
+      650_000,
+      550_000,
+    ]);
+  });
+
+  it("returns exactly one entry per night and excludes the departure date", async () => {
+    const roomType = await createRoomType({ baseRate: 550_000 });
+
+    const schedule = await resolveNightlySchedule({
+      roomTypeId: roomType.id,
+      arrivalDate: "2026-08-08",
+      departureDate: "2026-08-12",
+    });
+    const dates = schedule.map((night) => night.date.toISOString().slice(0, 10));
+
+    expect(schedule).toHaveLength(4);
+    expect(dates).toEqual([
+      "2026-08-08",
+      "2026-08-09",
+      "2026-08-10",
+      "2026-08-11",
+    ]);
+    expect(dates).not.toContain("2026-08-12");
+    expect(schedule.map((night) => night.rate.toNumber())).toEqual([
+      550_000,
+      550_000,
+      550_000,
+      550_000,
+    ]);
   });
 });
 
