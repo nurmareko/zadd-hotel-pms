@@ -70,9 +70,7 @@ export function formatDateWithWeekday(date: Date) {
   return format(date, "EEEE, dd MMMM yyyy", { locale: indonesianLocale });
 }
 
-export function formatDayOfMonthID(date: Date) {
-  return format(date, "d", { locale: indonesianLocale });
-}
+
 
 export function formatISODate(date: Date) {
   return format(date, "yyyy-MM-dd");

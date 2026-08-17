@@ -143,13 +143,7 @@ const EditReservationObjectSchema = CreateReservationObjectSchema.extend({
   idType: OptionalGuestIdTypeSchema,
 });
 
-const BaseCreateReservationSchema = CreateReservationObjectSchema.refine(
-  (value) => value.departureDate > value.arrivalDate,
-  {
-    message: "Keberangkatan harus setelah kedatangan",
-    path: ["departureDate"],
-  },
-);
+
 
 const BaseEditReservationSchema = EditReservationObjectSchema.refine(
   (value) => value.departureDate > value.arrivalDate,
@@ -212,49 +206,7 @@ const BaseUnifiedEditReservationSchema = EditReservationObjectSchema.omit({
     path: ["departureDate"],
   });
 
-export function createReservationSchema(
-  roomTypes: ReservationRoomTypeCapacity[] = [],
-) {
-  const capacityByRoomTypeId = new Map(
-    roomTypes.map((roomType) => [roomType.id, roomType.capacity]),
-  );
 
-  return BaseCreateReservationSchema.superRefine((value, context) => {
-    const totalGuests = value.adults + value.children;
-
-    if (totalGuests < 1) {
-      context.addIssue({
-        code: "custom",
-        path: ["adults"],
-        message: "Jumlah tamu minimal 1",
-      });
-    }
-
-    const capacity = capacityByRoomTypeId.get(value.roomTypeId);
-
-    if (typeof capacity === "undefined") {
-      if (roomTypes.length > 0) {
-        context.addIssue({
-          code: "custom",
-          path: ["roomTypeId"],
-          message: "Tipe kamar tidak valid",
-        });
-      }
-
-      return;
-    }
-
-    if (totalGuests > capacity) {
-      context.addIssue({
-        code: "custom",
-        path: ["children"],
-        message: reservationCapacityError(totalGuests, capacity),
-      });
-    }
-  });
-}
-
-export const CreateReservationSchema = createReservationSchema();
 
 export function createEditReservationSchema(
   roomTypes: ReservationRoomTypeCapacity[] = [],

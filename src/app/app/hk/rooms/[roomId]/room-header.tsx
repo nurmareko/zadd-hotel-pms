@@ -4,7 +4,7 @@ import type { RoomStatus } from "@prisma/client";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { StatusPill } from "../../room-status-grid";
+import { StatusPill } from "../../status-pill
 
 type RoomHeaderProps = {
   roomNumber: string;

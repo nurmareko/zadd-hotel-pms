@@ -228,41 +228,51 @@ return prisma.$transaction(
 
 `validateReservationRoomAssignment()` checks guest capacity, locks and validates an allocated room, rejects OOO rooms, and checks assigned-room overlap. `validateRoomTypeCapacity()` separately checks inventory capacity across the stay, including unallocated reservations. The shipped action also validates auth/input, generates `RSV-yyMMdd-NNNN`, retries expected transaction conflicts, and revalidates the reservation list and Kalender.
 
-### Client component with a watched field
+### Client component with watched unified room fields
 
 ```typescript
-// src/app/app/fo/reservations/new/reservation-form.tsx
+// src/app/app/fo/reservasi/new/reservation-form.tsx
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
+
 import { createReservation } from "./actions";
-import { createReservationSchema, type CreateReservationInput } from "./schema";
+import {
+  createUnifiedReservationSchema,
+  type UnifiedReservationInput,
+} from "./schema";
 
 export function ReservationForm({ defaultValues, roomTypes }) {
-  const schema = useMemo(() => createReservationSchema(roomTypes), [roomTypes]);
-  const form = useForm<CreateReservationInput>({
+  const schema = useMemo(
+    () => createUnifiedReservationSchema(roomTypes),
+    [roomTypes],
+  );
+  const form = useForm<UnifiedReservationInput>({
     resolver: zodResolver(schema),
     defaultValues,
   });
-  const [roomTypeId, arrivalDate, departureDate] = useWatch({
+  const rooms = useFieldArray({ control: form.control, name: "rooms" });
+  const [arrivalDate, departureDate, roomRows] = useWatch({
     control: form.control,
-    name: ["roomTypeId", "arrivalDate", "departureDate"],
+    name: ["arrivalDate", "departureDate", "rooms"],
   });
 
-  async function onSubmit() {
-    await createReservation(form.getValues());
+  async function onSubmit(values: UnifiedReservationInput) {
+    await createReservation(values);
   }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      {/* fields */}
-      <button type="submit">Save</button>
+      {/* Shared stay and guest fields, followed by rooms.fields rows. */}
+      <button type="submit">Simpan Reservasi</button>
     </form>
   );
 }
 ```
+
+The shipped form uses a unified `rooms` array for both single-room and group reservations. `useFieldArray()` manages repeatable room rows, while `useWatch()` subscribes only to the stay and room values needed for availability and quote updates.
 
 ### Reading the current user
 

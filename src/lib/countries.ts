@@ -29,7 +29,7 @@ export const countries: Country[] = [
   priority,
 }));
 
-export const indonesiaCountry = countries[0];
+
 
 export function findCountryByName(name: string) {
   return countries.find((country) => country.name === name) ?? null;

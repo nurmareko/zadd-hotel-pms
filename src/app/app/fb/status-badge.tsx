@@ -2,12 +2,7 @@ import { FBOrderStatus, TableStatus } from "@prisma/client";
 
 import { StatusBadge } from "@/components/status-badge";
 
-export const tableStatusStyles: Record<TableStatus, string> = {
-  AVAILABLE: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
-  OCCUPIED: "border-status-oc-pip bg-status-oc-bg text-status-oc-fg",
-  RESERVED: "border-status-vcu-pip bg-status-vcu-bg text-status-vcu-fg",
-  OUT_OF_SERVICE: "border-status-ooo-pip bg-status-ooo-bg text-status-ooo-fg",
-};
+
 
 const orderStatusStyles: Record<FBOrderStatus, string> = {
   OPEN: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
