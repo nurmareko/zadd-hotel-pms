@@ -149,7 +149,7 @@ Identified during requirements gathering but deferred to later releases. The cur
 
 These documentation tasks are intentionally deferred from this current-state cleanup:
 
-- Rewrite the user guide and capture new screenshots for the unified reservation form, group operations, Pricing Rules, ARR, pinned action footers, checkout credit/refund guidance, and corrected F&B/HK states; remove the orphaned `fo-01-dashboard.png` during that rewrite.
+- Rewrite the user guide and capture new screenshots for the unified reservation form, group operations, Pricing Rules, ARR, pinned action footers, checkout credit/refund guidance, and corrected F&B/HK states.
 - Update the reservation model in `activity_diagram_mvp.md` and `business_process_mvp.md` for multi-room creation, per-night snapshots, linked posting identity, ARR, and checkout refund handling beyond the Tier 1 wording corrected now.
 - Replace legacy reservation examples/routes in `dev_guide.md` and add the pricing/group/ARR file map.
 - Document the pinned-footer pattern in `design.md` and narrow its Console-retention language to intentional historical references only.
