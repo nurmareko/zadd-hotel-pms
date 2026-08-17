@@ -13,13 +13,15 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 | Username | Password | Role  | Lands on            |
 |----------|----------|-------|---------------------|
 | admin    | admin123 | ADMIN | `/app/admin/users`  |
-| fo1      | fo123    | FO    | `/app/fo/tape-chart` |
+| fo1      | fo123    | FO    | `/app/fo/reservasi` → preferred Kalender/List view |
 | hksup    | hksup123 | HK supervisor | `/app/hk` → `/app/hk/supervisor` |
 | hk1      | hk123    | HK    | `/app/hk` → `/app/hk/clean` |
 | hk2      | hk2123   | HK    | `/app/hk` → `/app/hk/clean` |
 | hk3      | hk3123   | HK    | `/app/hk` → `/app/hk/clean` |
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
+
+For Front Office, `/app/fo/reservasi` reads the `zadd_fo_reservasi_view` cookie and redirects to `/app/fo/reservasi/kalender` or `/app/fo/reservasi/list`; when no preference exists, Kalender is the default. Do not assume a fixed FO destination beyond the canonical Reservasi entry route.
 
 **One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. For HK, `User.isSupervisor` unlocks supervisor pages/actions while the role remains `HK`; ADMIN has no Housekeeping access at all. A user with role FO cannot access operational HK routes except `/app/hk/lost-found` search — other HK routes return 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
@@ -140,7 +142,7 @@ Housekeeping route map:
 - `/app/hk` — role-based redirect; HK members go to `/app/hk/clean`, HK supervisors go to `/app/hk/supervisor`. ADMIN has no HK access.
 - `/app/hk/clean` — My Rooms / Kamar Saya housekeeper worklist.
 - `/app/hk/rooms/[id]` — shared role-aware room detail.
-- `/app/hk/rooms` — supervisor rooms worksheet and merged status board; `/app/hk/list` is retired and redirects here.
+- `/app/hk/rooms` — canonical supervisor rooms worksheet and merged status board. `/app/hk/list` is a temporary compatibility redirect that may be retired; do not use it in new links or instructions.
 - `/app/hk/supervisor` — supervisor dashboard with forecast, bulk assignment, VCU inbox, and KPIs.
 - `/app/hk/lost-found` — text-only Lost & Found log/search/return flow for HK and FO only.
 
@@ -173,7 +175,7 @@ There is one badge only: ACC sees `!` on Night Audit while the current WIB busin
 ### Server component reading from DB
 
 ```typescript
-// src/app/app/fo/reservations/page.tsx
+// src/app/app/fo/reservasi/(views)/list/page.tsx
 import { prisma } from "@/lib/prisma";
 
 export default async function ReservationsPage() {
@@ -194,7 +196,7 @@ export default async function ReservationsPage() {
 ### Reservation mutation (transaction + overlap + capacity checks)
 
 ```typescript
-// src/app/app/fo/reservations/new/actions.ts (abbreviated)
+// src/app/app/fo/reservasi/new/actions.ts (abbreviated)
 return prisma.$transaction(
   async (tx) => {
     const assignment = await validateReservationRoomAssignment(tx, input);
@@ -288,10 +290,10 @@ export default async function Page() {
 
 ### Adding a new page
 
-1. Decide its URL → `/app/fo/reservations/cancel/[id]` becomes folder structure
-2. Create `src/app/app/fo/reservations/cancel/[id]/page.tsx`
+1. Decide its URL → `/app/fo/reservasi/cancel/[id]` becomes folder structure
+2. Create `src/app/app/fo/reservasi/cancel/[id]/page.tsx`
 3. Default export a function (server by default)
-4. Visit `localhost:3000/app/fo/reservations/cancel/123` — it's live
+4. Visit `localhost:3000/app/fo/reservasi/cancel/123` — it's live
 
 That's it. No route file to edit. No controller to register.
 

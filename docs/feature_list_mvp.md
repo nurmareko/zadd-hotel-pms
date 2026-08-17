@@ -36,7 +36,7 @@ Role-aware for mobile housekeepers and supervisor control.
 - **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN does not access HK operational screens.
 - **My Rooms / Kamar Saya** — `/app/hk/clean` is the housekeeper worklist, grouped by assigned room need and linked to shared room detail.
 - **Shared room detail** — `/app/hk/rooms/[id]` adapts by role. Housekeepers start/finish cleaning, see the live timer, add a status note, and log found items. Supervisors inspect rooms, view status/history, and review cleaning context.
-- **Supervisor Rooms** — `/app/hk/rooms` merges the former status board and daily list into one worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` redirects here.
+- **Supervisor Rooms** — `/app/hk/rooms` is the canonical merged status-board and Daily List worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` is a temporary compatibility redirect that may be retired; new links and instructions must use `/app/hk/rooms`.
 - **Supervisor dashboard** — `/app/hk/supervisor` shows workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs.
 - **Manual assignment** — supervisors assign rooms by date, including bulk assignment by floor/workload; auto-dispatch remains deferred.
 - **Cleaning timer** — `CleaningSession` is the single workflow source for assignment-to-clean-to-inspect timing. Active cleaning is derived from a started-but-unfinished session.

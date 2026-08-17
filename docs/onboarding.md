@@ -159,7 +159,7 @@ Housekeeping routes are role-aware:
 - `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors land on `/app/hk/supervisor`. ADMIN has no HK access.
 - `/app/hk/clean` is My Rooms / Kamar Saya for assigned housekeeper work.
 - `/app/hk/rooms/[id]` is the shared room detail. Housekeepers clean/log; supervisors inspect/history/status.
-- `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. `/app/hk/list` is retired and redirects here.
+- `/app/hk/rooms` is the canonical supervisor rooms worksheet and merged status board. `/app/hk/list` is a temporary compatibility redirect that may be retired; use `/app/hk/rooms` in new work.
 - `/app/hk/lost-found` is shared by HK and FO only. Both roles can search/filter, log a text-only item, and mark it returned with a resolution note.
 
 Housekeeping data has two separate responsibilities: `CleaningSession` is the source for assignment, timer, finish, and inspection; `HousekeepingLog` is the audit trail for room-status changes. Reservation comments are not duplicated for HK: `Reservation.notes` is the canonical note, editable by FO and read-only to HK.

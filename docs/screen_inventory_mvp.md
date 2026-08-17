@@ -2,7 +2,7 @@
 
 Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **31 logical screens** across four operational modules, Admin, and shared/global access.
 
-**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` role landing, `/app/hk/list` → Supervisor Rooms, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. Under this rule, **31 is the authoritative total**.
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` role landing, the temporary `/app/hk/list` compatibility redirect to canonical Supervisor Rooms, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The `/app/hk/list` shim may be retired and must not be used as the worksheet destination. Under this rule, **31 is the authoritative total**.
 
 ---
 
@@ -52,7 +52,7 @@ The application is built as a **single Next.js app** with four operational areas
 | FO-01 | **Kalender (Tape Chart)** | Page | `/app/fo/reservasi/kalender`: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, and in-house guest selection. `/app/fo/reservasi` redirects to the user's stored Kalender/List preference. |
 | FO-02 | Reservation List | Page | `/app/fo/reservasi/list`: searchable/filterable arrival-window list with in-house carryover, folio balance, and group badges linking to FO-07; the whole row opens reservation detail. |
 | FO-03 | Unified Reservation Form / Detail | Page | `/app/fo/reservasi/new` and `/app/fo/reservasi/[id]`: one form handles single- or multi-room creation with repeatable 1–20 room rows, shared stay/guest data, per-room occupancy and allocation, dynamic nightly quotes, atomic creation, and pinned form actions. Read-only detail/edit uses the same structure, with Detail, Inklusi, Pembayaran, and Tagihan tabs plus group sibling context. |
-| FO-04 | Check-in | Page | `/app/fo/check-in/[reservationId]`: assign room, fill GRC inline, capture the required on-screen digital signature, set deposit, and create folio. |
+| FO-04 | Check-in | Embedded workflow | Embedded in reservation detail at `/app/fo/reservasi/[id]`: assign or confirm the room, fill the GRC inline, capture the required on-screen digital signature, set deposit, and create the folio. |
 | FO-05 | Guest Folio | Embedded workspace | Embedded in FO-03 at `/app/fo/reservasi/[id]?tab=pembayaran` and `?tab=tagihan`: payments, line items, manual charges, and balance. The deprecated `/app/fo/folios/[id]` route is compatibility infrastructure that redirects to the reservation's Tagihan tab, not a standalone screen. |
 | FO-06 | Check-out | Page | `/app/fo/check-out/[folioId]`: rounded whole-IDR balance gate—positive blocks; zero or credit proceeds; credit shows a warning and excess-return instruction. Includes final payment and PDF bill download. |
 | FO-07 | Group Booking Summary / Actions | Page | `/app/fo/reservasi/grup/[groupBookingId]`: group-room roll-up with per-room pax, current meal plan and stay total, stay-flexibility fee state, reservation/folio status, action eligibility, and folio balance. Supports server-previewed all/selected meal-plan application, all/selected stay-flexibility fees, bulk collection of each pending room's own first-night deposit into its own folio, batch eligible check-in with per-room signatures, per-folio settlement, and eligible checkout. Every bulk mutation reports partial outcomes and delegates to independent canonical per-room transactions; aggregate amounts are display-only and there is no master/shared folio. |
@@ -72,7 +72,7 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 | HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
 | HK-05 | Lost & Found | Page | `/app/hk/lost-found`: FO and HK can search/filter, log text-only items with optional room context, and mark an item returned with a resolution note; other roles are denied. |
 
-`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. `/app/hk/list` is retired and redirects to HK-03.
+`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. HK-03 is reached canonically at `/app/hk/rooms`; `/app/hk/list` remains only as a temporary compatibility redirect and may be retired.
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 

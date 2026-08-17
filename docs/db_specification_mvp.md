@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 24 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 25 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 24 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 25 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram

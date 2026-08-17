@@ -162,7 +162,7 @@ properties in `src/app/globals.css`.
 
 Empty states should explain the situation and point to the next useful action. Do not leave a blank region or only show "No data."
 
-Example: "No rooms assigned today. Enjoy your shift."
+Example: "Belum ada kamar yang ditugaskan hari ini. Periksa kembali daftar tugas nanti."
 
 ## Typography
 
@@ -422,8 +422,8 @@ HK surface guidance:
 - `/app/hk` redirects by role and should not be treated as a standalone destination.
 - `/app/hk/clean` is "Kamar Saya": mobile-first, thumb-friendly, and optimized for corridor work.
 - `/app/hk/rooms/[id]` is the shared room detail. Keep housekeeper controls prominent on mobile; keep supervisor inspection and history controls clear on wider screens.
-- `/app/hk/rooms` is the supervisor rooms worksheet and merged status board. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
-- `/app/hk/list` is retired and redirects to `/app/hk/rooms`; do not design a standalone Daily List route.
+- `/app/hk/rooms` is the canonical supervisor rooms worksheet and merged status board. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
+- `/app/hk/list` remains only as a temporary compatibility redirect and may be retired. Do not link to it or design a standalone Daily List route.
 - `/app/hk/lost-found` is text-only in MVP. Use compact search, filter, and table patterns, not galleries or photo upload controls.
 
 ### Front Office

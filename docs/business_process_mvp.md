@@ -241,7 +241,7 @@ flowchart TD
 
 **Mobile-first staff flow:** HK staff operates from phones or tablets through `/app/hk/clean` and `/app/hk/rooms/[id]` while walking the corridors. Every status update syncs immediately to FO Kalender so receptionists see the live picture.
 
-**Supervisor flow:** `/app/hk/supervisor` gives the supervisor workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. `/app/hk/rooms` is the daily worksheet and merged status board with inline status override, reservation context, assigned housekeeper, notes, date navigation, and Daily List print. The retired `/app/hk/list` route redirects to `/app/hk/rooms`.
+**Supervisor flow:** `/app/hk/supervisor` gives the supervisor workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. `/app/hk/rooms` is the canonical daily worksheet and merged status board with inline status override, reservation context, assigned housekeeper, notes, date navigation, and Daily List print. `/app/hk/list` remains only as a temporary compatibility redirect and may be retired; operational links should use `/app/hk/rooms`.
 
 **Inspection step:** for vacant rooms, the VCU intermediate state separates "I cleaned this" from "I verified this is ready." Occupied rooms return from OD to OC after mid-stay cleaning because they remain assigned to the in-house guest.
 

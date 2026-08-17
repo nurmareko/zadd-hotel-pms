@@ -1,14 +1,3 @@
-// Hotel PMS — MVP Prisma Schema (Solo dev, 2-month timeline)
-// Drop into prisma/schema.prisma and run `npx prisma migrate dev --name init`
-//
-// Changes vs full design (24 tables → 18 tables):
-// - Rate inlined into RoomType (one fixed base rate per type)
-// - GuestRegistrationCard inlined into Reservation (GRC metadata + signature)
-// - Segment removed (no segment reporting)
-// - MasterBill removed (no group billing)
-// - ManualBill + ManualBillItem removed (walk-ins use Reservation.type = WALK_IN + Folio)
-// - Outlet removed (single hardcoded outlet for F&B)
-
 generator client {
   provider = "prisma-client-js"
 }
