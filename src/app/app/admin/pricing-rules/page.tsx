@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { PricingPreview } from "./pricing-preview";
 import { PricingRuleTable } from "./pricing-rule-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function PricingRulesPage() {
   const [roomTypes, pricingRules] = await Promise.all([
     prisma.roomType.findMany({

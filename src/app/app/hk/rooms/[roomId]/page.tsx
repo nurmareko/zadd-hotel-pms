@@ -15,7 +15,7 @@ import { RoomHeader } from "./room-header";
 import { RoomHistory } from "./room-history";
 import { StatusInfo } from "./status-info";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 function nightsLabel(arrivalDate: Date, departureDate: Date) {
   const nights = Math.max(1, differenceInCalendarDays(departureDate, arrivalDate));

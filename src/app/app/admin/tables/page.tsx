@@ -3,6 +3,8 @@ import { FBOrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { RestaurantTablesTabs } from "./restaurant-tables-tabs";
 
+export const dynamic = "force-dynamic";
+
 export default async function RestaurantTablesPage() {
   const tables = await prisma.restaurantTable.findMany({
     orderBy: [{ location: "asc" }, { number: "asc" }],

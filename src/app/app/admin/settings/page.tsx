@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { SettingsForm } from "./settings-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function HotelSettingsPage() {
   const settings = await prisma.hotelSettings.findUniqueOrThrow({
     where: { id: 1 },

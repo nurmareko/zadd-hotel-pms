@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { roleCodes, type RoleCode } from "./schema";
 import { UserTable } from "./user-table";
 
+export const dynamic = "force-dynamic";
+
 function toRoleCode(role: string | undefined): RoleCode {
   return roleCodes.find((roleCode) => roleCode === role) ?? "FO";
 }

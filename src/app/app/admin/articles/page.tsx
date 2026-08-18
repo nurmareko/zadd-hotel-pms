@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ArticleTable } from "./article-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function ArticlesPage() {
   const articles = await prisma.article.findMany({
     orderBy: [{ type: "asc" }, { code: "asc" }],

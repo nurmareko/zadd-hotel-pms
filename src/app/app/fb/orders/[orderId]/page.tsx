@@ -10,6 +10,8 @@ import { OrderStatusBadge } from "../../status-badge";
 import { MenuBrowse } from "./menu-browse";
 import { OrderCart } from "./order-cart";
 
+export const dynamic = "force-dynamic";
+
 type OrderDetailPageProps = {
   params: Promise<{ orderId: string }>;
 };

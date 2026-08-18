@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { RoomsTabs } from "./rooms-tabs";
 
+export const dynamic = "force-dynamic";
+
 export default async function RoomsAndRoomTypesPage() {
   const [roomTypes, rooms] = await Promise.all([
     prisma.roomType.findMany({

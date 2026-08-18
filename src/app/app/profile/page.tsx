@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { AccountCard } from "./account-card";
 import { PasswordForm } from "./password-form";
 
+export const dynamic = "force-dynamic";
+
 function dateLabel(date: Date) {
   return formatLongDateID(date);
 }

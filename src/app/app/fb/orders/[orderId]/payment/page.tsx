@@ -16,6 +16,8 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatusBadge } from "../../../status-badge";
 import { PaymentForm } from "./payment-form";
 
+export const dynamic = "force-dynamic";
+
 type PaymentPageProps = {
   params: Promise<{ orderId: string }>;
 };

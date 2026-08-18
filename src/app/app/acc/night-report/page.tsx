@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 type NightReportPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };

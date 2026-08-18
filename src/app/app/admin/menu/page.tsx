@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { MenuTable } from "./menu-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function FbMenuPage() {
   const menuItems = await prisma.menuItem.findMany({
     orderBy: [{ category: "asc" }, { name: "asc" }],

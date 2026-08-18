@@ -10,6 +10,8 @@ import { OrderStatusBadge } from "../../../status-badge";
 import { BillActions } from "./bill-actions";
 import { BillView } from "./bill-view";
 
+export const dynamic = "force-dynamic";
+
 type BillPageProps = {
   params: Promise<{ orderId: string }>;
 };

@@ -16,7 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { KpiCard } from "./kpi-card";
 import { OrderList } from "./order-list";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type FBLandingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

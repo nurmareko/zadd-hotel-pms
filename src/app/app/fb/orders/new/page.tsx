@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { ConfirmForm } from "./confirm-form";
 import { RoomServiceForm } from "./room-service-form";
 
+export const dynamic = "force-dynamic";
+
 type NewOrderPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
