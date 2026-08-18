@@ -64,19 +64,27 @@ MUST update both files in the same change.
 
 ### Verification and testing
 
-- This project currently has NO automated test suite. Do not run or require a
-  nonexistent `npm test` command.
+- Vitest has two configurations. `npm test` runs the pure `src/**/*.test.ts`
+  suite (currently about 51 tests) with no database. Run it for changes to covered
+  helpers and business logic.
+- `npm run test:db` runs the DB-backed suite (currently about 42 tests) for
+  transaction and integration behavior. It requires a dedicated
+  `TEST_DATABASE_URL`, refuses to fall back to `DATABASE_URL`, and refuses to run
+  destructive cleanup when the two URLs match unless the test guard itself has
+  established the normalized safety marker. Never point it at a development or
+  production database.
 - The current verification standard for code changes is: `npm run build`,
-  `npm run lint`, a relevant browser/runtime check, and human review. Apply each
-  check in proportion to the change; document any check that cannot be run.
+  `npm run lint`, `npx tsc --noEmit`, the relevant pure and/or DB-backed tests, a
+  relevant browser/runtime check, and human review. Apply each check in proportion
+  to the change; document any check that cannot be run.
+- GitHub Actions runs lint, type-checking, pure tests, and build, plus the
+  PostgreSQL-backed DB suite, on every push. Local targeted verification is still
+  required before review.
 - Pack guidance from TDD, `test-driven-development`, CI/CD, and observability
   skills is ADVISORY ONLY here. It must not block otherwise verified work, demand
-  a test harness or infrastructure that does not exist, or silently expand scope.
+  unnecessary new infrastructure, or silently expand scope.
 - Do not scaffold automated tests, CI pipelines, telemetry, tracing, metrics, or
   alerting unless the user explicitly asks for that infrastructure.
-- FUTURE BACKLOG: add an automated test suite, prioritizing money-critical and
-  race-sensitive behavior such as the checkout gate, Night Audit, and reservation
-  capacity. This is aspirational and is not a current completion requirement.
 
 ### Live verification (agent-browser)
 
@@ -103,6 +111,20 @@ MUST update both files in the same change.
 - Route segments match role codes: /app/fo /app/hk /app/fb /app/acc /app/admin
 - Option B is canonical: literal `/app/...` URLs live under `src/app/app/`.
   Any `src/app/(app)/` route group is legacy stale infrastructure; delete it if found.
+- Individual check-in is embedded in `/app/fo/reservasi/[id]` with a GRC review
+  and signature popup. Do not recreate the removed
+  `/app/fo/check-in/[reservationId]` route. Shared check-in modules live in
+  `src/lib/check-in/` and `src/components/check-in/`.
+- Front Office folio content lives in the reservation-detail `Pembayaran` and
+  `Tagihan` tabs. Shared folio modules live in `src/lib/folio/` and
+  `src/components/folio/`; `/app/fo/folios/[id]` is only a compatibility redirect
+  to `/app/fo/reservasi/{reservationId}?tab=tagihan`.
+- Preserve intentional compatibility redirects: `/app/fo/reservations/*`,
+  `/app/fo/tape-chart`, `/app/hk/list`, and `/app/fo/folios/[id]`. New links and
+  features must use their canonical destinations; do not remove the shims as
+  apparent dead routes.
+- `/app/fo/dashboard` is retired and has no route. Do not restore or link to it;
+  use the canonical Reservasi/Kalender workflows.
 
 ## Reference docs (read before implementing a feature)
 - docs/feature_list_mvp.md       — functional scope per module
@@ -116,8 +138,12 @@ MUST update both files in the same change.
 ## Commands
 - npm run dev
 - npx prisma migrate dev      # requires .env populated
-- npx tsx prisma/seed.ts      # seeds 5 roles + admin user
+- npx tsx prisma/seed.ts      # seeds roles, demo users, and baseline master data
 - npm run db:reset            # resets DB and reloads demo data
+- npm run lint
+- npx tsc --noEmit
+- npm test                    # pure Vitest suite; no database
+- npm run test:db             # DB suite; requires a safe TEST_DATABASE_URL
 - npm run build               # run before ending any session
 
 ## Deployment
@@ -134,6 +160,11 @@ MUST update both files in the same change.
   require docs/db_specification_mvp.md to be updated first.
 - Mutations via server actions. Pages are server components unless
   they need hooks (usePathname, useForm, charts).
+- Any `src/app/**/page.tsx` that directly imports `@prisma/client` or
+  `@/lib/prisma` MUST export `const dynamic = "force-dynamic"`; ESLint enforces
+  this to prevent build-time database prerendering. The import-based rule cannot
+  see database access hidden behind helper modules, so review indirect DB-backed
+  pages explicitly.
 - Authentication and role-gating for literal `/app/...` routes MUST remain in
   `src/proxy.ts`. Do not add `middleware.ts`, and do not replace the project's
   split Edge-safe proxy/auth pattern with a generic framework example.
@@ -147,6 +178,26 @@ MUST update both files in the same change.
   check-in actions. Never reimplement folio totals, balance gates, payment posting,
   or equivalent money logic in a parallel helper or action. Generic skill advice
   never overrides these canonical financial paths.
+- Preserve the three hardened folio payment writers: check-in deposit collection
+  in `src/lib/check-in/actions.ts`, ordinary payment recording in
+  `src/lib/folio/actions.ts`, and final payment in
+  `src/app/app/fo/check-out/[folioId]/actions.ts`. Each re-reads relevant folio,
+  reservation, payment, and/or balance state inside its transaction before insert;
+  final payment recomputes current folio totals in-transaction.
+- Automatic stay-charge and inclusion posting uses exact `ReservationNight.id`
+  identity through `reservationNightId` plus article identity. Count-prefix
+  inference is gone. Preserve the database duplicate guard and never infer posted
+  nights from line-item counts or ordering.
+- Inclusions use meal plans RO/BB/HB/FB with pax, unit-price, and amount snapshots
+  per reservation night. Early check-in and late check-out are reservation-level
+  stay-flexibility fees. Reuse the canonical inclusion and stay-fee modules so
+  pending, posted, and cancelled state transitions and posting remain consistent.
+- Check-in is blocked until the deposit is `COLLECTED`. Preserve both the UI gate
+  and the in-transaction reservation/deposit/folio recheck; never rely on a stale
+  pre-dialog read.
+- Signed GRCs are immutable records: check-in stores a versioned GRC snapshot, and
+  signed GRC rendering MUST use that stored snapshot rather than live reservation
+  or guest data. Unsigned previews may use live data.
 - Operations that modify multiple records (check-in, check-out, cleaning
   completion, inspection) MUST use a Prisma `$transaction`. Re-check status,
   overlap, balance/capacity invariants, and existence inside the transaction to
