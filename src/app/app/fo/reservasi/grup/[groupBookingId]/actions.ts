@@ -4,6 +4,7 @@ import {
   DepositStatus,
   FolioStatus,
   PaymentMethod,
+  PaymentPurpose,
   ReservationStatus,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -160,6 +161,15 @@ export async function collectGroupDeposits(input: {
     where: { groupBookingId },
     include: {
       room: { select: { number: true } },
+      folio: {
+        select: {
+          payments: {
+            where: { purpose: PaymentPurpose.DEPOSIT },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
     },
     orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
   });
@@ -188,12 +198,18 @@ export async function collectGroupDeposits(input: {
       continue;
     }
 
-    if (reservation.depositStatus === DepositStatus.COLLECTED) {
+    if (
+      reservation.depositStatus === DepositStatus.COLLECTED &&
+      reservation.folio?.payments.length
+    ) {
       results.push(resultFor(reservation, "skipped", "Deposit sudah dikumpulkan."));
       continue;
     }
 
-    if (dateOnlyBoundary(reservation.arrivalDate) > today) {
+    if (
+      reservation.depositStatus === DepositStatus.PENDING &&
+      dateOnlyBoundary(reservation.arrivalDate) > today
+    ) {
       results.push(
         resultFor(
           reservation,

@@ -345,6 +345,42 @@ describe("check-in database actions", () => {
       expect(persistedRoom.status).toBe(RoomStatus.VC);
     });
 
+    it("blocks COLLECTED status with a folio but no DEPOSIT payment without mutating check-in state", async () => {
+      const { guest, reservation, room } = await createBasicReservation({
+        depositStatus: DepositStatus.COLLECTED,
+      });
+      await createFolio(reservation.id);
+
+      const result = await completeCheckIn(
+        checkInFormData(reservation.id, room.id),
+        { redirectAfterCheckIn: false },
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: "Status deposit tidak sesuai dengan pembayaran pada folio.",
+      });
+      const [persistedGuest, persistedReservation, persistedRoom] =
+        await Promise.all([
+          prisma.guest.findUniqueOrThrow({ where: { id: guest.id } }),
+          prisma.reservation.findUniqueOrThrow({
+            where: { id: reservation.id },
+          }),
+          prisma.room.findUniqueOrThrow({ where: { id: room.id } }),
+        ]);
+
+      expect(persistedGuest.fullName).toBe(guest.fullName);
+      expect(persistedReservation.status).toBe(ReservationStatus.CONFIRMED);
+      expect(persistedReservation.roomId).toBeNull();
+      expect(persistedReservation.grcFilledAt).toBeNull();
+      expect(persistedReservation.purposeOfVisit).toBeNull();
+      expect(persistedReservation.signatureDataUrl).toBeNull();
+      expect(persistedReservation.signedAt).toBeNull();
+      expect(persistedReservation.grcSnapshot).toBeNull();
+      expect(persistedReservation.grcSnapshotVersion).toBeNull();
+      expect(persistedRoom.status).toBe(RoomStatus.VC);
+    });
+
     it("blocks an OOO room before mutation even when the deposit is consistent", async () => {
       const { user, guest, reservation, room } = await createBasicReservation({
         depositStatus: DepositStatus.COLLECTED,

@@ -249,7 +249,16 @@ async function runCheckInTransaction(
         select: {
           status: true,
           depositStatus: true,
-          folio: { select: { id: true } },
+          folio: {
+            select: {
+              id: true,
+              payments: {
+                where: { purpose: PaymentPurpose.DEPOSIT },
+                select: { id: true },
+                take: 1,
+              },
+            },
+          },
         },
       });
 
@@ -271,6 +280,12 @@ async function runCheckInTransaction(
       if (!currentReservation.folio) {
         throw new CheckInActionError(
           "Folio deposit tidak ditemukan. Kumpulkan deposit sebelum check-in.",
+        );
+      }
+
+      if (currentReservation.folio.payments.length === 0) {
+        throw new CheckInActionError(
+          "Status deposit tidak sesuai dengan pembayaran pada folio.",
         );
       }
 
@@ -454,13 +469,6 @@ async function runDepositCollectionTransaction(
         );
       }
 
-      const { today } = todayDateOnly();
-      if (dateOnlyBoundary(reservation.arrivalDate) > today) {
-        throw new CheckInActionError(
-          "Deposit check-in baru dapat dikumpulkan pada hari kedatangan",
-        );
-      }
-
       const existingPayment = reservation.folio?.payments[0];
       if (reservation.depositStatus === DepositStatus.COLLECTED) {
         if (!existingPayment) {
@@ -477,6 +485,13 @@ async function runDepositCollectionTransaction(
           },
           alreadyCollected: true,
         };
+      }
+
+      const { today } = todayDateOnly();
+      if (dateOnlyBoundary(reservation.arrivalDate) > today) {
+        throw new CheckInActionError(
+          "Deposit check-in baru dapat dikumpulkan pada hari kedatangan",
+        );
       }
 
       const firstNight = reservation.reservationNights[0];
