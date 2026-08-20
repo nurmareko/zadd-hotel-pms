@@ -52,9 +52,9 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/zadd_ci_guard_placeholder?schema=public
       DATABASE_URL_UNPOOLED: postgresql://ci:ci@127.0.0.1:5432/zadd_ci_guard_placeholder?schema=public
     services:
-      # Confirm the production Neon PostgreSQL major and pin this image to match it.
+      # Local and CI use PostgreSQL 16; confirm the production Neon major before changing this pin.
       postgres:
-        image: postgres:17-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
