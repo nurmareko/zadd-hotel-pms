@@ -37,14 +37,14 @@ A single guest lifecycle that exercises **every module and every cross-module se
 **Demo note:** *"Admin mengelola data master — kamar, tarif, artikel, menu, dan pengaturan hotel."*
 
 ### 2. FO — create a reservation
-**Action:** As `fo1`, create a new reservation. Choose room type, stay dates, **arrangement = RB or FBM**, reservation type, set rate + deposit.
-**Verify:** Reservation gets a number (`RSV-yyMMdd-NNNN`), appears on Kalender.
+**Action:** As `fo1`, create a new reservation. Choose room type, stay dates, **arrangement = RB or FBM**, and reservation type. Review the server-resolved nightly rates and required deposit, which equals the first-night rate; neither value is editable.
+**Verify:** Reservation gets a number (`RSV-yyMMdd-NNNN`), appears on Kalender, and its required deposit starts as **PENDING**.
 **Demo note:** *"Reservasi baru langsung tampil di kalender."*
 
 ### 3. FO — check-in  ⚠️ *refactored flow — watch closely*
-**Action:** Check in that reservation. Fill the GRC, ask the guest to sign on the required on-screen signature pad, then record the deposit.
-**Verify:** Reservation → **CHECKED_IN**, room → **OC**, folio created and **OPEN**, deposit recorded, and the captured signature appears in the downloadable GRC PDF. No error, no slow hang.
-**Demo note:** *"Saat check-in, tamu menandatangani GRC secara digital dan sistem membuat folio secara otomatis."*
+**Action:** On or after the arrival date, collect the required deposit before opening the GRC. Then review the GRC, ask the guest to sign on the required on-screen signature pad, and confirm check-in.
+**Verify:** Deposit collection creates or reuses the **OPEN** folio, records exactly one matching **DEPOSIT** payment, and changes **PENDING → COLLECTED** atomically; repeating the collection does not duplicate the payment. A **PENDING** deposit has no override and blocks check-in. Check-in proceeds only while the reservation is **CONFIRMED** with a **COLLECTED** deposit, existing folio, and matching **DEPOSIT** payment; it then changes the reservation to **CHECKED_IN** and room to **OC**. The captured signature appears in the downloadable GRC PDF. No error, no slow hang.
+**Demo note:** *"Front Office mengumpulkan deposit wajib terlebih dahulu; setelah statusnya COLLECTED, tamu menandatangani GRC dan melanjutkan check-in dengan folio yang sudah tersedia."*
 **Regression check:** this is one of the two flows refactored for the P2028 fix — confirm it completes cleanly.
 
 ### 4. FB — order + charge to room

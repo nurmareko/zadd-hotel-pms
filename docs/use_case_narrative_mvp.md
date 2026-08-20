@@ -12,9 +12,9 @@ Five role actors interact with the system, with one implemented supervisor tier:
 
 ## Use cases by module
 
-The system has 30 primary use cases and 4 supporting use cases, grouped into five modules:
+The system has 30 primary use cases and 5 supporting use cases, grouped into five modules:
 
-- **Front Office** — guest lifecycle: reservation management, confirmed-reservation cancellation, check-in with required digital signature capture, mid-stay cleaning requests, guest folio management, and check-out. Reservation creation can start from an empty Kalender cell with room/type/date context prefilled; physical-room allocation remains optional until check-in. Folio operations are reached from the reservation detail's `Folio` tab.
+- **Front Office** — guest lifecycle: reservation management, confirmed-reservation cancellation, required-deposit collection, check-in with required digital signature capture, mid-stay cleaning requests, guest folio management, and check-out. Every reservation's non-client-editable required deposit is the server-resolved first-night `ReservationNight.rateAmount`. On or after arrival, FO collects it before check-in through the canonical serializable, idempotent collection flow; a `PENDING` deposit blocks check-in with no override. Reservation creation can start from an empty Kalender cell with room/type/date context prefilled; physical-room allocation remains optional until check-in. Folio operations are reached from the reservation detail's `Folio` tab.
 - **Housekeeping** — role-aware room operations. Housekeepers work from My Rooms and shared room detail; supervisors forecast workload, assign rooms, inspect VCU rooms, override status, and print the Daily List. FO and HK share Lost & Found logging, search, and returned-item resolution. Vacant cleaning follows `VD → VCU → VC/VD`; occupied-room cleaning follows `OD → OC`. `CleaningSession` is the workflow source; `HousekeepingLog` is the room-status audit trail.
 - **Food & Beverage** — captain orders, room-service order creation for in-house guests, floor actions for reserved/out-of-service tables, bill processing, and payment via cash, card, transfer, or charge-to-room.
 - **Accounting** — night audit execution and consolidated night report generation from NightAudit snapshot fields.
@@ -33,9 +33,10 @@ The system has 30 primary use cases and 4 supporting use cases, grouped into fiv
 
 ## Use case relationships
 
-Four relationships belong in the diagram:
+Five relationships belong in the diagram:
 
 - **Book from Kalender «extend» Manage Reservations** — clicking an empty Kalender cell opens reservation creation with room/type/date context prefilled; a reservation can remain unallocated.
+- **Process Check-in «include» Verify Collected Deposit** — check-in requires a `CONFIRMED` reservation, `COLLECTED` deposit, existing folio, and matching `DEPOSIT`-purpose payment before the reservation is compare-and-set to `CHECKED_IN`; there is no override for `PENDING`.
 - **Process Check-in «include» Capture Digital Signature** — the guest signs the GRC on screen; `signatureDataUrl` and `signedAt` are saved as part of check-in and the signature is embedded in the GRC PDF.
 - **Process Check-out «include» Verify Checkout Balance** — the system computes the rounded whole-IDR folio balance whenever check-out is attempted. A positive balance blocks check-out; zero or credit may proceed. For credit, the system warns the receptionist to return the excess to the guest.
 - **Charge to Room «extend» Process F&B Payment** — posting an F&B bill to a guest folio is invoked when the payment method is charge-to-room. Dine-in orders capture the room number during payment; room-service orders already carry the attached in-house folio from creation and default to that folio on the payment screen.

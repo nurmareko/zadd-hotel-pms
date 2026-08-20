@@ -53,7 +53,7 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
    ![Form reservasi baru](images/fo-02-reservation-form.png)
 
-   Isi data tamu, tanggal arrival/departure, tipe kamar, kamar, jumlah tamu, deposit jika ada, dan catatan.
+   Isi data tamu, tanggal Kedatangan/Keberangkatan, tipe kamar, kamar, jumlah tamu, dan catatan. Sistem menetapkan tarif per malam dan deposit wajib sebesar tarif malam pertama; kedua nilai tersebut ditampilkan sebagai hasil perhitungan server dan tidak dapat diedit.
 
 2. Klik **Simpan Reservasi**.
 
@@ -77,17 +77,21 @@ Front Office menangani reservasi, check-in, folio tamu, pembayaran akhir, dan ch
 
 ### 2. Proses Check-in
 
-1. Dari detail reservasi, klik **Check In Guest**.
+1. Pada atau setelah tanggal Kedatangan, buka detail reservasi dan kumpulkan deposit wajib sebelum membuka GRC.
+
+   Sistem membuat atau memakai kembali folio yang sudah ada, mencatat tepat satu pembayaran **DEPOSIT** yang sesuai, lalu mengubah status deposit dari **PENDING** menjadi **COLLECTED** dalam satu proses. Pengulangan proses tidak menggandakan pembayaran. Selama deposit masih **PENDING**, check-in tetap terkunci tanpa pilihan override.
+
+2. Pastikan reservasi berstatus **CONFIRMED** dan deposit berstatus **COLLECTED**, lalu klik **Check In Guest**.
 
    ![Form check-in Front Office](images/fo-04-check-in-form.png)
 
-   Pastikan kamar, data tamu, dan Guest Registration Card sudah benar sebelum melanjutkan.
+   Check-in hanya dapat dilanjutkan jika folio sudah tersedia dan memiliki pembayaran **DEPOSIT** yang sesuai. Pastikan kamar, data tamu, dan GRC sudah benar sebelum melanjutkan.
 
-2. Minta tamu menandatangani area **Tanda Tangan Tamu**, lalu centang konfirmasi kedatangan.
+3. Minta tamu menandatangani area **Tanda Tangan Tamu**, lalu centang konfirmasi kedatangan.
 
    ![Tanda tangan digital saat check-in](images/fo-05-check-in-signature.png)
 
-   Setelah tanda tangan terekam, klik **Konfirmasi Check-In**. Sistem membuat Guest Folio untuk tamu.
+   Setelah tanda tangan terekam, klik **Konfirmasi Check-In**. Proses check-in menggunakan folio yang sudah tersedia dan tidak mengumpulkan deposit atau membuat folio baru.
 
 ### 3. Kelola Guest Folio
 

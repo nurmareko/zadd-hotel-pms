@@ -143,7 +143,7 @@ flowchart TD
 **Use case:** UC-FO-03 Proses Check-in
 **Actors:** Front Office staff (Receptionist), Guest, System
 **Trigger:** Guest arrives at the hotel on or after the reservation's arrival date
-**Precondition:** Reservation status is CONFIRMED, arrival date ≤ today
+**Precondition:** Arrival date ≤ today. At check-in commit, the reservation must still be `CONFIRMED`, its deposit must be `COLLECTED`, its folio must exist, and that folio must contain the matching `DEPOSIT`-purpose payment.
 
 ```mermaid
 flowchart TD
@@ -162,51 +162,55 @@ flowchart TD
         R5[Pick available room<br/>of booked type]
         R6[Set purpose of visit]
         R7[Present signature pad]
-        R8[Optionally record deposit]
+        R8[Collect required deposit<br/>amount is not editable]
         R9[Tick confirmation checkbox]
         R10[Click Complete Check-In]
     end
 
     subgraph S[System]
-        S1[Begin transaction]
-        S2[Re-verify reservation<br/>is still CONFIRMED]
-        S3{Status valid?}
+        S0{Deposit status?}
+        S16[Begin Serializable<br/>collection transaction]
+        S17[Re-read reservation and<br/>first ReservationNight rate]
+        S18[Create or reuse folio;<br/>record one DEPOSIT payment;<br/>CAS PENDING to COLLECTED]
+        S19[Commit and return payment;<br/>retry returns existing payment]
+        S1[Begin check-in transaction]
+        S2[Re-verify CONFIRMED,<br/>COLLECTED, existing folio,<br/>and matching DEPOSIT payment]
+        S3{Check-in gate valid?}
         S4[Re-check room overlap<br/>defensive inside transaction]
         S5{Room still available?}
         S6[Update Guest record]
-        S7[Update Reservation:<br/>status CHECKED_IN, roomId set,<br/>signatureDataUrl + signedAt saved]
-        S8[Create Folio:<br/>status OPEN, folioNo generated]
+        S7[Compare-and-set Reservation:<br/>CONFIRMED to CHECKED_IN;<br/>save room and signed GRC]
         S9[Update Room: status OC]
-        S10{Deposit recorded?}
-        S11[Create Payment record<br/>linked to new folio]
         S12[Commit transaction]
-        S13[Redirect to folio]
-        S14[Show error:<br/>not in confirmable state]
+        S13[Redirect to existing folio]
+        S14[Show error:<br/>check-in prerequisites failed]
         S15[Show error:<br/>room no longer available]
     end
 
     End([Folio screen open])
 
-    Start --> G1 --> R1
-    R1 --> R2 --> R3
+    Start --> G1 --> R1 --> S0
+    S0 -->|PENDING| R8 --> S16 --> S17 --> S18 --> S19 --> R2
+    S0 -->|COLLECTED| R2
+    R2 --> R3
     R3 -->|Yes| R4 --> R6
     R3 -->|No| R5 --> R6
-    R6 --> R7 --> G2 --> R8 --> R9 --> R10 --> S1
+    R6 --> R7 --> G2 --> R9 --> R10 --> S1
     S1 --> S2 --> S3
     S3 -->|No| S14
     S3 -->|Yes| S4 --> S5
     S5 -->|No| S15
-    S5 -->|Yes| S6 --> S7 --> S8 --> S9 --> S10
-    S10 -->|Yes| S11 --> S12
-    S10 -->|No| S12
+    S5 -->|Yes| S6 --> S7 --> S9 --> S12
     S12 --> S13 --> End
 
     style Start fill:#ecfdf5
     style End fill:#ecfdf5
     style R3 fill:#fffbeb
+    style S0 fill:#fffbeb
     style S3 fill:#fffbeb
     style S5 fill:#fffbeb
-    style S10 fill:#fffbeb
+    style S16 fill:#eff6ff
+    style S19 fill:#eff6ff
     style S1 fill:#eff6ff
     style S12 fill:#eff6ff
     style S14 fill:#fef2f2
@@ -215,10 +219,12 @@ flowchart TD
 
 **Key logic:**
 
-- **Required digital GRC signature:** the guest signs on screen before submission. The transaction saves `signatureDataUrl` and `signedAt` with the check-in update, and the GRC PDF embeds the captured signature.
-- **Defensive re-verification:** the system re-checks status and room availability inside the transaction. The window between form-open and form-submit could let another receptionist book the same room, so the final check happens during commit.
-- **Conditional payment creation:** the transaction creates a Payment record only if `depositAmount > 0`. The optional deposit doesn't fork the transaction structurally — it adds one more operation inside the same atomic block.
-- **Four state changes in one commit:** Guest update, Reservation update, Folio creation, Room update (and optional Payment) all succeed together or roll back together. This is the strongest data integrity guarantee in the system.
+- **Required collection before check-in:** every reservation's deposit is the server-resolved first `ReservationNight.rateAmount`; the client cannot edit it. On or after arrival, Front Office must collect it before check-in. `PENDING` blocks check-in with no waiver or override.
+- **Single idempotent collection writer:** the canonical serializable collection transaction creates or reuses the folio, records one matching `DEPOSIT`-purpose payment, and atomically compare-and-sets `PENDING → COLLECTED`. A retry returns the existing payment without creating a duplicate.
+- **Required digital GRC signature:** the guest signs on screen before submission. The check-in transaction saves the signed GRC with the reservation update, and the GRC PDF embeds the captured signature.
+- **Defensive re-verification:** check-in re-checks `CONFIRMED`, `COLLECTED`, the existing folio, its matching deposit payment, and room availability inside the transaction, then compare-and-sets `CONFIRMED → CHECKED_IN`.
+- **Separate atomic responsibilities:** collection owns folio and deposit-payment creation. Check-in atomically updates Guest, Reservation, and Room state; it never collects the deposit or creates the folio.
+- **Group behavior:** bulk collection invokes the same writer independently for each eligible sibling. Group batch check-in never collects deposits; it skips `PENDING` siblings and processes only eligible `COLLECTED` siblings.
 
 ---
 

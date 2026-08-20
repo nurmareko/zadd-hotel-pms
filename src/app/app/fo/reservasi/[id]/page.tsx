@@ -134,8 +134,8 @@ function FolioPendingState({ title }: { title: "Pembayaran" | "Tagihan" }) {
         {title}
       </div>
       <p className="p-5 text-sm text-slate-500">
-        Folio dibuat saat pengumpulan deposit atau check-in. Setelah folio
-        tersedia, transaksi {title.toLowerCase()} akan ditampilkan di sini.
+        Folio dibuat saat pengumpulan deposit. Setelah folio tersedia,
+        transaksi {title.toLowerCase()} akan ditampilkan di sini.
       </p>
     </section>
   );
@@ -555,7 +555,7 @@ export default async function ReservationDetailPage({
               <p className="mt-1 text-xs text-slate-500">
                 {reservation.depositStatus === DepositStatus.PENDING
                   ? "Kumpulkan deposit di langkah check-in sebelum tamu dapat di-check-in."
-                  : "Deposit sudah tercatat pada folio dan check-in dapat dilanjutkan."}
+                  : "Status COLLECTED harus disertai pembayaran DEPOSIT yang sesuai pada folio. Check-in hanya dapat dilanjutkan setelah semua persyaratan terverifikasi."}
               </p>
             </div>
             <DepositStatusBadge status={reservation.depositStatus} />

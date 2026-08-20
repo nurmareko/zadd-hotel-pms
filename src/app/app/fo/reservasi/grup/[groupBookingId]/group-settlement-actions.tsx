@@ -509,7 +509,7 @@ export function GroupSettlementActions({
             <div>
               <h3 className="font-semibold text-slate-900">Check-in kamar yang siap</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Kamar CONFIRMED yang sudah tiba dan memiliki kamar akan diproses satu per satu. Setiap tamu tetap wajib menandatangani GRC-nya sendiri.
+                Kamar CONFIRMED yang sudah tiba, memiliki kamar, serta berstatus deposit COLLECTED dengan pembayaran DEPOSIT pada folio akan diproses satu per satu. Setiap tamu tetap wajib menandatangani GRC-nya sendiri.
               </p>
             </div>
           </div>
@@ -534,7 +534,7 @@ export function GroupSettlementActions({
               Lengkapi GRC sebelum check-in batch
             </h3>
             <p className="mt-1 text-sm leading-5 text-emerald-900">
-              Tanda tangan di bawah disimpan pada reservasi kamar masing-masing. Data kontak tamu yang ada tidak diubah dan deposit tidak dicatat melalui aksi batch ini.
+              Tanda tangan di bawah disimpan pada reservasi kamar masing-masing. Data kontak tamu yang ada tidak diubah. Aksi check-in batch ini tidak mengumpulkan deposit; kamar dengan deposit PENDING akan dilewati dan deposit harus dikumpulkan terlebih dahulu.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block">

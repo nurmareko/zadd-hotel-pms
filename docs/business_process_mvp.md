@@ -16,8 +16,9 @@ flowchart LR
     B --> C{Arrival day?}
     C -->|No| D[Reservation held]
     D --> C
-    C -->|Yes| E[Check-in]
-    E --> F[Stay in-house]
+    C -->|Yes| E[Collect required deposit]
+    E --> J[Check-in]
+    J --> F[Stay in-house]
     F --> G{Departure day?}
     G -->|No| F
     G -->|Yes| H[Check-out]
@@ -44,7 +45,7 @@ flowchart TD
     D --> E{Room available<br/>for dates?}
     E -->|No| F[Suggest alternative<br/>dates / room type]
     F --> D
-    E -->|Yes| G[Set rate amount,<br/>deposit, reservation type]
+    E -->|Yes| G[Set reservation type;<br/>server resolves nightly rates<br/>and first-night deposit]
     G --> H[Generate reservation_no<br/>e.g. RSV-yyMMdd-NNNN]
     H --> I[Create Guest row]
     I --> J[Create Reservation row<br/>status: CONFIRMED]
@@ -65,7 +66,7 @@ flowchart TD
 
 ## 3. Check-in Process
 
-How a CONFIRMED reservation becomes a CHECKED_IN active stay. Creates the folio that will accumulate charges throughout the stay.
+How a CONFIRMED reservation with a collected deposit becomes a CHECKED_IN active stay. The folio and deposit payment are created during required deposit collection before check-in.
 
 ```mermaid
 flowchart TD
@@ -77,10 +78,13 @@ flowchart TD
     E -->|No| G[Pick available room<br/>of booked type]
     F --> H[Complete GRC inline:<br/>purpose of visit]
     G --> H
-    H --> I[Optional:<br/>Record deposit]
-    I --> J[Receptionist confirms<br/>check-in checklist]
-    J --> K[Atomic transaction:<br/>flip statuses + create folio]
-    K --> L[Reservation: CHECKED_IN<br/>Room: OC<br/>Folio: OPEN<br/>Payment: created if deposit]
+    H --> I{Deposit status?}
+    I -->|PENDING| P[Collect required deposit;<br/>amount fixed to first-night rate]
+    P --> Q[Serializable collection transaction:<br/>create/reuse folio, record one<br/>DEPOSIT payment, PENDING → COLLECTED]
+    Q --> J[Receptionist confirms<br/>check-in checklist]
+    I -->|COLLECTED| J
+    J --> K[Check-in transaction:<br/>recheck gate and compare-and-set]
+    K --> L[Reservation: CHECKED_IN<br/>Room: OC<br/>Existing Folio: OPEN]
     L --> M([Folio screen opens])
 
     style A fill:#ecfdf5
@@ -89,9 +93,11 @@ flowchart TD
     style M fill:#f1f5f9
 ```
 
-**Why atomic:** the four state changes must succeed together or roll back together. A reservation that's CHECKED_IN without a folio is data corruption; a room that's OC without a guest assigned is data corruption.
+**Why atomic:** collection and check-in have separate atomic responsibilities. The canonical serializable collection transaction creates or reuses the folio, records one matching `DEPOSIT`-purpose payment, and compare-and-sets `PENDING → COLLECTED`; retries return the existing payment without a duplicate. The check-in transaction then rechecks `CONFIRMED`, `COLLECTED`, the existing folio and matching deposit payment, and room availability before compare-and-setting `CONFIRMED → CHECKED_IN` and updating the room. This prevents a CHECKED_IN reservation without its required folio/payment state and prevents an OC room without an assigned guest.
 
 **Defensive overlap re-check:** even though availability was checked when the form opened, it re-checks inside the transaction. The window between form-open and form-submit could allow another receptionist to book the same room. The transaction's overlap check catches this.
+
+**Required deposit gate:** every reservation's deposit is set by the server to its first `ReservationNight.rateAmount` and is not client-editable. On or after arrival, Front Office must collect it before check-in. `PENDING` blocks check-in with no waiver or override. Group bulk collection invokes the same writer independently for each eligible sibling; group batch check-in never collects deposits, skips `PENDING` siblings, and processes only eligible `COLLECTED` siblings.
 
 **Digital GRC signature:** the guest signs on screen before completion. `signatureDataUrl` and `signedAt` are saved transactionally with check-in and the signature is embedded in the downloadable GRC PDF.
 
