@@ -160,6 +160,46 @@ MUST update both files in the same change.
   require docs/db_specification_mvp.md to be updated first.
 - Mutations via server actions. Pages are server components unless
   they need hooks (usePathname, useForm, charts).
+
+### Server-action ownership
+
+- Keep route-owned operations in route-local `actions.ts` by default when the
+  file remains reasonably small and has no cross-route consumers.
+- Move shared operations, or operations from a route action file that mixes
+  multiple domains, to `src/lib/<domain>/`. Follow the established
+  `src/lib/check-in/` and `src/lib/folio/` precedent. Do not introduce
+  `src/features/`; domain UI already lives in `src/components/<domain>/`, and
+  another layout adds no transaction safety.
+- Never import another route's action. When cross-route reuse appears, extract
+  one canonical typed operation to `src/lib/<domain>/` and have both routes call
+  it. Never duplicate its guards.
+- One typed domain operation MUST own one complete transaction: the serializable
+  boundary, retries, lock ordering, every authoritative re-read, current-state
+  recomputation, conditional-write count checks, and all writes in the state
+  transition.
+- The action boundary authenticates, parses untrusted transport input, calls one
+  typed domain operation, translates known failures, and revalidates or redirects
+  after commit.
+- Actions pass IDs and operator input, never pre-read entities. Pre-transaction
+  reads are advisory only for UI responsiveness, idempotent responses, or
+  previews; they never replace a transaction-local guard.
+- Never decompose canonical deposit collection, complete check-in, ordinary
+  folio payment, final payment, complete checkout, Night Audit posting plus its
+  audit-row creation, F&B split selection plus its terminal write, or HK
+  cleaning/session/status transitions into separately callable lower-level
+  steps. Splitting them would make invalid sequencing reachable.
+- Do not force small CRUD actions through a service layer. A wrapper that only
+  relocates straightforward code adds indirection without reducing review
+  complexity.
+- Prefer error precision over architectural purity. Preserve distinct Indonesian
+  operator messages; do not collapse distinct failures into a generic code and
+  catch-all mapper.
+- Known cross-route imports remain tech debt: group settlement imports the
+  checkout-route canonical writers, and group inclusion imports the
+  reservation-detail canonical writers. Their reuse currently preserves guards
+  and is safer than duplicated logic. Migrate them only by extracting the shared
+  canonical operation.
+
 - Any `src/app/**/page.tsx` that directly imports `@prisma/client` or
   `@/lib/prisma` MUST export `const dynamic = "force-dynamic"`; ESLint enforces
   this to prevent build-time database prerendering. The import-based rule cannot
