@@ -919,7 +919,7 @@ export function ReservationForm({
           className="gap-4"
         >
           {isCreateMode ? (
-            <TabsList className="-mx-5 -mt-4 sticky top-14.25 z-30 flex h-auto w-[calc(100%+2.5rem)] max-w-none flex-wrap items-stretch justify-start overflow-clip rounded-none border-x-0 border-t-0 border-b border-slate-200 bg-white px-5 py-0 shadow-none md:-mx-6 md:-mt-5 md:w-[calc(100%+3rem)] md:px-6 desktop:top-0">
+            <TabsList className="-mx-5 -mt-4 sticky top-(--app-mobile-header-height) z-30 flex h-auto w-[calc(100%+2.5rem)] max-w-none flex-wrap items-stretch justify-start overflow-clip rounded-none border-x-0 border-t-0 border-b border-slate-200 bg-white px-5 py-0 shadow-none md:-mx-6 md:-mt-5 md:w-[calc(100%+3rem)] md:px-6 desktop:top-0">
               {reservationTabs.map((tab) => (
                 <TabsTrigger
                   key={tab.value}

@@ -80,7 +80,7 @@ export function BillActions({
   }
 
   return (
-    <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+    <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm desktop:xl:sticky desktop:xl:top-4 desktop:xl:self-start">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
           Aksi Bill

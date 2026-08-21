@@ -42,7 +42,7 @@ export default function Loading() {
           <CardSkeleton rows={3} titleWidth="w-32" />
         </div>
 
-        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+        <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm desktop:xl:sticky desktop:xl:top-4 desktop:xl:self-start">
           <div className="border-b border-gray-100 px-5 py-4">
             <Skeleton className="h-4 w-36" />
             <Skeleton className="mt-2 h-3 w-52" />

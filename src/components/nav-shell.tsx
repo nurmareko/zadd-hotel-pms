@@ -316,6 +316,9 @@ export function NavShell({
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
   const profileLink = accountGroup.links[0];
   const isProfileActive = activeSidebarHref === profileLink.href;
+  const shellStyle = {
+    "--app-mobile-header-height": "4.3125rem",
+  } as CSSProperties;
   const contentStyle = {
     "--app-sidebar-width": sidebarCollapsed ? "4rem" : "260px",
   } as CSSProperties;
@@ -373,7 +376,10 @@ export function NavShell({
   }
 
   return (
-    <div className="min-h-screen flex-1 bg-background text-foreground">
+    <div
+      style={shellStyle}
+      className="min-h-screen flex-1 bg-background text-foreground"
+    >
       <aside
         className={[
           "fixed inset-y-0 left-0 hidden flex-col border-r border-slate-200 bg-white py-5 transition-[width,padding] duration-200 ease-out desktop:flex",
@@ -544,7 +550,7 @@ export function NavShell({
         </div>
       </aside>
 
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 desktop:hidden">
+      <div className="sticky top-0 z-10 flex h-(--app-mobile-header-height) items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 desktop:hidden">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-900 text-[11px] font-bold text-white">
             Z

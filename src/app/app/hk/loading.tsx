@@ -15,7 +15,7 @@ export default function Loading() {
       />
 
       <section className="mt-4">
-        <div className="sticky top-[57px] z-10 border-b border-slate-200 bg-slate-50 md:top-0">
+        <div className="sticky top-(--app-mobile-header-height) z-10 border-b border-slate-200 bg-slate-50 desktop:top-0">
           <div className="flex">
             <Skeleton className="h-11 flex-1 border-b-2 border-slate-200" />
             <Skeleton className="h-11 flex-1 border-b-2 border-slate-200" />
