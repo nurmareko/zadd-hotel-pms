@@ -148,7 +148,7 @@ export function FolioHeader({
             Tipe Reservasi: {reservationTypeLabels[reservation.reservationType]}
           </span>
           <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
-            Inklusi: {arrangementLabels[reservation.arrangementType]}
+            Inklusi saat ini: {arrangementLabels[reservation.arrangementType]}
           </span>
         </div>
 

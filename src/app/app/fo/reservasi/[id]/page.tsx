@@ -455,7 +455,6 @@ export default async function ReservationDetailPage({
     HB: "HB — Sarapan + satu kali makan utama",
     FB: "FB — Sarapan, makan siang, dan makan malam",
   };
-  const currentMealDefinition = MEAL_PLAN_DEFINITIONS[reservation.arrangementType];
   const inclusionNights = reservation.reservationNights.map((night) => {
     const isPosted = night.folioLineItems.length > 0;
     const isElapsed = dateOnlyBoundary(night.date) < today;
@@ -633,7 +632,6 @@ export default async function ReservationDetailPage({
           reservationId={reservation.id}
           currentPlan={reservation.arrangementType}
           currentPlanLabel={mealPlanLabels[reservation.arrangementType]}
-          currentUnitPrice={currentMealDefinition?.unitPrice.toString() ?? "0"}
           pax={reservation.adults + reservation.children}
           nights={inclusionNights}
           options={Object.values(ArrangementType).map((plan) => ({

@@ -310,7 +310,7 @@ model Reservation {
   id              Int                  @id @default(autoincrement())
   reservationNo   String               @unique @map("reservation_no") @db.VarChar(20)
   type            ReservationUsageType @default(REGULAR)
-  arrangementType ArrangementType      @default(RO) @map("arrangement_type")
+  arrangementType ArrangementType      @default(RO) @map("arrangement_type") // current meal-plan command state; ReservationNight meal snapshots are authoritative for history and money
   reservationType ReservationType      @default(INDIVIDUAL) @map("reservation_type")
   guestId         Int                  @map("guest_id")
   roomTypeId      Int                  @map("room_type_id")

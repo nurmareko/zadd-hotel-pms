@@ -44,7 +44,6 @@ type InclusionPanelProps = {
   reservationId: number;
   currentPlan: ArrangementType;
   currentPlanLabel: string;
-  currentUnitPrice: string;
   pax: number;
   nights: InclusionNight[];
   options: MealPlanOption[];
@@ -59,7 +58,6 @@ export function InclusionPanel({
   reservationId,
   currentPlan,
   currentPlanLabel,
-  currentUnitPrice,
   pax,
   nights,
   options,
@@ -75,6 +73,15 @@ export function InclusionPanel({
   const [pendingFeeKind, setPendingFeeKind] =
     useState<ReservationStayFeeKind | null>(null);
   const selectedOption = options.find((option) => option.value === selectedPlan);
+  const persistedUnitPrices = Array.from(
+    new Set(nights.map((night) => night.unitPrice)),
+  );
+  const persistedUnitPriceLabel =
+    persistedUnitPrices.length === 0
+      ? "Tidak tersedia"
+      : persistedUnitPrices.length > 1
+        ? "Bervariasi per malam"
+        : `${formatIDR(persistedUnitPrices[0])} / malam`;
   const canSubmit =
     !terminal &&
     editableNightCount > 0 &&
@@ -166,9 +173,11 @@ export function InclusionPanel({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Harga per tamu</dt>
+            <dt className="text-xs font-medium text-slate-500">
+              Harga tersimpan per tamu
+            </dt>
             <dd className="num mt-1 text-sm font-semibold text-slate-900">
-              {formatIDR(currentUnitPrice)} / malam
+              {persistedUnitPriceLabel}
             </dd>
           </div>
           <div>

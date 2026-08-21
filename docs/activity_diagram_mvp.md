@@ -644,7 +644,7 @@ flowchart TD
         S7[Loop: for each<br/>CHECKED_IN open folio]
         S8[Re-read folio line items<br/>inside transaction]
         S9[Compute stay-charge shortfall:<br/>expected nights − already posted<br/>per article]
-        S10[Create only missing<br/>ROOM/arrangement lines]
+        S10[Create only missing<br/>ROOM/meal snapshot lines]
         S11[Aggregate revenue snapshot<br/>from actual postings + day totals]
         S12[Create NightAudit record<br/>status COMPLETED<br/>unique business_date]
         S13[Commit transaction]
@@ -675,7 +675,7 @@ flowchart TD
 
 - **WIB business date:** the audit date and timestamp windows are derived from `Asia/Jakarta`, not the server-local calendar date. The app does not store or advance a separate business-date pointer.
 - **Atomic across all in-house guests:** every CHECKED_IN reservation's auto-posting happens in one serializable transaction. Each open folio's line items are re-read inside that transaction before posting.
-- **Shortfall-based arrangement posting:** the system reads each reservation's `arrangementType` and posts only the difference between expected nights and already-posted line items per article. If a prior night was missed, the next audit backfills the shortfall; if checkout already posted the catch-up, the audit posts nothing for that folio.
+- **Snapshot-based stay-charge posting:** the system reads each reservation's persisted `ReservationNight` rate and meal snapshots and creates only missing linked article lines for eligible service nights. `Reservation.arrangementType` is not a posting source. If a prior night was missed, the next audit backfills it from that night's snapshots; if checkout already posted the catch-up, the audit posts nothing for that folio.
 - **Duplicate-audit lock:** `night_audit.business_date` is unique. Running the same WIB business date again is blocked before posting, and a concurrent duplicate fails on the unique constraint and rolls back.
 - **Open F&B order warnings:** open F&B orders appear in the audit warnings, but they do not block execution.
 - **Report snapshot:** the NightAudit record stores explicit snapshot fields (`room_revenue`, `fb_revenue`, occupancy, counts, totals). This freezes the report at the moment of audit completion. Even if reservations are later edited or folios modified, the night report shows the state as it was at audit time. This is important for accounting compliance.

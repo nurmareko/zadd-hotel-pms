@@ -155,7 +155,6 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
                 id: true,
                 reservationNo: true,
                 status: true,
-                arrangementType: true,
                 arrivalDate: true,
                 departureDate: true,
                 reservationNights: {

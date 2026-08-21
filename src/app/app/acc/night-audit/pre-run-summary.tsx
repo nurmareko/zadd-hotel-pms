@@ -110,7 +110,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       Kamar
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Inklusi
+                      Inklusi saat ini
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Baris

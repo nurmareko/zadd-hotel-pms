@@ -143,10 +143,7 @@ flowchart TD
 
 **Three sources of folio line items:** night audit (room), F&B (charge-to-room), and Front Office (manual charges). All three append rows to the same `folio_line_item` table — the folio's running balance reflects all of them together.
 
-**Arrangement-driven auto-posting:** during night audit, the system reads each in-house reservation's `arrangementType` and posts the corresponding articles:
-- RO → ROOM-CHARGE only
-- RB → ROOM-CHARGE + BREAKFAST
-- FBM → ROOM-CHARGE + BREAKFAST + COFFEE-BREAK + LUNCH + DINNER
+**Snapshot-based auto-posting:** during Night Audit, the system reads each in-house reservation's persisted `ReservationNight` snapshots and posts only missing linked stay-charge lines for eligible service nights. The nightly `rateAmount` supplies the room charge; nullable `mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount` snapshots supply any meal inclusion charge. `Reservation.arrangementType` is the reservation's current plan and is not a posting or historical money source.
 
 The receptionist doesn't manually trigger any of this; it happens automatically each business day.
 
