@@ -5,7 +5,14 @@ import type { ReservationStayFeeKind } from "@prisma/client";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   useFieldArray,
   useForm,
@@ -340,6 +347,13 @@ export function ReservationForm({
   const [activeTab, setActiveTab] = useState<ReservationTab>("detail");
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
+  // Create aligns below its tabs; edit and view do not render that tab offset.
+  const reservationAsideStyle = {
+    "--reservation-aside-top-offset": isCreateMode ? "3.5625rem" : "1.25rem",
+    "--reservation-aside-bottom-clearance": "1.25rem",
+    "--reservation-aside-max-height":
+      "calc(100dvh - var(--reservation-aside-top-offset) - var(--reservation-aside-bottom-clearance))",
+  } as CSSProperties;
   const reservationSchema = useMemo(
     () =>
       isCreateMode
@@ -1671,21 +1685,24 @@ export function ReservationForm({
                 : null}
             </div>
 
-            <aside className="contents desktop:lg:sticky desktop:lg:top-14.25 desktop:lg:flex desktop:lg:h-[calc(100dvh-5.5625rem)] desktop:lg:max-h-[calc(100dvh-5.5625rem)] desktop:lg:min-w-0 desktop:lg:self-start desktop:lg:flex-col desktop:lg:overflow-clip desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm">
-            <div className="desktop:lg:hidden">{reservationSummary}</div>
-            <div className="hidden desktop:lg:block">
-              {reservationSummary}
-            </div>
+            <aside
+              className="contents desktop:lg:sticky desktop:lg:top-(--reservation-aside-top-offset) desktop:lg:flex desktop:lg:max-h-(--reservation-aside-max-height) desktop:lg:min-w-0 desktop:lg:self-start desktop:lg:flex-col desktop:lg:overflow-hidden desktop:lg:rounded-lg desktop:lg:border desktop:lg:border-slate-200 desktop:lg:bg-white desktop:lg:shadow-sm"
+              style={reservationAsideStyle}
+            >
+              <div className="desktop:lg:hidden">{reservationSummary}</div>
+              <div className="hidden desktop:lg:block desktop:lg:min-h-0 desktop:lg:flex-1 desktop:lg:overflow-y-auto">
+                {reservationSummary}
+              </div>
 
-            {showFooter ? (
-              <PinnedActionFooter
-                hint={reservationActionHint}
-                actions={reservationActions}
-                actionsClassName="desktop:lg:flex-col desktop:lg:gap-3 desktop:lg:px-5 desktop:lg:py-5 desktop:lg:[&>*]:w-full desktop:lg:[&>*]:flex-none"
-                className="desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:[&>div]:rounded-none desktop:lg:[&>div]:border-0 desktop:lg:[&>div]:shadow-none"
-                desktopPanel
-              />
-            ) : null}
+              {showFooter ? (
+                <PinnedActionFooter
+                  hint={reservationActionHint}
+                  actions={reservationActions}
+                  actionsClassName="desktop:lg:flex-col desktop:lg:gap-3 desktop:lg:px-5 desktop:lg:py-5 desktop:lg:[&>*]:w-full desktop:lg:[&>*]:flex-none"
+                  className="desktop:lg:shrink-0 desktop:lg:border-t desktop:lg:border-slate-200 desktop:lg:[&>div]:rounded-none desktop:lg:[&>div]:border-0 desktop:lg:[&>div]:shadow-none"
+                  desktopPanel
+                />
+              ) : null}
             </aside>
           </div>
         </Tabs>
