@@ -201,7 +201,9 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Status deposit tidak sesuai dengan pembayaran pada folio.",
+        code: "DEPOSIT_STATE_INCONSISTENT",
+        error:
+          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
       });
       expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
     });
@@ -222,7 +224,9 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Pembayaran deposit sudah ada tetapi status deposit belum diperbarui.",
+        code: "DEPOSIT_STATE_INCONSISTENT",
+        error:
+          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
       });
       const persisted = await prisma.reservation.findUniqueOrThrow({
         where: { id: reservation.id },
@@ -247,7 +251,8 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Deposit check-in baru dapat dikumpulkan pada hari kedatangan",
+        code: "ARRIVAL_NOT_DUE",
+        error: "Check-in baru dapat dilakukan pada tanggal kedatangan.",
       });
       expect(await prisma.folio.count({ where: { reservationId: reservation.id } })).toBe(0);
       expect(await prisma.payment.count()).toBe(0);
@@ -298,6 +303,7 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
+        code: "DEPOSIT_REQUIRED",
         error: "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
@@ -328,7 +334,9 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Folio deposit tidak ditemukan. Kumpulkan deposit sebelum check-in.",
+        code: "DEPOSIT_FOLIO_MISSING",
+        error:
+          "Folio deposit tidak ditemukan. Hentikan check-in dan periksa data reservasi.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
         await Promise.all([
@@ -358,7 +366,9 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Status deposit tidak sesuai dengan pembayaran pada folio.",
+        code: "DEPOSIT_STATE_INCONSISTENT",
+        error:
+          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
         await Promise.all([
@@ -395,7 +405,8 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
+        code: "ROOM_OOO",
+        error: "Kamar yang dipilih berstatus OOO. Pilih kamar lain.",
         field: "roomId",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
@@ -533,7 +544,9 @@ describe("check-in database actions", () => {
       );
       expect(retryResult).toEqual({
         ok: false,
-        error: "Reservasi tidak dalam status yang bisa check-in",
+        code: "RESERVATION_NOT_ELIGIBLE",
+        error:
+          "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
       });
 
       await prisma.guest.update({
@@ -676,7 +689,9 @@ describe("check-in database actions", () => {
       expect(firstResult).toEqual({ ok: true });
       expect(retryResult).toEqual({
         ok: false,
-        error: "Reservasi tidak dalam status yang bisa check-in",
+        code: "RESERVATION_NOT_ELIGIBLE",
+        error:
+          "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
       });
 
       const persistedFee = await prisma.reservationStayFee.findUniqueOrThrow({
@@ -696,6 +711,54 @@ describe("check-in database actions", () => {
       expect(feeLines[0]?.quantity.toString()).toBe("1");
       expect(feeLines[0]?.unitPrice.toString()).toBe("100000");
       expect(feeLines[0]?.amount.toString()).toBe("100000");
+    });
+
+    it("returns STAY_FEE_UNAVAILABLE and rolls back when a pending stay fee cannot be posted", async () => {
+      const { user, reservation, room } = await createBasicReservation({
+        depositStatus: DepositStatus.COLLECTED,
+      });
+      await createConsistentCollectedDeposit(
+        reservation.id,
+        user.id,
+      );
+      // Create pending stay fee without creating the corresponding Article
+      const fee = await prisma.reservationStayFee.create({
+        data: {
+          reservationId: reservation.id,
+          kind: ReservationStayFeeKind.EARLY_CHECK_IN,
+          unitPrice: 100_000,
+          status: ReservationStayFeeStatus.PENDING,
+          selectedById: user.id,
+        },
+      });
+
+      const result = await completeCheckIn(
+        checkInFormData(reservation.id, room.id),
+        { redirectAfterCheckIn: false },
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        code: "STAY_FEE_UNAVAILABLE",
+        error:
+          "Biaya fleksibilitas belum dapat dicatat. Periksa konfigurasi biaya lalu coba lagi.",
+      });
+
+      // Verify transaction rollback
+      const persistedReservation = await prisma.reservation.findUniqueOrThrow({
+        where: { id: reservation.id },
+      });
+      expect(persistedReservation.status).toBe(ReservationStatus.CONFIRMED);
+
+      const persistedRoom = await prisma.room.findUniqueOrThrow({
+        where: { id: room.id },
+      });
+      expect(persistedRoom.status).toBe(RoomStatus.VC);
+
+      const persistedFee = await prisma.reservationStayFee.findUniqueOrThrow({
+        where: { id: fee.id },
+      });
+      expect(persistedFee.status).toBe(ReservationStayFeeStatus.PENDING);
     });
   });
 

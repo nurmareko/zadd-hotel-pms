@@ -11,6 +11,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import {
+  checkActionAuthorization,
+  logActionFailure,
+  rethrowFrameworkErrors,
+} from "@/lib/action-errors";
+import {
+  CHECK_IN_FAILURE_MESSAGES,
+  CHECK_IN_UNKNOWN_RESULT_MESSAGES,
+} from "@/lib/check-in/errors";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { formatDateID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
@@ -123,9 +132,8 @@ function revalidateGroup(groupBookingId: string) {
 }
 
 function unexpectedActionError(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "Terjadi kegagalan saat memproses kamar ini.";
+  logActionFailure("groupAction:unexpected", error);
+  return "Terjadi kegagalan saat memproses kamar ini.";
 }
 
 async function callExistingAction<T extends DelegatedActionResult>(
@@ -143,36 +151,52 @@ export async function collectGroupDeposits(input: {
   method: PaymentMethod;
   reference?: string;
 }): Promise<GroupActionResult> {
-  if (!(await canManageGroupCheckout())) {
-    return { ok: false, error: "Unauthorized" };
+  const session = await auth();
+  const authFailure = checkActionAuthorization(session, ["FO"]);
+  if (authFailure) {
+    return { ok: false, error: authFailure.error };
   }
 
   const parsed = GroupDepositSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Data deposit tidak valid",
+      error: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
     };
   }
 
   const { groupBookingId, method, reference } = parsed.data;
   const { today } = todayDateOnly();
-  const reservations = await prisma.reservation.findMany({
-    where: { groupBookingId },
-    include: {
-      room: { select: { number: true } },
-      folio: {
-        select: {
-          payments: {
-            where: { purpose: PaymentPurpose.DEPOSIT },
-            select: { id: true },
-            take: 1,
+  let reservations;
+  try {
+    reservations = await prisma.reservation.findMany({
+      where: { groupBookingId },
+      include: {
+        room: { select: { number: true } },
+        folio: {
+          select: {
+            payments: {
+              where: { purpose: PaymentPurpose.DEPOSIT },
+              select: { id: true },
+              take: 1,
+            },
           },
         },
       },
-    },
-    orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
-  });
+      orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
+    });
+  } catch (error) {
+    rethrowFrameworkErrors(error);
+    logActionFailure("collectGroupDeposits", error, {
+      action: "collectGroupDeposits",
+      stage: "query",
+      groupBookingId,
+    });
+    return {
+      ok: false,
+      error: CHECK_IN_FAILURE_MESSAGES.REVIEW_UNEXPECTED,
+    };
+  }
 
   if (reservations.length === 0) {
     return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
@@ -220,14 +244,27 @@ export async function collectGroupDeposits(input: {
       continue;
     }
 
-    const deposit = await callExistingAction(() =>
-      collectCheckInDepositForGroup({
+    let deposit: Awaited<ReturnType<typeof collectCheckInDepositForGroup>>;
+    try {
+      deposit = await collectCheckInDepositForGroup({
         reservationId: reservation.id,
         depositMethod: method,
         depositReference: reference,
         groupBookingId,
-      }),
-    );
+      });
+    } catch (error) {
+      rethrowFrameworkErrors(error);
+      logActionFailure("collectGroupDeposits:sibling", error, {
+        action: "collectGroupDeposits",
+        stage: "sibling",
+        reservationId: reservation.id,
+      });
+      deposit = {
+        ok: false,
+        code: "RESULT_UNKNOWN",
+        error: CHECK_IN_UNKNOWN_RESULT_MESSAGES.deposit,
+      };
+    }
 
     results.push(
       !deposit.ok

@@ -17,6 +17,7 @@ import { formatIDR } from "@/lib/format";
 import { formatGuestIdentity } from "@/lib/guest-id-type";
 
 import { completeCheckIn } from "@/lib/check-in/actions";
+import { GROUP_MUTATION_UNCERTAIN_MESSAGE } from "@/lib/check-in/errors";
 import { SignaturePadField } from "@/components/check-in/signature-pad-field";
 import {
   checkoutEligibleGroupRooms,
@@ -131,7 +132,10 @@ function BatchResultSummary({ result }: { result: BatchResult }) {
   const failed = result.results.filter((item) => item.status === "failed").length;
 
   return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div
+      className="mt-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      role={failed > 0 ? "alert" : "status"}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">{result.title}</h3>
         <p className="text-xs font-medium text-slate-500">
@@ -179,6 +183,9 @@ export function GroupSettlementActions({
   );
   const [depositReference, setDepositReference] = useState("");
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
+  const [uncertaintyMessage, setUncertaintyMessage] = useState<string | null>(
+    null,
+  );
   const [isCheckInPanelOpen, setIsCheckInPanelOpen] = useState(false);
   const [groupPurposeOfVisit, setGroupPurposeOfVisit] = useState("Bisnis");
   const [arrivalConfirmed, setArrivalConfirmed] = useState(false);
@@ -218,6 +225,7 @@ export function GroupSettlementActions({
   }
 
   function collectDeposits() {
+    if (uncertaintyMessage) return;
     setBatchResult(null);
 
     startDepositTransition(async () => {
@@ -239,9 +247,8 @@ export function GroupSettlementActions({
           "dikumpulkan depositnya",
         );
       } catch {
-        toast.error(
-          "Koneksi terputus saat memproses deposit. Muat ulang untuk memeriksa hasil tiap kamar.",
-        );
+        setBatchResult(null);
+        setUncertaintyMessage(GROUP_MUTATION_UNCERTAIN_MESSAGE);
       } finally {
         router.refresh();
       }
@@ -291,10 +298,12 @@ export function GroupSettlementActions({
   }
 
   function checkInEligibleRoomsInBatch() {
+    if (uncertaintyMessage) return;
     setBatchResult(null);
 
     startCheckInTransition(async () => {
       const results: GroupRoomActionResult[] = [];
+      let hadUncertainty = false;
 
       // Each eligible room delegates to the same completeCheckIn action as
       // the individual flow. Deposit collection remains an explicit separate
@@ -331,22 +340,31 @@ export function GroupSettlementActions({
         formData.set("depositMethod", "");
         formData.set("depositReference", "");
 
-        const result = await completeCheckIn(formData, {
-          redirectAfterCheckIn: false
-        });
-        results.push(
-          result.ok
-            ? asResult(room, "completed", "Check-in selesai.")
-            : asResult(room, "failed", result.error),
-        );
+        try {
+          const result = await completeCheckIn(formData, {
+            redirectAfterCheckIn: false,
+          });
+          results.push(
+            result.ok
+              ? asResult(room, "completed", "Check-in selesai.")
+              : asResult(room, "failed", result.error),
+          );
+        } catch {
+          hadUncertainty = true;
+          setBatchResult(null);
+          setUncertaintyMessage(GROUP_MUTATION_UNCERTAIN_MESSAGE);
+          break;
+        }
       }
 
-      showBatchOutcome(
-        "Hasil check-in kamar siap",
-        results,
-        "di-check-in",
-      );
-      setIsCheckInPanelOpen(false);
+      if (!hadUncertainty) {
+        showBatchOutcome(
+          "Hasil check-in kamar siap",
+          results,
+          "di-check-in",
+        );
+        setIsCheckInPanelOpen(false);
+      }
       router.refresh();
     });
   }
@@ -362,6 +380,25 @@ export function GroupSettlementActions({
           Setiap pembayaran dan check-out tetap diproses pada folio kamar masing-masing.
         </p>
       </div>
+      {uncertaintyMessage ? (
+        <div
+          className="mx-5 mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          role="alert"
+        >
+          <p className="font-semibold">{uncertaintyMessage}</p>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-800 hover:bg-red-100"
+              onClick={() => window.location.reload()}
+            >
+              Muat ulang halaman
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="grid gap-5 p-5 lg:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
           <div className="flex items-start gap-3">
@@ -420,7 +457,7 @@ export function GroupSettlementActions({
           <Button
             type="button"
             onClick={collectDeposits}
-            disabled={isPending || depositEligibleRooms.length === 0}
+            disabled={isPending || Boolean(uncertaintyMessage) || depositEligibleRooms.length === 0}
             className="mt-4"
           >
             <Banknote className="h-4 w-4" aria-hidden="true" />
@@ -517,7 +554,7 @@ export function GroupSettlementActions({
             type="button"
             variant="outline"
             onClick={() => setIsCheckInPanelOpen((current) => !current)}
-            disabled={isPending || checkInEligibleRooms.length === 0}
+            disabled={isPending || Boolean(uncertaintyMessage) || checkInEligibleRooms.length === 0}
             className="mt-4"
           >
             <LogIn className="h-4 w-4" aria-hidden="true" />
@@ -592,7 +629,7 @@ export function GroupSettlementActions({
             <Button
               type="button"
               onClick={checkInEligibleRoomsInBatch}
-              disabled={isPending || !arrivalConfirmed || !everyEligibleRoomIsSigned}
+              disabled={isPending || Boolean(uncertaintyMessage) || !arrivalConfirmed || !everyEligibleRoomIsSigned}
               className="mt-5"
             >
               <LogIn className="h-4 w-4" aria-hidden="true" />

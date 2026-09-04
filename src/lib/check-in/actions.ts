@@ -1,21 +1,31 @@
 "use server";
 
 import {
+  ArrangementType,
   DepositStatus,
+  GuestIdType,
   PaymentPurpose,
   Prisma,
   ReservationStatus,
+  ReservationType,
   RoomStatus,
 } from "@prisma/client";
-import { format } from "date-fns";
+import { differenceInCalendarDays, format } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import {
+  logActionFailure,
+  rethrowFrameworkErrors,
+  runPostCommitSideEffects,
+} from "@/lib/action-errors";
 import { logActivity } from "@/lib/activity-log";
 // Prisma @db.Date filters require dateOnlyBoundary (UTC midnight).
 // Timestamp filters (createdAt, receivedAt, etc.) use startOfDay (local midnight).
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
+import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
+import { formatDateID } from "@/lib/format";
 import {
   buildGrcSnapshot,
   GRC_SNAPSHOT_SCHEMA_VERSION,
@@ -26,15 +36,21 @@ import {
   ReservationStayFeeError,
 } from "@/lib/reservation-stay-fees";
 import {
+  CHECK_IN_FAILURE_MESSAGES,
+  checkInAuthorizationFailure,
+  checkInFailure,
+  type CheckInActionField,
+  type CheckInFailure,
+  type CheckInFailureCode,
+} from "./errors";
+import {
   CheckInSchema,
   DepositCollectionSchema,
   type CheckInValues,
   type DepositCollectionValues,
 } from "./schema";
 
-type ActionFailure = { ok: false; error: string; field?: string };
-
-export type ActionResult = { ok: true } | ActionFailure;
+export type ActionResult = { ok: true } | CheckInFailure;
 
 export type CollectDepositResult =
   | {
@@ -46,7 +62,57 @@ export type CollectDepositResult =
       };
       alreadyCollected: boolean;
     }
-  | ActionFailure;
+  | CheckInFailure;
+
+export type CheckInReviewData = {
+  snapshotVersion: string;
+  reservationId: number;
+  reservationNo: string;
+  reservationType: ReservationType;
+  arrangementType: ArrangementType;
+  status: ReservationStatus;
+  arrivalDue: boolean;
+  guest: {
+    fullName: string;
+    idType: GuestIdType | null;
+    idNumber: string | null;
+    phone: string | null;
+    email: string | null;
+    nationality: string | null;
+  };
+  stay: {
+    arrivalLabel: string;
+    departureLabel: string;
+    nights: number;
+    adults: number;
+    children: number;
+    total: string;
+    nightlySchedule: Array<{
+      dateLabel: string;
+      rateAmount: string;
+    }>;
+  };
+  room: {
+    id: number;
+    number: string;
+    status: RoomStatus;
+    typeName: string;
+  } | null;
+  roomReady: boolean;
+  deposit: {
+    status: DepositStatus;
+    requiredAmount: string | null;
+    payment: {
+      amount: string;
+      method: string;
+      reference: string | null;
+    } | null;
+  };
+};
+
+export type CheckInReviewResult =
+  | { ok: true; review: CheckInReviewData }
+  | CheckInFailure;
 
 type CompleteCheckInOptions = {
   /**
@@ -80,19 +146,19 @@ type CheckInContext = {
   departureDate: Date;
 };
 
-class CheckInActionError extends Error {}
+class CheckInDomainError extends Error {
+  readonly code: CheckInFailureCode;
+  readonly field?: CheckInActionField;
 
-function validationFailure(error: {
-  issues: { message: string; path: PropertyKey[] }[];
-}): ActionFailure {
-  const issue = error.issues[0];
-  const field = typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
-
-  return {
-    ok: false,
-    error: issue?.message ?? "Data check-in tidak valid",
-    field,
-  };
+  constructor(
+    code: CheckInFailureCode,
+    options?: { field?: CheckInActionField; message?: string },
+  ) {
+    super(options?.message ?? CHECK_IN_FAILURE_MESSAGES[code]);
+    this.name = "CheckInDomainError";
+    this.code = code;
+    this.field = options?.field;
+  }
 }
 
 function isRetryableFolioNumberError(error: unknown) {
@@ -109,16 +175,179 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-async function roomUnavailableMessage(roomId: number) {
-  const room = await prisma.room.findUnique({
-    where: { id: roomId },
-    select: { number: true },
-  });
+export async function getCheckInReviewData(
+  input: number | { reservationId: number },
+): Promise<CheckInReviewResult> {
+  const session = await auth();
+  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  if (authFailure) {
+    return authFailure;
+  }
 
-  return `Kamar ${room?.number ?? roomId} sudah tidak tersedia. Pilih kamar lain.`;
+  const reservationId =
+    typeof input === "number" ? input : input?.reservationId;
+
+  if (!Number.isInteger(reservationId) || reservationId <= 0) {
+    return checkInFailure("INVALID_INPUT", {
+      field: "reservationId",
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
+  }
+
+  try {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        id: true,
+        reservationNo: true,
+        reservationType: true,
+        arrangementType: true,
+        roomTypeId: true,
+        arrivalDate: true,
+        departureDate: true,
+        adults: true,
+        children: true,
+        status: true,
+        depositStatus: true,
+        rateAmount: true,
+        updatedAt: true,
+        guest: {
+          select: {
+            fullName: true,
+            idType: true,
+            idNumber: true,
+            phone: true,
+            email: true,
+            nationality: true,
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            number: true,
+            status: true,
+            roomTypeId: true,
+          },
+        },
+        roomType: { select: { name: true } },
+        folio: {
+          select: {
+            payments: {
+              where: { purpose: PaymentPurpose.DEPOSIT },
+              select: { amount: true, method: true, reference: true },
+              orderBy: { receivedAt: "asc" },
+              take: 1,
+            },
+          },
+        },
+        reservationNights: {
+          select: { date: true, rateAmount: true },
+          orderBy: { date: "asc" },
+        },
+      },
+    });
+
+    if (!reservation) {
+      return checkInFailure("RESERVATION_NOT_FOUND");
+    }
+
+    const roomOverlap = reservation.room
+      ? await prisma.reservation.findFirst({
+          where: {
+            id: { not: reservation.id },
+            roomId: reservation.room.id,
+            status: {
+              in: [ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN],
+            },
+            arrivalDate: { lt: reservation.departureDate },
+            departureDate: { gt: reservation.arrivalDate },
+          },
+          select: { id: true },
+        })
+      : null;
+    const stayTotal = flatReservationNightStayTotal({
+      arrivalDate: reservation.arrivalDate,
+      departureDate: reservation.departureDate,
+      rateAmount: reservation.rateAmount,
+      reservationNights: reservation.reservationNights,
+    });
+    const depositPayment = reservation.folio?.payments[0] ?? null;
+    const firstNight = reservation.reservationNights[0] ?? null;
+    const { today } = todayDateOnly();
+    const roomReady = Boolean(
+      reservation.room &&
+        reservation.room.roomTypeId === reservation.roomTypeId &&
+        reservation.room.status !== RoomStatus.OOO &&
+        !roomOverlap,
+    );
+
+    return {
+      ok: true,
+      review: {
+        snapshotVersion: reservation.updatedAt.toISOString(),
+        reservationId: reservation.id,
+        reservationNo: reservation.reservationNo,
+        reservationType: reservation.reservationType,
+        arrangementType: reservation.arrangementType,
+        status: reservation.status,
+        arrivalDue: dateOnlyBoundary(reservation.arrivalDate) <= today,
+        guest: reservation.guest,
+        stay: {
+          arrivalLabel: formatDateID(reservation.arrivalDate),
+          departureLabel: formatDateID(reservation.departureDate),
+          nights: differenceInCalendarDays(
+            reservation.departureDate,
+            reservation.arrivalDate,
+          ),
+          adults: reservation.adults,
+          children: reservation.children,
+          total: stayTotal.total.toString(),
+          nightlySchedule: stayTotal.nightlySchedule.map((night) => ({
+            dateLabel: formatDateID(night.date),
+            rateAmount: night.rateAmount.toString(),
+          })),
+        },
+        room: reservation.room
+          ? {
+              id: reservation.room.id,
+              number: reservation.room.number,
+              status: reservation.room.status,
+              typeName: reservation.roomType.name,
+            }
+          : null,
+        roomReady,
+        deposit: {
+          status: reservation.depositStatus,
+          requiredAmount: firstNight?.rateAmount.toString() ?? null,
+          payment: depositPayment
+            ? {
+                amount: depositPayment.amount.toString(),
+                method: depositPayment.method,
+                reference: depositPayment.reference,
+              }
+            : null,
+        },
+      },
+    };
+  } catch (error) {
+    rethrowFrameworkErrors(error);
+    logActionFailure("getCheckInReviewData", error, {
+      action: "getCheckInReviewData",
+      stage: "review",
+      reservationId,
+    });
+    return checkInFailure("REVIEW_UNEXPECTED");
+  }
 }
 
-async function prepareCheckInContext(input: CheckInValues) {
+export const getFreshCheckInReview = getCheckInReviewData;
+
+async function prepareCheckInContext(
+  input: CheckInValues,
+): Promise<
+  | { ok: true; context: CheckInContext }
+  | CheckInFailure
+> {
   const reservation = await prisma.reservation.findUnique({
     where: { id: input.reservationId },
     select: {
@@ -131,11 +360,12 @@ async function prepareCheckInContext(input: CheckInValues) {
     },
   });
 
-  if (!reservation || reservation.status !== ReservationStatus.CONFIRMED) {
-    return {
-      ok: false as const,
-      error: "Reservasi tidak dalam status yang bisa check-in",
-    };
+  if (!reservation) {
+    return checkInFailure("RESERVATION_NOT_FOUND");
+  }
+
+  if (reservation.status !== ReservationStatus.CONFIRMED) {
+    return checkInFailure("RESERVATION_NOT_ELIGIBLE");
   }
 
   const arrivalDate = dateOnlyBoundary(reservation.arrivalDate);
@@ -143,10 +373,7 @@ async function prepareCheckInContext(input: CheckInValues) {
   const { today } = todayDateOnly();
 
   if (arrivalDate > today) {
-    return {
-      ok: false as const,
-      error: "Tanggal kedatangan belum bisa check-in",
-    };
+    return checkInFailure("ARRIVAL_NOT_DUE");
   }
 
   const room = await prisma.room.findUnique({
@@ -154,20 +381,16 @@ async function prepareCheckInContext(input: CheckInValues) {
     select: { id: true, number: true, roomTypeId: true, status: true },
   });
 
-  if (!room || room.roomTypeId !== reservation.roomTypeId) {
-    return {
-      ok: false as const,
-      error: "Kamar tidak valid untuk reservasi ini",
-      field: "roomId",
-    };
+  if (!room) {
+    return checkInFailure("ROOM_REQUIRED", { field: "roomId" });
+  }
+
+  if (room.roomTypeId !== reservation.roomTypeId) {
+    return checkInFailure("ROOM_TYPE_MISMATCH", { field: "roomId" });
   }
 
   if (room.status === RoomStatus.OOO) {
-    return {
-      ok: false as const,
-      error: `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
-      field: "roomId",
-    };
+    return checkInFailure("ROOM_OOO", { field: "roomId" });
   }
 
   const overlappingReservation = await prisma.reservation.findFirst({
@@ -182,15 +405,11 @@ async function prepareCheckInContext(input: CheckInValues) {
   });
 
   if (overlappingReservation) {
-    return {
-      ok: false as const,
-      error: `Kamar ${room.number} sudah tidak tersedia. Pilih kamar lain.`,
-      field: "roomId",
-    };
+    return checkInFailure("ROOM_UNAVAILABLE", { field: "roomId" });
   }
 
   return {
-    ok: true as const,
+    ok: true,
     context: { reservation, room, arrivalDate, departureDate },
   };
 }
@@ -226,9 +445,9 @@ async function runCheckInTransaction(
       });
 
       if (overlappingReservation) {
-        throw new CheckInActionError(
-          `Kamar ${room.number} sudah tidak tersedia. Pilih kamar lain.`,
-        );
+        throw new CheckInDomainError("ROOM_UNAVAILABLE", {
+          field: "roomId",
+        });
       }
 
       const firstNight = await tx.reservationNight.findFirst({
@@ -238,9 +457,7 @@ async function runCheckInTransaction(
       });
 
       if (!firstNight) {
-        throw new CheckInActionError(
-          "Jadwal harga reservasi tidak tersedia untuk menghitung deposit.",
-        );
+        throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
       const depositAmount = firstNight.rateAmount;
@@ -262,31 +479,24 @@ async function runCheckInTransaction(
         },
       });
 
-      if (
-        !currentReservation ||
-        currentReservation.status !== ReservationStatus.CONFIRMED
-      ) {
-        throw new CheckInActionError(
-          "Reservasi tidak dalam status yang bisa check-in",
-        );
+      if (!currentReservation) {
+        throw new CheckInDomainError("RESERVATION_NOT_FOUND");
+      }
+
+      if (currentReservation.status !== ReservationStatus.CONFIRMED) {
+        throw new CheckInDomainError("RESERVATION_NOT_ELIGIBLE");
       }
 
       if (currentReservation.depositStatus === DepositStatus.PENDING) {
-        throw new CheckInActionError(
-          "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
-        );
+        throw new CheckInDomainError("DEPOSIT_REQUIRED");
       }
 
       if (!currentReservation.folio) {
-        throw new CheckInActionError(
-          "Folio deposit tidak ditemukan. Kumpulkan deposit sebelum check-in.",
-        );
+        throw new CheckInDomainError("DEPOSIT_FOLIO_MISSING");
       }
 
       if (currentReservation.folio.payments.length === 0) {
-        throw new CheckInActionError(
-          "Status deposit tidak sesuai dengan pembayaran pada folio.",
-        );
+        throw new CheckInDomainError("DEPOSIT_STATE_INCONSISTENT");
       }
 
       await tx.guest.update({
@@ -319,9 +529,7 @@ async function runCheckInTransaction(
       });
 
       if (updatedReservation.count === 0) {
-        throw new CheckInActionError(
-          "Status reservasi atau deposit berubah sebelum check-in dapat diselesaikan.",
-        );
+        throw new CheckInDomainError("CHECK_IN_CONFLICT");
       }
 
       const [snapshotReservation, checkInOperator, hotelSettings] =
@@ -398,17 +606,30 @@ async function runCheckInTransaction(
       });
 
       if (updatedRoom.count === 0) {
-        throw new CheckInActionError(
-          `Kamar ${room.number} sedang out of order. Pilih kamar lain.`,
-        );
+        throw new CheckInDomainError("ROOM_OOO", {
+          field: "roomId",
+        });
       }
 
-      await postPendingReservationStayFees(tx, {
-        reservationId: reservation.id,
-        folioId: currentReservation.folio.id,
-        postedById: userId,
-        postedAt: now,
-      });
+      try {
+        await postPendingReservationStayFees(tx, {
+          reservationId: reservation.id,
+          folioId: currentReservation.folio.id,
+          postedById: userId,
+          postedAt: now,
+        });
+      } catch (stayFeeError) {
+        if (stayFeeError instanceof ReservationStayFeeError) {
+          logActionFailure("completeCheckIn:stay-fee", stayFeeError, {
+            action: "completeCheckIn",
+            stage: "stay-fee",
+            reservationId: reservation.id,
+            committed: false,
+          });
+          throw new CheckInDomainError("STAY_FEE_UNAVAILABLE");
+        }
+        throw stayFeeError;
+      }
 
       return { ok: true as const, folioId: currentReservation.folio.id };
     },
@@ -454,27 +675,25 @@ async function runDepositCollectionTransaction(
         },
       });
 
-      if (!reservation || reservation.status !== ReservationStatus.CONFIRMED) {
-        throw new CheckInActionError(
-          "Reservasi tidak dalam status yang bisa mengumpulkan deposit",
-        );
+      if (!reservation) {
+        throw new CheckInDomainError("RESERVATION_NOT_FOUND");
+      }
+
+      if (reservation.status !== ReservationStatus.CONFIRMED) {
+        throw new CheckInDomainError("DEPOSIT_NOT_ELIGIBLE");
       }
 
       if (
         expectedGroupBookingId !== undefined &&
         reservation.groupBookingId !== expectedGroupBookingId
       ) {
-        throw new CheckInActionError(
-          "Reservasi tidak lagi termasuk dalam booking grup ini.",
-        );
+        throw new CheckInDomainError("DEPOSIT_NOT_ELIGIBLE");
       }
 
       const existingPayment = reservation.folio?.payments[0];
       if (reservation.depositStatus === DepositStatus.COLLECTED) {
         if (!existingPayment) {
-          throw new CheckInActionError(
-            "Status deposit tidak sesuai dengan pembayaran pada folio.",
-          );
+          throw new CheckInDomainError("DEPOSIT_STATE_INCONSISTENT");
         }
 
         return {
@@ -489,28 +708,20 @@ async function runDepositCollectionTransaction(
 
       const { today } = todayDateOnly();
       if (dateOnlyBoundary(reservation.arrivalDate) > today) {
-        throw new CheckInActionError(
-          "Deposit check-in baru dapat dikumpulkan pada hari kedatangan",
-        );
+        throw new CheckInDomainError("ARRIVAL_NOT_DUE");
       }
 
       const firstNight = reservation.reservationNights[0];
       if (!firstNight) {
-        throw new CheckInActionError(
-          "Jadwal harga reservasi tidak tersedia untuk menghitung deposit.",
-        );
+        throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
       if (!firstNight.rateAmount.isPositive()) {
-        throw new CheckInActionError(
-          "Tarif malam pertama harus lebih besar dari 0 sebelum deposit dapat dikumpulkan.",
-        );
+        throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
       if (existingPayment) {
-        throw new CheckInActionError(
-          "Pembayaran deposit sudah ada tetapi status deposit belum diperbarui.",
-        );
+        throw new CheckInDomainError("DEPOSIT_STATE_INCONSISTENT");
       }
 
       const folio = reservation.folio
@@ -549,9 +760,7 @@ async function runDepositCollectionTransaction(
       });
 
       if (collectedReservation.count === 0) {
-        throw new CheckInActionError(
-          "Status deposit berubah sebelum pembayaran dapat dicatat.",
-        );
+        throw new CheckInDomainError("DEPOSIT_CONFLICT");
       }
 
       return { payment, alreadyCollected: false };
@@ -586,8 +795,11 @@ async function collectValidatedDeposit(
         alreadyCollected: result.alreadyCollected,
       };
     } catch (error) {
-      if (error instanceof CheckInActionError) {
-        return { ok: false, error: error.message };
+      if (error instanceof CheckInDomainError) {
+        return checkInFailure(error.code, {
+          field: error.field,
+          message: error.message,
+        });
       }
 
       if (attempt < 2 && isRetryableFolioNumberError(error)) {
@@ -595,17 +807,23 @@ async function collectValidatedDeposit(
       }
 
       if (isSerializationConflict(error)) {
-        return {
-          ok: false,
-          error: "Status deposit berubah bersamaan. Muat ulang lalu coba lagi.",
-        };
+        return checkInFailure("DEPOSIT_CONFLICT");
       }
 
-      return { ok: false, error: "Gagal mencatat pembayaran deposit" };
+      rethrowFrameworkErrors(error);
+      logActionFailure("collectCheckInDeposit", error, {
+        action: "collectCheckInDeposit",
+        stage: "transaction",
+        reservationId: input.reservationId,
+        attempt,
+        committed: false,
+      });
+
+      return checkInFailure("DEPOSIT_UNEXPECTED");
     }
   }
 
-  return { ok: false, error: "Gagal mencatat pembayaran deposit" };
+  return checkInFailure("DEPOSIT_UNEXPECTED");
 }
 
 export async function collectCheckInDepositForGroup(input: {
@@ -615,18 +833,30 @@ export async function collectCheckInDepositForGroup(input: {
   groupBookingId: string;
 }): Promise<CollectDepositResult> {
   const session = await auth();
-
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  if (authFailure || !session?.user) {
+    return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }
 
   const parsed = DepositCollectionSchema.safeParse(input);
-  const groupBookingId = input.groupBookingId.trim();
+  const groupBookingId =
+    typeof input.groupBookingId === "string"
+      ? input.groupBookingId.trim()
+      : "";
   if (!parsed.success) {
-    return validationFailure(parsed.error);
+    const issue = parsed.error.issues[0];
+    const field =
+      typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+    return checkInFailure("INVALID_INPUT", {
+      field,
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
   }
   if (!groupBookingId) {
-    return { ok: false, error: "Booking grup tidak valid" };
+    return checkInFailure("INVALID_INPUT", {
+      field: "groupBookingId",
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
   }
 
   return collectValidatedDeposit(
@@ -640,22 +870,47 @@ export async function collectCheckInDeposit(
   formData: FormData,
 ): Promise<CollectDepositResult> {
   const session = await auth();
-
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  if (authFailure || !session?.user) {
+    return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }
 
-  const parsed = DepositCollectionSchema.safeParse(Object.fromEntries(formData));
+  const parsed = DepositCollectionSchema.safeParse(
+    Object.fromEntries(formData),
+  );
   if (!parsed.success) {
-    return validationFailure(parsed.error);
+    const issue = parsed.error.issues[0];
+    const field =
+      typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+    return checkInFailure("INVALID_INPUT", {
+      field,
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
   }
 
-  const result = await collectValidatedDeposit(parsed.data, Number(session.user.id));
+  const result = await collectValidatedDeposit(
+    parsed.data,
+    Number(session.user.id),
+  );
   if (!result.ok) {
     return result;
   }
 
-  revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
+  await runPostCommitSideEffects(
+    [
+      {
+        name: "revalidate:reservation",
+        run: () =>
+          revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`),
+      },
+    ],
+    {
+      action: "collectCheckInDeposit",
+      stage: "post-commit",
+      reservationId: parsed.data.reservationId,
+      committed: true,
+    },
+  );
 
   return result;
 }
@@ -665,37 +920,81 @@ export async function completeCheckIn(
   options: CompleteCheckInOptions = {},
 ): Promise<ActionResult> {
   const session = await auth();
-
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  if (authFailure || !session?.user) {
+    return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }
 
   const parsed = CheckInSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return validationFailure(parsed.error);
+    const issue = parsed.error.issues[0];
+    const field =
+      typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+    if (
+      field === "signatureDataUrl" ||
+      field === "arrivalConfirmation" ||
+      field === "purposeOfVisit" ||
+      field === "purposeOfVisitOther"
+    ) {
+      return checkInFailure("GRC_INCOMPLETE", { field });
+    }
+    if (field === "roomId") {
+      return checkInFailure("ROOM_REQUIRED", { field: "roomId" });
+    }
+    return checkInFailure("INVALID_INPUT", {
+      field,
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
   }
 
   const userId = Number(session.user.id);
-  const prepared = await prepareCheckInContext(parsed.data);
+  let prepared: Awaited<ReturnType<typeof prepareCheckInContext>>;
+  try {
+    prepared = await prepareCheckInContext(parsed.data);
+  } catch (error) {
+    rethrowFrameworkErrors(error);
+    logActionFailure("completeCheckIn", error, {
+      action: "completeCheckIn",
+      stage: "prepare",
+      reservationId: parsed.data.reservationId,
+      committed: false,
+    });
+    return checkInFailure("CHECK_IN_UNEXPECTED");
+  }
 
   if (!prepared.ok) {
     return prepared;
   }
 
-  let result: Awaited<ReturnType<typeof runCheckInTransaction>> | null = null;
+  let result: { ok: true; folioId: number } | null = null;
   let retriedAfterConflict = false;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      result = await runCheckInTransaction(parsed.data, prepared.context, userId);
+      result = await runCheckInTransaction(
+        parsed.data,
+        prepared.context,
+        userId,
+      );
       break;
     } catch (error) {
-      if (
-        error instanceof CheckInActionError ||
-        error instanceof ReservationStayFeeError
-      ) {
-        return { ok: false, error: error.message };
+      if (error instanceof CheckInDomainError) {
+        return checkInFailure(error.code, {
+          field: error.field,
+          message: error.message,
+        });
+      }
+
+      if (error instanceof ReservationStayFeeError) {
+        logActionFailure("completeCheckIn", error, {
+          action: "completeCheckIn",
+          stage: "stay-fee",
+          reservationId: parsed.data.reservationId,
+          attempt,
+          committed: false,
+        });
+        return checkInFailure("STAY_FEE_UNAVAILABLE");
       }
 
       if (attempt < 2 && isRetryableFolioNumberError(error)) {
@@ -704,35 +1003,61 @@ export async function completeCheckIn(
       }
 
       if (retriedAfterConflict || isSerializationConflict(error)) {
-        return {
-          ok: false,
-          error: await roomUnavailableMessage(parsed.data.roomId),
-        };
+        return checkInFailure("CHECK_IN_CONFLICT");
       }
 
-      return { ok: false, error: "Something went wrong completing check-in" };
+      rethrowFrameworkErrors(error);
+      logActionFailure("completeCheckIn", error, {
+        action: "completeCheckIn",
+        stage: "transaction",
+        reservationId: parsed.data.reservationId,
+        attempt,
+        committed: false,
+      });
+
+      return checkInFailure("CHECK_IN_UNEXPECTED");
     }
   }
 
   if (!result) {
-    return { ok: false, error: "Something went wrong completing check-in" };
+    return checkInFailure("CHECK_IN_UNEXPECTED");
   }
 
-  if (!result.ok) {
-    return result;
-  }
-
-  await logActivity({
-    userId,
-    action: "CHECK_IN_COMPLETED",
-    reservationId: parsed.data.reservationId,
-    folioId: result.folioId,
-    roomId: parsed.data.roomId,
-  });
-
-  revalidatePath("/app/fo/reservasi/kalender");
-  revalidatePath("/app/fo/reservasi/list");
-  revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`);
+  await runPostCommitSideEffects(
+    [
+      {
+        name: "logActivity",
+        run: () =>
+          logActivity({
+            userId,
+            action: "CHECK_IN_COMPLETED",
+            reservationId: parsed.data.reservationId,
+            folioId: result.folioId,
+            roomId: parsed.data.roomId,
+          }),
+      },
+      {
+        name: "revalidate:kalender",
+        run: () => revalidatePath("/app/fo/reservasi/kalender"),
+      },
+      {
+        name: "revalidate:list",
+        run: () => revalidatePath("/app/fo/reservasi/list"),
+      },
+      {
+        name: "revalidate:reservation",
+        run: () =>
+          revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`),
+      },
+    ],
+    {
+      action: "completeCheckIn",
+      stage: "post-commit",
+      reservationId: parsed.data.reservationId,
+      folioId: result.folioId,
+      committed: true,
+    },
+  );
 
   if (options.redirectAfterCheckIn !== false) {
     redirect("/app/fo/reservasi");

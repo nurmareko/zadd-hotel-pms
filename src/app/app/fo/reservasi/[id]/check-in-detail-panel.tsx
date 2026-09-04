@@ -20,6 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { collectCheckInDeposit, completeCheckIn } from "@/lib/check-in/actions";
 import {
+  CHECK_IN_FAILURE_MESSAGES,
+  INITIAL_CHECK_IN_UI_STATE,
+  reduceCheckInActionRejection,
+  reduceCheckInActionResult,
+  reduceCheckInDialogClose,
+  type CheckInUiState,
+} from "@/lib/check-in/errors";
+import {
   checkInDepositMethods,
   purposeOfVisitOptions,
   type CheckInDepositMethod,
@@ -135,8 +143,12 @@ export function CheckInDetailPanel({
   const [isLoadingReview, setIsLoadingReview] = useState(false);
   const [isCollectingDeposit, setIsCollectingDeposit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [depositError, setDepositError] = useState<string | null>(null);
-  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [depositUiState, setDepositUiState] = useState<CheckInUiState>(
+    INITIAL_CHECK_IN_UI_STATE,
+  );
+  const [reviewUiState, setReviewUiState] = useState<CheckInUiState>(
+    INITIAL_CHECK_IN_UI_STATE,
+  );
 
   const purposeReady =
     purposeOfVisit !== "" &&
@@ -150,23 +162,37 @@ export function CheckInDetailPanel({
     initialReview.arrivalDue &&
     depositReady &&
     roomReady &&
-    purposeReady;
+    purposeReady &&
+    !depositUiState.isUncertain;
   const canCollectDeposit =
     statusReady &&
     initialReview.arrivalDue &&
     initialReview.deposit.status === DepositStatus.PENDING &&
-    !depositPayment;
+    !depositPayment &&
+    !depositUiState.isUncertain;
 
   async function collectDeposit() {
-    setDepositError(null);
+    if (depositUiState.isUncertain || isCollectingDeposit) return;
+
+    setDepositUiState(INITIAL_CHECK_IN_UI_STATE);
 
     if (!depositMethod) {
-      setDepositError("Pilih metode pembayaran deposit.");
+      setDepositUiState({
+        isUncertain: false,
+        actionError: "Pilih metode pembayaran deposit.",
+        errorCode: "INVALID_INPUT",
+        errorField: "depositMethod",
+      });
       return;
     }
 
     if (depositMethod === "TRANSFER" && !depositReference.trim()) {
-      setDepositError("Referensi deposit wajib diisi untuk transfer.");
+      setDepositUiState({
+        isUncertain: false,
+        actionError: "Referensi deposit wajib diisi untuk transfer.",
+        errorCode: "INVALID_INPUT",
+        errorField: "depositReference",
+      });
       return;
     }
 
@@ -180,11 +206,15 @@ export function CheckInDetailPanel({
       const result = await collectCheckInDeposit(formData);
 
       if (!result.ok) {
-        setDepositError(result.error);
-        toast.error(result.error);
+        setDepositUiState(
+          reduceCheckInActionResult(depositUiState, result, {
+            context: "deposit",
+          }),
+        );
         return;
       }
 
+      setDepositUiState(INITIAL_CHECK_IN_UI_STATE);
       setDepositPayment(result.payment);
       setDepositStatus(DepositStatus.COLLECTED);
       toast.success(
@@ -193,15 +223,19 @@ export function CheckInDetailPanel({
           : "Deposit berhasil dikumpulkan.",
       );
       router.refresh();
+    } catch {
+      setDepositUiState(
+        reduceCheckInActionRejection(depositUiState, "deposit"),
+      );
     } finally {
       setIsCollectingDeposit(false);
     }
   }
 
   async function openReview() {
-    if (!canOpenReview) return;
+    if (!canOpenReview || isLoadingReview || isSubmitting) return;
 
-    setReviewError(null);
+    setReviewUiState(INITIAL_CHECK_IN_UI_STATE);
     setSignatureDataUrl("");
     setArrivalConfirmation(false);
     setReview(null);
@@ -212,7 +246,9 @@ export function CheckInDetailPanel({
       const result = await getFreshCheckInReview(initialReview.reservationId);
 
       if (!result.ok) {
-        setReviewError(result.error);
+        setReviewUiState(
+          reduceCheckInActionResult(reviewUiState, result),
+        );
         return;
       }
 
@@ -224,92 +260,138 @@ export function CheckInDetailPanel({
         !result.review.deposit.payment ||
         !result.review.roomReady
       ) {
-        setReviewError(
-          "Kelayakan check-in berubah. Tutup popup, muat ulang halaman, lalu periksa status reservasi.",
-        );
+        setReviewUiState({
+          isUncertain: false,
+          actionError:
+            CHECK_IN_FAILURE_MESSAGES.RESERVATION_NOT_ELIGIBLE,
+          errorCode: "RESERVATION_NOT_ELIGIBLE",
+        });
       }
+    } catch {
+      setReviewUiState(
+        reduceCheckInActionRejection(reviewUiState, "review"),
+      );
     } finally {
       setIsLoadingReview(false);
     }
   }
 
   async function submitCheckIn() {
-    if (!review) return;
+    if (!review || isSubmitting || reviewUiState.isUncertain) return;
 
     if (!signatureDataUrl) {
-      setReviewError("Tanda tangan tamu wajib diisi.");
+      setReviewUiState({
+        isUncertain: false,
+        actionError: CHECK_IN_FAILURE_MESSAGES.GRC_INCOMPLETE,
+        errorCode: "GRC_INCOMPLETE",
+        errorField: "signatureDataUrl",
+      });
       return;
     }
 
     if (!arrivalConfirmation) {
-      setReviewError("Konfirmasi kedatangan tamu wajib dicentang.");
+      setReviewUiState({
+        isUncertain: false,
+        actionError: CHECK_IN_FAILURE_MESSAGES.GRC_INCOMPLETE,
+        errorCode: "GRC_INCOMPLETE",
+        errorField: "arrivalConfirmation",
+      });
       return;
     }
 
     setIsSubmitting(true);
-    setReviewError(null);
+    setReviewUiState(INITIAL_CHECK_IN_UI_STATE);
 
+    let freshResult: FreshReviewResult;
     try {
-      const freshResult = await getFreshCheckInReview(
+      freshResult = await getFreshCheckInReview(
         initialReview.reservationId,
       );
-
-      if (!freshResult.ok) {
-        setReviewError(freshResult.error);
-        return;
-      }
-
-      if (
-        freshResult.review.status !== ReservationStatus.CONFIRMED ||
-        !freshResult.review.arrivalDue ||
-        freshResult.review.deposit.status !== DepositStatus.COLLECTED ||
-        !freshResult.review.deposit.payment ||
-        !freshResult.review.roomReady
-      ) {
-        setReview(freshResult.review);
-        setSignatureDataUrl("");
-        setArrivalConfirmation(false);
-        setReviewError(
-          "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
-        );
-        return;
-      }
-
-      if (reviewKey(freshResult.review) !== reviewKey(review)) {
-        setReview(freshResult.review);
-        setSignatureDataUrl("");
-        setArrivalConfirmation(false);
-        setReviewError(
-          "Data reservasi berubah. Ringkasan telah dimuat ulang; minta tamu meninjau dan menandatangani kembali.",
-        );
-        return;
-      }
-
-      const formData = new FormData();
-      formData.set("reservationId", String(review.reservationId));
-      formData.set("roomId", String(review.room?.id ?? ""));
-      formData.set("guestFullName", review.guest.fullName);
-      formData.set("guestIdType", review.guest.idType ?? "");
-      formData.set("guestIdNumber", review.guest.idNumber ?? "");
-      formData.set("guestPhone", review.guest.phone ?? "");
-      formData.set("guestEmail", review.guest.email ?? "");
-      formData.set("guestNationality", review.guest.nationality ?? "");
-      formData.set("purposeOfVisit", purposeOfVisit);
-      formData.set("purposeOfVisitOther", purposeOfVisitOther);
-      formData.set("signatureDataUrl", signatureDataUrl);
-      formData.set("arrivalConfirmation", String(arrivalConfirmation));
-      formData.set("depositMethod", review.deposit.payment?.method ?? "");
-      formData.set(
-        "depositReference",
-        review.deposit.payment?.reference ?? "",
+    } catch {
+      setReviewUiState(
+        reduceCheckInActionRejection(reviewUiState, "review"),
       );
+      setIsSubmitting(false);
+      return;
+    }
 
+    if (!freshResult.ok) {
+      setReviewUiState(
+        reduceCheckInActionResult(reviewUiState, freshResult),
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (
+      freshResult.review.status !== ReservationStatus.CONFIRMED ||
+      !freshResult.review.arrivalDue ||
+      freshResult.review.deposit.status !== DepositStatus.COLLECTED ||
+      !freshResult.review.deposit.payment ||
+      !freshResult.review.roomReady
+    ) {
+      setReview(freshResult.review);
+      setSignatureDataUrl("");
+      setArrivalConfirmation(false);
+      setReviewUiState({
+        isUncertain: false,
+        actionError:
+          CHECK_IN_FAILURE_MESSAGES.RESERVATION_NOT_ELIGIBLE,
+        errorCode: "RESERVATION_NOT_ELIGIBLE",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (reviewKey(freshResult.review) !== reviewKey(review)) {
+      setReview(freshResult.review);
+      setSignatureDataUrl("");
+      setArrivalConfirmation(false);
+      setReviewUiState({
+        isUncertain: false,
+        actionError: CHECK_IN_FAILURE_MESSAGES.RESERVATION_CHANGED,
+        errorCode: "RESERVATION_CHANGED",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("reservationId", String(review.reservationId));
+    formData.set("roomId", String(review.room?.id ?? ""));
+    formData.set("guestFullName", review.guest.fullName);
+    formData.set("guestIdType", review.guest.idType ?? "");
+    formData.set("guestIdNumber", review.guest.idNumber ?? "");
+    formData.set("guestPhone", review.guest.phone ?? "");
+    formData.set("guestEmail", review.guest.email ?? "");
+    formData.set("guestNationality", review.guest.nationality ?? "");
+    formData.set("purposeOfVisit", purposeOfVisit);
+    formData.set("purposeOfVisitOther", purposeOfVisitOther);
+    formData.set("signatureDataUrl", signatureDataUrl);
+    formData.set("arrivalConfirmation", String(arrivalConfirmation));
+    formData.set("depositMethod", review.deposit.payment?.method ?? "");
+    formData.set(
+      "depositReference",
+      review.deposit.payment?.reference ?? "",
+    );
+
+    try {
       const result = await completeCheckIn(formData);
 
       if (!result.ok) {
-        setReviewError(result.error);
-        toast.error(result.error);
+        setReviewUiState(
+          reduceCheckInActionResult(reviewUiState, result, {
+            context: "checkIn",
+          }),
+        );
+        return;
       }
+
+      setIsDialogOpen(false);
+    } catch {
+      setReviewUiState(
+        reduceCheckInActionRejection(reviewUiState, "checkIn"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -378,6 +460,7 @@ export function CheckInDetailPanel({
                         event.target.value as CheckInDepositMethod | "",
                       )
                     }
+                    disabled={isCollectingDeposit || depositUiState.isUncertain}
                     className={`${selectClassName} mt-1`}
                   >
                     <option value="">Pilih metode</option>
@@ -393,19 +476,36 @@ export function CheckInDetailPanel({
                   <Input
                     value={depositReference}
                     onChange={(event) => setDepositReference(event.target.value)}
+                    disabled={isCollectingDeposit || depositUiState.isUncertain}
                     className={`${fieldClassName} mt-1`}
                     placeholder="Nomor transaksi / referensi"
                   />
                 </label>
-                {depositError ? (
-                  <p className="text-xs font-medium text-red-600" role="alert">
-                    {depositError}
-                  </p>
+                {depositUiState.actionError ? (
+                  <div
+                    className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800"
+                    role="alert"
+                  >
+                    <p className="font-medium">{depositUiState.actionError}</p>
+                    {depositUiState.isUncertain ? (
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 border-red-300 text-xs text-red-800 hover:bg-red-100"
+                          onClick={() => window.location.reload()}
+                        >
+                          Muat ulang halaman
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 <Button
                   type="button"
                   onClick={collectDeposit}
-                  disabled={isCollectingDeposit}
+                  disabled={isCollectingDeposit || depositUiState.isUncertain}
                 >
                   {isCollectingDeposit
                     ? "Mencatat Deposit..."
@@ -502,7 +602,7 @@ export function CheckInDetailPanel({
             <Button
               id="check-in-detail-review-button"
               type="button"
-              disabled={!canOpenReview}
+              disabled={!canOpenReview || isSubmitting || depositUiState.isUncertain}
               onClick={openReview}
             >
               Review & Tanda Tangani GRC
@@ -514,10 +614,16 @@ export function CheckInDetailPanel({
       <Dialog
         open={isDialogOpen}
         onOpenChange={(open) => {
-          if (!isSubmitting) setIsDialogOpen(open);
+          if (!isSubmitting && !reviewUiState.isUncertain) {
+            setReviewUiState((current) => reduceCheckInDialogClose(current));
+            setIsDialogOpen(open);
+          }
         }}
       >
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-4xl">
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-4xl"
+          showCloseButton={!isSubmitting && !reviewUiState.isUncertain}
+        >
           <DialogHeader>
             <DialogTitle>Review & tanda tangani GRC</DialogTitle>
             <DialogDescription>
@@ -626,18 +732,49 @@ export function CheckInDetailPanel({
             </div>
           ) : null}
 
-          {reviewError ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" role="alert">
-              {reviewError}
-            </p>
+          {reviewUiState.actionError ? (
+            <div
+              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+              role="alert"
+            >
+              <p className="font-medium">{reviewUiState.actionError}</p>
+              {reviewUiState.isUncertain ? (
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300 text-red-800 hover:bg-red-100"
+                    onClick={() => window.location.reload()}
+                  >
+                    Muat ulang halaman
+                  </Button>
+                </div>
+              ) : reviewUiState.errorCode === "REVIEW_UNEXPECTED" && !review ? (
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openReview}
+                    disabled={isLoadingReview}
+                  >
+                    Coba lagi
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={isSubmitting}
+              onClick={() => {
+                setReviewUiState((current) => reduceCheckInDialogClose(current));
+                setIsDialogOpen(false);
+              }}
+              disabled={isSubmitting || reviewUiState.isUncertain}
             >
               Batal
             </Button>
@@ -647,6 +784,7 @@ export function CheckInDetailPanel({
               disabled={
                 isLoadingReview ||
                 isSubmitting ||
+                reviewUiState.isUncertain ||
                 !review ||
                 review.status !== ReservationStatus.CONFIRMED ||
                 !review.arrivalDue ||
