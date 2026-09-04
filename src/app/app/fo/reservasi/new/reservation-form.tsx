@@ -17,6 +17,7 @@ import {
   useFieldArray,
   useForm,
   useWatch,
+  type FieldErrors,
   type FieldPath,
   type Resolver,
 } from "react-hook-form";
@@ -59,6 +60,12 @@ import {
   getReservationQuote,
   updateReservation,
 } from "./actions";
+import { safelyRunReservationAction } from "./reservation-errors";
+import {
+  firstReservationErrorField,
+  normalizeReservationFieldPath,
+  reservationFieldTab,
+} from "./reservation-form-fields";
 import {
   createUnifiedEditReservationSchema,
   createUnifiedReservationSchema,
@@ -264,9 +271,6 @@ function overlapsStay(
   );
 }
 
-function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Reservasi tidak dapat dibuat";
-}
 
 function unifiedDefaultValues(
   defaultValues: CreateReservationInput,
@@ -345,6 +349,8 @@ export function ReservationForm({
 }: ReservationFormProps) {
   const hasMountedRoomValidation = useRef(false);
   const [activeTab, setActiveTab] = useState<ReservationTab>("detail");
+  const [pendingFocusField, setPendingFocusField] =
+    useState<FieldPath<UnifiedReservationInput> | null>(null);
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
   // Create aligns below its tabs; edit and view do not render that tab offset.
@@ -366,8 +372,24 @@ export function ReservationForm({
       UnifiedReservationInput
     >,
     mode: "onChange",
+    shouldFocusError: false,
     defaultValues: unifiedDefaultValues(defaultValues),
   });
+  useEffect(() => {
+    if (!pendingFocusField || reservationFieldTab(pendingFocusField) !== activeTab) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      form.setFocus(pendingFocusField);
+      setPendingFocusField((currentField) =>
+        currentField === pendingFocusField ? null : currentField,
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, form, pendingFocusField]);
+
   const roomsFieldArray = useFieldArray({
     control: form.control,
     name: "rooms",
@@ -449,56 +471,46 @@ export function ReservationForm({
     let ignore = false;
     const quoteKey = currentPricingKey;
 
-    void getReservationQuote({
-      rooms: watchedRoomRows,
-      arrangementType,
-      arrivalDate,
-      departureDate,
-    })
-      .then((result) => {
-        if (ignore) {
-          return;
-        }
+    void safelyRunReservationAction(
+      () =>
+        getReservationQuote({
+          rooms: watchedRoomRows,
+          arrangementType,
+          arrivalDate,
+          departureDate,
+        }),
+      "quote",
+    ).then((result) => {
+      if (ignore) {
+        return;
+      }
 
-        setResolvedQuote(
-          result.ok
-            ? {
-                key: quoteKey,
-                roomTotal: Number(result.roomTotal),
-                inclusionTotal: Number(result.inclusionTotal),
-                reservationTotal: Number(result.reservationTotal),
-                deposits: result.deposits.map(Number),
-                inclusionRooms: result.inclusionRooms.map((room) => ({
-                  ...room,
-                  unitPrice: Number(room.unitPrice),
-                  total: Number(room.total),
-                })),
-                error: null,
-              }
-            : {
-                key: quoteKey,
-                roomTotal: null,
-                inclusionTotal: 0,
-                reservationTotal: null,
-                deposits: [],
-                inclusionRooms: [],
-                error: result.error,
-              },
-        );
-      })
-      .catch(() => {
-        if (!ignore) {
-          setResolvedQuote({
-            key: quoteKey,
-            roomTotal: null,
-            inclusionTotal: 0,
-            reservationTotal: null,
-            deposits: [],
-            inclusionRooms: [],
-            error: "Gagal menghitung estimasi harga.",
-          });
-        }
-      });
+      setResolvedQuote(
+        result.ok
+          ? {
+              key: quoteKey,
+              roomTotal: Number(result.roomTotal),
+              inclusionTotal: Number(result.inclusionTotal),
+              reservationTotal: Number(result.reservationTotal),
+              deposits: result.deposits.map(Number),
+              inclusionRooms: result.inclusionRooms.map((room) => ({
+                ...room,
+                unitPrice: Number(room.unitPrice),
+                total: Number(room.total),
+              })),
+              error: null,
+            }
+          : {
+              key: quoteKey,
+              roomTotal: null,
+              inclusionTotal: 0,
+              reservationTotal: null,
+              deposits: [],
+              inclusionRooms: [],
+              error: result.error,
+            },
+      );
+    });
 
     return () => {
       ignore = true;
@@ -643,35 +655,53 @@ export function ReservationForm({
     }
 
     const values = form.getValues();
-    const result =
-      mode === "edit" && reservationId
-        ? await updateReservation(reservationId, firstRoomReservationValues(values))
-        : await createReservation(values, createOrigin);
+    const operation = mode === "edit" ? "edit" : "create";
+    const result = await safelyRunReservationAction(
+      () =>
+        mode === "edit" && reservationId
+          ? updateReservation(reservationId, firstRoomReservationValues(values))
+          : createReservation(values, createOrigin),
+      operation,
+    );
 
     if (!result.ok) {
-      const message = resultErrorMessage(result.error);
+      const message = result.error;
 
       if (result.field) {
-        const field =
-          result.field === "roomTypeId"
-            ? "rooms.0.roomTypeId"
-            : result.field === "roomId"
-              ? "rooms.0.roomId"
-              : result.field;
+        const normalizedField = normalizeReservationFieldPath(result.field);
+        const fieldTab = normalizedField
+          ? reservationFieldTab(normalizedField)
+          : null;
 
-        form.setError(
-          field as FieldPath<UnifiedReservationInput>,
-          { type: "server", message },
-          { shouldFocus: true },
-        );
+        if (normalizedField && fieldTab) {
+          const field = normalizedField as FieldPath<UnifiedReservationInput>;
+
+          form.setError(field, { type: "server", message });
+          setActiveTab(fieldTab);
+          setPendingFocusField(field);
+        } else {
+          toast.error(message);
+        }
+      } else {
+        toast.error(message);
       }
-
-      toast.error(message);
     }
   }
 
-  function onInvalidSubmit() {
-    setActiveTab("detail");
+  function onInvalidSubmit(errors: FieldErrors<UnifiedReservationInput>) {
+    const firstErrorField = firstReservationErrorField(errors);
+    const fieldTab = firstErrorField
+      ? reservationFieldTab(firstErrorField)
+      : null;
+
+    if (!firstErrorField || !fieldTab) {
+      return;
+    }
+
+    setActiveTab(fieldTab);
+    setPendingFocusField(
+      firstErrorField as FieldPath<UnifiedReservationInput>,
+    );
   }
 
   const reservationActionHint = hasBlockingErrors ? (
@@ -1476,7 +1506,7 @@ export function ReservationForm({
                             </FormLabel>
                             <FormControl>
                               <div className="grid gap-3 sm:grid-cols-2">
-                                {arrangementTypeOptions.map((option) => {
+                                {arrangementTypeOptions.map((option, index) => {
                                   const selected = field.value === option.value;
 
                                   return (
@@ -1496,7 +1526,7 @@ export function ReservationForm({
                                         checked={selected}
                                         onBlur={field.onBlur}
                                         onChange={() => field.onChange(option.value)}
-                                        ref={field.ref}
+                                        ref={index === 0 ? field.ref : undefined}
                                       />
                                       <span className="block text-sm font-semibold text-slate-900">
                                         {option.label}
@@ -1548,7 +1578,7 @@ export function ReservationForm({
                             </FormLabel>
                             <FormControl>
                               <div className="grid gap-3 sm:grid-cols-2">
-                                {stayFeeOptions.map((option) => {
+                                {stayFeeOptions.map((option, index) => {
                                   const selected = field.value.includes(option.value);
                                   const disabled = watchedRoomRows.length > 1;
 
@@ -1567,7 +1597,9 @@ export function ReservationForm({
                                         <input
                                           type="checkbox"
                                           className="mt-0.5 size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                          name={field.name}
                                           checked={selected}
+                                          ref={index === 0 ? field.ref : undefined}
                                           disabled={disabled}
                                           onBlur={field.onBlur}
                                           onChange={(event) => {

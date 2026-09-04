@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import { cancelReservation } from "../new/actions";
+import { safelyRunReservationAction } from "../new/reservation-errors";
 
 type CancelReservationDialogProps = {
   reservationId: number;
@@ -28,24 +29,37 @@ export function CancelReservationDialog({
   reservationNo,
 }: CancelReservationDialogProps) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isPending && !nextOpen) {
+      return;
+    }
+
+    setOpen(nextOpen);
+  }
 
   function handleCancel() {
     startTransition(async () => {
-      const result = await cancelReservation(reservationId);
+      const result = await safelyRunReservationAction(
+        () => cancelReservation(reservationId),
+        "cancel",
+      );
 
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
 
+      setOpen(false);
       toast.success("Reservasi dibatalkan");
       router.refresh();
     });
   }
 
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger
         className={buttonVariants({ variant: "destructive" })}
         disabled={isPending}
@@ -70,7 +84,10 @@ export function CancelReservationDialog({
           <AlertDialogAction
             variant="destructive"
             disabled={isPending}
-            onClick={handleCancel}
+            onClick={(event) => {
+              event.preventDefault();
+              handleCancel();
+            }}
             type="button"
           >
             {isPending ? "Membatalkan..." : "Ya, Batalkan"}

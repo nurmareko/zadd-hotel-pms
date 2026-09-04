@@ -11,7 +11,8 @@ import { randomUUID } from "crypto";
 import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
+import type { Session } from "next-auth";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -44,17 +45,20 @@ import {
   ReservationStayFeeError,
 } from "@/lib/reservation-stay-fees";
 import {
+  reservationAuthorizationFailure,
+  reservationFailure,
+  unexpectedReservationFailure,
+  type ReservationActionField,
+  type ReservationActionResult,
+  type ReservationFailure,
+} from "./reservation-errors";
+import {
   createEditReservationSchema,
   createUnifiedReservationSchema,
   type EditReservationValues,
   type UnifiedReservationValues,
   reservationCapacityError,
 } from "./schema";
-
-type ReservationActionField = "roomTypeId" | "roomId";
-type ActionResult =
-  | { ok: true }
-  | { ok: false; error: string; field?: ReservationActionField };
 
 type ReservationQuoteResult =
   | {
@@ -70,7 +74,7 @@ type ReservationQuoteResult =
         total: string;
       }>;
     }
-  | { ok: false; error: string };
+  | ReservationFailure;
 
 const ReservationQuoteSchema = z
   .object({
@@ -128,8 +132,110 @@ async function persistFoReservasiView(view: FoReservasiView) {
   });
 }
 
-function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid reservation data";
+const RESERVATION_VALIDATION_FIELDS = new Set<ReservationActionField>([
+  "fullName",
+  "idType",
+  "idNumber",
+  "phone",
+  "email",
+  "address",
+  "nationality",
+  "roomTypeId",
+  "roomId",
+  "arrivalDate",
+  "departureDate",
+  "adults",
+  "children",
+  "reservationType",
+  "arrangementType",
+  "notes",
+  "stayFeeKinds",
+  "rooms",
+]);
+
+const SAFE_VALIDATION_MESSAGE_PREFIXES = [
+  "Alamat maksimal",
+  "Email maksimal",
+  "Fleksibilitas menginap",
+  "Format email",
+  "Jenis biaya fleksibilitas",
+  "Jenis identitas",
+  "Jumlah",
+  "Kamar fisik",
+  "Kamar tidak valid",
+  "Keberangkatan",
+  "Kewarganegaraan maksimal",
+  "Maksimal",
+  "Minimal",
+  "Nama tamu",
+  "Nomor telepon maksimal",
+  "Tambahkan minimal",
+  "Tanggal",
+  "Tipe kamar",
+];
+
+function reservationValidationField(path: PropertyKey[]) {
+  const fieldPath = path.map(String).join(".");
+
+  if (RESERVATION_VALIDATION_FIELDS.has(fieldPath as ReservationActionField)) {
+    return fieldPath as ReservationActionField;
+  }
+
+  return /^rooms\.\d+\.(roomTypeId|roomId|adults|children)$/.test(fieldPath)
+    ? (fieldPath as ReservationActionField)
+    : undefined;
+}
+
+function validationFailure(
+  error: { issues: { message: string; path: PropertyKey[] }[] },
+): ReservationFailure {
+  const issue = error.issues[0];
+  const field = issue ? reservationValidationField(issue.path) : undefined;
+  const safeMessage = issue?.message
+    ? SAFE_VALIDATION_MESSAGE_PREFIXES.some((prefix) =>
+        issue.message.startsWith(prefix),
+      )
+      ? issue.message
+      : undefined
+    : undefined;
+
+  return reservationFailure("INVALID_RESERVATION_DATA", {
+    ...(safeMessage ? { message: safeMessage } : {}),
+    ...(field ? { field } : {}),
+  });
+}
+
+type ReservationMutationAction = "create" | "edit" | "cancel";
+
+type ReservationPostCommitSideEffect =
+  | "activity-log"
+  | "preference-cookie"
+  | "revalidate-list"
+  | "revalidate-detail"
+  | "revalidate-calendar";
+
+function logUnexpectedReservationAction(
+  action: "quote" | ReservationMutationAction,
+  error: unknown,
+) {
+  console.error("Reservation action failed", { action }, error);
+}
+
+async function attemptReservationPostCommitSideEffect(
+  action: ReservationMutationAction,
+  sideEffect: ReservationPostCommitSideEffect,
+  operation: () => unknown | Promise<unknown>,
+) {
+  try {
+    await operation();
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error(
+      "Reservation post-commit side effect failed",
+      { action, sideEffect },
+      error,
+    );
+  }
 }
 
 function isRetryableReservationNumberError(error: unknown) {
@@ -146,27 +252,10 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-async function selectedRoomLabel(roomId: number | null) {
-  if (roomId === null) {
-    return "unallocated reservation";
-  }
-
-  const room = await prisma.room.findUnique({
-    where: { id: roomId },
-    select: { number: true },
-  });
-
-  return room?.number ?? String(roomId);
-}
-
-async function reservationConflictMessage(roomId: number | null) {
-  if (roomId === null) {
-    return "Reservation changed while saving. Try again.";
-  }
-
-  return `Room ${await selectedRoomLabel(
-    roomId,
-  )} is no longer available for those dates.`;
+function reservationConflictFailure(roomId: number | null) {
+  return roomId === null
+    ? reservationFailure("RESERVATION_CONFLICT")
+    : reservationFailure("ROOM_UNAVAILABLE");
 }
 
 type ReservationRoomAssignment = {
@@ -207,7 +296,7 @@ async function validateReservationRoomAssignment(
   reservationId?: number,
 ): Promise<
   | { ok: true; assignment: ReservationRoomAssignment }
-  | { ok: false; error: string }
+  | ReservationFailure
 > {
   const roomType = await tx.roomType.findUnique({
     where: { id: input.roomTypeId },
@@ -219,16 +308,16 @@ async function validateReservationRoomAssignment(
   });
 
   if (!roomType) {
-    return { ok: false, error: "Room type is invalid for this booking" };
+    return reservationFailure("INVALID_ROOM_TYPE", { field: "roomTypeId" });
   }
 
   const totalGuests = input.adults + input.children;
 
   if (totalGuests > roomType.capacity) {
-    return {
-      ok: false,
-      error: reservationCapacityError(totalGuests, roomType.capacity),
-    };
+    return reservationFailure("INVALID_RESERVATION_DATA", {
+      message: reservationCapacityError(totalGuests, roomType.capacity),
+      field: "children",
+    });
   }
 
   if (input.roomId === null) {
@@ -250,14 +339,14 @@ async function validateReservationRoomAssignment(
   });
 
   if (!room || room.roomTypeId !== input.roomTypeId) {
-    return { ok: false, error: "Room is invalid for this booking" };
+    return reservationFailure("INVALID_ROOM", { field: "roomId" });
   }
 
   if (room.status === RoomStatus.OOO) {
-    return {
-      ok: false,
-      error: `Room ${room.number} is out of order. Choose another.`,
-    };
+    return reservationFailure("ROOM_OOO", {
+      message: `Kamar ${room.number} sedang berstatus OOO dan tidak dapat dipesan.`,
+      field: "roomId",
+    });
   }
 
   const overlappingReservation = await tx.reservation.findFirst({
@@ -272,10 +361,10 @@ async function validateReservationRoomAssignment(
   });
 
   if (overlappingReservation) {
-    return {
-      ok: false,
-      error: `Room ${room.number} is no longer available for those dates.`,
-    };
+    return reservationFailure("ROOM_UNAVAILABLE", {
+      message: `Kamar ${room.number} sudah tidak tersedia untuk tanggal tersebut. Pilih kamar lain.`,
+      field: "roomId",
+    });
   }
 
   return { ok: true, assignment: { roomType, room } };
@@ -332,7 +421,7 @@ async function runCreateReservationTransaction(
     async (tx) => {
       const assignments: ReservationRoomAssignment[] = [];
 
-      for (const room of input.rooms) {
+      for (const [roomIndex, room] of input.rooms.entries()) {
         const validatedAssignment = await validateReservationRoomAssignment(
           tx,
           {
@@ -343,7 +432,14 @@ async function runCreateReservationTransaction(
         );
 
         if (!validatedAssignment.ok) {
-          return validatedAssignment;
+          const field = validatedAssignment.field;
+
+          return field && ["roomTypeId", "roomId", "adults", "children"].includes(field)
+            ? {
+                ...validatedAssignment,
+                field: `rooms.${roomIndex}.${field}` as ReservationActionField,
+              }
+            : validatedAssignment;
         }
 
         assignments.push(validatedAssignment.assignment);
@@ -370,7 +466,14 @@ async function runCreateReservationTransaction(
         );
 
         if (!validatedCapacity.ok) {
-          return validatedCapacity;
+          const roomIndex = input.rooms.findIndex(
+            (room) => room.roomTypeId === roomTypeId,
+          );
+
+          return reservationFailure("ROOM_UNAVAILABLE", {
+            message: validatedCapacity.error,
+            field: `rooms.${roomIndex}.roomTypeId`,
+          });
         }
       }
 
@@ -519,7 +622,7 @@ async function runUpdateReservationTransaction(
       });
 
       if (!existingReservation) {
-        return { ok: false as const, error: "Reservation not found" };
+        return reservationFailure("RESERVATION_NOT_FOUND");
       }
 
       if (
@@ -527,21 +630,20 @@ async function runUpdateReservationTransaction(
         existingReservation.status === ReservationStatus.CANCELLED ||
         existingReservation.status === ReservationStatus.NO_SHOW
       ) {
-        return {
-          ok: false as const,
-          error:
+        return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
+          message:
             "Reservasi yang sudah check-out, dibatalkan, atau no-show bersifat final dan tidak dapat diubah.",
-        };
+        });
       }
 
       if (
         input.roomId === null &&
         existingReservation.status !== ReservationStatus.CONFIRMED
       ) {
-        return {
-          ok: false as const,
-          error: "Room is required after check-in",
-        };
+        return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
+          message: "Kamar wajib dipilih untuk reservasi yang sudah check-in.",
+          field: "roomId",
+        });
       }
 
       const validatedAssignment = await validateReservationRoomAssignment(
@@ -565,26 +667,24 @@ async function runUpdateReservationTransaction(
 
       if (isPricingRelevant) {
         if (existingReservation.status === ReservationStatus.CHECKED_IN) {
-          return {
-            ok: false as const,
-            error:
-              "Pricing-relevant edits are not supported after check-in because nightly history is not rewritten or appended for an in-house stay.",
-          };
+          return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
+            message:
+              "Tipe kamar dan tanggal menginap tidak dapat diubah setelah check-in.",
+          });
         }
 
         if (existingReservation.status !== ReservationStatus.CONFIRMED) {
-          return {
-            ok: false as const,
-            error: "Pricing-relevant edits are only allowed for confirmed reservations.",
-          };
+          return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
+            message:
+              "Perubahan tipe kamar atau tanggal menginap hanya dapat dilakukan pada reservasi berstatus CONFIRMED.",
+          });
         }
 
         if (existingReservation.folio?.lineItems.length) {
-          return {
-            ok: false as const,
-            error:
-              "Pricing-relevant edits are not allowed after folio charges have been posted.",
-          };
+          return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
+            message:
+              "Tipe kamar dan tanggal menginap tidak dapat diubah setelah tagihan folio diposting.",
+          });
         }
       }
 
@@ -603,7 +703,10 @@ async function runUpdateReservationTransaction(
         );
 
         if (!validatedCapacity.ok) {
-          return validatedCapacity;
+          return reservationFailure("ROOM_UNAVAILABLE", {
+            message: validatedCapacity.error,
+            field: validatedCapacity.field,
+          });
         }
 
         resolvedSchedule = await resolveNightlySchedule(
@@ -706,16 +809,28 @@ async function runUpdateReservationTransaction(
 export async function getReservationQuote(
   input: unknown,
 ): Promise<ReservationQuoteResult> {
-  const session = await auth();
+  let session: Session | null;
 
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  try {
+    session = await auth();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("quote", error);
+    return unexpectedReservationFailure("quote");
+  }
+
+  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+
+  if (authorizationFailure) {
+    return authorizationFailure;
   }
 
   const parsed = ReservationQuoteSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Data estimasi harga tidak valid." };
+    return reservationFailure("INVALID_RESERVATION_DATA", {
+      message: "Data ringkasan harga tidak valid. Periksa kembali formulir.",
+    });
   }
 
   try {
@@ -790,33 +905,52 @@ export async function getReservationQuote(
       inclusionRooms,
     };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof PricingResolutionError
-          ? error.message
-          : "Gagal menghitung estimasi harga.",
-    };
+    unstable_rethrow(error);
+    if (!(error instanceof PricingResolutionError)) {
+      logUnexpectedReservationAction("quote", error);
+    }
+
+    return reservationFailure("PRICING_QUOTE_FAILED");
   }
 }
 
 export async function createReservation(
   input: unknown,
   originView: unknown = "list",
-): Promise<ActionResult> {
-  const session = await auth();
+): Promise<ReservationActionResult> {
+  let session: Session | null;
 
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  try {
+    session = await auth();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("create", error);
+    return unexpectedReservationFailure("create");
   }
 
-  const parsed = (await currentUnifiedReservationSchema()).safeParse(input);
+  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+
+  if (authorizationFailure) {
+    return authorizationFailure;
+  }
+
+  let schema: Awaited<ReturnType<typeof currentUnifiedReservationSchema>>;
+
+  try {
+    schema = await currentUnifiedReservationSchema();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("create", error);
+    return unexpectedReservationFailure("create");
+  }
+
+  const parsed = schema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
-  const userId = Number(session.user.id);
+  const userId = Number(session?.user.id);
   let result: Awaited<ReturnType<typeof runCreateReservationTransaction>> | null =
     null;
   let retriedAfterConflict = false;
@@ -826,11 +960,15 @@ export async function createReservation(
       result = await runCreateReservationTransaction(parsed.data, userId);
       break;
     } catch (error) {
-      if (
-        error instanceof PricingResolutionError ||
-        error instanceof ReservationStayFeeError
-      ) {
-        return { ok: false, error: error.message };
+      unstable_rethrow(error);
+      if (error instanceof PricingResolutionError) {
+        return reservationFailure("PRICING_QUOTE_FAILED");
+      }
+
+      if (error instanceof ReservationStayFeeError) {
+        return reservationFailure("STAY_FEE_UNAVAILABLE", {
+          field: "stayFeeKinds",
+        });
       }
 
       if (attempt < 2 && isRetryableReservationNumberError(error)) {
@@ -841,21 +979,20 @@ export async function createReservation(
       if (retriedAfterConflict || isSerializationConflict(error)) {
         const firstRoomId = parsed.data.rooms[0]?.roomId ?? null;
 
-        return {
-          ok: false,
-          error:
-            parsed.data.rooms.length === 1
-              ? await reservationConflictMessage(firstRoomId)
-              : "Ketersediaan berubah saat menyimpan booking grup. Coba lagi.",
-        };
+        return parsed.data.rooms.length === 1
+          ? reservationConflictFailure(firstRoomId)
+          : reservationFailure("RESERVATION_CONFLICT");
       }
 
-      return { ok: false, error: "Something went wrong creating reservation" };
+      logUnexpectedReservationAction("create", error);
+      return unexpectedReservationFailure("create");
     }
   }
 
   if (!result) {
-    return { ok: false, error: "Something went wrong creating reservation" };
+    const error = new Error("Reservation create retry loop completed without a result");
+    logUnexpectedReservationAction("create", error);
+    return unexpectedReservationFailure("create");
   }
 
   if (!result.ok) {
@@ -868,35 +1005,63 @@ export async function createReservation(
     "list";
 
   for (const reservationId of result.reservationIds) {
-    await logActivity({
-      userId,
-      action: "RESERVATION_CREATED",
-      reservationId,
-    });
+    await attemptReservationPostCommitSideEffect(
+      "create",
+      "activity-log",
+      () =>
+        logActivity({
+          userId,
+          action: "RESERVATION_CREATED",
+          reservationId,
+        }),
+    );
   }
 
-  await persistFoReservasiView(origin);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
+  await attemptReservationPostCommitSideEffect(
+    "create",
+    "preference-cookie",
+    () => persistFoReservasiView(origin),
+  );
+  await attemptReservationPostCommitSideEffect("create", "revalidate-list", () =>
+    revalidatePath(FO_RESERVASI_VIEW_PATHS.list),
+  );
+  await attemptReservationPostCommitSideEffect(
+    "create",
+    "revalidate-calendar",
+    () => revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
+  );
   redirect(reservationCreateRedirectPath(origin, arrival));
 }
 
 export async function cancelReservation(
   reservationId: number,
-): Promise<ActionResult> {
-  const session = await auth();
+): Promise<ReservationActionResult> {
+  let session: Session | null;
+
+  try {
+    session = await auth();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("cancel", error);
+    return unexpectedReservationFailure("cancel");
+  }
 
   // Cancel is permitted for FO (who own the screen) and ADMIN.
-  if (session?.user.role !== "FO" && session?.user.role !== "ADMIN") {
-    return { ok: false, error: "Unauthorized" };
+  const authorizationFailure = reservationAuthorizationFailure(session, [
+    "FO",
+    "ADMIN",
+  ]);
+
+  if (authorizationFailure) {
+    return authorizationFailure;
   }
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
-    return { ok: false, error: "Invalid reservation" };
+    return reservationFailure("INVALID_RESERVATION_DATA");
   }
 
-  const userId = Number(session.user.id);
-  let result: { ok: true } | { ok: false; error: string };
+  const userId = Number(session?.user.id);
+  let result: ReservationActionResult;
 
   try {
     result = await prisma.$transaction(
@@ -911,25 +1076,24 @@ export async function cancelReservation(
         });
 
         if (!reservation) {
-          return { ok: false as const, error: "Reservasi tidak ditemukan" };
+          return reservationFailure("RESERVATION_NOT_FOUND");
         }
 
         // Re-verify server-side; never trust the client's view of status.
         if (reservation.status !== ReservationStatus.CONFIRMED) {
-          return {
-            ok: false as const,
-            error: "Hanya reservasi berstatus CONFIRMED yang bisa dibatalkan.",
-          };
+          return reservationFailure("CANCELLATION_FAILED", {
+            message:
+              "Hanya reservasi berstatus CONFIRMED yang dapat dibatalkan.",
+          });
         }
 
         // A CONFIRMED reservation should have no folio (created at check-in).
         // If one somehow exists, do NOT cancel and do NOT delete it.
         if (reservation.folio) {
-          return {
-            ok: false as const,
-            error:
-              "Reservasi ini sudah memiliki folio. Pembatalan dibatalkan; periksa folio terlebih dahulu.",
-          };
+          return reservationFailure("CANCELLATION_FAILED", {
+            message:
+              "Reservasi ini sudah memiliki folio. Periksa folio sebelum mencoba membatalkan reservasi.",
+          });
         }
 
         const updated = await tx.reservation.updateMany({
@@ -938,10 +1102,7 @@ export async function cancelReservation(
         });
 
         if (updated.count === 0) {
-          return {
-            ok: false as const,
-            error: "Status reservasi berubah saat membatalkan. Coba lagi.",
-          };
+          return reservationFailure("RESERVATION_CONFLICT");
         }
 
         await cancelPendingReservationStayFees(tx, reservationId);
@@ -954,85 +1115,125 @@ export async function cancelReservation(
       },
     );
   } catch (error) {
+    unstable_rethrow(error);
     if (isSerializationConflict(error)) {
-      return {
-        ok: false,
-        error: "Status reservasi berubah saat membatalkan. Coba lagi.",
-      };
+      return reservationFailure("RESERVATION_CONFLICT");
     }
 
-    return { ok: false, error: "Something went wrong cancelling reservation" };
+    logUnexpectedReservationAction("cancel", error);
+    return unexpectedReservationFailure("cancel");
   }
 
   if (!result.ok) {
     return result;
   }
 
-  await logActivity({
-    userId,
-    action: "RESERVATION_CANCELLED",
-    reservationId,
-  });
-
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
-  revalidatePath(`/app/fo/reservasi/${reservationId}`);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
+  await attemptReservationPostCommitSideEffect("cancel", "activity-log", () =>
+    logActivity({
+      userId,
+      action: "RESERVATION_CANCELLED",
+      reservationId,
+    }),
+  );
+  await attemptReservationPostCommitSideEffect("cancel", "revalidate-list", () =>
+    revalidatePath(FO_RESERVASI_VIEW_PATHS.list),
+  );
+  await attemptReservationPostCommitSideEffect(
+    "cancel",
+    "revalidate-detail",
+    () => revalidatePath(`/app/fo/reservasi/${reservationId}`),
+  );
+  await attemptReservationPostCommitSideEffect(
+    "cancel",
+    "revalidate-calendar",
+    () => revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
+  );
   return { ok: true };
 }
 
 export async function updateReservation(
   reservationId: number,
   input: unknown,
-): Promise<ActionResult> {
-  const session = await auth();
+): Promise<ReservationActionResult> {
+  let session: Session | null;
 
-  if (session?.user.role !== "FO") {
-    return { ok: false, error: "Unauthorized" };
+  try {
+    session = await auth();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("edit", error);
+    return unexpectedReservationFailure("edit");
+  }
+
+  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+
+  if (authorizationFailure) {
+    return authorizationFailure;
   }
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
-    return { ok: false, error: "Invalid reservation" };
+    return reservationFailure("INVALID_RESERVATION_DATA");
   }
 
-  const parsed = (await currentReservationSchema()).safeParse(input);
+  let schema: Awaited<ReturnType<typeof currentReservationSchema>>;
+
+  try {
+    schema = await currentReservationSchema();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("edit", error);
+    return unexpectedReservationFailure("edit");
+  }
+
+  const parsed = schema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
+    return validationFailure(parsed.error);
   }
 
-  const userId = Number(session.user.id);
+  const userId = Number(session?.user.id);
   let result: Awaited<ReturnType<typeof runUpdateReservationTransaction>> | null =
     null;
 
   try {
     result = await runUpdateReservationTransaction(reservationId, parsed.data);
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof PricingResolutionError) {
-      return { ok: false, error: error.message };
+      return reservationFailure("PRICING_QUOTE_FAILED");
     }
 
     if (isSerializationConflict(error)) {
-      return {
-        ok: false,
-        error: await reservationConflictMessage(parsed.data.roomId),
-      };
+      return reservationConflictFailure(parsed.data.roomId);
     }
 
-    return { ok: false, error: "Something went wrong updating reservation" };
+    logUnexpectedReservationAction("edit", error);
+    return unexpectedReservationFailure("edit");
   }
 
   if (!result.ok) {
     return result;
   }
 
-  await logActivity({
-    userId,
-    action: "RESERVATION_UPDATED",
-    reservationId,
-  });
-
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.list);
-  revalidatePath(`/app/fo/reservasi/${reservationId}`);
-  revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender);
+  await attemptReservationPostCommitSideEffect("edit", "activity-log", () =>
+    logActivity({
+      userId,
+      action: "RESERVATION_UPDATED",
+      reservationId,
+    }),
+  );
+  await attemptReservationPostCommitSideEffect("edit", "revalidate-list", () =>
+    revalidatePath(FO_RESERVASI_VIEW_PATHS.list),
+  );
+  await attemptReservationPostCommitSideEffect(
+    "edit",
+    "revalidate-detail",
+    () => revalidatePath(`/app/fo/reservasi/${reservationId}`),
+  );
+  await attemptReservationPostCommitSideEffect(
+    "edit",
+    "revalidate-calendar",
+    () => revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
+  );
   redirect(`/app/fo/reservasi/${reservationId}?mode=view`);
 }
