@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -23,8 +23,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { safelyRunAction } from "@/lib/action-errors";
 import { formatIDR } from "@/lib/format";
 import { postCharge } from "@/lib/folio/actions";
+import {
+  folioFailure,
+  INITIAL_FOLIO_DIALOG_UI_STATE,
+  reduceFolioActionResult,
+  reduceFolioDialogClose,
+  type FolioDialogUiState,
+} from "@/lib/folio/errors";
 import { PostChargeSchema } from "@/lib/folio/schema";
 
 export type ChargeArticleOption = {
@@ -54,10 +62,6 @@ const fieldClassName =
 const selectClassName =
   "h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors";
 
-function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Tagihan tidak dapat dicatat";
-}
-
 export function AddChargeDialog({
   folioId,
   articles,
@@ -66,7 +70,11 @@ export function AddChargeDialog({
 }: AddChargeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [uiState, setUiState] = useState<FolioDialogUiState>(
+    INITIAL_FOLIO_DIALOG_UI_STATE,
+  );
+  const [isPending, startTransition] = useTransition();
+
   const form = useForm<AddChargeFormInput>({
     resolver: zodResolver(PostChargeSchema) as unknown as Resolver<AddChargeFormInput>,
     mode: "onChange",
@@ -78,6 +86,8 @@ export function AddChargeDialog({
       unitPrice: "",
     },
   });
+
+  const isSubmitting = form.formState.isSubmitting || isPending;
 
   const [quantityValue, unitPriceValue] = useWatch({
     control: form.control,
@@ -93,23 +103,41 @@ export function AddChargeDialog({
     [quantity, unitPrice],
   );
 
-  function resetAndClose(nextOpen: boolean) {
+  function resetForm() {
+    form.reset({
+      folioId,
+      articleId: "",
+      description: "",
+      quantity: "1",
+      unitPrice: "",
+    });
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isSubmitting && !nextOpen) {
+      return;
+    }
+
     setOpen(nextOpen);
 
     if (!nextOpen) {
-      setActionError(null);
-      form.reset({
-        folioId,
-        articleId: "",
-        description: "",
-        quantity: "1",
-        unitPrice: "",
-      });
+      setUiState((current) => reduceFolioDialogClose(current));
+      if (!uiState.isUncertain) {
+        resetForm();
+      }
     }
   }
 
   async function onSubmit(values: AddChargeFormInput) {
-    setActionError(null);
+    if (uiState.isUncertain || isSubmitting) {
+      return;
+    }
+
+    setUiState((current) => ({
+      ...current,
+      actionError: null,
+      errorCode: null,
+    }));
 
     const formData = new FormData();
     formData.set("folioId", String(folioId));
@@ -118,18 +146,24 @@ export function AddChargeDialog({
     formData.set("quantity", values.quantity);
     formData.set("unitPrice", values.unitPrice);
 
-    const result = await postCharge(formData);
+    startTransition(async () => {
+      const result = await safelyRunAction(
+        () => postCharge(formData),
+        () => folioFailure("RESULT_UNKNOWN"),
+      );
 
-    if (!result.ok) {
-      const message = resultErrorMessage(result.error);
-      setActionError(message);
-      toast.error(message);
-      return;
-    }
+      const nextState = reduceFolioActionResult(uiState, result);
+      setUiState(nextState);
 
-    toast.success("Tagihan dicatat");
-    resetAndClose(false);
-    router.refresh();
+      if (!result.ok) {
+        return;
+      }
+
+      toast.success("Tagihan dicatat");
+      resetForm();
+      setOpen(false);
+      router.refresh();
+    });
   }
 
   return (
@@ -144,8 +178,11 @@ export function AddChargeDialog({
         Tambah Tagihan
       </Button>
 
-      <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md"
+          showCloseButton={!isSubmitting}
+        >
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               Tambah Tagihan
@@ -168,6 +205,7 @@ export function AddChargeDialog({
                     <FormLabel className="text-sm font-medium text-slate-700">Artikel</FormLabel>
                     <FormControl>
                       <select
+                        disabled={isSubmitting}
                         className={selectClassName}
                         {...field}
                         onChange={(event) => {
@@ -207,6 +245,7 @@ export function AddChargeDialog({
                     <FormLabel className="text-sm font-medium text-slate-700">Deskripsi</FormLabel>
                     <FormControl>
                       <Input
+                        disabled={isSubmitting}
                         placeholder="Opsional"
                         className={fieldClassName}
                         {...field}
@@ -229,6 +268,7 @@ export function AddChargeDialog({
                           type="number"
                           min={0.01}
                           step={0.01}
+                          disabled={isSubmitting}
                           className={fieldClassName}
                           {...field}
                         />
@@ -249,6 +289,7 @@ export function AddChargeDialog({
                           type="number"
                           min={0}
                           step={1}
+                          disabled={isSubmitting}
                           placeholder="0"
                           className={fieldClassName}
                           {...field}
@@ -269,25 +310,44 @@ export function AddChargeDialog({
                 </div>
               </div>
 
-              {actionError ? (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {actionError}
-                </p>
+              {uiState.actionError ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                >
+                  <p className="font-medium">{uiState.actionError}</p>
+                  {uiState.isUncertain ? (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
+                        onClick={() => window.location.reload()}
+                      >
+                        Muat ulang halaman
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => resetAndClose(false)}
+                  disabled={isSubmitting}
+                  onClick={() => handleOpenChange(false)}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!form.formState.isValid || form.formState.isSubmitting}
+                  disabled={
+                    !form.formState.isValid || isSubmitting || uiState.isUncertain
+                  }
                 >
-                  {form.formState.isSubmitting ? "Mencatat..." : "Catat Tagihan"}
+                  {isSubmitting ? "Mencatat..." : "Catat Tagihan"}
                 </Button>
               </div>
             </form>

@@ -249,7 +249,9 @@ describe("recordPayment", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "Cannot record payment on a closed folio",
+      code: "FOLIO_NOT_OPEN",
+      error:
+        "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });

@@ -4,7 +4,7 @@ import { PaymentMethod } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -31,7 +31,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { safelyRunAction } from "@/lib/action-errors";
 import { recordPayment } from "@/lib/folio/actions";
+import {
+  folioFailure,
+  INITIAL_FOLIO_DIALOG_UI_STATE,
+  reduceFolioActionResult,
+  reduceFolioDialogClose,
+  type FolioDialogUiState,
+} from "@/lib/folio/errors";
 import { paymentMethods, PaymentSchema } from "@/lib/folio/schema";
 
 type PaymentFormInput = {
@@ -58,10 +66,6 @@ function defaultAmount(balance: number) {
   return String(balance);
 }
 
-function resultErrorMessage(error: unknown) {
-  return typeof error === "string" ? error : "Pembayaran tidak dapat dicatat";
-}
-
 export function RecordPaymentDialog({
   folioId,
   balance,
@@ -69,24 +73,12 @@ export function RecordPaymentDialog({
 }: RecordPaymentDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const form = useForm<PaymentFormInput>({
-    resolver: zodResolver(PaymentSchema) as unknown as Resolver<PaymentFormInput>,
-    mode: "onChange",
-    defaultValues: {
-      folioId,
-      amount: defaultAmount(balance),
-      method: PaymentMethod.CASH,
-      reference: "",
-    },
-  });
+  const [uiState, setUiState] = useState<FolioDialogUiState>(
+    INITIAL_FOLIO_DIALOG_UI_STATE,
+  );
+  const [isPending, startTransition] = useTransition();
 
-  const method = useWatch({
-    control: form.control,
-    name: "method",
-  });
-
-  function formDefaults() {
+  function formDefaults(): PaymentFormInput {
     return {
       folioId,
       amount: defaultAmount(balance),
@@ -95,15 +87,44 @@ export function RecordPaymentDialog({
     };
   }
 
-  function resetAndClose(nextOpen: boolean) {
-    setOpen(nextOpen);
-    setActionError(null);
+  const form = useForm<PaymentFormInput>({
+    resolver: zodResolver(PaymentSchema) as unknown as Resolver<PaymentFormInput>,
+    mode: "onChange",
+    defaultValues: formDefaults(),
+  });
 
-    form.reset(formDefaults());
+  const isSubmitting = form.formState.isSubmitting || isPending;
+
+  const method = useWatch({
+    control: form.control,
+    name: "method",
+  });
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isSubmitting && !nextOpen) {
+      return;
+    }
+
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      setUiState((current) => reduceFolioDialogClose(current));
+      if (!uiState.isUncertain) {
+        form.reset(formDefaults());
+      }
+    }
   }
 
   async function onSubmit(values: PaymentFormInput) {
-    setActionError(null);
+    if (uiState.isUncertain || isSubmitting) {
+      return;
+    }
+
+    setUiState((current) => ({
+      ...current,
+      actionError: null,
+      errorCode: null,
+    }));
 
     const formData = new FormData();
     formData.set("folioId", String(folioId));
@@ -111,18 +132,24 @@ export function RecordPaymentDialog({
     formData.set("method", values.method);
     formData.set("reference", values.reference ?? "");
 
-    const result = await recordPayment(formData);
+    startTransition(async () => {
+      const result = await safelyRunAction(
+        () => recordPayment(formData),
+        () => folioFailure("RESULT_UNKNOWN"),
+      );
 
-    if (!result.ok) {
-      const message = resultErrorMessage(result.error);
-      setActionError(message);
-      toast.error(message);
-      return;
-    }
+      const nextState = reduceFolioActionResult(uiState, result);
+      setUiState(nextState);
 
-    toast.success("Pembayaran tercatat");
-    resetAndClose(false);
-    router.refresh();
+      if (!result.ok) {
+        return;
+      }
+
+      toast.success("Pembayaran tercatat");
+      form.reset(formDefaults());
+      setOpen(false);
+      router.refresh();
+    });
   }
 
   return (
@@ -130,14 +157,17 @@ export function RecordPaymentDialog({
       <Button
         type="button"
         disabled={disabled}
-        onClick={() => resetAndClose(true)}
+        onClick={() => setOpen(true)}
       >
         <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
         Catat Pembayaran
       </Button>
 
-      <Dialog open={open} onOpenChange={resetAndClose}>
-        <DialogContent className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md">
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl overflow-hidden sm:max-w-md"
+          showCloseButton={!isSubmitting}
+        >
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               Catat Pembayaran
@@ -163,6 +193,7 @@ export function RecordPaymentDialog({
                         type="number"
                         min={1}
                         step={1}
+                        disabled={isSubmitting}
                         placeholder="0"
                         className={fieldClassName}
                         {...field}
@@ -179,12 +210,16 @@ export function RecordPaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">Metode</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                                          <FormControl>
-                                            <SelectTrigger className="h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
-                                              <SelectValue placeholder="Pilih metode" />
-                                            </SelectTrigger>
-                                          </FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
+                          <SelectValue placeholder="Pilih metode" />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent
                         align="start"
                         className="rounded-lg border border-slate-200 bg-white shadow-md"
@@ -215,6 +250,7 @@ export function RecordPaymentDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
+                        disabled={isSubmitting}
                         placeholder="BCA TRF 12345"
                         className={fieldClassName}
                         {...field}
@@ -225,27 +261,44 @@ export function RecordPaymentDialog({
                 )}
               />
 
-              {actionError ? (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {actionError}
-                </p>
+              {uiState.actionError ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                >
+                  <p className="font-medium">{uiState.actionError}</p>
+                  {uiState.isUncertain ? (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
+                        onClick={() => window.location.reload()}
+                      >
+                        Muat ulang halaman
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => resetAndClose(false)}
+                  disabled={isSubmitting}
+                  onClick={() => handleOpenChange(false)}
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!form.formState.isValid || form.formState.isSubmitting}
+                  disabled={
+                    !form.formState.isValid || isSubmitting || uiState.isUncertain
+                  }
                 >
-                  {form.formState.isSubmitting
-                    ? "Mencatat..."
-                    : "Catat Pembayaran"}
+                  {isSubmitting ? "Mencatat..." : "Catat Pembayaran"}
                 </Button>
               </div>
             </form>

@@ -1,4 +1,7 @@
-import { unstable_rethrow } from "next/navigation";
+import {
+  checkActionAuthorization,
+  safelyRunAction,
+} from "@/lib/action-errors";
 
 export const RESERVATION_FAILURE_CODES = [
   "SESSION_EXPIRED",
@@ -94,13 +97,12 @@ export function reservationAuthorizationFailure(
   session: { user?: { role?: string } } | null | undefined,
   allowedRoles: readonly string[],
 ): ReservationFailure | null {
-  if (!session?.user) {
-    return reservationFailure("SESSION_EXPIRED");
+  const failure = checkActionAuthorization(session, allowedRoles);
+  if (!failure) {
+    return null;
   }
 
-  return session.user.role && allowedRoles.includes(session.user.role)
-    ? null
-    : reservationFailure("FORBIDDEN");
+  return reservationFailure(failure.code as ReservationFailureCode);
 }
 
 export function reservationFailure(
@@ -132,10 +134,5 @@ export async function safelyRunReservationAction<T>(
   action: () => Promise<T>,
   operation: ReservationOperation,
 ): Promise<T | ReservationFailure> {
-  try {
-    return await action();
-  } catch (error) {
-    unstable_rethrow(error);
-    return unexpectedReservationFailure(operation);
-  }
+  return safelyRunAction(action, () => unexpectedReservationFailure(operation));
 }
