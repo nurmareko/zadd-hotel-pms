@@ -185,7 +185,9 @@ describe("postCharge", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "Tidak dapat memposting charge ke folio yang sudah ditutup",
+      code: "FOLIO_NOT_OPEN",
+      error:
+        "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
     });
     expect(
       await prisma.folioLineItem.count({

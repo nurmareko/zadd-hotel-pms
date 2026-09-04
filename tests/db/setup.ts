@@ -17,6 +17,10 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
-}));
+vi.mock("next/navigation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/navigation")>();
+  return {
+    ...actual,
+    redirect: vi.fn(),
+  };
+});
