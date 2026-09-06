@@ -100,7 +100,10 @@ export const PayOrderDirectSchema = z
   .object({
     orderId: z.coerce.number().int().positive("Order wajib dipilih"),
     method: z.enum(directPaymentMethods),
-    amountTendered: z.coerce.number().optional(),
+    amountTendered: z.coerce
+      .number()
+      .int("Uang diterima harus dalam rupiah penuh")
+      .optional(),
     reference: OptionalPaymentReferenceSchema,
     selectedItems: z
       .array(PaymentSelectionItemSchema)

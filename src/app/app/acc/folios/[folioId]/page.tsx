@@ -216,6 +216,7 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
             quantity: true,
             unitPrice: true,
             amount: true,
+            fbOrderId: true,
             postedAt: true,
             article: { select: { code: true, type: true } },
             fbOrder: { select: { orderNo: true } },
@@ -249,9 +250,8 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
     throw new Error("Hotel settings not found");
   }
 
-  // The canonical helper reads only amount/article.type, payment amount, and the
-  // two settings selected above. Keep the query allowlisted instead of loading
-  // complete Prisma records merely to satisfy its broader generated model types.
+  // Keep the query allowlisted to the monetary fields and linkage used by the
+  // canonical helper instead of loading complete Prisma records.
   const totals = computeFolioTotals(
     folio.lineItems as unknown as Parameters<typeof computeFolioTotals>[0],
     folio.payments as unknown as Parameters<typeof computeFolioTotals>[1],

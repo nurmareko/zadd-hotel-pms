@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatIDR } from "@/lib/format";
+import { roundIDRPercentage } from "@/lib/whole-idr";
 
 import {
   chargeOrderToRoom,
@@ -205,20 +206,25 @@ export function PaymentForm({
   );
   const selectedSubtotal = useMemo(
     () =>
-      items.reduce((sum, item) => {
-        const quantity = selectedQuantities[item.id] ?? 0;
+      Math.round(
+        items.reduce((sum, item) => {
+          const quantity = selectedQuantities[item.id] ?? 0;
 
-        return sum + Number(item.unitPrice) * quantity;
-      }, 0),
+          return sum + Number(item.unitPrice) * quantity;
+        }, 0),
+      ),
     [items, selectedQuantities],
   );
-  const selectedServiceCharge =
-    selectedSubtotal * (Number(settings.serviceChargePercent) / 100);
-  const selectedTax =
-    (selectedSubtotal + selectedServiceCharge) *
-    (Number(settings.taxPercent) / 100);
+  const selectedServiceCharge = roundIDRPercentage(
+    selectedSubtotal,
+    settings.serviceChargePercent,
+  );
+  const selectedTax = roundIDRPercentage(
+    selectedSubtotal + selectedServiceCharge,
+    settings.taxPercent,
+  );
   const selectedTotal = selectedSubtotal + selectedServiceCharge + selectedTax;
-  const selectedTotalString = selectedTotal.toFixed(2);
+  const selectedTotalString = selectedTotal.toFixed(0);
   const totalNumber = selectedTotal;
   const [method, setMethod] = useState<PaymentMethod>(
     attachedRoomFolio ? PaymentMethod.CHARGE_TO_ROOM : PaymentMethod.CASH,
@@ -239,8 +245,10 @@ export function PaymentForm({
     () => tenderedNumber - totalNumber,
     [tenderedNumber, totalNumber],
   );
+  const cashIsWholeIDR = Number.isInteger(tenderedNumber);
   const cashIsValid =
-    method !== PaymentMethod.CASH || tenderedNumber >= totalNumber;
+    method !== PaymentMethod.CASH ||
+    (cashIsWholeIDR && tenderedNumber >= totalNumber);
   const canSubmitCharge =
     method !== PaymentMethod.CHARGE_TO_ROOM ||
     Boolean(attachedRoomFolio) ||
@@ -626,7 +634,7 @@ export function PaymentForm({
                   min={0}
                   onChange={(event) => setAmountTendered(event.target.value)}
                   placeholder={selectedTotalString}
-                  step={0.01}
+                  step={1}
                   type="number"
                   value={amountTendered}
                 />
@@ -644,7 +652,9 @@ export function PaymentForm({
                 </div>
                 {!cashIsValid ? (
                   <div className="mt-1 text-xs font-medium text-status-od-fg">
-                    Uang diterima kurang dari total tagihan.
+                    {cashIsWholeIDR
+                      ? "Uang diterima kurang dari total tagihan."
+                      : "Uang diterima harus dalam rupiah penuh."}
                   </div>
                 ) : null}
               </div>

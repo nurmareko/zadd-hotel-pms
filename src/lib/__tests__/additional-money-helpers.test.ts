@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
+import { roundIDRPercentage } from "@/lib/whole-idr";
 import {
   billBalanceAmountLabel,
   billBalanceLabel,
@@ -27,6 +28,47 @@ describe("computeFBOrderTotals", () => {
     expect(totals.serviceCharge.toNumber()).toBe(27_500);
     expect(totals.tax.toNumber()).toBe(57_750);
     expect(totals.total.toNumber()).toBe(635_250);
+  });
+
+  it.each([
+    [10, 10, 1, 1, 12],
+    [25_001, 25_001, 1_250, 2_625, 28_876],
+    [10.5, 11, 1, 1, 13],
+  ])(
+    "rounds subtotal %s and every percentage component to whole IDR",
+    (amount, subtotal, serviceCharge, tax, total) => {
+      const totals = computeFBOrderTotals(
+        [{ amount }],
+        { serviceChargePercent: decimal(5), taxPercent: decimal(10) },
+      );
+
+      expect(totals.subtotal.toNumber()).toBe(subtotal);
+      expect(totals.serviceCharge.toNumber()).toBe(serviceCharge);
+      expect(totals.tax.toNumber()).toBe(tax);
+      expect(totals.total.toNumber()).toBe(total);
+      expect(
+        totals.total.equals(
+          totals.subtotal.plus(totals.serviceCharge).plus(totals.tax),
+        ),
+      ).toBe(true);
+      expect(
+        Object.values(totals).every((value) => value.decimalPlaces() === 0),
+      ).toBe(true);
+    },
+  );
+});
+
+describe("roundIDRPercentage", () => {
+  it("matches canonical Decimal half-up rounding at floating-point boundaries", () => {
+    const totals = computeFBOrderTotals(
+      [{ amount: 50 }],
+      { serviceChargePercent: decimal(29), taxPercent: decimal(10) },
+    );
+
+    expect(roundIDRPercentage(50, "29.00")).toBe(15);
+    expect(totals.serviceCharge.toNumber()).toBe(15);
+    expect(totals.tax.toNumber()).toBe(7);
+    expect(totals.total.toNumber()).toBe(72);
   });
 });
 

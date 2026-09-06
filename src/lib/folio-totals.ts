@@ -20,16 +20,25 @@ function roundIDR(amount: Prisma.Decimal) {
   return Math.round(amount.toNumber());
 }
 
+function isLinkedFBOrderLine(lineItem: FolioLineItem) {
+  return typeof lineItem.fbOrderId === "number";
+}
+
 export function computeFolioTotals(
   lineItems: (FolioLineItem & { article: Article })[],
   payments: Payment[],
   settings: HotelSettings,
 ): FolioTotals {
+  const inclusiveLines = lineItems.filter(isLinkedFBOrderLine);
   const baseLines = lineItems.filter(
-    (lineItem) => !["TAX", "SERVICE"].includes(lineItem.article.type),
+    (lineItem) =>
+      !isLinkedFBOrderLine(lineItem) &&
+      !["TAX", "SERVICE"].includes(lineItem.article.type),
   );
-  const extraLines = lineItems.filter((lineItem) =>
-    ["TAX", "SERVICE"].includes(lineItem.article.type),
+  const extraLines = lineItems.filter(
+    (lineItem) =>
+      !isLinkedFBOrderLine(lineItem) &&
+      ["TAX", "SERVICE"].includes(lineItem.article.type),
   );
 
   // Folios settle in whole IDR. Keep the policy in this canonical read-time
@@ -55,8 +64,15 @@ export function computeFolioTotals(
       new Prisma.Decimal(0),
     ),
   );
+  const inclusiveCharges = roundIDR(
+    inclusiveLines.reduce(
+      (sum, lineItem) => sum.plus(lineItem.amount),
+      new Prisma.Decimal(0),
+    ),
+  );
 
-  const totalCharges = subtotal + serviceCharge + tax + taxableExtras;
+  const totalCharges =
+    subtotal + serviceCharge + tax + taxableExtras + inclusiveCharges;
   const totalPaid = roundIDR(
     payments.reduce(
       (sum, payment) => sum.plus(payment.amount),

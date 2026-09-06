@@ -1200,7 +1200,7 @@ export async function payOrderDirect(
 
         const reference =
           parsed.data.method === PaymentMethod.CASH && amountTendered && change
-            ? `CASH_TENDERED=${amountTendered.toFixed(2)};CHANGE=${change.toFixed(2)}`
+            ? `CASH_TENDERED=${amountTendered.toFixed(0)};CHANGE=${change.toFixed(0)}`
             : parsed.data.reference || null;
 
         await tx.payment.create({
@@ -1223,9 +1223,9 @@ export async function payOrderDirect(
           ok: true as const,
           paymentMethod: parsed.data.method,
           receiptOrderId: paidSelection.paidOrderId,
-          paidTotal: paidSelection.totals.total.toFixed(2),
-          amountTendered: amountTendered?.toFixed(2),
-          change: change?.toFixed(2),
+          paidTotal: paidSelection.totals.total.toFixed(0),
+          amountTendered: amountTendered?.toFixed(0),
+          change: change?.toFixed(0),
           fullyPaid: paidSelection.fullyPaid,
         };
       },
@@ -1397,10 +1397,7 @@ export async function chargeOrderToRoom(
             closedAt: now,
           },
         );
-        const folioAmount = paidSelection.totals.total.toDecimalPlaces(
-          0,
-          Prisma.Decimal.ROUND_HALF_UP,
-        );
+        const folioAmount = paidSelection.totals.total;
 
         await tx.folioLineItem.create({
           data: {
@@ -1424,7 +1421,7 @@ export async function chargeOrderToRoom(
           ok: true as const,
           paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
           receiptOrderId: paidSelection.paidOrderId,
-          paidTotal: paidSelection.totals.total.toFixed(2),
+          paidTotal: paidSelection.totals.total.toFixed(0),
           folioId: roomLookup.folioId,
           folioNo: roomLookup.folioNo,
           fullyPaid: paidSelection.fullyPaid,

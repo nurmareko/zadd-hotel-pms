@@ -46,9 +46,6 @@ function actionLabel(status: FBOrderStatus) {
   return "Lihat";
 }
 
-function itemTotal(order: FBOrderListRow) {
-  return order.items.reduce((sum, item) => sum + Number(item.amount), 0);
-}
 
 function serviceLocation(order: FBOrderListRow) {
   if (order.serviceType === FBOrderServiceType.ROOM_SERVICE) {
@@ -200,7 +197,7 @@ export function OrderList({
                       {formatTimeID(order.openedAt)}
                     </td>
                     <td className="num px-3.5 py-3 text-right font-semibold text-slate-900">
-                      {formatIDR(itemTotal(order))}
+                      {formatIDR(order.total)}
                     </td>
                     <td className="px-3.5 py-3 text-right">
                       <Link

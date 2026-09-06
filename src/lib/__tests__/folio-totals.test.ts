@@ -7,9 +7,14 @@ type LineItem = Parameters<typeof computeFolioTotals>[0][number];
 type Payment = Parameters<typeof computeFolioTotals>[1][number];
 type Settings = Parameters<typeof computeFolioTotals>[2];
 
-function line(amount: Prisma.Decimal.Value, type = "ROOM"): LineItem {
+function line(
+  amount: Prisma.Decimal.Value,
+  type = "ROOM",
+  fbOrderId: number | null = null,
+): LineItem {
   return {
     amount: new Prisma.Decimal(amount),
+    fbOrderId,
     article: { type },
   } as unknown as LineItem;
 }
@@ -77,6 +82,38 @@ describe("computeFolioTotals", () => {
       serviceCharge: 27_500,
       tax: 57_750,
       totalCharges: 635_250,
+    });
+  });
+
+  it("includes linked gross F&B charges without taxing them again", () => {
+    expect(
+      computeFolioTotals(
+        [line(100_000), line(115_500, "FB", 42)],
+        [],
+        settings(),
+      ),
+    ).toEqual({
+      subtotal: 100_000,
+      serviceCharge: 5_000,
+      tax: 10_500,
+      taxableExtras: 0,
+      totalCharges: 231_000,
+      totalPaid: 0,
+      balance: 231_000,
+    });
+  });
+
+  it("taxes synthetic pending charges that omit F&B linkage", () => {
+    const pendingLine = {
+      amount: new Prisma.Decimal(10),
+      article: { type: "ROOM" },
+    } as unknown as LineItem;
+
+    expect(computeFolioTotals([pendingLine], [], settings())).toMatchObject({
+      subtotal: 10,
+      serviceCharge: 1,
+      tax: 1,
+      totalCharges: 12,
     });
   });
 

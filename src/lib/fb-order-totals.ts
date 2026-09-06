@@ -22,20 +22,28 @@ function toDecimal(value: Prisma.Decimal | number | string) {
     : new Prisma.Decimal(value);
 }
 
+function roundIDR(value: Prisma.Decimal) {
+  return value.toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP);
+}
+
 export function computeFBOrderTotals(
   lineItems: TotalLine[],
   settings: TotalSettings,
 ): FBOrderTotals {
-  const subtotal = lineItems.reduce(
-    (sum, lineItem) => sum.plus(toDecimal(lineItem.amount)),
-    new Prisma.Decimal(0),
+  const subtotal = roundIDR(
+    lineItems.reduce(
+      (sum, lineItem) => sum.plus(toDecimal(lineItem.amount)),
+      new Prisma.Decimal(0),
+    ),
   );
-  const serviceCharge = subtotal.mul(
-    toDecimal(settings.serviceChargePercent).div(100),
+  const serviceCharge = roundIDR(
+    subtotal.mul(toDecimal(settings.serviceChargePercent).div(100)),
   );
-  const tax = subtotal
-    .plus(serviceCharge)
-    .mul(toDecimal(settings.taxPercent).div(100));
+  const tax = roundIDR(
+    subtotal
+      .plus(serviceCharge)
+      .mul(toDecimal(settings.taxPercent).div(100)),
+  );
   const total = subtotal.plus(serviceCharge).plus(tax);
 
   return {
