@@ -21,7 +21,7 @@ import {
   CHECK_IN_UNKNOWN_RESULT_MESSAGES,
 } from "@/lib/check-in/errors";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
-import { formatDateID } from "@/lib/format";
+import { formatDateID, formatIDR } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
 import { collectCheckInDepositForGroup } from "@/lib/check-in/actions";
@@ -30,6 +30,12 @@ import {
   completeCheckout,
   recordFinalPayment,
 } from "../../../check-out/[folioId]/actions";
+import {
+  checkoutAuthorizationFailure,
+  checkoutFailure,
+  type CheckoutActionResult,
+  type CheckoutFailureCode,
+} from "../../../check-out/[folioId]/errors";
 
 const GroupBookingIdSchema = z.string().trim().min(1, "Booking grup tidak valid");
 
@@ -62,7 +68,13 @@ function requireTransferReference(
   }
 }
 
-type GroupActionStatus = "completed" | "skipped" | "failed";
+type GroupActionStatus = "completed" | "skipped" | "failed" | "uncertain";
+
+export type GroupActionDetail = {
+  label: string;
+  status: GroupActionStatus;
+  reason: string;
+};
 
 export type GroupRoomActionResult = {
   reservationId: number;
@@ -70,18 +82,13 @@ export type GroupRoomActionResult = {
   roomNumber: string | null;
   status: GroupActionStatus;
   reason: string;
-  details?: Array<{
-    label: string;
-    status: GroupActionStatus;
-    reason: string;
-  }>;
+  code?: CheckoutFailureCode;
+  details?: GroupActionDetail[];
 };
 
 export type GroupActionResult =
   | { ok: true; results: GroupRoomActionResult[] }
-  | { ok: false; error: string };
-
-type DelegatedActionResult = { ok: true } | { ok: false; error: string };
+  | { ok: false; error: string; code?: CheckoutFailureCode };
 
 function roomLabel(room: { number: string } | null) {
   return room?.number ?? null;
@@ -95,6 +102,8 @@ function resultFor(
   },
   status: GroupActionStatus,
   reason: string,
+  code?: CheckoutFailureCode,
+  details?: GroupActionDetail[],
 ): GroupRoomActionResult {
   return {
     reservationId: reservation.id,
@@ -102,12 +111,20 @@ function resultFor(
     roomNumber: roomLabel(reservation.room),
     status,
     reason,
+    ...(code ? { code } : {}),
+    ...(details ? { details } : {}),
   };
 }
 
-async function canManageGroupCheckout() {
-  const session = await auth();
-  return session?.user.role === "FO";
+const SETTLEMENT_STATUS_UNCERTAIN_MESSAGE =
+  "Pembayaran berhasil dicatat, tetapi status pelunasan akhir belum dapat dipastikan. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.";
+
+function completedPaymentDetail(label: string, amount: number): GroupActionDetail {
+  return {
+    label,
+    status: "completed",
+    reason: `Pembayaran ${formatIDR(amount)} berhasil dicatat.`,
+  };
 }
 
 function actionFormData(entries: Record<string, string>) {
@@ -131,18 +148,19 @@ function revalidateGroup(groupBookingId: string) {
   }
 }
 
-function unexpectedActionError(error: unknown) {
-  logActionFailure("groupAction:unexpected", error);
-  return "Terjadi kegagalan saat memproses kamar ini.";
-}
-
-async function callExistingAction<T extends DelegatedActionResult>(
-  action: () => Promise<T>,
-): Promise<T | { ok: false; error: string }> {
+async function callExistingCheckoutAction(
+  action: () => Promise<CheckoutActionResult>,
+  context: { action: string; reservationId: number },
+): Promise<CheckoutActionResult> {
   try {
     return await action();
   } catch (error) {
-    return { ok: false, error: unexpectedActionError(error) };
+    rethrowFrameworkErrors(error);
+    logActionFailure("groupCheckout:sibling", error, {
+      ...context,
+      stage: "delegated-action",
+    });
+    return checkoutFailure("RESULT_UNKNOWN");
   }
 }
 
@@ -288,39 +306,43 @@ export async function settleGroupBalances(input: {
   method: PaymentMethod;
   reference?: string;
 }): Promise<GroupActionResult> {
-  if (!(await canManageGroupCheckout())) {
-    return { ok: false, error: "Unauthorized" };
-  }
+  const session = await auth();
+  const authFailure = checkoutAuthorizationFailure(session);
+  if (authFailure) return authFailure;
 
   const parsed = SettleGroupBalancesSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: parsed.error.issues[0]?.message ?? "Data pembayaran tidak valid",
-    };
-  }
+  if (!parsed.success) return checkoutFailure("INVALID_INPUT");
 
   const { groupBookingId, method, reference } = parsed.data;
-  const [settings, reservations] = await Promise.all([
-    prisma.hotelSettings.findUnique({ where: { id: 1 } }),
-    prisma.reservation.findMany({
-      where: { groupBookingId },
-      include: {
-        room: { select: { number: true } },
-        folio: {
-          include: {
-            lineItems: { include: { article: true } },
-            payments: true,
+  let settings;
+  let reservations;
+  try {
+    [settings, reservations] = await Promise.all([
+      prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+      prisma.reservation.findMany({
+        where: { groupBookingId },
+        include: {
+          room: { select: { number: true } },
+          folio: {
+            include: {
+              lineItems: { include: { article: true } },
+              payments: true,
+            },
           },
         },
-      },
-      orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
-    }),
-  ]);
-
-  if (!settings) {
-    return { ok: false, error: "Hotel settings not found" };
+        orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
+      }),
+    ]);
+  } catch (error) {
+    rethrowFrameworkErrors(error);
+    logActionFailure("settleGroupBalances", error, {
+      action: "settleGroupBalances",
+      stage: "query",
+    });
+    return checkoutFailure("FINAL_PAYMENT_UNEXPECTED");
   }
+
+  if (!settings) return checkoutFailure("SETTINGS_UNAVAILABLE");
 
   const results: GroupRoomActionResult[] = [];
 
@@ -364,36 +386,78 @@ export async function settleGroupBalances(input: {
       continue;
     }
 
-    const payment = await callExistingAction(() =>
-      recordFinalPayment(
-        actionFormData({
-          folioId: String(folio.id),
-          amount: String(balance),
-          method,
-          ...(reference ? { reference } : {}),
-        }),
-      ),
+    const payment = await callExistingCheckoutAction(
+      () =>
+        recordFinalPayment(
+          actionFormData({
+            folioId: String(folio.id),
+            amount: String(balance),
+            method,
+            ...(reference ? { reference } : {}),
+          }),
+        ),
+      { action: "settleGroupBalances", reservationId: reservation.id },
     );
 
     if (!payment.ok) {
-      results.push(resultFor(reservation, "failed", payment.error));
+      results.push(
+        resultFor(
+          reservation,
+          payment.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
+          payment.error,
+          payment.code,
+        ),
+      );
       continue;
     }
+
+    const confirmedPayments = [
+      completedPaymentDetail("Pembayaran awal", balance),
+    ];
 
     // recordFinalPayment can post a stay-charge shortfall before creating its
     // payment. Re-read its result rather than reproducing that calculation;
     // a second call uses the same authoritative payment path only when that
     // newly posted charge left a balance behind.
-    const updatedFolio = await prisma.folio.findUnique({
-      where: { id: folio.id },
-      include: {
-        lineItems: { include: { article: true } },
-        payments: true,
-      },
-    });
+    let updatedFolio;
+    try {
+      updatedFolio = await prisma.folio.findUnique({
+        where: { id: folio.id },
+        include: {
+          lineItems: { include: { article: true } },
+          payments: true,
+        },
+      });
+    } catch (error) {
+      rethrowFrameworkErrors(error);
+      logActionFailure("settleGroupBalances:sibling", error, {
+        action: "settleGroupBalances",
+        stage: "post-payment-read",
+        reservationId: reservation.id,
+        committed: true,
+      });
+      results.push(
+        resultFor(
+          reservation,
+          "uncertain",
+          SETTLEMENT_STATUS_UNCERTAIN_MESSAGE,
+          "RESULT_UNKNOWN",
+          confirmedPayments,
+        ),
+      );
+      continue;
+    }
 
     if (!updatedFolio) {
-      results.push(resultFor(reservation, "failed", "Folio tidak ditemukan setelah pembayaran."));
+      results.push(
+        resultFor(
+          reservation,
+          "uncertain",
+          SETTLEMENT_STATUS_UNCERTAIN_MESSAGE,
+          "RESULT_UNKNOWN",
+          confirmedPayments,
+        ),
+      );
       continue;
     }
 
@@ -404,52 +468,115 @@ export async function settleGroupBalances(input: {
     ).balance;
 
     if (Math.round(remainingBalance) <= 0) {
-      results.push(resultFor(reservation, "completed", "Saldo folio dilunasi."));
+      results.push(
+        resultFor(
+          reservation,
+          "completed",
+          "Saldo folio dilunasi.",
+          undefined,
+          confirmedPayments,
+        ),
+      );
       continue;
     }
 
-    const catchUpPayment = await callExistingAction(() =>
-      recordFinalPayment(
-        actionFormData({
-          folioId: String(updatedFolio.id),
-          amount: String(remainingBalance),
-          method,
-          ...(reference ? { reference } : {}),
-        }),
-      ),
+    const catchUpPayment = await callExistingCheckoutAction(
+      () =>
+        recordFinalPayment(
+          actionFormData({
+            folioId: String(updatedFolio.id),
+            amount: String(remainingBalance),
+            method,
+            ...(reference ? { reference } : {}),
+          }),
+        ),
+      { action: "settleGroupBalances:catchUp", reservationId: reservation.id },
     );
 
     if (!catchUpPayment.ok) {
       results.push(
         resultFor(
           reservation,
-          "failed",
-          `Pembayaran awal tercatat, tetapi saldo belum lunas: ${catchUpPayment.error}`,
+          catchUpPayment.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
+          catchUpPayment.code === "RESULT_UNKNOWN"
+            ? `Pembayaran awal tercatat. ${catchUpPayment.error}`
+            : `Pembayaran awal tercatat, tetapi saldo belum lunas: ${catchUpPayment.error}`,
+          catchUpPayment.code,
+          [
+            ...confirmedPayments,
+            {
+              label: "Pembayaran tambahan",
+              status:
+                catchUpPayment.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
+              reason: catchUpPayment.error,
+            },
+          ],
         ),
       );
       continue;
     }
 
-    const finalFolio = await prisma.folio.findUnique({
-      where: { id: updatedFolio.id },
-      include: {
-        lineItems: { include: { article: true } },
-        payments: true,
-      },
-    });
+    confirmedPayments.push(
+      completedPaymentDetail("Pembayaran tambahan", remainingBalance),
+    );
+
+    let finalFolio;
+    try {
+      finalFolio = await prisma.folio.findUnique({
+        where: { id: updatedFolio.id },
+        include: {
+          lineItems: { include: { article: true } },
+          payments: true,
+        },
+      });
+    } catch (error) {
+      rethrowFrameworkErrors(error);
+      logActionFailure("settleGroupBalances:sibling", error, {
+        action: "settleGroupBalances",
+        stage: "final-read",
+        reservationId: reservation.id,
+        committed: true,
+      });
+      results.push(
+        resultFor(
+          reservation,
+          "uncertain",
+          SETTLEMENT_STATUS_UNCERTAIN_MESSAGE,
+          "RESULT_UNKNOWN",
+          confirmedPayments,
+        ),
+      );
+      continue;
+    }
     const finalBalance = finalFolio
       ? computeFolioTotals(finalFolio.lineItems, finalFolio.payments, settings)
           .balance
       : null;
 
     results.push(
-      finalBalance !== null && Math.round(finalBalance) <= 0
-        ? resultFor(reservation, "completed", "Saldo folio dilunasi.")
-        : resultFor(
+      finalBalance === null
+        ? resultFor(
             reservation,
-            "failed",
-            "Pembayaran tercatat, tetapi saldo berubah sebelum pelunasan selesai.",
-          ),
+            "uncertain",
+            SETTLEMENT_STATUS_UNCERTAIN_MESSAGE,
+            "RESULT_UNKNOWN",
+            confirmedPayments,
+          )
+        : Math.round(finalBalance) <= 0
+          ? resultFor(
+              reservation,
+              "completed",
+              "Saldo folio dilunasi.",
+              undefined,
+              confirmedPayments,
+            )
+          : resultFor(
+              reservation,
+              "failed",
+              `Pembayaran tercatat, tetapi Sisa Tagihan masih ${formatIDR(finalBalance)}. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.`,
+              undefined,
+              confirmedPayments,
+            ),
     );
   }
 
@@ -460,36 +587,43 @@ export async function settleGroupBalances(input: {
 export async function checkoutEligibleGroupRooms(
   groupBookingId: string,
 ): Promise<GroupActionResult> {
-  if (!(await canManageGroupCheckout())) {
-    return { ok: false, error: "Unauthorized" };
-  }
+  const session = await auth();
+  const authFailure = checkoutAuthorizationFailure(session);
+  if (authFailure) return authFailure;
 
   const parsedGroupBookingId = GroupBookingIdSchema.safeParse(groupBookingId);
-  if (!parsedGroupBookingId.success) {
-    return { ok: false, error: "Booking grup tidak valid" };
-  }
+  if (!parsedGroupBookingId.success) return checkoutFailure("INVALID_INPUT");
 
   const { today } = todayDateOnly();
-  const [settings, reservations] = await Promise.all([
-    prisma.hotelSettings.findUnique({ where: { id: 1 } }),
-    prisma.reservation.findMany({
-      where: { groupBookingId: parsedGroupBookingId.data },
-      include: {
-        room: { select: { number: true } },
-        folio: {
-          include: {
-            lineItems: { include: { article: true } },
-            payments: true,
+  let settings;
+  let reservations;
+  try {
+    [settings, reservations] = await Promise.all([
+      prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+      prisma.reservation.findMany({
+        where: { groupBookingId: parsedGroupBookingId.data },
+        include: {
+          room: { select: { number: true } },
+          folio: {
+            include: {
+              lineItems: { include: { article: true } },
+              payments: true,
+            },
           },
         },
-      },
-      orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
-    }),
-  ]);
-
-  if (!settings) {
-    return { ok: false, error: "Hotel settings not found" };
+        orderBy: [{ room: { number: "asc" } }, { id: "asc" }],
+      }),
+    ]);
+  } catch (error) {
+    rethrowFrameworkErrors(error);
+    logActionFailure("checkoutEligibleGroupRooms", error, {
+      action: "checkoutEligibleGroupRooms",
+      stage: "query",
+    });
+    return checkoutFailure("CHECKOUT_UNEXPECTED");
   }
+
+  if (!settings) return checkoutFailure("SETTINGS_UNAVAILABLE");
 
   const results: GroupRoomActionResult[] = [];
 
@@ -553,19 +687,26 @@ export async function checkoutEligibleGroupRooms(
       continue;
     }
 
-    const checkout = await callExistingAction(() =>
-      completeCheckout(
-        actionFormData({
-          folioId: String(folio.id),
-          confirmed: "true",
-        }),
-      ),
+    const checkout = await callExistingCheckoutAction(
+      () =>
+        completeCheckout(
+          actionFormData({
+            folioId: String(folio.id),
+            confirmed: "true",
+          }),
+        ),
+      { action: "checkoutEligibleGroupRooms", reservationId: reservation.id },
     );
 
     results.push(
       checkout.ok
         ? resultFor(reservation, "completed", "Check-out selesai.")
-        : resultFor(reservation, "failed", checkout.error),
+        : resultFor(
+            reservation,
+            checkout.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
+            checkout.error,
+            checkout.code,
+          ),
     );
   }
 

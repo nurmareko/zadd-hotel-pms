@@ -20,6 +20,14 @@ import { Input } from "@/components/ui/input";
 import { folioBalanceState, refundDueNote } from "@/lib/folio-balance-display";
 import { paymentMethods } from "@/lib/folio/schema";
 import { completeCheckout, recordFinalPayment } from "./actions";
+import {
+  checkoutErrorPresentation,
+  createMutationGuard,
+  INITIAL_CHECKOUT_UI_STATE,
+  reloadCheckoutPage,
+  runCheckoutMutation,
+  type CheckoutUiState,
+} from "./errors";
 
 type FinalPaymentFormProps = {
   folioId: number;
@@ -40,9 +48,6 @@ function defaultAmount(balance: number) {
   return String(balance);
 }
 
-function resultErrorMessage(error: unknown, fallback: string) {
-  return typeof error === "string" ? error : fallback;
-}
 
 function CheckoutPinnedActionFooter({ children }: { children: ReactNode }) {
   const container = useSyncExternalStore(
@@ -54,6 +59,37 @@ function CheckoutPinnedActionFooter({ children }: { children: ReactNode }) {
   return container ? createPortal(children, container) : null;
 }
 
+function PersistentActionError({
+  state,
+  hasTargetedFieldError,
+}: {
+  state: CheckoutUiState;
+  hasTargetedFieldError: boolean;
+}) {
+  const presentation = checkoutErrorPresentation(state, hasTargetedFieldError);
+  if (!presentation.showActionError) return null;
+
+  return (
+    <div
+      className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <p className="font-medium">{state.actionError}</p>
+      {presentation.showReload ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3 border-red-300 text-red-800 hover:bg-red-100"
+          onClick={() => reloadCheckoutPage()}
+        >
+          Muat ulang halaman
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 export function FinalPaymentForm({
   folioId,
   reservationId,
@@ -61,32 +97,35 @@ export function FinalPaymentForm({
 }: FinalPaymentFormProps) {
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [uiState, setUiState] = useState(INITIAL_CHECKOUT_UI_STATE);
+  const mutationGuard = useRef(createMutationGuard());
   const [isPending, startTransition] = useTransition();
+  const amountError = uiState.fieldErrors.amount?.[0];
+  const referenceError = uiState.fieldErrors.reference?.[0];
+  const hasTargetedFieldError = Boolean(amountError || referenceError);
+  const isMutationLocked =
+    isPending || uiState.isUncertain || uiState.isCommitted;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setActionError(null);
+    if (mutationGuard.current.state !== "idle") return;
+    setUiState(INITIAL_CHECKOUT_UI_STATE);
 
     const formData = new FormData(event.currentTarget);
     formData.set("folioId", String(folioId));
     formData.set("method", method);
 
     startTransition(async () => {
-      const result = await recordFinalPayment(formData);
-
-      if (!result.ok) {
-        const message = resultErrorMessage(
-          result.error,
-          "Unable to record final payment",
-        );
-        setActionError(message);
-        toast.error(message);
-        return;
-      }
-
-      toast.success("Pembayaran final tercatat");
-      router.refresh();
+      await runCheckoutMutation(
+        mutationGuard.current,
+        uiState,
+        () => recordFinalPayment(formData),
+        {
+          applyState: setUiState,
+          notifySuccess: () => toast.success("Pembayaran final tercatat"),
+          refresh: () => router.refresh(),
+        },
+      );
     });
   }
 
@@ -107,8 +146,19 @@ export function FinalPaymentForm({
             min={1}
             step={1}
             defaultValue={defaultAmount(balance)}
+            aria-invalid={Boolean(amountError)}
+            aria-describedby={amountError ? "final-payment-amount-error" : undefined}
             className={`mt-1 ${fieldClassName}`}
           />
+          {amountError ? (
+            <span
+              id="final-payment-amount-error"
+              className="mt-1 block text-xs font-medium text-red-600"
+              role="alert"
+            >
+              {amountError}
+            </span>
+          ) : null}
         </label>
 
         <label className="block">
@@ -122,6 +172,7 @@ export function FinalPaymentForm({
                               type="button"
                               variant={method === paymentMethod ? "default" : "outline"}
                               onClick={() => setMethod(paymentMethod)}
+                              disabled={isMutationLocked}
                               className="text-xs font-semibold"
                             >
                               {paymentMethod}
@@ -133,34 +184,44 @@ export function FinalPaymentForm({
         <label className="block sm:col-span-2">
           <span className="text-xs font-semibold text-slate-500">
             Referensi Pembayaran
-            {method === PaymentMethod.TRANSFER ? " / Required" : ""}
+            {method === PaymentMethod.TRANSFER ? " / wajib" : ""}
           </span>
           <Input
             name="reference"
             placeholder="BCA TRF 12345"
+            aria-invalid={Boolean(referenceError)}
+            aria-describedby={
+              referenceError ? "final-payment-reference-error" : undefined
+            }
             className={`mt-1 ${fieldClassName}`}
           />
+          {referenceError ? (
+            <span
+              id="final-payment-reference-error"
+              className="mt-1 block text-xs font-medium text-red-600"
+              role="alert"
+            >
+              {referenceError}
+            </span>
+          ) : null}
         </label>
       </div>
 
-      {actionError ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {actionError}
-        </p>
-      ) : null}
+      <PersistentActionError
+        state={uiState}
+        hasTargetedFieldError={hasTargetedFieldError}
+      />
 
     </form>
 
     <CheckoutPinnedActionFooter>
       <PinnedActionFooter
         hint={
-          actionError ? (
-            <p className="font-medium text-red-600">{actionError}</p>
-          ) : (
-            <p className="text-slate-500">
-              Catat pembayaran akhir sebelum menyelesaikan check-out.
-            </p>
-          )
+          <p className="text-slate-500">
+            {uiState.isUncertain
+              ? "Kontrol pembayaran dinonaktifkan sampai halaman dimuat ulang."
+              : "Catat pembayaran akhir sebelum menyelesaikan check-out."}
+          </p>
         }
         actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
         actions={
@@ -177,11 +238,11 @@ export function FinalPaymentForm({
             <Button
               type="submit"
               form="final-payment-form"
-              disabled={isPending}
+              disabled={isMutationLocked}
               className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
             >
               <CreditCard className="h-4 w-4" aria-hidden="true" />
-              {isPending ? "Recording..." : "Record Payment & Continue"}
+              {isPending ? "Mencatat..." : "Catat Pembayaran & Lanjutkan"}
             </Button>
           </>
         }
@@ -201,34 +262,35 @@ export function CompleteCheckoutForm({
   const [roomStatusConfirmed, setRoomStatusConfirmed] = useState(true);
   const [folioCloseConfirmed, setFolioCloseConfirmed] = useState(true);
   const [pdfConfirmed, setPdfConfirmed] = useState(true);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [uiState, setUiState] = useState(INITIAL_CHECKOUT_UI_STATE);
+  const mutationGuard = useRef(createMutationGuard());
   const [isPending, startTransition] = useTransition();
+  const confirmationError = uiState.fieldErrors.confirmed?.[0];
   const confirmed =
     roomStatusConfirmed && folioCloseConfirmed && pdfConfirmed;
   const isCreditBalance = folioBalanceState(balance) === "credit";
+  const isMutationLocked =
+    isPending || uiState.isUncertain || uiState.isCommitted;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setActionError(null);
+    if (mutationGuard.current.state !== "idle") return;
+    setUiState(INITIAL_CHECKOUT_UI_STATE);
 
     const formData = new FormData(event.currentTarget);
     formData.set("folioId", String(folioId));
 
     startTransition(async () => {
-      const result = await completeCheckout(formData);
-
-      if (!result.ok) {
-        const message = resultErrorMessage(
-          result.error,
-          "Unable to complete check-out",
-        );
-        setActionError(message);
-        toast.error(message);
-        return;
-      }
-
-      toast.success("Check-out selesai");
-      router.refresh();
+      await runCheckoutMutation(
+        mutationGuard.current,
+        uiState,
+        () => completeCheckout(formData),
+        {
+          applyState: setUiState,
+          notifySuccess: () => toast.success("Check-out selesai"),
+          refresh: () => router.refresh(),
+        },
+      );
     });
   }
 
@@ -255,7 +317,7 @@ export function CompleteCheckoutForm({
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div>
-            <div className="font-semibold text-sm">Refund harus dikembalikan</div>
+            <div className="font-semibold text-sm">Pengembalian dana wajib dilakukan</div>
             <div className="mt-1">{refundDueNote(balance)}</div>
           </div>
         </div>
@@ -267,14 +329,15 @@ export function CompleteCheckoutForm({
             type="checkbox"
             checked={roomStatusConfirmed}
             onChange={(event) => setRoomStatusConfirmed(event.target.checked)}
+            disabled={isMutationLocked}
             className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
             <span className="block font-semibold text-slate-900">
-              Set status kamar → Vacant Dirty (VD)
+              Atur status Kamar → Vacant Dirty (VD)
             </span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              Otomatis dikirim ke Housekeeping.
+              Otomatis dikirim ke modul Tata Graha.
             </span>
           </span>
         </label>
@@ -285,12 +348,17 @@ export function CompleteCheckoutForm({
             type="checkbox"
             checked={folioCloseConfirmed}
             onChange={(event) => setFolioCloseConfirmed(event.target.checked)}
+            disabled={isMutationLocked}
+            aria-invalid={Boolean(confirmationError)}
+            aria-describedby={
+              confirmationError ? "checkout-confirmation-error" : undefined
+            }
             className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
             <span className="block font-semibold text-slate-900">Tutup folio</span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              Charge tidak dapat ditambahkan setelah folio ditutup.
+              Tagihan tidak dapat ditambahkan setelah folio ditutup.
             </span>
           </span>
         </label>
@@ -300,6 +368,7 @@ export function CompleteCheckoutForm({
             type="checkbox"
             checked={pdfConfirmed}
             onChange={(event) => setPdfConfirmed(event.target.checked)}
+            disabled={isMutationLocked}
             className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
@@ -311,19 +380,29 @@ export function CompleteCheckoutForm({
         </label>
       </div>
 
-      {actionError ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {actionError}
+      {confirmationError ? (
+        <p
+          id="checkout-confirmation-error"
+          className="mt-4 text-sm font-medium text-red-600"
+          role="alert"
+        >
+          {confirmationError}
         </p>
       ) : null}
+      <PersistentActionError
+        state={uiState}
+        hasTargetedFieldError={Boolean(confirmationError)}
+      />
 
     </form>
 
     <CheckoutPinnedActionFooter>
       <PinnedActionFooter
         hint={
-          actionError ? (
-            <p className="font-medium text-red-600">{actionError}</p>
+          uiState.isUncertain ? (
+            <p className="text-slate-500">
+              Kontrol check-out dinonaktifkan sampai halaman dimuat ulang.
+            </p>
           ) : !confirmed ? (
             <p className="font-medium text-red-600">
               Selesaikan konfirmasi check-out yang belum dicentang.
@@ -350,20 +429,21 @@ export function CompleteCheckoutForm({
               <Button
                 type="submit"
                 form="complete-checkout-form"
-                disabled={isPending}
+                disabled={isMutationLocked}
                 className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
-                {isPending ? "Completing..." : "Complete Check-Out"}
+                {isPending ? "Menyelesaikan..." : "Selesaikan Check-out"}
               </Button>
             ) : (
               <Button
                 type="button"
                 onClick={focusFirstUnconfirmedStep}
+                disabled={isMutationLocked}
                 className="w-full sm:w-auto"
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
-                Complete Check-Out
+                Selesaikan Check-out
               </Button>
             )}
           </>

@@ -26,6 +26,7 @@ import {
   STAY_CHARGE_ARTICLE_CODES,
 } from "@/lib/stay-charges";
 import { CompleteCheckoutForm, FinalPaymentForm } from "./checkout-forms";
+import { checkoutFailure, checkoutStayChargeFailure } from "./errors";
 
 export const dynamic = "force-dynamic";
 
@@ -274,8 +275,10 @@ function PreviewBill({
 function ErrorState({ message }: { message: string }) {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <StepCard title="Check-Out Blocked">
-        <div className="p-5 text-sm text-red-600">{message}</div>
+      <StepCard title="Check-out diblokir">
+        <div className="p-5 text-sm text-red-600" role="alert">
+          {message}
+        </div>
       </StepCard>
     </main>
   );
@@ -333,13 +336,13 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
   if (!folio) {
     return (
-      <ErrorState message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan." />
+      <ErrorState message={checkoutFailure("FOLIO_NOT_FOUND").error} />
     );
   }
 
   if (!settings) {
     return (
-      <ErrorState message="Hotel settings belum tersedia, sehingga check-out belum bisa dihitung." />
+      <ErrorState message={checkoutFailure("SETTINGS_UNAVAILABLE").error} />
     );
   }
 
@@ -367,7 +370,16 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
       });
     } catch (error) {
       if (error instanceof StayChargePostingError) {
-        return <ErrorState message={error.message} />;
+        return (
+          <ErrorState
+            message={
+              checkoutStayChargeFailure(error, {
+                action: "CheckOutPage",
+                stage: "stay-charge-projection",
+              }).error
+            }
+          />
+        );
       }
 
       throw error;
@@ -398,15 +410,15 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
       <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-3">
-          <StepCard title="1. Verifikasi Zero-Balance">
+          <StepCard title="1. Verifikasi Sisa Tagihan Nol">
             <div className="p-5 text-sm">
               <div className="grid overflow-hidden border border-slate-200 rounded-lg sm:grid-cols-2">
                 <MetricBox
-                  label="Total Charges"
+                  label="Total Tagihan"
                   value={formatIDR(totals.totalCharges)}
                 />
                 <MetricBox
-                  label="Total Payments"
+                  label="Total Pembayaran"
                   value={formatIDR(totals.totalPaid)}
                 />
               </div>
@@ -445,7 +457,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                   <div>
                     <p className="text-sm font-semibold">Check-out selesai</p>
                     <p className="mt-1 text-xs text-emerald-600">
-                      Status: Checked out at{" "}
+                      Waktu check-out:{" "}
                       {folio.closedAt ? dateTimeLabel(folio.closedAt) : "-"}
                     </p>
                   </div>
@@ -465,7 +477,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                                       className={buttonVariants({ variant: "outline" })}
                                     >
                     <Undo2 className="h-4 w-4" aria-hidden="true" />
-                    Back to Tape Chart
+                    Kembali ke Kalender Reservasi
                   </Link>
                 </div>
               </div>

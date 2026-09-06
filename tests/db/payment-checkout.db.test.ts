@@ -271,7 +271,8 @@ describe("recordFinalPayment", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "Cannot record payment on a closed folio",
+      code: "FOLIO_NOT_OPEN",
+      error: "Pembayaran tidak dapat dicatat karena folio sudah tidak terbuka.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });
@@ -319,7 +320,9 @@ describe("recordFinalPayment", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "Jumlah pembayaran melebihi saldo terbaru",
+      code: "PAYMENT_EXCEEDS_BALANCE",
+      error:
+        "Jumlah pembayaran melebihi Sisa Tagihan terbaru. Muat ulang lalu periksa jumlah pembayaran.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });
@@ -333,7 +336,9 @@ describe("completeCheckout", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "Saldo masih belum lunas (Rp 100.000). Catat pembayaran final dahulu.",
+      code: "BALANCE_DUE",
+      error:
+        "Sisa Tagihan masih belum lunas (Rp 100.000). Catat pembayaran final terlebih dahulu.",
     });
 
     const [storedFolio, storedReservation, storedRoom] = await Promise.all([
