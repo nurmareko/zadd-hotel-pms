@@ -88,11 +88,10 @@ import {
   type GroupMutationOperation,
 } from "./group-settlement-actions";
 
-const TODAY = new Date();
-TODAY.setHours(0, 0, 0, 0);
+import { addDateOnlyDays, hotelTodayDateOnly } from "@/lib/date-only";
 
-const FUTURE_DATE = new Date(TODAY);
-FUTURE_DATE.setDate(FUTURE_DATE.getDate() + 5);
+const TODAY = hotelTodayDateOnly();
+const FUTURE_DATE = addDateOnlyDays(TODAY, 5);
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

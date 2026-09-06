@@ -97,10 +97,12 @@ export async function createRoomType({
 export async function createRoom(
   roomTypeId: number,
   status: RoomStatus = RoomStatus.VC,
+  roomNumber?: string,
 ) {
+  sequence += 1;
   return prisma.room.create({
     data: {
-      number: String(100 + sequence + 1),
+      number: roomNumber ?? String(100 + sequence),
       floor: 1,
       roomTypeId,
       status,
@@ -233,6 +235,7 @@ export async function createFolioLine({
   reservationNightId = null,
   quantity = 1,
   unitPrice = amount,
+  postedAt,
 }: {
   folioId: number;
   articleId: number;
@@ -241,6 +244,7 @@ export async function createFolioLine({
   reservationNightId?: string | null;
   quantity?: Prisma.Decimal.Value;
   unitPrice?: Prisma.Decimal.Value;
+  postedAt?: Date;
 }) {
   return prisma.folioLineItem.create({
     data: {
@@ -252,6 +256,7 @@ export async function createFolioLine({
       quantity,
       unitPrice,
       amount,
+      ...(postedAt ? { postedAt } : {}),
     },
   });
 }

@@ -110,6 +110,7 @@ describe("Night Audit Database Integration Tests", () => {
       articleId: laundryArticle.id,
       amount: 75_000,
       postedById: user.id,
+      postedAt: FROZEN_NOW,
     });
 
     const result = await executeNightAudit({
@@ -201,6 +202,7 @@ describe("Night Audit Database Integration Tests", () => {
       articleId: otherArticle.id,
       amount: 50_000,
       postedById: user.id,
+      postedAt: FROZEN_NOW,
     });
 
     // 1. Capture advisory preview (stale snapshot before concurrent mutations)
@@ -226,6 +228,7 @@ describe("Night Audit Database Integration Tests", () => {
       articleId: otherArticle.id,
       amount: 150_000,
       postedById: user.id,
+      postedAt: FROZEN_NOW,
     });
 
     // 4. Execute audit
