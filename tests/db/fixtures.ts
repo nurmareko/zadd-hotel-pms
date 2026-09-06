@@ -2,6 +2,7 @@ import {
   ArrangementType,
   ArticleType,
   DepositStatus,
+  FBOrderStatus,
   FolioStatus,
   PaymentMethod,
   PaymentPurpose,
@@ -277,3 +278,42 @@ export async function createFolioPayment({
     },
   });
 }
+
+export async function createFBOrder({
+  waitedById,
+  total = 100_000,
+  subtotal = total,
+  serviceCharge = 0,
+  tax = 0,
+  status = FBOrderStatus.CLOSED,
+  closedAt = new Date(),
+  tableNo = "T1",
+  guestCount = 1,
+}: {
+  waitedById: number;
+  total?: Prisma.Decimal.Value;
+  subtotal?: Prisma.Decimal.Value;
+  serviceCharge?: Prisma.Decimal.Value;
+  tax?: Prisma.Decimal.Value;
+  status?: FBOrderStatus;
+  closedAt?: Date | null;
+  tableNo?: string;
+  guestCount?: number;
+}) {
+  const orderNo = nextKey("FBO");
+  return prisma.fBOrder.create({
+    data: {
+      orderNo,
+      tableNo,
+      status,
+      guestCount,
+      subtotal,
+      serviceCharge,
+      tax,
+      total,
+      waitedById,
+      closedAt: status === FBOrderStatus.CLOSED ? closedAt : null,
+    },
+  });
+}
+

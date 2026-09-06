@@ -13,8 +13,8 @@ import {
   hotelTodayISO,
   hotelTodayTimestampRange,
 } from "@/lib/date-only";
-import { formatLongDateID } from "@/lib/format";
-import { prisma } from "@/lib/prisma";
+import { formatCompactDateTimeID, formatLongDateID } from "@/lib/format";
+import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 import {
   ROOM_CHARGE_ARTICLE_CODE,
@@ -94,6 +94,36 @@ export type NightAuditSnapshotInput = {
   checkOutCount: number;
   inHouseCount: number;
 };
+
+export type NightAuditDomainRunSummary = {
+  auditId: number;
+  businessDate?: Date;
+  businessDateLabel: string;
+  roomRevenue: string;
+  fbRevenue: string;
+  otherRevenue: string;
+  totalRevenue: string;
+  warnings: string[];
+  runAt?: Date;
+  runAtLabel?: string;
+  runByName?: string;
+  roomsCharged?: number;
+  lineItemsPosted?: number;
+  transactionWriteCount?: number;
+  chargedFolioIds?: number[];
+  chargedReservationIds?: number[];
+};
+
+export type NightAuditRunSummary = NightAuditDomainRunSummary;
+
+export type NightAuditRunResult =
+  | { ok: true; summary: NightAuditRunSummary }
+  | {
+      ok: false;
+      error: string;
+      warnings?: string[];
+      blockingErrors?: NightAuditBlocker[];
+    };
 
 export type NightAuditPostingArticlePreview = {
   code: NightAuditPostingArticleCode;
@@ -878,5 +908,414 @@ export async function buildNightAuditPlan({
       checkOutCount,
       inHouseCount: reservations.length,
     },
+  };
+}
+
+class NightAuditAlreadyCompletedError extends Error {
+  constructor(public readonly businessDate: Date) {
+    super(`Night audit untuk ${businessDateLabel(businessDate)} sudah selesai.`);
+    this.name = "NightAuditAlreadyCompletedError";
+  }
+}
+
+class NightAuditBlockerError extends Error {
+  constructor(
+    public readonly blockers: NightAuditBlocker[],
+    public readonly warnings: string[] = [],
+  ) {
+    super(blockers.map((b) => b.message).join("\n\n"));
+    this.name = "NightAuditBlockerError";
+  }
+}
+
+export const MAX_AUDIT_ATTEMPTS = 3;
+
+function uniqueBusinessDateError(error: unknown) {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.some(
+      (t) =>
+        typeof t === "string" &&
+        (t.includes("business_date") || t.includes("businessDate")),
+    );
+  }
+  if (typeof target === "string") {
+    return target.includes("business_date") || target.includes("businessDate");
+  }
+  return false;
+}
+
+function retryableAuditPostingConflict(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2034" ||
+      (error.code === "P2002" && !uniqueBusinessDateError(error)))
+  );
+}
+
+export async function executeNightAudit({
+  runById,
+  now = new Date(),
+}: {
+  runById: number;
+  now?: Date;
+}): Promise<NightAuditRunResult> {
+  const businessDate = hotelTodayDateOnly(now);
+  const nextBusinessDate = addDays(businessDate, 1);
+  const { start: timestampStart, end: timestampEnd } =
+    hotelTodayTimestampRange(now);
+  const postingLabel = hotelTodayISO(now);
+
+  for (let attempt = 1; attempt <= MAX_AUDIT_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          // 1. Fail-fast check for existing audit on businessDate
+          const existingAudit = await tx.nightAudit.findUnique({
+            where: { businessDate },
+            select: { id: true },
+          });
+
+          if (existingAudit) {
+            throw new NightAuditAlreadyCompletedError(businessDate);
+          }
+
+          // 2. Authoritatively load articles (STAY_CHARGE_ARTICLE_CODES) and validate
+          const articles = await tx.article.findMany({
+            where: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              defaultPrice: true,
+            },
+            orderBy: { code: "asc" },
+          });
+
+          const { articleByCode, blockingErrors: articleErrors } =
+            validatePostingArticles(articles, businessDate);
+
+          if (articleErrors.length > 0) {
+            throw new NightAuditBlockerError(articleErrors);
+          }
+
+          // 3. Authoritatively load checked-in reservations and folios
+          const reservations = await tx.reservation.findMany({
+            where: { status: ReservationStatus.CHECKED_IN },
+            orderBy: { reservationNo: "asc" },
+            select: {
+              id: true,
+              reservationNo: true,
+              status: true,
+              arrangementType: true,
+              arrivalDate: true,
+              departureDate: true,
+              reservationNights: {
+                select: {
+                  id: true,
+                  reservationId: true,
+                  date: true,
+                  rateAmount: true,
+                  mealPlan: true,
+                  mealPax: true,
+                  mealUnitPrice: true,
+                  mealAmount: true,
+                },
+                orderBy: { date: "asc" },
+              },
+              guest: { select: { fullName: true } },
+              room: { select: { number: true } },
+              folio: {
+                select: {
+                  id: true,
+                  folioNo: true,
+                  status: true,
+                  lineItems: {
+                    select: {
+                      articleId: true,
+                      fbOrderId: true,
+                      reservationNightId: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          // Validate reservations and their folios (must be OPEN)
+          const {
+            blockingErrors: reservationErrors,
+            warnings: reservationWarnings,
+          } = validateReservations(reservations, businessDate);
+
+          if (reservationErrors.length > 0) {
+            throw new NightAuditBlockerError(
+              reservationErrors,
+              reservationWarnings,
+            );
+          }
+
+          // 4. Run counts & aggregates in tx (using Promise.all)
+          // MUST execute before lineItemsToCreate are inserted so stay charges are not double counted in otherRevenue
+          const [
+            totalRooms,
+            roomsOccupied,
+            checkInCount,
+            checkOutCount,
+            closedFbRevenue,
+            otherFolioRevenue,
+            openFbOrderCount,
+          ] = await Promise.all([
+            tx.room.count(),
+            tx.room.count({
+              where: { status: { in: [RoomStatus.OC, RoomStatus.OD] } },
+            }),
+            tx.reservation.count({
+              where: {
+                arrivalDate: { gte: businessDate, lt: nextBusinessDate },
+                status: {
+                  notIn: [
+                    ReservationStatus.CANCELLED,
+                    ReservationStatus.NO_SHOW,
+                  ],
+                },
+              },
+            }),
+            tx.reservation.count({
+              where: {
+                departureDate: { gte: businessDate, lt: nextBusinessDate },
+                status: {
+                  notIn: [
+                    ReservationStatus.CANCELLED,
+                    ReservationStatus.NO_SHOW,
+                  ],
+                },
+              },
+            }),
+            tx.fBOrder.aggregate({
+              where: {
+                status: FBOrderStatus.CLOSED,
+                closedAt: { gte: timestampStart, lt: timestampEnd },
+              },
+              _sum: { total: true },
+            }),
+            tx.folioLineItem.aggregate({
+              where: {
+                postedAt: { gte: timestampStart, lt: timestampEnd },
+                fbOrderId: null,
+              },
+              _sum: { amount: true },
+            }),
+            tx.fBOrder.count({
+              where: { status: FBOrderStatus.OPEN },
+            }),
+          ]);
+
+          // 5. Build shortfall lines using buildAuditStayChargeLines
+          const lineItemsToCreate: NightAuditLineItemInput[] = [];
+          const chargedFolioIds = new Set<number>();
+          const chargedReservationIds = new Set<number>();
+          const stayScheduleErrors: NightAuditBlocker[] = [];
+
+          for (const reservation of reservations) {
+            if (
+              !reservation.folio ||
+              reservation.folio.status !== FolioStatus.OPEN
+            ) {
+              continue;
+            }
+
+            try {
+              const lines = buildAuditStayChargeLines({
+                reservation: {
+                  reservationId: reservation.id,
+                  reservationNo: reservation.reservationNo,
+                  folioId: reservation.folio.id,
+                  arrivalDate: reservation.arrivalDate,
+                  departureDate: reservation.departureDate,
+                  reservationNights: reservation.reservationNights,
+                },
+                existingLineItems: reservation.folio.lineItems,
+                articles,
+                businessDate,
+                postedById: runById,
+                postedAt: now,
+                label: postingLabel,
+              });
+
+              if (lines.length > 0) {
+                chargedFolioIds.add(reservation.folio.id);
+                chargedReservationIds.add(reservation.id);
+                lineItemsToCreate.push(...lines);
+              }
+            } catch (error) {
+              if (error instanceof StayChargePostingError) {
+                stayScheduleErrors.push(
+                  blockerFromStayChargeError({
+                    error,
+                    reservation,
+                    businessDate,
+                  }),
+                );
+                continue;
+              }
+              throw error;
+            }
+          }
+
+          if (stayScheduleErrors.length > 0) {
+            throw new NightAuditBlockerError(
+              stayScheduleErrors,
+              reservationWarnings,
+            );
+          }
+
+          let transactionWriteCount = 0;
+
+          // 6. Insert shortfall lines with tx.folioLineItem.createMany
+          if (lineItemsToCreate.length > 0) {
+            await tx.folioLineItem.createMany({ data: lineItemsToCreate });
+            transactionWriteCount += 1;
+          }
+
+          // 7. Calculate roomRevenue, inclusionRevenue, fbRevenue, totalRevenue, and occupancyRate
+          const roomArticleId = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE)?.id;
+
+          const roomRevenue = lineItemsToCreate
+            .filter((line) => line.articleId === roomArticleId)
+            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+          const inclusionRevenue = lineItemsToCreate
+            .filter((line) => line.articleId !== roomArticleId)
+            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+          const closedFbOrderRevenue = decimal(closedFbRevenue._sum.total);
+          const fbRevenue = inclusionRevenue.plus(closedFbOrderRevenue);
+
+          const otherRevenue = decimal(otherFolioRevenue._sum.amount);
+          const totalRevenue = roomRevenue.plus(fbRevenue).plus(otherRevenue);
+
+          const computedOccupancyRate = occupancyRate(
+            roomsOccupied,
+            totalRooms,
+          );
+
+          // 8. Insert immutable audit row
+          const audit = await tx.nightAudit.create({
+            data: {
+              businessDate,
+              runById,
+              totalRooms,
+              roomsOccupied,
+              occupancyRate: computedOccupancyRate,
+              roomRevenue,
+              fbRevenue,
+              otherRevenue,
+              totalRevenue,
+              checkInCount,
+              checkOutCount,
+              inHouseCount: reservations.length,
+            },
+            select: {
+              id: true,
+              runAt: true,
+              runBy: { select: { fullName: true } },
+            },
+          });
+          transactionWriteCount += 1;
+
+          const warnings = [...reservationWarnings];
+          if (openFbOrderCount > 0) {
+            warnings.push(
+              `${openFbOrderCount} order F&B masih terbuka - pertimbangkan untuk menyelesaikan dulu.`,
+            );
+          }
+
+          return {
+            auditId: audit.id,
+            businessDate,
+            businessDateLabel: businessDateLabel(businessDate),
+            runAt: audit.runAt,
+            runAtLabel: formatCompactDateTimeID(audit.runAt),
+            runByName: audit.runBy.fullName,
+            roomsCharged: chargedFolioIds.size,
+            lineItemsPosted: lineItemsToCreate.length,
+            transactionWriteCount,
+            chargedFolioIds: [...chargedFolioIds],
+            chargedReservationIds: [...chargedReservationIds],
+            roomRevenue: roomRevenue.toString(),
+            fbRevenue: fbRevenue.toString(),
+            otherRevenue: otherRevenue.toString(),
+            totalRevenue: totalRevenue.toString(),
+            warnings,
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+
+      return {
+        ok: true,
+        summary: result,
+      };
+    } catch (error) {
+      if (error instanceof NightAuditAlreadyCompletedError) {
+        return {
+          ok: false,
+          error: error.message,
+        };
+      }
+
+      if (uniqueBusinessDateError(error)) {
+        return {
+          ok: false,
+          error: `Night audit untuk ${businessDateLabel(businessDate)} sudah dijalankan oleh sesi lain.`,
+        };
+      }
+
+      if (error instanceof NightAuditBlockerError) {
+        return {
+          ok: false,
+          error: error.blockers.map((b) => b.message).join("\n\n"),
+          warnings: error.warnings,
+          blockingErrors: error.blockers,
+        };
+      }
+
+      if (error instanceof StayChargePostingError) {
+        return {
+          ok: false,
+          error:
+            "Data reservasi berubah saat Night Audit dijalankan. Tidak ada charge yang diposting. Muat ulang halaman, tinjau daftar terbaru, lalu coba lagi.",
+        };
+      }
+
+      if (retryableAuditPostingConflict(error) && attempt < MAX_AUDIT_ATTEMPTS) {
+        continue;
+      }
+
+      if (retryableAuditPostingConflict(error)) {
+        return {
+          ok: false,
+          error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  return {
+    ok: false,
+    error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
   };
 }
