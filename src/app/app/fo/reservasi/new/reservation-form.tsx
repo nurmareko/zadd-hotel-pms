@@ -29,7 +29,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -1089,14 +1088,9 @@ export function ReservationForm({
 
             <section className={cardClassName} aria-labelledby="guest-data-title">
               <div className={cardHeaderClassName}>
-                <div>
-                  <h2 id="guest-data-title" className={sectionTitleClassName}>
-                    Data Tamu
-                  </h2>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    Data sesuai identitas tamu utama
-                  </p>
-                </div>
+                <h2 id="guest-data-title" className={sectionTitleClassName}>
+                  Data Tamu
+                </h2>
               </div>
               <div className={cardContentClassName}>
                 <div className="grid gap-3.5 md:grid-cols-2">
@@ -1138,9 +1132,6 @@ export function ReservationForm({
                             value={field.value ?? ""}
                           />
                         </FormControl>
-                        <FormDescription>
-                          Masukkan nomor telepon sesuai informasi dari tamu.
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
