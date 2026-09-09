@@ -22,10 +22,9 @@ import {
   type FoReservasiView,
 } from "@/lib/nav-preferences";
 import { buttonVariants } from "@/components/ui/button";
-import { formatISODate } from "@/lib/format";
-
+import { getDateHref } from "./date-navigation";
+import { DateRangePickerPopover } from "./kalender/date-range-picker-popover";
 import {
-  buildRangeLabel,
   DAY_COUNT,
   getDefaultStartDate,
   parseStartDate,
@@ -72,20 +71,6 @@ function DateNavButton({
   );
 }
 
-function getDateHref(
-  view: FoReservasiView,
-  startDate: Date,
-  currentSearchParams: { toString(): string },
-) {
-  const nextSearchParams = new URLSearchParams(
-    view === "list" ? currentSearchParams.toString() : "",
-  );
-  nextSearchParams.set("startDate", formatISODate(startDate));
-  nextSearchParams.delete("from");
-  nextSearchParams.delete("to");
-
-  return `${FO_RESERVASI_VIEW_PATHS[view]}?${nextSearchParams.toString()}`;
-}
 
 function DateWindowNav({ view }: { view: FoReservasiView }) {
   const searchParams = useSearchParams();
@@ -103,9 +88,11 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
           label="Tanggal sebelumnya"
           direction="previous"
         />
-        <div className="flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm">
-          <span>{buildRangeLabel(visibleStartDate)}</span>
-        </div>
+        <DateRangePickerPopover
+          view={view}
+          visibleStartDate={visibleStartDate}
+          searchParams={searchParams}
+        />
         <DateNavButton
           href={getDateHref(
             view,

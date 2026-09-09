@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { id as indonesianLocale } from "date-fns/locale";
 
+export { indonesianLocale };
+
 export const formatIDR = (amount: number | string) =>
   `Rp ${new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 0,
