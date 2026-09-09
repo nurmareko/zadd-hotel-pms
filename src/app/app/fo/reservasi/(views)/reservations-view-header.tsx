@@ -120,7 +120,7 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
               href={getDateHref(view, getDefaultStartDate(), searchParams)}
               className={buttonVariants({ variant: "outline" })}
             >
-        Today
+        Hari ini
       </Link>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import type { RoomStatus } from "@prisma/client";
 import {
   BedDouble,
   ChevronDown,
@@ -28,7 +29,6 @@ import styles from "./tape-chart.module.css";
 
 export type TapeChartDay = {
   iso: string;
-  dayOfWeek: string;
   dayNumber: string;
   monthLabel: string;
   isWeekend: boolean;
@@ -44,7 +44,14 @@ const BAR_VERTICAL_MARGIN = 4;
 const MIN_DAY_WIDTH = 56;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-
+export const ROOM_STATUS_FULL_NAMES: Record<RoomStatus, string> = {
+  VC: "Vacant Clean",
+  OC: "Occupied Clean",
+  VD: "Vacant Dirty",
+  OD: "Occupied Dirty",
+  VCU: "Clean Unchecked",
+  OOO: "Out of Order",
+};
 
 type AllocatedBarColorKey = Exclude<
   keyof typeof reservationBarColors,
@@ -453,15 +460,9 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span
-                      className={
-                        day.iso === todayIso
-                          ? styles.todayLabel
-                          : "text-[10px] font-medium uppercase text-slate-500"
-                      }
-                    >
-                      {day.iso === todayIso ? "Today" : day.dayOfWeek}
-                    </span>
+                    {day.iso === todayIso ? (
+                      <span className={styles.todayLabel}>Hari ini</span>
+                    ) : null}
                     <span className="text-sm font-bold leading-tight text-slate-800">
                       {day.dayNumber} {day.monthLabel}
                     </span>
@@ -501,25 +502,20 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                           .filter(Boolean)
                           .join(" ")}
                       >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-800">
-                            {row.room.number}
-                          </span>
-                          <span className="text-[10px] font-medium uppercase tracking-[0.04em] text-slate-500">
-                            L{row.room.floor}
-                          </span>
+                        <span className="min-w-0 text-xs font-semibold text-slate-800">
+                          {row.room.number}
                         </span>
                         {row.room.isOutOfOrder ? (
                           <span
                             className={styles.outOfOrderBadge}
-                            aria-label="Out of Order"
+                            aria-label={ROOM_STATUS_FULL_NAMES.OOO}
                           >
                             <Wrench className="h-3 w-3" aria-hidden="true" />
-                            Out of Order
+                            {ROOM_STATUS_FULL_NAMES.OOO}
                           </span>
                         ) : (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                            {row.room.status}
+                          <span className="shrink-0 text-[10px] font-semibold text-slate-500">
+                            {ROOM_STATUS_FULL_NAMES[row.room.status]}
                           </span>
                         )}
                       </div>
