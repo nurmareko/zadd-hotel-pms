@@ -1,22 +1,24 @@
 import type { ReservationStatus } from "@prisma/client";
 import { Search } from "lucide-react";
+import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 type ReservationFiltersProps = {
   filters: {
     q: string;
     status: ReservationStatus | "";
-    startDate: string;
+    checkIn?: string;
+    checkOut?: string;
   };
   resultCount: number;
 };
 
 const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "CHECKED_IN", label: "Checked In" },
-  { value: "CHECKED_OUT", label: "Checked Out" },
-  { value: "CANCELLED", label: "Cancelled" },
+  { value: "CONFIRMED", label: "Terkonfirmasi" },
+  { value: "CHECKED_IN", label: "Sudah check-in" },
+  { value: "CHECKED_OUT", label: "Sudah check-out" },
+  { value: "CANCELLED", label: "Dibatalkan" },
 ];
 
 const fieldClass =
@@ -26,14 +28,15 @@ export function ReservationFilters({
   filters,
   resultCount,
 }: ReservationFiltersProps) {
+  const hasActiveFilters =
+    filters.q || filters.status || filters.checkIn || filters.checkOut;
+
   return (
     <form
       action="/app/fo/reservasi/list"
       method="get"
       className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white p-4"
     >
-      <input type="hidden" name="startDate" value={filters.startDate} />
-
       <div className="relative w-full sm:w-[280px]">
         <Search
           aria-hidden="true"
@@ -61,7 +64,47 @@ export function ReservationFilters({
         ))}
       </select>
 
+      <div className="flex items-center gap-1.5">
+        <label
+          htmlFor="filter-check-in"
+          className="whitespace-nowrap text-xs font-medium text-slate-600"
+        >
+          Check-in
+        </label>
+        <input
+          id="filter-check-in"
+          type="date"
+          name="checkIn"
+          defaultValue={filters.checkIn ?? ""}
+          className={`${fieldClass} sm:w-[145px]`}
+        />
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <label
+          htmlFor="filter-check-out"
+          className="whitespace-nowrap text-xs font-medium text-slate-600"
+        >
+          Check-out
+        </label>
+        <input
+          id="filter-check-out"
+          type="date"
+          name="checkOut"
+          defaultValue={filters.checkOut ?? ""}
+          className={`${fieldClass} sm:w-[145px]`}
+        />
+      </div>
+
       <Button type="submit">Cari</Button>
+      {hasActiveFilters ? (
+        <Link
+          href="/app/fo/reservasi/list"
+          className={buttonVariants({ variant: "ghost" })}
+        >
+          Reset
+        </Link>
+      ) : null}
 
       <span className="min-w-0 flex-1" />
       <span className="whitespace-nowrap text-right text-sm font-medium text-slate-500">

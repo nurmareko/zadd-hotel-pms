@@ -150,14 +150,23 @@ export function ReservationsViewHeader() {
   return (
     <div className="mb-4 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
       <div className="lg:col-start-2">
-        <DateWindowNav view={view} />
+        {view === "kalender" ? <DateWindowNav view={view} /> : null}
       </div>
 
-      {view === "kalender" ? (
-        <div className="lg:col-start-1 lg:row-start-1 lg:pr-4">
+      <div className="lg:col-start-1 lg:row-start-1 lg:pr-4">
+        {view === "kalender" ? (
           <TapeChartLegend />
-        </div>
-      ) : null}
+        ) : (
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">
+              Daftar Reservasi
+            </h1>
+            <p className="text-xs text-slate-500">
+              Semua reservasi aktif dan riwayat pemesanan
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
         <div

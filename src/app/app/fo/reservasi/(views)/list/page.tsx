@@ -1,13 +1,12 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
-import { addDays } from "date-fns";
 
+import { isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-import { DAY_COUNT, parseStartDate } from "../kalender/date-window";
 import { ReservationFilters } from "./reservation-filters";
 import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
@@ -23,7 +22,8 @@ const ACTIVE_STATUSES: ReservationStatus[] = [
 type SearchParams = {
   q?: string;
   status?: string;
-  startDate?: string | string[];
+  checkIn?: string;
+  checkOut?: string;
 };
 
 function parseStatus(value: string | undefined) {
@@ -44,8 +44,18 @@ export default async function ReservationListPage({
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const status = parseStatus(params.status);
-  const visibleStartDate = parseStartDate(params.startDate);
-  const visibleEndDate = addDays(visibleStartDate, DAY_COUNT);
+  const checkInRaw =
+    typeof params.checkIn === "string" ? params.checkIn.trim() : undefined;
+  const checkOutRaw =
+    typeof params.checkOut === "string" ? params.checkOut.trim() : undefined;
+  const checkInDate =
+    checkInRaw && isValidISODateOnly(checkInRaw)
+      ? parseISODateOnly(checkInRaw)
+      : undefined;
+  const checkOutDate =
+    checkOutRaw && isValidISODateOnly(checkOutRaw)
+      ? parseISODateOnly(checkOutRaw)
+      : undefined;
 
   const where: Prisma.ReservationWhereInput = {};
 
@@ -71,22 +81,14 @@ export default async function ReservationListPage({
   // Specific status narrows to one; default keeps the active set.
   where.status = status ? status : { in: ACTIVE_STATUSES };
 
-  // Show arrivals in the same 14-day window as the Tape Chart. In-house
-  // guests remain operationally relevant, so CHECKED_IN reservations bypass
-  // the arrival-date window even when their stay began much earlier.
-  where.AND = [
-    {
-      OR: [
-        {
-          arrivalDate: {
-            gte: visibleStartDate,
-            lt: visibleEndDate,
-          },
-        },
-        { status: ReservationStatus.CHECKED_IN },
-      ],
-    },
-  ];
+  if (checkInDate && checkOutDate) {
+    where.arrivalDate = { gte: checkInDate };
+    where.departureDate = { lte: checkOutDate };
+  } else if (checkInDate) {
+    where.arrivalDate = { gte: checkInDate };
+  } else if (checkOutDate) {
+    where.departureDate = { lte: checkOutDate };
+  }
 
   // MVP: no pagination. Add when result sets exceed ~500.
   const [reservations, settings] = await Promise.all([
@@ -209,7 +211,8 @@ export default async function ReservationListPage({
   const filters = {
     q,
     status: status ?? ("" as const),
-    startDate: formatISODate(visibleStartDate),
+    checkIn: checkInRaw,
+    checkOut: checkOutRaw,
   };
 
   return (
