@@ -1,18 +1,31 @@
 import type { ReservationStatus } from "@prisma/client";
-import { Search } from "lucide-react";
+import { Download, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 
+type ReservationFilters = {
+  q: string;
+  status: ReservationStatus | "ALL" | "";
+  checkIn?: string;
+  checkOut?: string;
+};
+
 type ReservationFiltersProps = {
-  filters: {
-    q: string;
-    status: ReservationStatus | "ALL" | "";
-    checkIn?: string;
-    checkOut?: string;
-  };
+  filters: ReservationFilters;
   resultCount: number;
 };
+
+export function buildExportQuery(filters: ReservationFilters): string {
+  const query = new URLSearchParams();
+
+  if (filters.q) query.set("q", filters.q);
+  if (filters.status) query.set("status", filters.status);
+  if (filters.checkIn) query.set("checkIn", filters.checkIn);
+  if (filters.checkOut) query.set("checkOut", filters.checkOut);
+
+  return query.toString();
+}
 
 const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
   { value: "CONFIRMED", label: "Terkonfirmasi" },
@@ -31,6 +44,8 @@ export function ReservationFilters({
 }: ReservationFiltersProps) {
   const hasActiveFilters =
     filters.q || filters.status || filters.checkIn || filters.checkOut;
+  const exportQuery = buildExportQuery(filters);
+  const exportHref = `/app/fo/reservasi/export${exportQuery ? `?${exportQuery}` : ""}`;
 
   return (
     <form
@@ -102,16 +117,29 @@ export function ReservationFilters({
       {hasActiveFilters ? (
         <Link
           href="/app/fo/reservasi/list"
+          aria-label="Atur ulang semua filter"
           className={buttonVariants({ variant: "ghost" })}
         >
-          Reset
+          <RotateCcw aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
+          Atur Ulang
         </Link>
       ) : null}
 
       <span className="min-w-0 flex-1" />
-      <span className="whitespace-nowrap text-right text-sm font-medium text-slate-500">
-        {resultCount} hasil
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="whitespace-nowrap text-right text-sm font-medium text-slate-500">
+          {resultCount} hasil
+        </span>
+        <Link
+          href={exportHref}
+          download
+          prefetch={false}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          <Download aria-hidden="true" className="mr-1 h-4 w-4" />
+          Ekspor CSV
+        </Link>
+      </div>
     </form>
   );
 }

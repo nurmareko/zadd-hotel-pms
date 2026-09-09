@@ -5,7 +5,11 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDateID, formatDateWithWeekday, formatIDR } from "@/lib/format";
+import {
+  formatDateID,
+  formatDateWithWeekday,
+  formatDecimalID,
+} from "@/lib/format";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 
 import { ClickableReservationRow } from "./clickable-reservation-row";
@@ -41,11 +45,11 @@ type ReservationTableProps = {
 const COLUMN_COUNT = 10;
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked In",
-  CHECKED_OUT: "Checked Out",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No Show",
+  CONFIRMED: "Terkonfirmasi",
+  CHECKED_IN: "Sudah check-in",
+  CHECKED_OUT: "Sudah check-out",
+  CANCELLED: "Dibatalkan",
+  NO_SHOW: "No-show",
 };
 
 const noShowClassNames = {
@@ -101,10 +105,10 @@ export function ReservationTable({ groups }: ReservationTableProps) {
               Tamu
             </th>
             <th className={headerCellClass} scope="col">
-              Check In
+              Check-in
             </th>
             <th className={headerCellClass} scope="col">
-              Check Out
+              Check-out
             </th>
             <th className={headerCellClass} scope="col">
               Dibuat
@@ -113,10 +117,10 @@ export function ReservationTable({ groups }: ReservationTableProps) {
               Kamar
             </th>
             <th className={numericHeaderCellClass} scope="col">
-              Total
+              Total (Rp)
             </th>
             <th className={numericHeaderCellClass} scope="col">
-              Saldo
+              Saldo (Rp)
             </th>
           </tr>
         </thead>
@@ -221,14 +225,14 @@ function GroupRows({ group }: { group: ReservationGroup }) {
                 </span>
               )}
             </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium text-slate-900">
-              {formatIDR(row.total)}
+            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium tabular-nums text-slate-900">
+              {formatDecimalID(row.total, 0)}
             </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium text-slate-900">
+            <td className="border-b border-slate-100 px-4 py-3 text-right font-medium tabular-nums text-slate-900">
               {row.outstanding === null ? (
                 <span className="text-slate-400">-</span>
               ) : (
-                formatIDR(row.outstanding)
+                formatDecimalID(row.outstanding, 0)
               )}
             </td>
           </ClickableReservationRow>
