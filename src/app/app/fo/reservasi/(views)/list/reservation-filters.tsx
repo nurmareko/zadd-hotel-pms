@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 type ReservationFiltersProps = {
   filters: {
     q: string;
-    status: ReservationStatus | "";
+    status: ReservationStatus | "ALL" | "";
     checkIn?: string;
     checkOut?: string;
   };
@@ -19,6 +19,7 @@ const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
   { value: "CHECKED_IN", label: "Sudah check-in" },
   { value: "CHECKED_OUT", label: "Sudah check-out" },
   { value: "CANCELLED", label: "Dibatalkan" },
+  { value: "NO_SHOW", label: "No-show" },
 ];
 
 const fieldClass =
@@ -54,9 +55,10 @@ export function ReservationFilters({
       <select
         name="status"
         defaultValue={filters.status}
-        className={`${fieldClass} sm:w-[150px]`}
+        className={`${fieldClass} sm:w-[160px]`}
       >
         <option value="">Aktif</option>
+        <option value="ALL">Semua Status</option>
         {statusOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

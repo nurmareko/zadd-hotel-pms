@@ -26,13 +26,25 @@ type SearchParams = {
   checkOut?: string;
 };
 
-function parseStatus(value: string | undefined) {
+type ReservationStatusFilter = ReservationStatus | "ALL";
+
+function parseStatusFilter(
+  value: string | undefined,
+): ReservationStatusFilter | undefined {
   if (!value) {
     return undefined;
   }
 
-  return Object.values(ReservationStatus).some((status) => status === value)
-    ? (value as ReservationStatus)
+  const normalizedValue = value.toUpperCase();
+
+  if (normalizedValue === "ALL") {
+    return "ALL";
+  }
+
+  return Object.values(ReservationStatus).some(
+    (status) => status === normalizedValue,
+  )
+    ? (normalizedValue as ReservationStatus)
     : undefined;
 }
 
@@ -43,7 +55,7 @@ export default async function ReservationListPage({
 }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
-  const status = parseStatus(params.status);
+  const statusFilter = parseStatusFilter(params.status);
   const checkInRaw =
     typeof params.checkIn === "string" ? params.checkIn.trim() : undefined;
   const checkOutRaw =
@@ -78,8 +90,9 @@ export default async function ReservationListPage({
     ];
   }
 
-  // Specific status narrows to one; default keeps the active set.
-  where.status = status ? status : { in: ACTIVE_STATUSES };
+  if (statusFilter !== "ALL") {
+    where.status = statusFilter ?? { in: ACTIVE_STATUSES };
+  }
 
   if (checkInDate && checkOutDate) {
     where.arrivalDate = { gte: checkInDate };
@@ -210,7 +223,7 @@ export default async function ReservationListPage({
 
   const filters = {
     q,
-    status: status ?? ("" as const),
+    status: statusFilter ?? ("" as const),
     checkIn: checkInRaw,
     checkOut: checkOutRaw,
   };
