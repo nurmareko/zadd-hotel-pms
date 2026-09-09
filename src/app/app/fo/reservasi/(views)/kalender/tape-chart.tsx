@@ -491,26 +491,20 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       className={`${styles.gridRow} ${styles.roomRow}`}
                     >
                       <div
-                        className={[
-                          styles.labelCell,
-                          styles.roomLabelCell,
-                          row.room.isOutOfOrder
-                            ? styles.roomLabelCellOutOfOrder
-                            : "",
-                          "flex items-center justify-between gap-2 border-b border-slate-100 px-3",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
+                        className={`${styles.labelCell} ${styles.roomLabelCell} flex items-center justify-between gap-2 border-b border-slate-100 px-3`}
                       >
                         <span className="min-w-0 text-xs font-semibold text-slate-800">
                           {row.room.number}
                         </span>
                         {row.room.isOutOfOrder ? (
                           <span
-                            className={styles.outOfOrderBadge}
+                            className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-red-600"
                             aria-label={ROOM_STATUS_FULL_NAMES.OOO}
                           >
-                            <Wrench className="h-3 w-3" aria-hidden="true" />
+                            <Wrench
+                              className="h-3 w-3 text-red-500"
+                              aria-hidden="true"
+                            />
                             {ROOM_STATUS_FULL_NAMES.OOO}
                           </span>
                         ) : (
@@ -519,16 +513,18 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                           </span>
                         )}
                       </div>
-                      {days.map((day) => (
-                        row.room.isOutOfOrder ? (
+                      {days.map((day) => {
+                        const isUnavailable = row.room.isOutOfOrder;
+
+                        return isUnavailable ? (
                           <div
                             key={`${row.room.id}-${day.iso}`}
                             className={getCellClassName(
                               day,
                               todayIso,
-                              styles.outOfOrderCell,
+                              styles.unavailableCell,
                             )}
-                            aria-label={`${row.room.number} ${day.iso}: Out of Order`}
+                            aria-label={`${row.room.number} ${day.iso}: Tidak tersedia`}
                           />
                         ) : (
                           <Link
@@ -544,8 +540,8 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                             )}
                             aria-label={`Buat reservasi kamar ${row.room.number} untuk ${day.iso}`}
                           />
-                        )
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 }
@@ -559,10 +555,10 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                     <div
                       className={`${styles.labelCell} ${styles.unallocatedLabelCell} flex items-center justify-between gap-2 border-b border-slate-100 px-3`}
                     >
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+                      <span className="min-w-0 text-xs font-semibold text-slate-800">
                         Unallocated
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="shrink-0 text-[10px] font-semibold text-slate-500">
                         {row.roomType.unallocatedReservations.length}
                         {row.laneCount > 1 ? ` / ${row.laneCount} lanes` : ""}
                       </span>
@@ -577,7 +573,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         className={getCellClassName(
                           day,
                           todayIso,
-                          `${styles.unallocatedCell} ${styles.bookableCell}`,
+                          styles.bookableCell,
                         )}
                         aria-label={`Buat reservasi ${row.roomType.name} tanpa alokasi kamar untuk ${day.iso}`}
                       />
