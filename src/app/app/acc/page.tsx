@@ -250,20 +250,17 @@ export default async function AccountingDashboardPage({
         validationError={validationError}
       />
 
-      <div className="mt-4">
-        <AuditStatusBanner
-          businessDateLabel={dateLabel}
-          todayAudit={
-            todayAudit
-              ? {
-                  id: todayAudit.id,
-                  runAt: todayAudit.runAt,
-                  runByName: todayAudit.runBy.fullName,
-                }
-              : null
-          }
-        />
-      </div>
+      {todayAudit ? (
+        <div className="mt-4">
+          <AuditStatusBanner
+            todayAudit={{
+              id: todayAudit.id,
+              runAt: todayAudit.runAt,
+              runByName: todayAudit.runBy.fullName,
+            }}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <AuditHistory rows={historyRows} />
