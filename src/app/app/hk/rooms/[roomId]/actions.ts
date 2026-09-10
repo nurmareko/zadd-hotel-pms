@@ -1,12 +1,17 @@
 "use server";
 
-import { Prisma, RoomStatus } from "@prisma/client";
+import {
+  HousekeepingNotificationStatus,
+  Prisma,
+  RoomStatus,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
 import { todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
 import {
@@ -132,6 +137,12 @@ export async function startCleaning(formData: FormData): Promise<ActionResult> {
           },
         });
 
+        await upsertHousekeepingNotification(tx, {
+          assignmentId: assignment.id,
+          recipientId: userId,
+          status: HousekeepingNotificationStatus.IN_PROGRESS,
+        });
+
         return { ok: true as const };
       },
       {
@@ -251,6 +262,12 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
         await tx.room.update({
           where: { id: roomId },
           data: { status: nextStatus },
+        });
+
+        await upsertHousekeepingNotification(tx, {
+          assignmentId: assignment.id,
+          recipientId: userId,
+          status: HousekeepingNotificationStatus.COMPLETED,
         });
 
         return { ok: true as const };

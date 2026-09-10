@@ -170,6 +170,12 @@ enum ReservationNightRevenueClass {
   COMP
 }
 
+enum HousekeepingNotificationStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
 // ============================================================
 // AUTHENTICATION
 // ============================================================
@@ -193,6 +199,7 @@ model User {
   housekeepingAssignments HousekeepingAssignment[] @relation("HousekeepingAssignmentHousekeeper")
   cleaningSessions        CleaningSession[]        @relation("CleaningSessionHousekeeper")
   cleaningInspections     CleaningSession[]        @relation("CleaningSessionInspector")
+  housekeepingNotifications HousekeepingNotification[] @relation("HousekeepingNotificationRecipient")
   lostFoundItemsFound     LostFoundItem[]          @relation("LostFoundItemFoundBy")
   nightAuditsRun          NightAudit[]
   paymentsReceived        Payment[]
@@ -562,11 +569,29 @@ model HousekeepingAssignment {
 
   room        Room @relation(fields: [roomId], references: [id])
   housekeeper User @relation("HousekeepingAssignmentHousekeeper", fields: [housekeeperId], references: [id])
+  notifications HousekeepingNotification[]
 
   @@unique([roomId, date])
   @@index([housekeeperId, date])
   @@index([date])
   @@map("housekeeping_assignment")
+}
+
+model HousekeepingNotification {
+  id            Int                             @id @default(autoincrement())
+  assignmentId  Int                             @map("assignment_id")
+  recipientId   Int                             @map("recipient_id")
+  status        HousekeepingNotificationStatus
+  createdAt     DateTime                        @default(now()) @map("created_at")
+  readAt        DateTime?                       @map("read_at")
+
+  assignment HousekeepingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  recipient  User                  @relation("HousekeepingNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, recipientId, status])
+  @@index([recipientId, readAt])
+  @@index([assignmentId])
+  @@map("housekeeping_notification")
 }
 
 model CleaningSession {

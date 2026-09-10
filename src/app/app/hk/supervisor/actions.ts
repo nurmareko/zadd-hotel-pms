@@ -1,12 +1,13 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
+import { HousekeepingNotificationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { isHkSupervisor } from "@/auth.config";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 
 type ActionResult = { ok: true; count: number } | { ok: false; error: string };
 
@@ -31,6 +32,22 @@ const UnassignmentSchema = z.object({
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Input tidak valid";
+}
+
+function assignmentErrorMessage(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2021") {
+      return "Database belum menerapkan migration notifikasi housekeeping. Jalankan prisma migrate deploy.";
+    }
+
+    if (error.code === "P2002") {
+      return "Penugasan sedang diproses. Muat ulang halaman dan coba lagi.";
+    }
+  }
+
+  return error instanceof Error && error.message
+    ? `Gagal mengatur penugasan HK: ${error.message}`
+    : "Gagal mengatur penugasan HK";
 }
 
 function dateOnlyFromISO(value: string) {
@@ -120,27 +137,24 @@ export async function assignHousekeepingRooms(
           return { ok: false as const, error: "Sebagian kamar tidak ditemukan" };
         }
 
-        await Promise.all(
-          roomIds.map((roomId) =>
-            tx.housekeepingAssignment.upsert({
-              where: {
-                roomId_date: {
-                  roomId,
-                  date,
-                },
-              },
-              create: {
-                roomId,
-                date,
-                housekeeperId: housekeeper.id,
-              },
-              update: {
-                housekeeperId: housekeeper.id,
-              },
-              select: { id: true },
-            }),
-          ),
-        );
+        for (const roomId of roomIds) {
+          const assignment = await tx.housekeepingAssignment.upsert({
+            where: { roomId_date: { roomId, date } },
+            create: {
+              roomId,
+              date,
+              housekeeperId: housekeeper.id,
+            },
+            update: { housekeeperId: housekeeper.id },
+            select: { id: true },
+          });
+
+          await upsertHousekeepingNotification(tx, {
+            assignmentId: assignment.id,
+            recipientId: housekeeper.id,
+            status: HousekeepingNotificationStatus.ASSIGNED,
+          });
+        }
 
         return { ok: true as const, count: roomIds.length };
       },
@@ -155,8 +169,14 @@ export async function assignHousekeepingRooms(
     }
 
     return result;
-  } catch {
-    return { ok: false, error: "Gagal mengatur penugasan HK" };
+  } catch (error) {
+    console.error("Housekeeping assignment failed", {
+      error,
+      date: parsed.data.date,
+      housekeeperId: parsed.data.housekeeperId,
+      roomIds,
+    });
+    return { ok: false, error: assignmentErrorMessage(error) };
   }
 }
 

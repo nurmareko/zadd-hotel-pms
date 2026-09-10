@@ -917,6 +917,23 @@ Indexes and constraints:
 - INDEX (`housekeeper_id`, `date`) — daily assignment lookup per housekeeper.
 - INDEX (`date`) — daily housekeeping board lookup.
 
+### `housekeeping_notification`
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique notification identifier |
+| assignment_id | INT | NOT NULL, FOREIGN KEY -> housekeeping_assignment(id), ON DELETE CASCADE | Related room assignment |
+| recipient_id | INT | NOT NULL, FOREIGN KEY -> user(id), ON DELETE CASCADE | Housekeeper who owns the notification |
+| status | ENUM | NOT NULL | ASSIGNED, IN_PROGRESS, or COMPLETED |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Event creation time |
+| read_at | TIMESTAMP | — | When the housekeeper opened the notification |
+
+Constraints and indexes:
+
+- UNIQUE (`assignment_id`, `recipient_id`, `status`) — repeated page loads and idempotent transitions do not create duplicate events.
+- INDEX (`recipient_id`, `read_at`) — unread notification lookup for one housekeeper.
+- Notifications are queried only while the related assignment still belongs to the recipient.
+
 ### `cleaning_session`
 
 | Attribute | Type | Constraint | Notes |

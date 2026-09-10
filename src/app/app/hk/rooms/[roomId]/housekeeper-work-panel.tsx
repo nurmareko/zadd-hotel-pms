@@ -72,6 +72,7 @@ export function HousekeeperWorkPanel({
       }
 
       toast.success("Pembersihan selesai");
+      window.dispatchEvent(new Event("housekeeping-notifications-refresh"));
       setLinenChanged(false);
       setTowelChanged(false);
       setCleaningNote("");
