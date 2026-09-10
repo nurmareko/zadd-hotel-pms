@@ -38,6 +38,7 @@ import {
 import type { AppRole } from "@/auth";
 import { setNavSidebarCollapsed } from "@/app/app/nav-actions";
 import { Button } from "@/components/ui/button";
+import { HousekeepingNotificationBell } from "@/components/housekeeping-notification-bell";
 import type { NavBadge, NavBadgeMap } from "@/lib/nav-badge-types";
 
 type ActiveMatch = "exact" | "startsWith";
@@ -380,6 +381,9 @@ export function NavShell({
       style={shellStyle}
       className="min-h-screen flex-1 bg-background text-foreground"
     >
+      {userRole === "HK" && !userIsSupervisor ? (
+        <HousekeepingNotificationBell />
+      ) : null}
       <aside
         className={[
           "fixed inset-y-0 left-0 hidden flex-col border-r border-slate-200 bg-white py-5 transition-[width,padding] duration-200 ease-out desktop:flex",
