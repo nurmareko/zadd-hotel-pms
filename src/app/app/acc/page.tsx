@@ -43,14 +43,6 @@ function dateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function safePercent(numerator: number, denominator: number) {
-  if (denominator === 0) {
-    return 0;
-  }
-
-  return Math.round((numerator / denominator) * 100);
-}
-
 export default async function AccountingDashboardPage({
   searchParams,
 }: {
@@ -86,17 +78,13 @@ export default async function AccountingDashboardPage({
     prisma.reservation.count({
       where: {
         arrivalDate: { gte: dateOnlyToday, lt: dateOnlyTomorrow },
-        status: {
-          notIn: [ReservationStatus.CANCELLED, ReservationStatus.NO_SHOW],
-        },
+        status: { notIn: [ReservationStatus.CANCELLED, ReservationStatus.NO_SHOW] },
       },
     }),
     prisma.reservation.count({
       where: {
         departureDate: { gte: dateOnlyToday, lt: dateOnlyTomorrow },
-        status: {
-          notIn: [ReservationStatus.CANCELLED, ReservationStatus.NO_SHOW],
-        },
+        status: { notIn: [ReservationStatus.CANCELLED, ReservationStatus.NO_SHOW] },
       },
     }),
     prisma.folioLineItem.aggregate({
@@ -158,7 +146,7 @@ export default async function AccountingDashboardPage({
     },
     orderBy: { businessDate: "desc" },
   });
-  const [rangeArr, latestArr, ...dailyArrResults] = await Promise.all([
+  const [rangeArr, ...dailyArrResults] = await Promise.all([
     computeArr({ ...rangeBoundaries, resolvedCutover: cutover }),
     computeArr({
       fromInclusive: latestBusinessDate,
@@ -177,16 +165,17 @@ export default async function AccountingDashboardPage({
   const runningRevenue =
     Number(folioRevenue._sum.amount ?? 0) +
     Number(closedFbRevenue._sum.total ?? 0);
+  const latestArr = dailyArrResults.shift();
   const latestArrValue =
-    latestArr.status === "AUTHORITATIVE" && latestArr.arr
+    latestArr?.status === "AUTHORITATIVE" && latestArr.arr
       ? formatIDR(latestArr.arr.toString())
-      : latestArr.status === "NO_RECOGNIZED_NIGHTS"
+      : latestArr?.status === "NO_RECOGNIZED_NIGHTS"
         ? "N/A"
-        : latestArr.status === "INTEGRITY_ERROR"
+        : latestArr?.status === "INTEGRITY_ERROR"
           ? "Error"
           : "—";
   const snapshot: TodaySnapshotData = {
-    occupancyPercent: safePercent(roomsOccupied, totalRooms),
+    occupancyPercent: totalRooms === 0 ? 0 : Math.round((roomsOccupied / totalRooms) * 100),
     roomsOccupied,
     totalRooms,
     inHouseCount,
@@ -194,7 +183,7 @@ export default async function AccountingDashboardPage({
     checkOutCount,
     runningRevenue,
     latestCompletedArr: latestArrValue,
-    latestCompletedArrCoverage: `${formatCompactDateID(latestBusinessDate)} · ${latestArr.paidRoomNights} paid room nights`,
+    latestCompletedArrCoverage: `${formatCompactDateID(latestBusinessDate)} · ${latestArr?.paidRoomNights ?? 0} paid room nights`,
   };
   const historyRows: AuditHistoryRow[] = auditHistory.map((audit, index) => ({
     id: audit.id,
@@ -229,9 +218,7 @@ export default async function AccountingDashboardPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Business date: {dateLabel} · {auditStatusLabel}
           </p>
