@@ -1,4 +1,9 @@
-import { ArticleType, PaymentMethod, PaymentPurpose } from "@prisma/client";
+import {
+  ArticleType,
+  FBOrderStatus,
+  PaymentMethod,
+  Prisma,
+} from "@prisma/client";
 
 import {
   addDateOnlyDays,
@@ -8,22 +13,21 @@ import {
   parseISODateOnly,
 } from "@/lib/date-only";
 import { formatISODate } from "@/lib/format";
+import { computeFolioTotals } from "@/lib/folio-totals";
 import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
 import { prisma } from "@/lib/prisma";
 
 export type AccountingExportRow = {
-  id: string;
+  invoice: string;
   date: Date;
-  transactionType: string;
-  reservationNo: string | null;
-  guestName: string | null;
+  party: string | null;
   roomNumber: string | null;
   roomRevenue: number;
   fbRevenue: number;
+  otherRevenue: number;
+  subtotal: number;
   tax: number;
   total: number;
-  paymentMethod: string | null;
-  status: string;
 };
 
 export type AccountingExportRange = {
@@ -31,6 +35,8 @@ export type AccountingExportRange = {
   to: string;
   fromTimestamp: Date;
   toTimestamp: Date;
+  fromDate: Date;
+  toDateExclusive: Date;
 };
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -38,12 +44,6 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
   TRANSFER: "Transfer",
   CARD: "Kartu",
   CHARGE_TO_ROOM: "Dibebankan ke kamar",
-};
-
-const paymentPurposeLabels: Record<PaymentPurpose, string> = {
-  DEPOSIT: "Deposit",
-  PAYMENT: "Pembayaran",
-  SETTLEMENT: "Pelunasan",
 };
 
 function dateAfter(value: string): string {
@@ -63,158 +63,253 @@ export function getAccountingExportRange(
     throw new RangeError("Tanggal awal harus sama atau sebelum tanggal akhir.");
   }
 
+  const fromDate = parseISODateOnly(normalizedFrom);
+  const toDateExclusive = parseISODateOnly(dateAfter(normalizedTo));
+
   return {
     from: normalizedFrom,
     to: normalizedTo,
     fromTimestamp: hotelTimestampBoundaryForDate(normalizedFrom),
     toTimestamp: hotelTimestampBoundaryForDate(dateAfter(normalizedTo)),
+    fromDate,
+    toDateExclusive,
   };
 }
 
-function classifyLineItem(type: ArticleType, amount: number) {
+function toNumber(value: Prisma.Decimal | number | null | undefined) {
+  return Number(value ?? 0);
+}
+
+function isRoomChargeLine(line: {
+  article: { code: string; type: ArticleType };
+}) {
+  return line.article.code === "ROOM-CHARGE" || line.article.type === ArticleType.ROOM;
+}
+
+function lineDate(line: {
+  postedAt: Date;
+  reservationNight: { date: Date } | null;
+}) {
+  return line.reservationNight?.date ?? line.postedAt;
+}
+
+type ExportLine = Prisma.FolioLineItemGetPayload<{
+  select: {
+    id: true;
+    postedAt: true;
+    amount: true;
+    article: { select: { code: true; type: true } };
+    reservationNight: { select: { date: true } };
+    fbOrder: {
+      select: {
+        id: true;
+        subtotal: true;
+        serviceCharge: true;
+        tax: true;
+        total: true;
+      };
+    };
+  };
+}>;
+
+function createFolioRow(
+  folio: {
+    folioNo: string;
+    reservation: {
+      guest: { fullName: string };
+      room: { number: string } | null;
+    };
+  },
+  lines: ExportLine[],
+  settings: {
+    taxPercent: Prisma.Decimal;
+    serviceChargePercent: Prisma.Decimal;
+  },
+): AccountingExportRow {
+  const linkedOrders = new Map<number, NonNullable<ExportLine["fbOrder"]>>();
+  const folioLines = lines.filter((line) => {
+    if (!line.fbOrder) return true;
+    if (!linkedOrders.has(line.fbOrder.id)) linkedOrders.set(line.fbOrder.id, line.fbOrder);
+    return false;
+  });
+  const roomRevenue = folioLines
+    .filter(isRoomChargeLine)
+    .reduce((sum, line) => sum + toNumber(line.amount), 0);
+  const fbLineRevenue = folioLines
+    .filter((line) => line.article.type === ArticleType.FB)
+    .reduce((sum, line) => sum + toNumber(line.amount), 0);
+  const otherLineRevenue = folioLines
+    .filter(
+      (line) =>
+        !isRoomChargeLine(line) &&
+        line.article.type !== ArticleType.FB &&
+        line.article.type !== ArticleType.TAX &&
+        line.article.type !== ArticleType.SERVICE,
+    )
+    .reduce((sum, line) => sum + toNumber(line.amount), 0);
+  const explicitTax = folioLines
+    .filter((line) => line.article.type === ArticleType.TAX)
+    .reduce((sum, line) => sum + toNumber(line.amount), 0);
+  const serviceLines = folioLines
+    .filter((line) => line.article.type === ArticleType.SERVICE)
+    .reduce((sum, line) => sum + toNumber(line.amount), 0);
+  const linkedOrderTotals = [...linkedOrders.values()].reduce(
+    (totals, order) => ({
+      fbRevenue: totals.fbRevenue + toNumber(order.subtotal),
+      serviceCharge: totals.serviceCharge + toNumber(order.serviceCharge),
+      tax: totals.tax + toNumber(order.tax),
+    }),
+    { fbRevenue: 0, serviceCharge: 0, tax: 0 },
+  );
+  const nonLinkedLines = folioLines.filter((line) => !line.fbOrder);
+  const canonicalTotals = computeFolioTotals(
+    nonLinkedLines.map((line) => ({
+      ...line,
+      folioId: 0,
+      articleId: 0,
+      fbOrderId: null,
+      reservationNightId: null,
+      description: "",
+      quantity: new Prisma.Decimal(1),
+      unitPrice: line.amount,
+      postedById: 0,
+      postedAt: line.postedAt,
+      folio: undefined,
+      article: {
+        id: 0,
+        code: line.article.code,
+        name: line.article.code,
+        type: line.article.type,
+        defaultPrice: null,
+      },
+    })) as Parameters<typeof computeFolioTotals>[0],
+    [],
+    settings as Parameters<typeof computeFolioTotals>[2],
+  );
+  const fbRevenue = fbLineRevenue + linkedOrderTotals.fbRevenue;
+  const otherRevenue =
+    otherLineRevenue +
+    serviceLines +
+    linkedOrderTotals.serviceCharge +
+    canonicalTotals.serviceCharge;
+  const tax = explicitTax > 0 ? explicitTax : canonicalTotals.tax + linkedOrderTotals.tax;
+  const subtotal = roomRevenue + fbRevenue + otherRevenue;
+  const total = subtotal + tax;
+  const firstLine = [...lines].sort(
+    (left, right) => lineDate(left).getTime() - lineDate(right).getTime(),
+  )[0];
+
   return {
-    roomRevenue: type === ArticleType.ROOM ? amount : 0,
-    fbRevenue: type === ArticleType.FB ? amount : 0,
-    tax: type === ArticleType.TAX ? amount : 0,
-    transactionType:
-      type === ArticleType.ROOM
-        ? "Pendapatan Kamar"
-        : type === ArticleType.FB
-          ? "Pendapatan F&B"
-          : type === ArticleType.TAX
-            ? "Pajak"
-            : type === ArticleType.SERVICE
-              ? "Biaya Layanan"
-              : "Pendapatan Lain",
+    invoice: folio.folioNo,
+    date: firstLine ? lineDate(firstLine) : new Date(0),
+    party: folio.reservation.guest.fullName,
+    roomNumber: folio.reservation.room?.number ?? null,
+    roomRevenue,
+    fbRevenue,
+    otherRevenue,
+    subtotal,
+    tax,
+    total,
   };
 }
 
 export async function getAccountingExportRows(
   range: AccountingExportRange,
 ): Promise<AccountingExportRow[]> {
-  const [lineItems, payments] = await Promise.all([
-    prisma.folioLineItem.findMany({
-      where: {
+  const lineItemFilter: Prisma.FolioLineItemWhereInput = {
+    OR: [
+      {
+        article: { code: "ROOM-CHARGE" },
+        reservationNight: { date: { gte: range.fromDate, lt: range.toDateExclusive } },
+      },
+      {
+        article: { code: { not: "ROOM-CHARGE" } },
         postedAt: { gte: range.fromTimestamp, lt: range.toTimestamp },
       },
+    ],
+  };
+  const [folios, standaloneOrders, settings] = await Promise.all([
+    prisma.folio.findMany({
+      where: { lineItems: { some: lineItemFilter } },
       select: {
-        id: true,
-        postedAt: true,
-        description: true,
-        amount: true,
-        article: { select: { type: true } },
-        folio: {
+        folioNo: true,
+        reservation: {
           select: {
-            reservation: {
+            guest: { select: { fullName: true } },
+            room: { select: { number: true } },
+          },
+        },
+        lineItems: {
+          where: lineItemFilter,
+          select: {
+            id: true,
+            postedAt: true,
+            amount: true,
+            article: { select: { code: true, type: true } },
+            reservationNight: { select: { date: true } },
+            fbOrder: {
               select: {
-                reservationNo: true,
-                guest: { select: { fullName: true } },
-                room: { select: { number: true } },
+                id: true,
+                subtotal: true,
+                serviceCharge: true,
+                tax: true,
+                total: true,
               },
             },
           },
         },
       },
-      orderBy: [{ postedAt: "asc" }, { id: "asc" }],
     }),
-    prisma.payment.findMany({
+    prisma.fBOrder.findMany({
       where: {
-        receivedAt: { gte: range.fromTimestamp, lt: range.toTimestamp },
+        status: FBOrderStatus.CLOSED,
+        chargedFolioId: null,
+        closedAt: { gte: range.fromTimestamp, lt: range.toTimestamp },
       },
       select: {
-        id: true,
-        receivedAt: true,
-        amount: true,
-        method: true,
-        purpose: true,
-        folio: {
-          select: {
-            reservation: {
-              select: {
-                reservationNo: true,
-                guest: { select: { fullName: true } },
-                room: { select: { number: true } },
-              },
-            },
-          },
-        },
-        fbOrder: {
-          select: {
-            chargedFolio: {
-              select: {
-                reservation: {
-                  select: {
-                    reservationNo: true,
-                    guest: { select: { fullName: true } },
-                    room: { select: { number: true } },
-                  },
-                },
-              },
-            },
-          },
-        },
+        orderNo: true,
+        closedAt: true,
+        subtotal: true,
+        serviceCharge: true,
+        tax: true,
+        total: true,
       },
-      orderBy: [{ receivedAt: "asc" }, { id: "asc" }],
     }),
+    prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
 
-  const chargeRows = lineItems.map((lineItem) => {
-    const amount = Number(lineItem.amount);
-    const classification = classifyLineItem(lineItem.article.type, amount);
-    return {
-      id: `LI-${lineItem.id}`,
-      date: lineItem.postedAt,
-      transactionType: classification.transactionType,
-      reservationNo: lineItem.folio.reservation.reservationNo,
-      guestName: lineItem.folio.reservation.guest.fullName,
-      roomNumber: lineItem.folio.reservation.room?.number ?? null,
-      roomRevenue: classification.roomRevenue,
-      fbRevenue: classification.fbRevenue,
-      tax: classification.tax,
-      total: amount,
-      paymentMethod: null,
-      status: "Tercatat",
-    } satisfies AccountingExportRow;
-  });
+  const folioRows = folios.map((folio) =>
+    createFolioRow(folio, folio.lineItems, settings),
+  );
+  const orderRows = standaloneOrders.map((order) => ({
+    invoice: order.orderNo,
+    date: order.closedAt ?? new Date(0),
+    party: null,
+    roomNumber: null,
+    roomRevenue: 0,
+    fbRevenue: toNumber(order.subtotal),
+    otherRevenue: toNumber(order.serviceCharge),
+    subtotal: toNumber(order.subtotal) + toNumber(order.serviceCharge),
+    tax: toNumber(order.tax),
+    total: toNumber(order.total),
+  } satisfies AccountingExportRow));
 
-  const paymentRows = payments.map((payment) => {
-    const reservation =
-      payment.folio?.reservation ?? payment.fbOrder?.chargedFolio?.reservation;
-    const amount = Number(payment.amount);
-    return {
-      id: `PAY-${payment.id}`,
-      date: payment.receivedAt,
-      transactionType: paymentPurposeLabels[payment.purpose],
-      reservationNo: reservation?.reservationNo ?? null,
-      guestName: reservation?.guest.fullName ?? null,
-      roomNumber: reservation?.room?.number ?? null,
-      roomRevenue: 0,
-      fbRevenue: 0,
-      tax: 0,
-      total: amount,
-      paymentMethod: paymentMethodLabels[payment.method],
-      status: "Diterima",
-    } satisfies AccountingExportRow;
-  });
-
-  return [...chargeRows, ...paymentRows].sort(
-    (left, right) => left.date.getTime() - right.date.getTime() || left.id.localeCompare(right.id),
+  return [...folioRows, ...orderRows].sort(
+    (left, right) => left.date.getTime() - right.date.getTime() || left.invoice.localeCompare(right.invoice),
   );
 }
 
 export const accountingExportCsvColumns: CsvColumn<AccountingExportRow>[] = [
-  { header: "ID Transaksi", accessor: (row) => row.id },
+  { header: "Invoice", accessor: (row) => row.invoice },
   { header: "Tanggal", accessor: (row) => formatISODate(row.date) },
-  { header: "Tipe Transaksi", accessor: (row) => row.transactionType },
-  { header: "No. Reservasi", accessor: (row) => row.reservationNo },
-  { header: "Tamu", accessor: (row) => row.guestName },
+  { header: "Tamu / Party", accessor: (row) => row.party },
   { header: "Kamar", accessor: (row) => row.roomNumber },
   { header: "Pendapatan Kamar (Rp)", accessor: (row) => row.roomRevenue },
   { header: "Pendapatan F&B (Rp)", accessor: (row) => row.fbRevenue },
+  { header: "Pendapatan Lain (Rp)", accessor: (row) => row.otherRevenue },
+  { header: "Subtotal (Rp)", accessor: (row) => row.subtotal },
   { header: "Pajak (Rp)", accessor: (row) => row.tax },
   { header: "Total (Rp)", accessor: (row) => row.total },
-  { header: "Metode Pembayaran", accessor: (row) => row.paymentMethod },
-  { header: "Status", accessor: (row) => row.status },
 ];
 
 export function createAccountingExportCsv(rows: AccountingExportRow[], filename: string) {

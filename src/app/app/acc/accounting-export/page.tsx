@@ -7,7 +7,7 @@ import { formatDateID, formatIDR } from "@/lib/format";
 import {
   getAccountingExportRange,
   getAccountingExportRows,
-} from "@/lib/accounting-export";
+} from "../../../../lib/accounting-export";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function numberLabel(value: number) {
+function numberLabel(value: number): string {
   return formatIDR(value);
 }
 
@@ -50,6 +50,9 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
 
   const roomRevenue = rows.reduce((sum, row) => sum + row.roomRevenue, 0);
   const fbRevenue = rows.reduce((sum, row) => sum + row.fbRevenue, 0);
+  const otherRevenue = rows.reduce((sum, row) => sum + row.otherRevenue, 0);
+  const tax = rows.reduce((sum, row) => sum + row.tax, 0);
+  const totalRevenue = rows.reduce((sum, row) => sum + row.total, 0);
   const exportHref = `/app/acc/accounting-export/export?from=${range.from}&to=${range.to}`;
 
   return (
@@ -95,33 +98,31 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
       ) : (
         <>
           <p className="mb-3 text-sm text-muted-foreground">
-            {rows.length} transaksi · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)}
+            {rows.length} invoice · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)} · Pendapatan Lain {numberLabel(otherRevenue)} · Pajak {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
           </p>
           <section className="overflow-hidden rounded-lg border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {["ID Transaksi", "Tanggal", "Tipe Transaksi", "No. Reservasi", "Tamu", "Kamar", "Pendapatan Kamar", "Pendapatan F&B", "Pajak", "Total", "Metode Pembayaran", "Status"].map((heading) => (
+                    {["Invoice", "Tanggal", "Tamu / Party", "Kamar", "Pendapatan Kamar", "Pendapatan F&B", "Pendapatan Lain", "Subtotal", "Pajak", "Total"].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} className="border-b border-border/60 odd:bg-white even:bg-slate-50/60">
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold">{row.id}</td>
+                    <tr key={row.invoice} className="border-b border-border/60 odd:bg-white even:bg-slate-50/60">
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold">{row.invoice}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatDateID(row.date)}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{row.transactionType}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{row.reservationNo ?? "-"}</td>
-                      <td className="px-4 py-3">{row.guestName ?? "-"}</td>
+                      <td className="px-4 py-3">{row.party ?? "-"}</td>
                       <td className="px-4 py-3">{row.roomNumber ?? "-"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.roomRevenue)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.fbRevenue)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.otherRevenue)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.subtotal)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.tax)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">{numberLabel(row.total)}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{row.paymentMethod ?? "-"}</td>
-                      <td className="whitespace-nowrap px-4 py-3">{row.status}</td>
                     </tr>
                   ))}
                 </tbody>

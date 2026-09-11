@@ -3,7 +3,7 @@ import {
   createAccountingExportCsv,
   getAccountingExportRange,
   getAccountingExportRows,
-} from "@/lib/accounting-export";
+} from "../../../../../lib/accounting-export";
 
 export const dynamic = "force-dynamic";
 
