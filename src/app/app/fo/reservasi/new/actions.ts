@@ -496,18 +496,31 @@ async function runCreateReservationTransaction(
         );
       }
 
-      const guest = await tx.guest.create({
-        data: {
-          fullName: input.fullName,
-          idType: input.idType,
-          idNumber: input.idNumber,
-          phone: input.phone,
-          email: input.email,
-          address: input.address,
-          nationality: input.nationality,
-        },
-        select: { id: true },
-      });
+      const guestData = {
+        fullName: input.fullName,
+        idType: input.idType,
+        idNumber: input.idNumber,
+        phone: input.phone,
+        email: input.email,
+        address: input.address,
+        nationality: input.nationality,
+      };
+      const existingGuest = input.guestId != null
+        ? await tx.guest.findUnique({
+            where: { id: input.guestId },
+            select: { id: true },
+          })
+        : null;
+      const guest = existingGuest
+        ? await tx.guest.update({
+            where: { id: existingGuest.id },
+            data: guestData,
+            select: { id: true },
+          })
+        : await tx.guest.create({
+            data: guestData,
+            select: { id: true },
+          });
       const reservationNumbers = await createReservationNumbers(
         tx,
         input.rooms.length,

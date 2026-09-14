@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 type NewReservationPageProps = {
   searchParams: Promise<{
+    guestId?: string | string[];
     roomTypeId?: string | string[];
     roomId?: string | string[];
     arrival?: string | string[];
@@ -68,6 +69,7 @@ export default async function NewReservationPage({
   searchParams,
 }: NewReservationPageProps) {
   const params = await searchParams;
+  const requestedGuestId = parsePositiveIntParam(firstParam(params.guestId));
   const requestedRoomId = parsePositiveIntParam(firstParam(params.roomId));
   const requestedRoomTypeId = parsePositiveIntParam(
     firstParam(params.roomTypeId),
@@ -81,7 +83,22 @@ export default async function NewReservationPage({
   const arrivalDate = parseDateParam(firstParam(params.arrival)) ?? new Date();
   const departureDate =
     parseDateParam(firstParam(params.departure)) ?? addDays(arrivalDate, 1);
-  const [roomTypes, rooms, activeReservations] = await Promise.all([
+  const [guest, roomTypes, rooms, activeReservations] = await Promise.all([
+    requestedGuestId
+      ? prisma.guest.findUnique({
+          where: { id: requestedGuestId },
+          select: {
+            id: true,
+            fullName: true,
+            idType: true,
+            idNumber: true,
+            phone: true,
+            email: true,
+            address: true,
+            nationality: true,
+          },
+        })
+      : null,
     prisma.roomType.findMany({
       select: {
         id: true,
@@ -125,13 +142,14 @@ export default async function NewReservationPage({
     ? requestedRoom.roomTypeId
     : requestedRoomType?.id;
   const defaultValues: CreateReservationInput = {
-    fullName: "",
-    idType: "",
-    idNumber: "",
-    phone: "",
-    email: "",
-    address: "",
-    nationality: "Indonesia",
+    guestId: guest?.id ?? null,
+    fullName: guest?.fullName ?? "",
+    idType: guest?.idType ?? "",
+    idNumber: guest?.idNumber ?? "",
+    phone: guest?.phone ?? "",
+    email: guest?.email ?? "",
+    address: guest?.address ?? "",
+    nationality: guest ? guest.nationality ?? "" : "Indonesia",
     roomTypeId: defaultRoomTypeId ? String(defaultRoomTypeId) : "",
     roomId: requestedRoom ? String(requestedRoom.id) : "",
     arrivalDate: toDateInputValue(arrivalDate),

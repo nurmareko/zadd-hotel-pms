@@ -96,6 +96,7 @@ export function reservationCapacityError(totalGuests: number, capacity: number) 
 }
 
 const CreateReservationObjectSchema = z.object({
+    guestId: z.coerce.number().int().positive().nullable().optional(),
     fullName: z
       .string()
       .trim()
@@ -381,6 +382,7 @@ export function createUnifiedEditReservationSchema(
 }
 
 export type CreateReservationInput = {
+  guestId?: number | null;
   fullName: string;
   idType: GuestIdType | "";
   idNumber: string;

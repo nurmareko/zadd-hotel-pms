@@ -1,4 +1,4 @@
-import { ReservationStatus, RoomStatus } from "@prisma/client";
+import { Prisma, ReservationStatus, RoomStatus } from "@prisma/client";
 import { permanentRedirect } from "next/navigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -145,6 +145,84 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("reservation guest linking", () => {
+  it.each([{ fullName: "" }, { idType: "" }, { email: "invalid" }])(
+    "still validates guest fields when linking: %j",
+    async (fields) => {
+      await expect(createReservation({ ...validCreateInput, guestId: 42, ...fields })).resolves.toMatchObject({
+        ok: false,
+        code: "INVALID_RESERVATION_DATA",
+      });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([0, -2, 1.5, "invalid", ""])("rejects invalid guestId %s before the transaction", async (guestId) => {
+    await expect(createReservation({ ...validCreateInput, guestId })).resolves.toMatchObject({
+      ok: false,
+      code: "INVALID_RESERVATION_DATA",
+    });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { guestId: "42", existing: { id: 42 }, expectedId: 42 },
+    { guestId: 42, existing: null, expectedId: 88 },
+    { guestId: undefined, existing: null, expectedId: 88 },
+    { guestId: null, existing: null, expectedId: 88 },
+  ])("updates/reuses or creates the guest for $guestId (existing: $existing)", async ({ guestId, existing, expectedId }) => {
+    const base = transactionClient({
+      room: { id: 10, number: "101", roomTypeId: 1, status: RoomStatus.VC },
+    });
+    const tx = {
+      ...base,
+      roomType: { findUnique: vi.fn().mockResolvedValue({ id: 1, name: "Standar", capacity: 2, baseRate: 500_000, _count: { rooms: 5 } }) },
+      guest: {
+        findUnique: vi.fn().mockResolvedValue(existing),
+        update: vi.fn().mockResolvedValue({ id: 42 }),
+        create: vi.fn().mockResolvedValue({ id: 88 }),
+      },
+      reservation: {
+        ...base.reservation,
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ id: 77 }),
+      },
+      reservationNight: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    };
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([
+      { date: new Date("2026-10-01T00:00:00Z"), rate: new Prisma.Decimal(500_000), sourceRule: null },
+    ]);
+    runTransactionWith(tx);
+    const redirectError = genuineRedirectError();
+    mocks.redirect.mockImplementationOnce(() => { throw redirectError; });
+    const fields = {
+      fullName: "Nama Diperbarui", idType: "PASSPORT", idNumber: "A123",
+      phone: "08123456789", email: "tamu@example.com", address: "Bandung", nationality: "Indonesia",
+    };
+
+    await expect(createReservation({ ...validCreateInput, ...fields, guestId })).rejects.toBe(redirectError);
+
+    if (guestId != null) {
+      expect(tx.guest.findUnique).toHaveBeenCalledWith({ where: { id: 42 }, select: { id: true } });
+    } else {
+      expect(tx.guest.findUnique).not.toHaveBeenCalled();
+    }
+    if (existing) {
+      expect(tx.guest.update).toHaveBeenCalledWith({ where: { id: 42 }, data: fields, select: { id: true } });
+      expect(tx.guest.create).not.toHaveBeenCalled();
+    } else {
+      expect(tx.guest.create).toHaveBeenCalledWith({ data: fields, select: { id: true } });
+      expect(tx.guest.update).not.toHaveBeenCalled();
+    }
+    expect(tx.reservation.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ guestId: expectedId, rateAmount: new Prisma.Decimal(500_000), deposit: new Prisma.Decimal(500_000) }),
+    }));
+    expect(tx.reservationNight.createMany).toHaveBeenCalledOnce();
+    expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+  });
 });
 
 describe("reservation action failure boundary", () => {

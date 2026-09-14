@@ -59,6 +59,7 @@ import {
   getReservationQuote,
   updateReservation,
 } from "./actions";
+import { GuestLookupDialog } from "./guest-lookup-dialog";
 import { safelyRunReservationAction } from "./reservation-errors";
 import {
   firstReservationErrorField,
@@ -126,10 +127,10 @@ const iconButtonClassName =
   "inline-flex size-11 desktop:size-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50";
 
 const reservationTypeOptions = [
-  { value: "INDIVIDUAL", label: "Individual" },
-  { value: "COMPANY", label: "Company" },
-  { value: "GOVERNMENT", label: "Government" },
-  { value: "OTA", label: "Online Travel Agent" },
+  { value: "INDIVIDUAL", label: "Individu" },
+  { value: "COMPANY", label: "Perusahaan" },
+  { value: "GOVERNMENT", label: "Pemerintah" },
+  { value: "OTA", label: "Agen Perjalanan Online (OTA)" },
   { value: "WALK_IN", label: "Walk-in" },
 ] as const;
 
@@ -166,7 +167,7 @@ const stayFeeOptions = (
 const reservationTabs = [
   { value: "detail", label: "Detail" },
   { value: "inclusions", label: "Inklusi" },
-  { value: "extras", label: "Extra" },
+  { value: "extras", label: "Extras" },
   { value: "payments", label: "Pembayaran" },
   { value: "billing", label: "Tagihan" },
 ] as const;
@@ -275,6 +276,7 @@ function unifiedDefaultValues(
   defaultValues: CreateReservationInput,
 ): UnifiedReservationInput {
   return {
+    guestId: defaultValues.guestId ?? null,
     fullName: defaultValues.fullName,
     idType: defaultValues.idType,
     idNumber: defaultValues.idNumber,
@@ -310,6 +312,7 @@ function firstRoomReservationValues(
   };
 
   return {
+    guestId: values.guestId ?? null,
     fullName: values.fullName,
     idType: values.idType,
     idNumber: values.idNumber,
@@ -389,6 +392,7 @@ export function ReservationForm({
     return () => window.cancelAnimationFrame(frame);
   }, [activeTab, form, pendingFocusField]);
 
+  const guestId = useWatch({ control: form.control, name: "guestId" });
   const roomsFieldArray = useFieldArray({
     control: form.control,
     name: "rooms",
@@ -1091,8 +1095,43 @@ export function ReservationForm({
                 <h2 id="guest-data-title" className={sectionTitleClassName}>
                   Data Tamu
                 </h2>
+                {isCreateMode && (
+                  <GuestLookupDialog
+                    disabled={isSubmitting}
+                    onSelect={(guest) => {
+                      const options = { shouldDirty: true, shouldValidate: true };
+                      form.setValue("guestId", guest.id, options);
+                      form.setValue("fullName", guest.fullName, options);
+                      form.setValue("idType", guest.idType ?? "", options);
+                      form.setValue("idNumber", guest.idNumber ?? "", options);
+                      form.setValue("phone", guest.phone ?? "", options);
+                      form.setValue("email", guest.email ?? "", options);
+                      form.setValue("address", guest.address ?? "", options);
+                      form.setValue("nationality", guest.nationality ?? "", options);
+                    }}
+                  />
+                )}
               </div>
               <div className={cardContentClassName}>
+                {isCreateMode && guestId != null && (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span role="status" className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                      Tamu terdaftar terpilih (#{guestId})
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isSubmitting}
+                      onClick={() => form.setValue("guestId", null, { shouldDirty: true, shouldValidate: true })}
+                    >
+                      Lepas tautan (buat tamu baru)
+                    </Button>
+                    <p className="w-full text-xs text-slate-600">
+                      Perubahan data di bawah akan memperbarui profil tamu terdaftar saat reservasi disimpan. Lepas tautan untuk membuat tamu baru tanpa mengubah profil tersebut.
+                    </p>
+                  </div>
+                )}
                 <div className="grid gap-3.5 md:grid-cols-2">
                   <FormField
                     control={form.control}

@@ -139,6 +139,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           ],
         },
         {
+          label: "Tamu",
+          href: "/app/fo/tamu",
+          icon: Users,
+          activeMatch: "startsWith",
+        },
+        {
           label: "Kinerja",
           href: "/app/fo/staff-performance",
           icon: BarChart3,
