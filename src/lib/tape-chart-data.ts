@@ -1,9 +1,9 @@
 import { ReservationStatus, type RoomStatus } from "@prisma/client";
-import { addDays } from "date-fns";
-
-import { dateOnlyBoundary } from "@/lib/date-only";
+import { addDateOnlyDays, dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import type { RoomBlockSummary } from "@/lib/room-blocks/overlap";
+import { activeRoomBlockWhere } from "@/lib/room-blocks/queries";
 
 const TAPE_CHART_RESERVATION_STATUSES = [
   ReservationStatus.CONFIRMED,
@@ -20,12 +20,15 @@ export type TapeChartReservationData = {
   status: ReservationStatus;
 };
 
+export type TapeChartRoomBlockData = RoomBlockSummary & { note: string | null };
+
 export type TapeChartRoomData = {
   id: number;
   number: string;
   floor: number;
   status: RoomStatus;
-  isOutOfOrder: boolean;
+  isBlockedToday: boolean;
+  roomBlocks: TapeChartRoomBlockData[];
   reservations: TapeChartReservationData[];
 };
 
@@ -73,9 +76,10 @@ export async function getTapeChartData(
   }
 
   const windowStart = dateOnlyBoundary(startDate);
-  const windowEnd = addDays(windowStart, dayCount);
+  const windowEnd = addDateOnlyDays(windowStart, dayCount);
+  const today = hotelTodayDateOnly();
 
-  const [roomTypes, reservations] = await Promise.all([
+  const [roomTypes, reservations, roomBlocks, blockedRoomsToday] = await Promise.all([
     prisma.roomType.findMany({
       select: {
         id: true,
@@ -115,7 +119,39 @@ export async function getTapeChartData(
       },
       orderBy: [{ arrivalDate: "asc" }, { departureDate: "asc" }, { id: "asc" }],
     }),
+    prisma.roomBlock.findMany({
+      where: activeRoomBlockWhere({ range: {
+        startDate: windowStart.toISOString().slice(0, 10),
+        endDate: windowEnd.toISOString().slice(0, 10),
+      } }),
+      select: {
+        id: true, roomId: true, startDate: true, endDate: true,
+        reason: true, status: true, note: true,
+      },
+      orderBy: [{ startDate: "asc" }, { id: "asc" }],
+    }),
+    // Today's summary must not depend on the navigated chart window.
+    prisma.roomBlock.findMany({
+      where: activeRoomBlockWhere({ range: {
+        startDate: today.toISOString().slice(0, 10),
+        endDate: addDateOnlyDays(today, 1).toISOString().slice(0, 10),
+      } }),
+      select: { roomId: true },
+      distinct: ["roomId"],
+    }),
   ]);
+
+  const blockedRoomIdsToday = new Set(blockedRoomsToday.map((block) => block.roomId));
+  const blocksByRoomId = new Map<number, TapeChartRoomBlockData[]>();
+  for (const block of roomBlocks) {
+    const existing = blocksByRoomId.get(block.roomId) ?? [];
+    existing.push({
+      ...block,
+      startDate: block.startDate.toISOString().slice(0, 10),
+      endDate: block.endDate.toISOString().slice(0, 10),
+    });
+    blocksByRoomId.set(block.roomId, existing);
+  }
 
   const reservationsByRoomId = new Map<number, TapeChartReservationData[]>();
   const unallocatedByRoomTypeId = new Map<number, TapeChartReservationData[]>();
@@ -137,8 +173,8 @@ export async function getTapeChartData(
   }
 
   return {
-    startDate: formatISODate(windowStart),
-    endDate: formatISODate(windowEnd),
+    startDate: windowStart.toISOString().slice(0, 10),
+    endDate: windowEnd.toISOString().slice(0, 10),
     dayCount,
     roomTypes: roomTypes.map((roomType) => ({
       id: roomType.id,
@@ -149,7 +185,8 @@ export async function getTapeChartData(
         number: room.number,
         floor: room.floor,
         status: room.status,
-        isOutOfOrder: room.status === "OOO",
+        isBlockedToday: blockedRoomIdsToday.has(room.id),
+        roomBlocks: blocksByRoomId.get(room.id) ?? [],
         reservations: reservationsByRoomId.get(room.id) ?? [],
       })),
       unallocatedReservations:

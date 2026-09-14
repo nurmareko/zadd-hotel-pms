@@ -46,6 +46,7 @@ import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { countries, findCountryByName } from "@/lib/countries";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
+import { findOverlappingRoomBlock, roomBlockedMessage, type RoomBlockSummary } from "@/lib/room-blocks/overlap";
 import {
   guestIdTypeLabel,
   guestIdTypeOptions,
@@ -101,6 +102,7 @@ type ReservationFormProps = {
   roomTypes: RoomTypeOption[];
   rooms: RoomOption[];
   activeReservations: ActiveReservation[];
+  activeRoomBlocks: RoomBlockSummary[];
   mode?: "create" | "edit" | "view";
   reservationId?: number;
   createOrigin?: FoReservasiView;
@@ -338,6 +340,7 @@ export function ReservationForm({
   roomTypes,
   rooms,
   activeReservations,
+  activeRoomBlocks,
   mode = "create",
   reservationId,
   createOrigin = "list",
@@ -603,6 +606,7 @@ export function ReservationForm({
       }
 
       const rowOptions = getRoomOptions({
+        activeRoomBlocks,
         activeReservations,
         allRooms: rooms,
         arrivalDate,
@@ -620,6 +624,7 @@ export function ReservationForm({
       }
     });
   }, [
+    activeRoomBlocks,
     activeReservations,
     arrivalDate,
     departureDate,
@@ -1324,6 +1329,7 @@ export function ReservationForm({
                   const rowTotalGuests =
                     Number(rowValue?.adults || 0) + Number(rowValue?.children || 0);
                   const rowRoomOptions = getRoomOptions({
+                    activeRoomBlocks,
                     activeReservations,
                     allRooms: rooms,
                     arrivalDate,
@@ -1419,7 +1425,7 @@ export function ReservationForm({
                                       disabled={!room.isAvailable}
                                     >
                                       {room.number} / Lantai {room.floor}
-                                      {!room.isAvailable ? " / tidak tersedia" : ""}
+                                      {room.block ? ` / ${roomBlockedMessage(room.block)}` : !room.isAvailable ? " / tidak tersedia" : ""}
                                     </option>
                                   ))}
                                 </select>
@@ -1774,6 +1780,7 @@ export function ReservationForm({
 }
 
 function getRoomOptions({
+  activeRoomBlocks,
   activeReservations,
   allRooms,
   arrivalDate,
@@ -1782,6 +1789,7 @@ function getRoomOptions({
   selectedRoomIds,
   currentRoomId,
 }: {
+  activeRoomBlocks: RoomBlockSummary[];
   activeReservations: ActiveReservation[];
   allRooms: RoomOption[];
   arrivalDate: string;
@@ -1801,10 +1809,11 @@ function getRoomOptions({
       const isSelectedElsewhere =
         currentRoomId !== room.id && selectedRoomIds.includes(room.id);
 
+      const block = findOverlappingRoomBlock(activeRoomBlocks, room.id, { startDate: arrivalDate, endDate: departureDate });
       return {
         ...room,
-        isAvailable:
-          room.status !== "OOO" && !isOverlapping && !isSelectedElsewhere,
+        block,
+        isAvailable: !block && !isOverlapping && !isSelectedElsewhere,
       };
     });
 }

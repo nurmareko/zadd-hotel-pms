@@ -39,6 +39,8 @@ import {
 } from "@/lib/nav-preferences";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
+import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
+import { roomBlockedMessage } from "@/lib/room-blocks/overlap";
 import {
   cancelPendingReservationStayFees,
   createPendingReservationStayFees,
@@ -342,9 +344,13 @@ async function validateReservationRoomAssignment(
     return reservationFailure("INVALID_ROOM", { field: "roomId" });
   }
 
-  if (room.status === RoomStatus.OOO) {
-    return reservationFailure("ROOM_OOO", {
-      message: `Kamar ${room.number} sedang berstatus OOO dan tidak dapat dipesan.`,
+  const [block] = await getActiveRoomBlocks({ roomId: room.id, range: {
+    startDate: dateOnlyBoundary(input.arrivalDate).toISOString().slice(0, 10),
+    endDate: dateOnlyBoundary(input.departureDate).toISOString().slice(0, 10),
+  } }, tx);
+  if (block) {
+    return reservationFailure("ROOM_BLOCKED", {
+      message: roomBlockedMessage(block),
       field: "roomId",
     });
   }
@@ -420,6 +426,11 @@ async function runCreateReservationTransaction(
   return prisma.$transaction(
     async (tx) => {
       const assignments: ReservationRoomAssignment[] = [];
+      // Lock multi-room allocations in a stable order before validating any row.
+      const roomIds = [...new Set(input.rooms.flatMap((room) => room.roomId === null ? [] : [room.roomId]))].sort((a, b) => a - b);
+      for (const roomId of roomIds) {
+        await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE`;
+      }
 
       for (const [roomIndex, room] of input.rooms.entries()) {
         const validatedAssignment = await validateReservationRoomAssignment(

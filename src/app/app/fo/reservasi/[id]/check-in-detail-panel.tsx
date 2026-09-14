@@ -538,7 +538,7 @@ export function CheckInDetailPanel({
               <p className="mt-1 text-xs">
                 {roomReady
                   ? `${initialReview.room?.typeName} · valid untuk seluruh periode menginap`
-                  : "Gunakan Edit Reservasi untuk menetapkan kamar dengan tipe yang sesuai, tidak OOO, dan tanpa bentrok periode menginap."}
+                  : "Gunakan Edit Reservasi untuk menetapkan kamar dengan tipe yang sesuai, tanpa blokir kamar atau bentrok reservasi pada periode menginap."}
               </p>
               {!roomReady && statusReady ? (
                 <Link

@@ -15,6 +15,7 @@ export const CHECK_IN_FAILURE_CODES = [
   "ROOM_REQUIRED",
   "ROOM_TYPE_MISMATCH",
   "ROOM_OOO",
+  "ROOM_BLOCKED",
   "ROOM_UNAVAILABLE",
   "DEPOSIT_NOT_ELIGIBLE",
   "DEPOSIT_STATE_INCONSISTENT",
@@ -74,6 +75,7 @@ export const CHECK_IN_FAILURE_MESSAGES: Record<CheckInFailureCode, string> = {
   ROOM_TYPE_MISMATCH:
     "Kamar yang dipilih tidak sesuai dengan tipe kamar reservasi. Pilih kamar lain.",
   ROOM_OOO: "Kamar yang dipilih berstatus OOO. Pilih kamar lain.",
+  ROOM_BLOCKED: "Kamar yang dipilih diblokir pada periode menginap. Pilih kamar lain.",
   ROOM_UNAVAILABLE: "Kamar yang dipilih sudah tidak tersedia. Pilih kamar lain.",
   DEPOSIT_NOT_ELIGIBLE:
     "Deposit belum dapat dikumpulkan untuk reservasi ini. Muat ulang dan periksa status reservasi.",

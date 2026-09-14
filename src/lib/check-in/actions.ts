@@ -31,6 +31,8 @@ import {
   GRC_SNAPSHOT_SCHEMA_VERSION,
 } from "@/lib/grc-snapshot";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
+import { roomBlockedMessage } from "@/lib/room-blocks/overlap";
 import {
   postPendingReservationStayFees,
   ReservationStayFeeError,
@@ -274,10 +276,13 @@ export async function getCheckInReviewData(
     const depositPayment = reservation.folio?.payments[0] ?? null;
     const firstNight = reservation.reservationNights[0] ?? null;
     const { today } = todayDateOnly();
+    const blocks = reservation.room ? await getActiveRoomBlocks({ roomId: reservation.room.id, range: {
+      startDate: reservation.arrivalDate.toISOString().slice(0, 10), endDate: reservation.departureDate.toISOString().slice(0, 10),
+    } }) : [];
     const roomReady = Boolean(
       reservation.room &&
         reservation.room.roomTypeId === reservation.roomTypeId &&
-        reservation.room.status !== RoomStatus.OOO &&
+        blocks.length === 0 &&
         !roomOverlap,
     );
 
@@ -389,8 +394,11 @@ async function prepareCheckInContext(
     return checkInFailure("ROOM_TYPE_MISMATCH", { field: "roomId" });
   }
 
-  if (room.status === RoomStatus.OOO) {
-    return checkInFailure("ROOM_OOO", { field: "roomId" });
+  const [block] = await getActiveRoomBlocks({ roomId: room.id, range: {
+    startDate: arrivalDate.toISOString().slice(0, 10), endDate: departureDate.toISOString().slice(0, 10),
+  } });
+  if (block) {
+    return checkInFailure("ROOM_BLOCKED", { field: "roomId", message: roomBlockedMessage(block) });
   }
 
   const overlappingReservation = await prisma.reservation.findFirst({
@@ -433,6 +441,60 @@ async function runCheckInTransaction(
 
   return prisma.$transaction(
     async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${room.id} FOR UPDATE`;
+      const freshRoom = await tx.room.findUnique({
+        where: { id: room.id },
+        select: { roomTypeId: true },
+      });
+      const currentReservation = await tx.reservation.findUnique({
+        where: { id: reservation.id },
+        select: {
+          roomTypeId: true,
+          guestId: true,
+          arrivalDate: true,
+          departureDate: true,
+          status: true,
+          depositStatus: true,
+          folio: {
+            select: {
+              id: true,
+              payments: {
+                where: { purpose: PaymentPurpose.DEPOSIT },
+                select: { id: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+      if (!currentReservation) {
+        throw new CheckInDomainError("RESERVATION_NOT_FOUND");
+      }
+      // A stale pre-dialog stay must never authorize allocation or a signed GRC.
+      if (
+        currentReservation.roomTypeId !== reservation.roomTypeId ||
+        currentReservation.guestId !== reservation.guestId ||
+        currentReservation.arrivalDate.getTime() !== reservation.arrivalDate.getTime() ||
+        currentReservation.departureDate.getTime() !== reservation.departureDate.getTime()
+      ) {
+        throw new CheckInDomainError("RESERVATION_CHANGED");
+      }
+      if (!freshRoom || freshRoom.roomTypeId !== currentReservation.roomTypeId) {
+        throw new CheckInDomainError("ROOM_TYPE_MISMATCH", { field: "roomId" });
+      }
+      const [block] = await getActiveRoomBlocks({
+        roomId: room.id,
+        range: {
+          startDate: currentReservation.arrivalDate.toISOString().slice(0, 10),
+          endDate: currentReservation.departureDate.toISOString().slice(0, 10),
+        },
+      }, tx);
+      if (block) {
+        throw new CheckInDomainError("ROOM_BLOCKED", {
+          field: "roomId",
+          message: roomBlockedMessage(block),
+        });
+      }
       const overlappingReservation = await tx.reservation.findFirst({
         where: {
           id: { not: reservation.id },
@@ -461,27 +523,6 @@ async function runCheckInTransaction(
       }
 
       const depositAmount = firstNight.rateAmount;
-      const currentReservation = await tx.reservation.findUnique({
-        where: { id: reservation.id },
-        select: {
-          status: true,
-          depositStatus: true,
-          folio: {
-            select: {
-              id: true,
-              payments: {
-                where: { purpose: PaymentPurpose.DEPOSIT },
-                select: { id: true },
-                take: 1,
-              },
-            },
-          },
-        },
-      });
-
-      if (!currentReservation) {
-        throw new CheckInDomainError("RESERVATION_NOT_FOUND");
-      }
 
       if (currentReservation.status !== ReservationStatus.CONFIRMED) {
         throw new CheckInDomainError("RESERVATION_NOT_ELIGIBLE");
@@ -600,13 +641,12 @@ async function runCheckInTransaction(
         where: {
           id: room.id,
           roomTypeId: reservation.roomTypeId,
-          status: { not: RoomStatus.OOO },
         },
         data: { status: RoomStatus.OC },
       });
 
       if (updatedRoom.count === 0) {
-        throw new CheckInDomainError("ROOM_OOO", {
+        throw new CheckInDomainError("ROOM_TYPE_MISMATCH", {
           field: "roomId",
         });
       }

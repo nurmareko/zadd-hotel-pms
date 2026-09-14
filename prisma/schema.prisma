@@ -21,6 +21,19 @@ enum RoomStatus {
   OOO // Out of Order
 }
 
+enum RoomBlockReason {
+  MAINTENANCE
+  RENOVATION
+  DEEP_CLEANING
+  INSPECTION
+  OTHER
+}
+
+enum RoomBlockStatus {
+  ACTIVE
+  RELEASED
+}
+
 enum ArticleType {
   ROOM
   FB
@@ -193,6 +206,7 @@ model User {
 
   roles                   UserRole[]
   reservationsCreated     Reservation[]            @relation("ReservationCreator")
+  createdRoomBlocks       RoomBlock[]              @relation("RoomBlockCreator")
   folioLineItemsPosted    FolioLineItem[]
   fbOrdersWaited          FBOrder[]
   housekeepingLogs        HousekeepingLog[]
@@ -259,6 +273,7 @@ model Room {
   status     RoomStatus @default(VC)
 
   roomType                RoomType                 @relation(fields: [roomTypeId], references: [id])
+  roomBlocks              RoomBlock[]
   reservations            Reservation[]
   housekeepingLogs        HousekeepingLog[]
   housekeepingAssignments HousekeepingAssignment[]
@@ -267,6 +282,26 @@ model Room {
   activityLogs            ActivityLog[]
 
   @@map("room")
+}
+
+model RoomBlock {
+  id          Int             @id @default(autoincrement())
+  roomId      Int             @map("room_id")
+  startDate   DateTime        @map("start_date") @db.Date
+  endDate     DateTime        @map("end_date") @db.Date
+  reason      RoomBlockReason @default(MAINTENANCE)
+  status      RoomBlockStatus @default(ACTIVE)
+  note        String?         @db.Text
+  createdById Int             @map("created_by_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  room      Room @relation(fields: [roomId], references: [id])
+  createdBy User @relation("RoomBlockCreator", fields: [createdById], references: [id])
+
+  @@index([roomId, status, startDate, endDate])
+  @@index([startDate, endDate, status])
+  @@map("room_block")
 }
 
 model Article {

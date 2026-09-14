@@ -1,7 +1,7 @@
 import { Prisma, ReservationStatus } from "@prisma/client";
-import { addDays, formatISO } from "date-fns";
-
 import { dateOnlyBoundary } from "@/lib/date-only";
+import { computeDailyRoomTypeCapacity } from "@/lib/reservation-capacity-logic";
+import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 
 export type RoomTypeCapacityInput = {
   roomTypeId: number;
@@ -53,7 +53,7 @@ export async function validateRoomTypeCapacity(
     where: {
       ...(excludeReservationId ? { id: { not: excludeReservationId } } : {}),
       roomTypeId,
-      status: { not: ReservationStatus.CANCELLED },
+      status: { in: [ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN] },
       arrivalDate: { lt: departureDate },
       departureDate: { gt: arrivalDate },
     },
@@ -63,24 +63,23 @@ export async function validateRoomTypeCapacity(
     },
   });
 
-  let peakDate = arrivalDate;
-  let peakCount = 0;
+  const range = {
+    startDate: arrivalDate.toISOString().slice(0, 10),
+    endDate: departureDate.toISOString().slice(0, 10),
+  };
+  const blocks = await getActiveRoomBlocks({ roomTypeId, range }, tx);
+  const days = computeDailyRoomTypeCapacity({
+    range,
+    roomCount,
+    blocks,
+    reservations: overlappingReservations.map((reservation) => ({
+      arrivalDate: reservation.arrivalDate.toISOString().slice(0, 10),
+      departureDate: reservation.departureDate.toISOString().slice(0, 10),
+    })),
+  });
 
-  for (let date = arrivalDate; date < departureDate; date = addDays(date, 1)) {
-    const count = overlappingReservations.filter((reservation) => {
-      const reservationArrival = dateOnlyBoundary(reservation.arrivalDate);
-      const reservationDeparture = dateOnlyBoundary(reservation.departureDate);
-
-      return reservationArrival <= date && reservationDeparture > date;
-    }).length;
-
-    if (count > peakCount) {
-      peakCount = count;
-      peakDate = date;
-    }
-  }
-
-  if (requestedCount < 1) {
+  // Zero checks existing demand after inserting a proposed room block.
+  if (!Number.isInteger(requestedCount) || requestedCount < 0 || days.length === 0) {
     return {
       ok: false,
       field: "roomTypeId",
@@ -88,14 +87,12 @@ export async function validateRoomTypeCapacity(
     };
   }
 
-  if (peakCount + requestedCount > roomCount) {
+  const fullDay = days.find((day) => day.available < requestedCount);
+  if (fullDay) {
     return {
       ok: false,
       field: "roomTypeId",
-      error: `Tipe kamar ${roomType.name} sudah penuh pada tanggal ${formatISO(
-        peakDate,
-        { representation: "date" },
-      )}. Kapasitas ${roomCount}, sudah dipesan ${peakCount}, diminta ${requestedCount}.`,
+      error: `Tipe kamar ${roomType.name} sudah penuh pada tanggal ${fullDay.date}. Kapasitas ${roomCount}, diblokir ${fullDay.blockedCount}, sudah dipesan ${fullDay.reservationCount}, diminta ${requestedCount}.`,
     };
   }
 

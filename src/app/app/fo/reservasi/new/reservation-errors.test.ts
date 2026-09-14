@@ -26,6 +26,7 @@ const expectedMessages: Record<ReservationFailureCode, string> = {
   INVALID_ROOM: "Kamar yang dipilih tidak valid.",
   ROOM_OOO:
     "Kamar yang dipilih sedang berstatus OOO dan tidak dapat dipesan.",
+  ROOM_BLOCKED: "Kamar yang dipilih diblokir pada periode menginap. Pilih kamar atau tanggal lain.",
   POST_CHECK_IN_EDIT_RESTRICTED:
     "Perubahan ini tidak dapat dilakukan setelah check-in.",
   PRICING_QUOTE_FAILED:

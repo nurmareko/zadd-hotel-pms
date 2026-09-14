@@ -53,7 +53,8 @@ export const proxy = auth((request) => {
     routeMatches(pathname, "/app/fo/reservasi") ||
     routeMatches(pathname, "/app/fo/reservations") ||
     routeMatches(pathname, "/app/fo/tape-chart") ||
-    routeMatches(pathname, "/app/fo/tamu")
+    routeMatches(pathname, "/app/fo/tamu") ||
+    routeMatches(pathname, "/app/fo/room-blocks")
   ) {
     if (!["FO", "ADMIN"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));

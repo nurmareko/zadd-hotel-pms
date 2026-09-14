@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 25 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 26 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 25 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows all 26 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -22,6 +22,7 @@ erDiagram
   USER ||--o{ NIGHT_AUDIT : "runs"
   USER ||--o{ PAYMENT : "receives"
   USER ||--o{ RESERVATION : "creates"
+  USER ||--o{ ROOM_BLOCK : "creates"
   USER ||--o{ FB_ORDER : "waits"
   USER ||--o{ FOLIO_LINE_ITEM : "posts"
   USER ||--o{ ACTIVITY_LOG : "performs"
@@ -35,6 +36,7 @@ erDiagram
   ROOM ||--o{ CLEANING_SESSION : "cleaned_in"
   ROOM ||--o{ LOST_FOUND_ITEM : "found_in"
   ROOM ||--o{ RESERVATION : "assigned_to"
+  ROOM ||--o{ ROOM_BLOCK : "has"
   ROOM ||--o{ ACTIVITY_LOG : "context_for"
 
   GUEST ||--o{ RESERVATION : "makes"
@@ -105,6 +107,18 @@ erDiagram
     int floor
     int room_type_id FK
     varchar status "VC, OC, VD, OD, VCU, OOO"
+  }
+  ROOM_BLOCK {
+    int id PK
+    int room_id FK
+    date start_date
+    date end_date
+    RoomBlockReason reason
+    RoomBlockStatus status
+    text note
+    int created_by_id FK
+    timestamp created_at
+    timestamp updated_at
   }
   ARTICLE {
     int id PK
@@ -379,11 +393,17 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 ---
 
+**Room blocking (issue #213, Phase 1)**
+
+26. RoomBlock(*id*, *room_id\#*, start_date, end_date, reason, status, note nullable, *created_by_id\#*, created_at, updated_at)
+
 ## Enum specifications
 
 | Enum | Values |
 |---|---|
 | RoomStatus | VC, OC, VD, OD, VCU, OOO |
+| RoomBlockReason | MAINTENANCE, RENOVATION, DEEP_CLEANING, INSPECTION, OTHER |
+| RoomBlockStatus | ACTIVE, RELEASED |
 | ArticleType | ROOM, FB, SERVICE, TAX, MISC |
 | ReservationStatus | CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW |
 | ReservationUsageType | REGULAR, WALK_IN |
@@ -686,6 +706,36 @@ Indexes and enforcement:
 | floor | INT | NOT NULL | Floor number |
 | room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type reference |
 | status | RoomStatus | NOT NULL, DEFAULT 'VC' | Room status (VC, OC, VD, OD, VCU, OOO). VCU means Vacant Clean Unchecked, waiting for HK inspection. |
+
+### `room_block`
+
+Issue #213 Phase 1 adds the room-block data foundation only. It does not change
+`Room.status`, reservation availability checks, or operational UI/workflows.
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique block identifier |
+| room_id | INT | NOT NULL, FOREIGN KEY → room(id) | Required room; Prisma inverse `Room.roomBlocks` |
+| start_date | DATE | NOT NULL | Date-only start (`@db.Date`) |
+| end_date | DATE | NOT NULL | Date-only end (`@db.Date`) |
+| reason | RoomBlockReason | NOT NULL, DEFAULT 'MAINTENANCE' | Maintenance, renovation, deep cleaning, inspection, or other |
+| status | RoomBlockStatus | NOT NULL, DEFAULT 'ACTIVE' | Active or released block |
+| note | TEXT | nullable | Optional operator note |
+| created_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Creator; named Prisma relation `RoomBlockCreator`, inverse `User.createdRoomBlocks` |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT now() | Creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Maintained by Prisma `@updatedAt` |
+
+Indexes: (`room_id`, `status`, `start_date`, `end_date`) and
+(`start_date`, `end_date`, `status`). Required foreign keys use the existing
+`ON DELETE RESTRICT` / `ON UPDATE CASCADE` convention; child blocks must be
+removed before deleting their room or creator. No overlap constraint or
+availability enforcement is introduced in Phase 1.
+
+Demo data: room `108`, `ACTIVE`, `MAINTENANCE`, hotel today minus two days through
+hotel today plus five days, with note `Perbaikan pipa AC dan peremajaan dinding.`
+The demo seed removes its matching room/creator/reason/note fixture before
+recreating it in one transaction, preserving unrelated blocks. Room and user
+records are upserted rather than deleted by the demo seed.
 
 ### `article`
 

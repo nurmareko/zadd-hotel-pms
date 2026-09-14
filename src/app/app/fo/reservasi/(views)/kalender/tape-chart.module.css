@@ -160,7 +160,14 @@
   border-right: 1px solid #f1f5f9;
   border-bottom: 1px solid #f1f5f9;
   cursor: not-allowed;
-  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.outOfOrderCell:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: -2px;
 }
 
 .todayLabel {

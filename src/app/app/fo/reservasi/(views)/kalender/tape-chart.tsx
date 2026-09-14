@@ -11,6 +11,8 @@ import Link from "next/link";
 import { useMemo, useState, type CSSProperties } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { addDateOnlyDays, parseISODateOnly } from "@/lib/date-only";
+import { overlapsDateRange, ROOM_BLOCK_REASON_LABELS } from "@/lib/room-blocks/overlap";
 import {
   DATE_HEADER_HEIGHT,
   GROUP_HEADER_HEIGHT,
@@ -45,12 +47,12 @@ const MIN_DAY_WIDTH = 56;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const ROOM_STATUS_FULL_NAMES: Record<RoomStatus, string> = {
-  VC: "Vacant Clean",
-  OC: "Occupied Clean",
-  VD: "Vacant Dirty",
-  OD: "Occupied Dirty",
-  VCU: "Clean Unchecked",
-  OOO: "Out of Order",
+  VC: "Kosong bersih",
+  OC: "Terisi bersih",
+  VD: "Kosong kotor",
+  OD: "Terisi kotor",
+  VCU: "Bersih belum diperiksa",
+  OOO: "Tidak beroperasi",
 };
 
 type AllocatedBarColorKey = Exclude<
@@ -352,7 +354,7 @@ function GroupRow({
 }) {
   const Icon = isCollapsed ? ChevronDown : ChevronUp;
   const roomCount = roomType.rooms.length;
-  const oooCount = roomType.rooms.filter((room) => room.isOutOfOrder).length;
+  const oooCount = roomType.rooms.filter((room) => room.isBlockedToday).length;
 
   return (
     <div className={`${styles.gridRow} ${styles.groupRow}`}>
@@ -369,7 +371,7 @@ function GroupRow({
               {roomType.name}
             </span>
             <span className="block text-xs text-slate-500">
-              {roomCount} rooms{oooCount ? ` / ${oooCount} OOO` : ""}
+              {roomCount} kamar{oooCount ? ` / ${oooCount} OOO hari ini` : ""}
             </span>
           </span>
         </button>
@@ -432,8 +434,8 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
         {roomCount === 0 ? (
           <EmptyState
             icon={BedDouble}
-            title="Belum ada kamar di tape chart"
-            description="Tambahkan master kamar terlebih dahulu agar grid skeleton dapat ditampilkan."
+            title="Belum ada kamar di kalender"
+            description="Tambahkan master kamar terlebih dahulu agar kalender dapat ditampilkan."
             className="m-3.5 min-h-72"
           />
         ) : (
@@ -496,7 +498,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         <span className="min-w-0 text-xs font-semibold text-slate-800">
                           {row.room.number}
                         </span>
-                        {row.room.isOutOfOrder ? (
+                        {row.room.isBlockedToday ? (
                           <span
                             className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-red-600"
                             aria-label={ROOM_STATUS_FULL_NAMES.OOO}
@@ -514,18 +516,31 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         )}
                       </div>
                       {days.map((day) => {
-                        const isUnavailable = row.room.isOutOfOrder;
+                        const block = row.room.roomBlocks.find((candidate) =>
+                          candidate.status === "ACTIVE" && overlapsDateRange(candidate, {
+                            startDate: day.iso,
+                            endDate: addDateOnlyDays(parseISODateOnly(day.iso), 1).toISOString().slice(0, 10),
+                          }),
+                        );
+                        const blockLabel = block
+                          ? `Kamar ${row.room.number} ${day.iso}: Tidak tersedia — ${ROOM_BLOCK_REASON_LABELS[block.reason]}${block.note ? ` — ${block.note}` : ""}`
+                          : undefined;
 
-                        return isUnavailable ? (
+                        return block ? (
                           <div
                             key={`${row.room.id}-${day.iso}`}
                             className={getCellClassName(
                               day,
                               todayIso,
-                              styles.unavailableCell,
+                              `${styles.outOfOrderCell} ${styles.unavailableCell}`,
                             )}
-                            aria-label={`${row.room.number} ${day.iso}: Tidak tersedia`}
-                          />
+                            title={blockLabel}
+                            aria-label={blockLabel}
+                            role="img"
+                            tabIndex={0}
+                          >
+                            <Wrench className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
+                          </div>
                         ) : (
                           <Link
                             key={`${row.room.id}-${day.iso}`}
@@ -556,11 +571,11 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       className={`${styles.labelCell} ${styles.unallocatedLabelCell} flex items-center justify-between gap-2 border-b border-slate-100 px-3`}
                     >
                       <span className="min-w-0 text-xs font-semibold text-slate-800">
-                        Unallocated
+                        Belum dialokasikan
                       </span>
                       <span className="shrink-0 text-[10px] font-semibold text-slate-500">
                         {row.roomType.unallocatedReservations.length}
-                        {row.laneCount > 1 ? ` / ${row.laneCount} lanes` : ""}
+                        {row.laneCount > 1 ? ` / ${row.laneCount} baris` : ""}
                       </span>
                     </div>
                     {days.map((day) => (

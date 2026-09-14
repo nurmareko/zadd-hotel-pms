@@ -13,6 +13,8 @@ import {
   ReservationStatus,
   ReservationType,
   ReservationUsageType,
+  RoomBlockReason,
+  RoomBlockStatus,
   RoomStatus,
   TableLocation,
   TableStatus,
@@ -1369,6 +1371,31 @@ async function main() {
     }
 
     console.log(`✓ seeded ${rooms.length} rooms`);
+
+    const blockedRoom = roomsByNumber.get("108");
+    if (!blockedRoom) {
+      throw new Error("Missing room 108 for room block seed.");
+    }
+
+    const roomBlockFixture = {
+      roomId: blockedRoom.id,
+      createdById: createdBy.id,
+      reason: RoomBlockReason.MAINTENANCE,
+      note: "Perbaikan pipa AC dan peremajaan dinding.",
+    };
+    await prisma.$transaction(async (tx) => {
+      await tx.roomBlock.deleteMany({ where: roomBlockFixture });
+      await tx.roomBlock.create({
+        data: {
+          ...roomBlockFixture,
+          startDate: addDateOnlyDays(today, -2),
+          endDate: addDateOnlyDays(today, 5),
+          status: RoomBlockStatus.ACTIVE,
+        },
+      });
+    });
+
+    console.log("✓ seeded active maintenance block for room 108");
 
     for (const guest of guests) {
       const existingGuest = await prisma.guest.findFirst({

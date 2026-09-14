@@ -5,7 +5,7 @@ import {
   Prisma,
   ReservationStatus,
   ReservationStayFeeKind,
-  RoomStatus,
+
 } from "@prisma/client";
 import { differenceInCalendarDays, formatISO } from "date-fns";
 import { Download } from "lucide-react";
@@ -20,6 +20,8 @@ import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
+import { findOverlappingRoomBlock } from "@/lib/room-blocks/overlap";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
@@ -233,7 +235,7 @@ export default async function ReservationDetailPage({
     notFound();
   }
 
-  const [reservation, roomTypes, rooms, activeReservations] = await Promise.all([
+  const [reservation, roomTypes, rooms, activeReservations, activeRoomBlocks] = await Promise.all([
     prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -308,6 +310,7 @@ export default async function ReservationDetailPage({
         departureDate: true,
       },
     }),
+    getActiveRoomBlocks(),
   ]);
 
   if (!reservation) {
@@ -392,7 +395,7 @@ export default async function ReservationDetailPage({
   const roomReady = Boolean(
     reservation.room &&
       reservation.room.roomTypeId === reservation.roomTypeId &&
-      reservation.room.status !== RoomStatus.OOO &&
+      !findOverlappingRoomBlock(activeRoomBlocks, reservation.room.id, { startDate: reservation.arrivalDate.toISOString().slice(0, 10), endDate: reservation.departureDate.toISOString().slice(0, 10) }) &&
       !assignedRoomHasOverlap,
   );
   const depositPayment = reservation.folio?.payments[0] ?? null;
@@ -568,6 +571,7 @@ export default async function ReservationDetailPage({
               }))}
               rooms={rooms}
               activeReservations={allocatedActiveReservations}
+              activeRoomBlocks={activeRoomBlocks}
               mode={formMode}
               reservationId={reservation.id}
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}

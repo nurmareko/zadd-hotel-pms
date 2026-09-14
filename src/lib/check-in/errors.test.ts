@@ -16,9 +16,9 @@ import {
 } from "./errors";
 
 describe("check-in error definitions and helpers", () => {
-  it("contains exactly the 24 supported failure codes", () => {
-    expect(CHECK_IN_FAILURE_CODES).toHaveLength(24);
-    expect(Object.keys(CHECK_IN_FAILURE_MESSAGES)).toHaveLength(24);
+  it("provides messages for every supported failure code including dated blocks", () => {
+    expect(CHECK_IN_FAILURE_CODES).toContain("ROOM_BLOCKED");
+    expect(Object.keys(CHECK_IN_FAILURE_MESSAGES).sort()).toEqual([...CHECK_IN_FAILURE_CODES].sort());
 
     for (const code of CHECK_IN_FAILURE_CODES) {
       expect(CHECK_IN_FAILURE_MESSAGES[code]).toBeDefined();

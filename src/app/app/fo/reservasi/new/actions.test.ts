@@ -93,6 +93,7 @@ function transactionClient(options: {
     status: RoomStatus;
   } | null;
   overlap?: { id: number } | null;
+  blocked?: boolean;
   reservation?: {
     id: number;
     status: ReservationStatus;
@@ -102,6 +103,7 @@ function transactionClient(options: {
 } = {}) {
   return {
     $queryRaw: vi.fn(async () => []),
+    roomBlock: { findMany: vi.fn(async () => options.blocked ? [{ id: 1, roomId: 10, startDate: new Date("2026-10-01"), endDate: new Date("2026-10-02"), status: "ACTIVE", reason: "MAINTENANCE" }] : []) },
     roomType: {
       findUnique: vi.fn(async () => options.roomType ?? null),
     },
@@ -267,7 +269,7 @@ describe("reservation action failure boundary", () => {
     }
   });
 
-  it("maps invalid room type, invalid room, OOO room, and unavailable room", async () => {
+  it("maps invalid room type, invalid room, blocked room, and unavailable room", async () => {
     mocks.roomTypeFindMany.mockResolvedValueOnce([]);
     runTransactionWith(transactionClient({ roomType: null }));
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
@@ -292,12 +294,13 @@ describe("reservation action failure boundary", () => {
       transactionClient({
         roomType: { id: 1, baseRate: 500_000, capacity: 2 },
         room: { id: 10, number: "101", roomTypeId: 1, status: RoomStatus.OOO },
+        blocked: true,
       }),
     );
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
       ok: false,
-      code: "ROOM_OOO",
-      error: "Kamar 101 sedang berstatus OOO dan tidak dapat dipesan.",
+      code: "ROOM_BLOCKED",
+      error: "Kamar diblokir untuk Pemeliharaan pada 2026-10-01 hingga sebelum 2026-10-02. Pilih kamar atau tanggal lain.",
       field: "rooms.0.roomId",
     });
 

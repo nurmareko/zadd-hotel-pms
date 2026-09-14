@@ -32,6 +32,7 @@ import {
   User,
   Users,
   UtensilsCrossed,
+  Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -137,6 +138,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
             { href: "/app/fo/tape-chart", match: "startsWith" },
             { href: "/app/fo/check-out", match: "startsWith" },
           ],
+        },
+        {
+          label: "Blokir Kamar",
+          href: "/app/fo/room-blocks",
+          icon: Wrench,
+          activeMatch: "startsWith",
         },
         {
           label: "Tamu",

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   reservationFindUnique: vi.fn(),
   reservationFindFirst: vi.fn(),
   roomFindUnique: vi.fn(),
+  roomBlockFindMany: vi.fn(),
   folioCount: vi.fn(),
   transaction: vi.fn(),
 }));
@@ -34,6 +35,7 @@ vi.mock("@/lib/prisma", () => ({
     room: {
       findUnique: mocks.roomFindUnique,
     },
+    roomBlock: { findMany: mocks.roomBlockFindMany },
     folio: {
       count: mocks.folioCount,
     },
@@ -131,6 +133,7 @@ describe("check-in server actions", () => {
       user: { id: "1", role: "FO" },
     });
     mocks.folioCount.mockResolvedValue(0);
+    mocks.roomBlockFindMany.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -793,7 +796,8 @@ describe("check-in server actions", () => {
       });
     });
 
-    it("returns ROOM_OOO when assigned room is out of order", async () => {
+    it("returns ROOM_BLOCKED when assigned room has a dated block", async () => {
+          mocks.roomBlockFindMany.mockResolvedValueOnce([{ id: 1, roomId: 101, startDate: BASE_DATE, endDate: TOMORROW, reason: "MAINTENANCE", status: "ACTIVE" }]);
       mocks.reservationFindUnique.mockResolvedValueOnce({
         id: 1,
         roomTypeId: 10,
@@ -813,9 +817,9 @@ describe("check-in server actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        code: "ROOM_OOO",
+        code: "ROOM_BLOCKED",
         field: "roomId",
-        error: CHECK_IN_FAILURE_MESSAGES.ROOM_OOO,
+        error: expect.stringContaining("Kamar diblokir untuk Pemeliharaan"),
       });
     });
 
@@ -892,11 +896,16 @@ describe("check-in server actions", () => {
 
     function createCheckInTxMock() {
       return {
+        $queryRaw: vi.fn().mockResolvedValue([]),
+        roomBlock: { findMany: vi.fn().mockResolvedValue([]) },
         reservation: {
           findFirst: vi.fn().mockResolvedValueOnce(null),
           findUnique: vi.fn().mockResolvedValueOnce({
             id: 1,
             roomTypeId: 10,
+            guestId: 5,
+            arrivalDate: BASE_DATE,
+            departureDate: TOMORROW,
             status: ReservationStatus.CONFIRMED,
             depositStatus: DepositStatus.COLLECTED,
             folio: {
@@ -966,6 +975,23 @@ describe("check-in server actions", () => {
         },
       };
     }
+
+    it("allows a stale OOO status when no block overlaps the stay", async () => {
+      mockValidCheckInPreflight();
+      mocks.roomFindUnique.mockReset().mockResolvedValue({ id: 101, number: "101", roomTypeId: 10, status: RoomStatus.OOO });
+      mocks.transaction.mockImplementationOnce(async (callback) => callback(createCheckInTxMock()));
+      expect(await completeCheckIn(createCheckInFormData(), { redirectAfterCheckIn: false })).toEqual({ ok: true });
+    });
+
+    it("rejects a block introduced after preflight inside the locked transaction", async () => {
+      mockValidCheckInPreflight();
+      const tx = createCheckInTxMock();
+      tx.roomBlock.findMany.mockResolvedValueOnce([{ id: 1, roomId: 101, startDate: BASE_DATE, endDate: TOMORROW, reason: "MAINTENANCE", status: "ACTIVE" }]);
+      mocks.transaction.mockImplementationOnce(async (callback) => callback(tx));
+      expect(await completeCheckIn(createCheckInFormData(), { redirectAfterCheckIn: false })).toMatchObject({ ok: false, code: "ROOM_BLOCKED" });
+      expect(tx.guest.update).not.toHaveBeenCalled();
+      expect(tx.reservation.updateMany).not.toHaveBeenCalled();
+    });
 
     it("returns STAY_FEE_UNAVAILABLE when ReservationStayFeeError is thrown", async () => {
       mockValidCheckInPreflight();
@@ -1056,6 +1082,9 @@ describe("check-in server actions", () => {
         tx.reservation.findUnique = vi.fn().mockResolvedValueOnce({
           id: 1,
           roomTypeId: 10,
+          guestId: 5,
+          arrivalDate: BASE_DATE,
+          departureDate: TOMORROW,
           status: ReservationStatus.CONFIRMED,
           depositStatus: DepositStatus.PENDING,
           folio: {
@@ -1086,6 +1115,9 @@ describe("check-in server actions", () => {
         tx.reservation.findUnique = vi.fn().mockResolvedValueOnce({
           id: 1,
           roomTypeId: 10,
+          guestId: 5,
+          arrivalDate: BASE_DATE,
+          departureDate: TOMORROW,
           status: ReservationStatus.CONFIRMED,
           depositStatus: DepositStatus.COLLECTED,
           folio: null,
@@ -1112,6 +1144,9 @@ describe("check-in server actions", () => {
         tx.reservation.findUnique = vi.fn().mockResolvedValueOnce({
           id: 1,
           roomTypeId: 10,
+          guestId: 5,
+          arrivalDate: BASE_DATE,
+          departureDate: TOMORROW,
           status: ReservationStatus.CONFIRMED,
           depositStatus: DepositStatus.COLLECTED,
           folio: {

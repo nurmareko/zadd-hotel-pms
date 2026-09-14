@@ -7,6 +7,7 @@ import {
   parseFoReservasiView,
 } from "@/lib/nav-preferences";
 import { prisma } from "@/lib/prisma";
+import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 
 import { ReservationForm } from "./reservation-form";
 import type { CreateReservationInput } from "./schema";
@@ -83,7 +84,7 @@ export default async function NewReservationPage({
   const arrivalDate = parseDateParam(firstParam(params.arrival)) ?? new Date();
   const departureDate =
     parseDateParam(firstParam(params.departure)) ?? addDays(arrivalDate, 1);
-  const [guest, roomTypes, rooms, activeReservations] = await Promise.all([
+  const [guest, roomTypes, rooms, activeReservations, activeRoomBlocks] = await Promise.all([
     requestedGuestId
       ? prisma.guest.findUnique({
           where: { id: requestedGuestId },
@@ -131,6 +132,7 @@ export default async function NewReservationPage({
         departureDate: true,
       },
     }),
+    getActiveRoomBlocks(),
   ]);
   const requestedRoom = requestedRoomId
     ? rooms.find((room) => room.id === requestedRoomId)
@@ -188,6 +190,7 @@ export default async function NewReservationPage({
           }))}
           rooms={rooms}
           activeReservations={allocatedActiveReservations}
+          activeRoomBlocks={activeRoomBlocks}
           createOrigin={originView}
           returnHref={FO_RESERVASI_VIEW_PATHS[originView]}
           submitLabel="Simpan Reservasi"
