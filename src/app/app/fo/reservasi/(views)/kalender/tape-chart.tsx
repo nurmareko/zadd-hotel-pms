@@ -498,7 +498,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         </span>
                         {row.room.isOutOfOrder ? (
                           <span
-                            className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-red-600"
+                            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-red-600"
                             aria-label={ROOM_STATUS_FULL_NAMES.OOO}
                           >
                             <Wrench
@@ -508,7 +508,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                             {ROOM_STATUS_FULL_NAMES.OOO}
                           </span>
                         ) : (
-                          <span className="shrink-0 text-[10px] font-semibold text-slate-500">
+                          <span className="shrink-0 text-xs font-semibold text-slate-500">
                             {ROOM_STATUS_FULL_NAMES[row.room.status]}
                           </span>
                         )}
