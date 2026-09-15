@@ -391,12 +391,22 @@ describe("check-in database actions", () => {
       expect(persistedRoom.status).toBe(RoomStatus.VC);
     });
 
-    it("blocks an OOO room before mutation even when the deposit is consistent", async () => {
+    it("blocks a room with an overlapping active dated block before mutation even when the deposit is consistent", async () => {
       const { user, guest, reservation, room } = await createBasicReservation({
         depositStatus: DepositStatus.COLLECTED,
         roomStatus: RoomStatus.OOO,
       });
       await createConsistentCollectedDeposit(reservation.id, user.id);
+      await prisma.roomBlock.create({
+        data: {
+          roomId: room.id,
+          startDate: reservation.arrivalDate,
+          endDate: reservation.departureDate,
+          reason: "MAINTENANCE",
+          status: "ACTIVE",
+          createdById: user.id,
+        },
+      });
 
       const result = await completeCheckIn(
         checkInFormData(reservation.id, room.id),
@@ -405,8 +415,8 @@ describe("check-in database actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        code: "ROOM_OOO",
-        error: "Kamar yang dipilih berstatus OOO. Pilih kamar lain.",
+        code: "ROOM_BLOCKED",
+        error: `Kamar diblokir untuk Pemeliharaan pada ${reservation.arrivalDate.toISOString().slice(0, 10)} hingga sebelum ${reservation.departureDate.toISOString().slice(0, 10)}. Pilih kamar atau tanggal lain.`,
         field: "roomId",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
@@ -418,16 +428,16 @@ describe("check-in database actions", () => {
           prisma.room.findUniqueOrThrow({ where: { id: room.id } }),
         ]);
 
-      expect(persistedGuest.fullName).toBe(guest.fullName);
-      expect(persistedReservation.status).toBe(ReservationStatus.CONFIRMED);
-      expect(persistedReservation.roomId).toBeNull();
-      expect(persistedRoom.status).toBe(RoomStatus.OOO);
+      expect(persistedGuest).toEqual(guest);
+      expect(persistedReservation).toEqual(reservation);
+      expect(persistedRoom).toEqual(room);
     });
 
-    it("atomically persists GRC data, checks in the reservation, and marks the room OC", async () => {
+    it.each([RoomStatus.VC, RoomStatus.OOO])("atomically persists GRC data, checks in the reservation, and marks an unblocked %s room OC", async (roomStatus) => {
       const { user, guest, reservation, room, roomType } =
         await createBasicReservation({
           depositStatus: DepositStatus.COLLECTED,
+          roomStatus,
         });
       const { folio } = await createConsistentCollectedDeposit(
         reservation.id,
