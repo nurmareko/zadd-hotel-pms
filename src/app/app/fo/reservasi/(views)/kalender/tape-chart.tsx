@@ -26,7 +26,7 @@ import type {
   TapeChartRoomTypeData,
 } from "@/lib/tape-chart-data";
 
-import { reservationBarColors } from "./tape-chart-legend";
+import { reservationBarColors, roomBlockBarColors } from "./tape-chart-legend";
 import styles from "./tape-chart.module.css";
 
 export type TapeChartDay = {
@@ -405,6 +405,24 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
       buildReservationBars(visibleLayout.rows, data.startDate, data.dayCount),
     [data.dayCount, data.startDate, visibleLayout.rows],
   );
+  const roomBlockBars = visibleLayout.rows.flatMap((row) => {
+    if (row.kind !== "room") return [];
+
+    return row.room.roomBlocks.flatMap((block) => {
+      if (block.status !== "ACTIVE") return [];
+      // Blocks cover whole hotel dates, unlike the noon-to-noon stay bars.
+      const start = clamp(getDateIndex(block.startDate, data.startDate), 0, data.dayCount);
+      const end = clamp(getDateIndex(block.endDate, data.startDate), 0, data.dayCount);
+      if (end <= start) return [];
+
+      return [{
+        block,
+        roomNumber: row.room.number,
+        gridColumn: `${start * 2 + 2} / ${end * 2 + 2}`,
+        top: row.y + BAR_VERTICAL_MARGIN,
+      }];
+    });
+  });
   const layoutStyle = {
     "--day-min-width": `${MIN_DAY_WIDTH}px`,
     "--date-header-height": `${DATE_HEADER_HEIGHT}px`,
@@ -536,11 +554,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                             )}
                             title={blockLabel}
                             aria-label={blockLabel}
-                            role="img"
-                            tabIndex={0}
-                          >
-                            <Wrench className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
-                          </div>
+                          />
                         ) : (
                           <Link
                             key={`${row.room.id}-${day.iso}`}
@@ -597,7 +611,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                 );
               })}
 
-              <div className={styles.barLayer} aria-hidden={reservationBars.length === 0}>
+              <div className={styles.barLayer} aria-hidden={reservationBars.length === 0 && roomBlockBars.length === 0}>
                 {reservationBars.map((bar) => {
                   const colors = reservationBarColors[bar.colorKey];
                   const barClassName = [
@@ -619,13 +633,38 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       key={bar.key}
                       href={`/app/fo/reservasi/${bar.reservation.id}`}
                       className={barClassName}
-                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`}
+                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} hingga ${bar.reservation.checkOutDate}`}
                       style={barStyle}
                     >
                       <span className={styles.reservationBarText}>
                         {bar.reservation.guestName}
                       </span>
                     </Link>
+                  );
+                })}
+                {roomBlockBars.map(({ block, roomNumber, gridColumn, top }) => {
+                  const label = `Kamar ${roomNumber}: Diblokir — ${ROOM_BLOCK_REASON_LABELS[block.reason]}, ${block.startDate} hingga sebelum ${block.endDate}${block.note ? ` — ${block.note}` : ""}`;
+                  return (
+                    <div
+                      key={`block-${block.id}`}
+                      className={`${styles.reservationBar} ${styles.roomBlockBar}`}
+                      role="img"
+                      tabIndex={0}
+                      aria-label={label}
+                      title={label}
+                      style={{
+                        gridColumn,
+                        top,
+                        height: ROW_HEIGHT - BAR_VERTICAL_MARGIN * 2,
+                        backgroundColor: roomBlockBarColors.bgColor,
+                        color: roomBlockBarColors.textColor,
+                      }}
+                    >
+                      <Wrench className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span className={styles.reservationBarText}>
+                        Diblokir — {ROOM_BLOCK_REASON_LABELS[block.reason]}
+                      </span>
+                    </div>
                   );
                 })}
               </div>

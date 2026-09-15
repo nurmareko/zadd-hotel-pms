@@ -251,6 +251,11 @@
   transform: translateY(-50%);
 }
 
+.roomBlockBar {
+  gap: 6px;
+  cursor: not-allowed;
+}
+
 .reservationBarText {
   min-width: 0;
   overflow: hidden;
