@@ -135,8 +135,11 @@ export default async function HkSupervisorPage({
           include: { housekeeper: { select: { fullName: true } } },
         },
         housekeepingLogs: {
-          where: { newStatus: RoomStatus.VCU },
-          orderBy: { updatedAt: "desc" },
+          where: {
+            newStatus: RoomStatus.VCU,
+            oldStatus: { not: RoomStatus.VCU },
+          },
+          orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
           take: 1,
         },
       },

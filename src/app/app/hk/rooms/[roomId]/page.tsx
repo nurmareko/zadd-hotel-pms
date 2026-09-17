@@ -66,7 +66,7 @@ export default async function HKRoomDetailPage({
   const currentUserId = Number(session?.user.id);
   const canInspect =
     session?.user.role === "HK" || session?.user.role === "ADMIN";
-  const [room, activeCleaningSession, latestCompletedCleaningSession, assignment] =
+  const [room, activeCleaningSession, latestCompletedCleaningSession, assignment, latestStatusLog] =
     await Promise.all([
       prisma.room.findUnique({
         where: { id: parsedRoomId },
@@ -74,7 +74,7 @@ export default async function HKRoomDetailPage({
           roomType: true,
           housekeepingLogs: {
             include: { updatedBy: { select: { fullName: true } } },
-            orderBy: { updatedAt: "desc" },
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
             take: 20,
           },
           reservations: {
@@ -115,6 +115,21 @@ export default async function HKRoomDetailPage({
         where: { roomId: parsedRoomId, date: today },
         include: { housekeeper: { select: { id: true, fullName: true } } },
       }),
+      // Keep status metadata independent of the capped, note-inclusive history.
+      prisma.housekeepingLog.findFirst({
+        where: {
+          roomId: parsedRoomId,
+          NOT: { newStatus: { equals: prisma.housekeepingLog.fields.oldStatus } },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        select: {
+          newStatus: true,
+          updatedAt: true,
+          note: true,
+          linenChanged: true,
+          towelChanged: true,
+        },
+      }),
     ]);
 
   if (!room) {
@@ -136,7 +151,7 @@ export default async function HKRoomDetailPage({
       .filter((reservation) => reservation.status === ReservationStatus.CONFIRMED)
       .sort((first, second) => first.arrivalDate.getTime() - second.arrivalDate.getTime())[0] ??
     null;
-  const latestLog = room.housekeepingLogs[0] ?? null;
+
   const isAssignedToCurrentUser =
     canInspect && assignment?.housekeeperId === currentUserId;
   const activeCleaningSessionForPanel =
@@ -153,9 +168,9 @@ export default async function HKRoomDetailPage({
           startedAt: latestCompletedCleaningSession.startedAt,
           finishedAt: latestCompletedCleaningSession.finishedAt,
           housekeeperName: latestCompletedCleaningSession.housekeeper.fullName,
-          note: latestLog?.newStatus === RoomStatus.VCU ? latestLog.note : null,
-          linenChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.linenChanged : false,
-          towelChanged: latestLog?.newStatus === RoomStatus.VCU ? latestLog.towelChanged : false,
+          note: latestStatusLog?.newStatus === RoomStatus.VCU ? latestStatusLog.note : null,
+          linenChanged: latestStatusLog?.newStatus === RoomStatus.VCU ? latestStatusLog.linenChanged : false,
+          towelChanged: latestStatusLog?.newStatus === RoomStatus.VCU ? latestStatusLog.towelChanged : false,
         }
       : null;
   const activeSessionBelongsToCurrentUser =
@@ -205,7 +220,7 @@ export default async function HKRoomDetailPage({
         />
         <StatusInfo
           status={room.status}
-          statusSince={latestLog?.updatedAt ?? null}
+          statusSince={latestStatusLog?.updatedAt ?? null}
           currentGuest={
             currentGuest
               ? {

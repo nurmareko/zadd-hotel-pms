@@ -68,11 +68,34 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 |---|---|---|---|
 | HK-01 | My Rooms | Mobile-first | `/app/hk/clean`: assigned-operator worklist grouped by room need, with reservation context and links to room detail. `/app/hk/mobile` redirects here. |
 | HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: all HK users and ADMIN can inspect VCU rooms, view history, and review status context. Only the assigned HK operator can start/finish cleaning with the live timer; HK supervisors are assignable too. Lost & Found logging remains HK/FO only. |
-| HK-03 | Room Board | Page | `/app/hk/rooms`: shared by all HK users and ADMIN, with status overview, VCU inspection inbox, worksheet/bulk-assignment tabs, status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
+| HK-03 | Room Board | Page | `/app/hk/rooms`: shared by all HK users and ADMIN, with status overview, VCU inspection inbox, worksheet/bulk-assignment tabs, status override, reservation context, housekeeper, note, date navigation, and Daily List print. #241 Phase 2 adds automatic P1–P5 priorities, `TSK-{roomNumber}` codes, URL-backed search/filter/sort, inline assignment, a task dialog, and filtered CSV export. |
 | HK-04 | Laundry Placeholder | Page | Navigation placeholder for #242; no full laundry workflow is implemented in #240 Phase 1. |
 | HK-05 | Lost & Found | Page | `/app/hk/lost-found`: FO and HK can search/filter, log text-only items with optional room context, and mark an item returned with a resolution note; other roles are denied. |
 
 #240 Phase 1 unifies HK navigation as **Room Board, Laundry, Lost & Found**. `/app/hk` redirects to `/app/hk/rooms` for all HK users and ADMIN. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate screen. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`. Shared operational access does not bypass assigned-operator cleaning or expand Lost & Found access.
+
+#### #241 Phase 2 — Room Board contract
+
+Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection flows, status override, worksheet/bulk assignment, history, and Daily List print.
+
+- **Operating date and priority:** derive board context and automatic, read-only priority per selected operating date. Apply the following rules in order; the first match wins. “Today” in these board rules means the selected operating date, not necessarily the actual current day.
+
+  | Priority | Rule |
+  |---|---|
+  | P1 | Urgent `CONFIRMED` arrival on the selected date, with an active early check-in fee, ETA before 14:00, or a VIP note; room status is not `VC`. |
+  | P2 | Departure and arrival on the selected date; room status is not `VC`. |
+  | P3 | Departure on the selected date with reservation status `CHECKED_IN` or `CHECKED_OUT`; room status is not `VC`. |
+  | P4 | `OD` room with a staying guest on the selected date. |
+  | P5 | Fallback for every remaining room. |
+
+- **Rows, filters, and sorting:** display `TSK-{roomNumber}` codes. Urgency ordering is global across the board, with natural room-number sorting rather than lexical ordering. Preserve multi-field search `q`, `status`, and `priority` filters in the URL, together with `sortBy` (`priority`, `room`, `floor`, `status`, or `assignee`) and `sortOrder` (`asc` or `desc`).
+- **Inline assignment:** HK and ADMIN can assign active HK users, including supervisors, for the selected operating date. New Phase 2 assignment actions cannot displace the assignee of active cleaning; assigning the same assignee is a no-op.
+- **Task dialog:** priority is automatic and read-only. Submission creates an immutable log for **actual today (WIB)**, even while viewing another operating date: `oldStatus = newStatus`, with a `[TUGAS: category]` note. Optional assignment also applies to actual today. The dialog does not append to `Reservation.notes` or change room status; its assignment follows the same active-cleaning and same-assignee guards.
+- **Notes and history:** the board displays the newest task note for the selected WIB day. All logs remain available in room history; a new task note does not overwrite older logs. FO-owned reservation notes remain separate guest context.
+- **CSV export:** `/app/hk/rooms/export` uses the same selected operating date, `q`/`status`/`priority` filters, and `sortBy`/`sortOrder` as the board, returning identical filtered rows in the same order. Access is HK/ADMIN only: unauthenticated requests return HTTP 401 and forbidden roles HTTP 403. Export uses the shared safe CSV serializer with a UTF-8 BOM.
+- **Notification contract:** the existing notification schema uses `ASSIGNED`, not `PENDING`.
+
+**Owner review:** the HK module owner remains the reviewer/domain expert for #241, especially priority precedence, selected-date versus actual-today behavior, assignment guards, and CSV parity. No schema changes are part of this phase. This documentation-only update runs no checks or Git operations.
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 

@@ -1,34 +1,16 @@
-import type { HousekeepingLog, RoomStatus, User } from "@prisma/client";
+import type { HousekeepingLog, User } from "@prisma/client";
 import { History } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCompactMonthDayTimeID } from "@/lib/format";
+import { housekeepingLogDescription } from "@/lib/housekeeping-log-description";
 
 type HistoryLog = HousekeepingLog & {
   updatedBy: Pick<User, "fullName">;
 };
 
-function transitionLabel(oldStatus: RoomStatus, newStatus: RoomStatus) {
-  return `${oldStatus} → ${newStatus}`;
-}
-
-function logDescription(log: HistoryLog) {
-  if (log.oldStatus === "VCU" && log.newStatus === "VC") {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (lulus inspeksi)`;
-  }
-
-  if (log.oldStatus === "VCU" && log.newStatus === "VD") {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (gagal inspeksi)`;
-  }
-
-  if ((log.oldStatus === "OOO" || log.newStatus === "OOO") && log.note) {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (${log.note})`;
-  }
-
-  return transitionLabel(log.oldStatus, log.newStatus);
-}
 
 function logSecondaryLine(log: HistoryLog) {
   return log.note ? `"${log.note}"` : null;
@@ -72,7 +54,7 @@ function HistoryRow({ log }: { log: HistoryLog }) {
         {log.updatedBy.fullName}
       </div>
       <div className="min-w-0 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">{logDescription(log)}</span>
+        <span className="font-medium text-foreground">{housekeepingLogDescription(log)}</span>
         {secondaryLine ? (
           <span className="block pt-0.5 text-xs text-muted-foreground">
             {secondaryLine}

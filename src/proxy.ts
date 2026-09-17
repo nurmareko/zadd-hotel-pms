@@ -21,6 +21,17 @@ export const proxy = auth((request) => {
   const session = request.auth;
   const { pathname } = request.nextUrl;
 
+  // Downloads return HTTP errors instead of redirecting to an HTML page.
+  if (pathname === "/app/hk/rooms/export") {
+    if (!session?.user) {
+      return new NextResponse("Silakan masuk terlebih dahulu.", { status: 401 });
+    }
+    if (!["HK", "ADMIN"].includes(session.user.role)) {
+      return new NextResponse("Anda tidak memiliki akses untuk mengekspor papan kamar.", { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
   if (!session?.user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

@@ -30,21 +30,38 @@ Supports the guest lifecycle from booking to final payment.
 
 ## Housekeeping
 
-Unified HK operations implemented in #240 Phase 1.
+Unified HK operations implemented in #240 Phase 1 are retained. #241 Phase 2 extends the Room Board with prioritized tasks, filtering/sorting, inline assignment, task notes, and CSV export.
 
 - **Shared access and navigation** — all HK users and ADMIN can use the Room Board, assignment, inspection, status override, Daily List print, and room history. `User.isSupervisor` remains an HK attribute, not an access gate for these operations. Unified HK navigation is Room Board, Laundry, and Lost & Found; Lost & Found retains its separate HK/FO access rules.
 - **HK landing and compatibility routes** — `/app/hk` redirects to `/app/hk/rooms`. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate dashboard. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`.
 - **My Rooms** — `/app/hk/clean` remains the assigned-operator worklist, grouped by assigned room need and linked to shared room detail. `/app/hk/mobile` is an alias that redirects to `/app/hk/clean`.
 - **Shared room detail** — `/app/hk/rooms/[id]` provides cleaning context, status/history, and inspection. Only the assigned HK operator can start/finish cleaning and use its timer; HK supervisors are also eligible for assignment. Shared operational access does not bypass the assigned-operator cleaning restriction.
 - **Room Board** — `/app/hk/rooms` combines the status board, VCU inspection inbox, and worksheet/bulk-assignment tabs, with current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print.
-- **Manual assignment** — all HK users and ADMIN can assign rooms by date, including bulk assignment by floor/workload; HK supervisors can be assigned as cleaning operators. Auto-dispatch remains deferred.
+- **Manual assignment** — all HK users and ADMIN can assign rooms by date, including bulk assignment by floor/workload; active HK users, including supervisors, are eligible assignees. Phase 2 adds inline assignment for the selected operating date. New Phase 2 assignment actions cannot displace an active-cleaning assignee; assigning the same assignee is a no-op. Auto-dispatch remains deferred.
 - **Laundry placeholder** — the Laundry navigation destination is a placeholder for #242, not an implemented laundry workflow.
 - **Cleaning timer** — `CleaningSession` is the single workflow source for assignment-to-clean-to-inspect timing. Active cleaning is derived from a started-but-unfinished session.
 - **VCU inspection workflow** — vacant cleaning follows `VD → VCU → VC` on pass or `VCU → VD` on rejection; occupied-room cleaning follows `OD → OC`.
 - **Status override** — all HK users and ADMIN can manually change a room's current status from the Room Board; each override creates a status audit.
-- **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context.
+- **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context. Phase 2 task notes are separate immutable housekeeping logs and never append to this field.
 - **Lost & Found** — `/app/hk/lost-found` lets both FO and HK search/filter, log text-only items with optional room context, and mark items returned with a resolution note.
 - **FO sync** — HK actions revalidate HK screens and Front Office room/tape-chart views.
+
+### #241 Phase 2 — Prioritized Room Board
+
+- **Automatic priority per selected operating date** — apply P1–P5 in order, with the first matching rule winning. “Today” in the board rules refers to the selected operating date:
+  1. **P1:** urgent `CONFIRMED` arrival on that date with an active early check-in fee, ETA before 14:00, or a VIP note, and room status not `VC`.
+  2. **P2:** departure plus arrival on that date, and room status not `VC`.
+  3. **P3:** departure on that date with reservation status `CHECKED_IN` or `CHECKED_OUT`, and room status not `VC`.
+  4. **P4:** `OD` room with a staying guest on that date.
+  5. **P5:** fallback for all other rooms.
+- **Task codes and ordering** — board rows use `TSK-{roomNumber}`. Urgency sorting is global, with natural room-number ordering rather than lexical sorting. URL-backed `sortBy` supports `priority`, `room`, `floor`, `status`, and `assignee`; `sortOrder` supports `asc` and `desc`.
+- **Search and filters** — multi-field `q` search combines with `status` and `priority` filters, persisted in the URL alongside sorting and the selected operating date.
+- **Task dialog** — automatic priority is read-only. Each submission creates an immutable log for **actual today in WIB**, not the selected board date, with `oldStatus = newStatus` and a `[TUGAS: category]` note. Optional assignment is also for actual today and is available to HK/ADMIN with active HK assignees, including supervisors. The new actions cannot displace an active-cleaning assignee; same-assignee assignment is a no-op. Task creation does not change room status or append to `Reservation.notes`.
+- **Task-note visibility and history** — the board shows the newest task note for the selected WIB day; all logs remain available in room history without overwriting earlier notes.
+- **CSV export** — `/app/hk/rooms/export` returns identical board rows and ordering for the selected operating date, `q`, `status`, `priority`, `sortBy`, and `sortOrder`. It uses the shared safe CSV serializer with a UTF-8 BOM. Only HK and ADMIN are authorized; unauthenticated requests receive HTTP 401 and forbidden roles HTTP 403.
+- **Notification schema compatibility** — use the existing `ASSIGNED` notification value, not `PENDING`; no schema changes are part of Phase 2.
+
+**Owner review:** the HK module owner remains the reviewer/domain expert for #241, including ordered priority rules, selected-date versus actual-today behavior, active-cleaning assignment protection, task history, and board/export parity. All Phase 1 features remain in scope. This documentation-only update changes no schema and runs no checks or Git operations.
 
 ## Food & Beverage
 

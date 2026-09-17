@@ -1,4 +1,4 @@
-import type { HousekeepingLog, RoomStatus, User, Room } from "@prisma/client";
+import type { HousekeepingLog, User, Room } from "@prisma/client";
 import { History } from "lucide-react";
 import Link from "next/link";
 
@@ -8,31 +8,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { formatCompactMonthDayTimeID } from "@/lib/format";
+import { housekeepingLogDescription } from "@/lib/housekeeping-log-description";
 
 type FeedLog = HousekeepingLog & {
   updatedBy: Pick<User, "fullName">;
   room: Pick<Room, "number">;
 };
 
-function transitionLabel(oldStatus: RoomStatus, newStatus: RoomStatus) {
-  return `${oldStatus} → ${newStatus}`;
-}
-
-function logDescription(log: FeedLog) {
-  if (log.oldStatus === "VCU" && log.newStatus === "VC") {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (lulus inspeksi)`;
-  }
-
-  if (log.oldStatus === "VCU" && log.newStatus === "VD") {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (gagal inspeksi)`;
-  }
-
-  if ((log.oldStatus === "OOO" || log.newStatus === "OOO") && log.note) {
-    return `${transitionLabel(log.oldStatus, log.newStatus)} (${log.note})`;
-  }
-
-  return transitionLabel(log.oldStatus, log.newStatus);
-}
 
 function logSecondaryLine(log: FeedLog) {
   return log.note ? `"${log.note}"` : null;
@@ -89,7 +71,7 @@ function ActivityRow({ log }: { log: FeedLog }) {
         {log.updatedBy.fullName}
       </div>
       <div className="min-w-0 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">{logDescription(log)}</span>
+        <span className="font-medium text-foreground">{housekeepingLogDescription(log)}</span>
         {secondaryLine ? (
           <span className="block pt-0.5 text-xs text-muted-foreground">
             {secondaryLine}

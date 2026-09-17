@@ -1,91 +1,144 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { RotateCcw, Search } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useRef, useTransition } from "react";
+import { useState, useTransition } from "react";
+
+import { Button } from "@/components/ui/button";
+import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
+
+const roomStatusLabels = {
+  VC: "VC - Kosong bersih",
+  OC: "OC - Terisi bersih",
+  VD: "VD - Kosong kotor",
+  OD: "OD - Terisi kotor",
+  VCU: "VCU - Bersih, menunggu inspeksi",
+  OOO: "OOO - Tidak dapat digunakan",
+};
 
 export function RoomFilterForm({
   dateIso,
   defaultQ,
   defaultStatus,
+  defaultPriority,
 }: {
   dateIso: string;
   defaultQ: string;
   defaultStatus: string;
+  defaultPriority: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const timeoutRef = useRef<NodeJS.Timeout>(null);
+  const [pending, startTransition] = useTransition();
+  const [filters, setFilters] = useState({
+    q: defaultQ,
+    status: defaultStatus,
+    priority: defaultPriority,
+  });
+  const source = JSON.stringify([
+    pathname,
+    searchParams.toString(),
+    dateIso,
+    defaultQ,
+    defaultStatus,
+    defaultPriority,
+  ]);
+  const [previousSource, setPreviousSource] = useState(source);
+  if (source !== previousSource) {
+    setPreviousSource(source);
+    setFilters({ q: defaultQ, status: defaultStatus, priority: defaultPriority });
+  }
 
-  const updateFilters = useCallback(
-    (key: string, value: string, debounce: boolean = false) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
+  function navigate(next: typeof filters) {
+    if (pending) return;
+    setFilters(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("date", dateIso);
+    for (const [key, value] of Object.entries(next)) {
+      if (value.trim()) params.set(key, value.trim());
+      else params.delete(key);
+    }
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  }
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      const navigate = () => {
-        startTransition(() => {
-          router.push(`${pathname}?${params.toString()}`);
-        });
-      };
-
-      if (debounce) {
-        timeoutRef.current = setTimeout(navigate, 300);
-      } else {
-        navigate();
-      }
-    },
-    [pathname, router, searchParams],
-  );
+  const controlClass =
+    "h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-ring disabled:cursor-wait disabled:opacity-50 desktop:h-10 sm:w-auto";
+  const active = Boolean(filters.q || filters.status || filters.priority);
 
   return (
     <form
-      className="flex flex-wrap items-center gap-2 border-b border-border p-3.5"
-      onSubmit={(e) => e.preventDefault()}
+      aria-busy={pending}
+      className="flex flex-wrap items-center gap-2 p-3.5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        navigate(filters);
+      }}
     >
-      <input type="hidden" name="date" value={dateIso} />
-      <div className="relative w-full sm:w-[240px]">
+      <div className="relative w-full sm:min-w-80 sm:flex-1">
         <Search
           aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <input
           type="search"
           name="q"
-          defaultValue={defaultQ}
-          onChange={(e) => updateFilters("q", e.target.value, true)}
-          placeholder="Cari kamar..."
-          aria-label="Cari kamar"
-          className="h-11 w-full rounded-md border border-border bg-background pl-9 pr-3.5 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none desktop:h-10"
+          value={filters.q}
+          disabled={pending}
+          onChange={(event) => setFilters({ ...filters, q: event.target.value })}
+          placeholder="Cari kamar, kode tugas, tamu, petugas..."
+          aria-label="Cari kamar, kode tugas, tamu, petugas..."
+          className={`${controlClass} pl-9 sm:w-full`}
         />
       </div>
+      <Button type="submit" disabled={pending}>
+        <Search className="size-4" aria-hidden="true" />
+        Cari
+      </Button>
       <select
         name="status"
         aria-label="Status kamar"
-        defaultValue={defaultStatus}
-        onChange={(e) => updateFilters("status", e.target.value)}
-        className="h-11 w-full rounded-md border border-border bg-background px-3.5 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none desktop:h-10 sm:w-[180px]"
+        value={filters.status}
+        disabled={pending}
+        onChange={(event) => navigate({ ...filters, status: event.target.value })}
+        className={controlClass}
       >
         <option value="">Semua Status</option>
-        <option value="VC">VC - Kosong bersih</option>
-        <option value="OC">OC - Terisi bersih</option>
-        <option value="VD">VD - Kosong kotor</option>
-        <option value="OD">OD - Terisi kotor</option>
-        <option value="VCU">VCU - Bersih, menunggu inspeksi</option>
-        <option value="OOO">OOO - Tidak dapat digunakan</option>
+        {Object.entries(roomStatusLabels).map(([status, label]) => (
+          <option key={status} value={status}>{label}</option>
+        ))}
       </select>
-      {isPending && (
-        <span className="text-xs text-muted-foreground italic ml-2">Memuat...</span>
+      <select
+        name="priority"
+        aria-label="Prioritas kamar"
+        value={filters.priority}
+        disabled={pending}
+        onChange={(event) => navigate({ ...filters, priority: event.target.value })}
+        className={controlClass}
+      >
+        <option value="">Semua Prioritas</option>
+        {Object.entries(PRIORITY_CONFIG)
+          .sort(([, a], [, b]) => a.rank - b.rank)
+          .map(([code, config]) => (
+            <option key={code} value={code}>{code} - {config.label}</option>
+          ))}
+      </select>
+      {active && (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={pending}
+          onClick={() => navigate({ q: "", status: "", priority: "" })}
+        >
+          <RotateCcw className="size-4" aria-hidden="true" />
+          Reset
+        </Button>
       )}
+      <span role="status" className="text-xs text-muted-foreground">
+        {pending ? "Memuat..." : ""}
+      </span>
     </form>
   );
 }

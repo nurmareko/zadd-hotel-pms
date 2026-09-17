@@ -1,7 +1,17 @@
 import { ReservationStatus, RoomStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
-import { todayDateOnly } from "@/lib/date-only";
+import { addDateOnlyDays, hotelTimestampBoundaryForDate, todayDateOnly } from "@/lib/date-only";
+import {
+  housekeepingTaskCode,
+  resolveRoomPriority,
+  sortHousekeepingRows,
+  type HousekeepingListFilterOptions,
+  type HousekeepingPriority,
+  type HousekeepingPriorityReservation,
+} from "@/lib/housekeeping-priority";
+
+export * from "@/lib/housekeeping-priority";
 import { prisma } from "@/lib/prisma";
 
 export type HousekeepingCleaningState = RoomStatus | "IN_PROGRESS";
@@ -21,6 +31,9 @@ export type HousekeepingReservationContext = {
 };
 
 export type HousekeepingListRow = {
+  taskCode: string;
+  priority: HousekeepingPriority;
+  taskNote: string | null;
   room: {
     id: number;
     number: string;
@@ -49,7 +62,7 @@ export type HousekeepingListData = {
   rows: HousekeepingListRow[];
 };
 
-type ReservationCandidate = {
+type ReservationCandidate = HousekeepingPriorityReservation & {
   id: number;
   reservationNo: string;
   arrivalDate: Date;
@@ -60,10 +73,6 @@ type ReservationCandidate = {
   guest: { fullName: string };
 };
 
-const roomNumberCollator = new Intl.Collator("en", {
-  numeric: true,
-  sensitivity: "base",
-});
 
 function initialsFromName(name: string) {
   const initials = name
@@ -114,9 +123,9 @@ function contextForReservation(
   date: Date,
 ): HousekeepingReservationContext {
   const labels: Record<HousekeepingReservationContextKind, string> = {
-    arrival: "Arrival",
-    departure: "Departure",
-    stayover: "Stayover",
+    arrival: "Kedatangan",
+    departure: "Keberangkatan",
+    stayover: "Menginap",
   };
 
   return {
@@ -146,35 +155,49 @@ function serviceLabel({
   stayover: ReservationCandidate | undefined;
 }) {
   if (arrival && departure) {
-    return "Turnover + arrival prep";
+    return "Pembersihan pergantian tamu + persiapan kedatangan";
   }
 
   if (departure) {
-    return "Turnover";
+    return "Pembersihan pergantian tamu";
   }
 
   if (arrival) {
-    return "Arrival prep";
+    return "Persiapan kedatangan";
   }
 
   if (stayover) {
-    return "Freshen-up";
+    return "Pembersihan kamar terisi";
   }
 
-  return "Vacant / tidak aktif";
+  return "Kamar kosong / tidak aktif";
 }
 
+export function getHousekeepingListData(
+  options?: HousekeepingListFilterOptions,
+): Promise<HousekeepingListData>;
+export function getHousekeepingListData(
+  date?: Date,
+  q?: string,
+  status?: RoomStatus,
+): Promise<HousekeepingListData>;
 export async function getHousekeepingListData(
-  date: Date = todayDateOnly().today,
+  dateOrOptions?: Date | HousekeepingListFilterOptions,
   q?: string,
   status?: RoomStatus,
 ): Promise<HousekeepingListData> {
-  const [rooms, reservations, assignments, openCleaningSessions] =
+  const options: HousekeepingListFilterOptions = dateOrOptions instanceof Date || dateOrOptions === undefined
+    ? { date: dateOrOptions, q, status }
+    : dateOrOptions;
+  // Dates are UTC-midnight date-only values, matching the existing positional API.
+  const date = options.date ?? todayDateOnly().today;
+  const taskDayStart = hotelTimestampBoundaryForDate(date.toISOString().slice(0, 10));
+  const taskDayEnd = hotelTimestampBoundaryForDate(addDateOnlyDays(date, 1).toISOString().slice(0, 10));
+  const [rooms, reservations, assignments, openCleaningSessions, taskLogs] =
     await Promise.all([
       prisma.room.findMany({
         where: {
-          number: q ? { contains: q, mode: "insensitive" } : undefined,
-          status: status ? status : undefined,
+          status: options.status,
         },
         select: {
           id: true,
@@ -189,7 +212,7 @@ export async function getHousekeepingListData(
           roomId: { not: null },
           OR: [
             {
-              status: ReservationStatus.CHECKED_IN,
+              status: { in: [ReservationStatus.CHECKED_IN, ReservationStatus.CHECKED_OUT] },
               departureDate: date,
             },
             {
@@ -212,6 +235,10 @@ export async function getHousekeepingListData(
           roomId: true,
           notes: true,
           guest: { select: { fullName: true } },
+          stayFees: {
+            where: { kind: "EARLY_CHECK_IN", status: { not: "CANCELLED" } },
+            select: { kind: true, status: true },
+          },
         },
       }),
       prisma.housekeepingAssignment.findMany({
@@ -228,6 +255,14 @@ export async function getHousekeepingListData(
           finishedAt: null,
         },
         select: { roomId: true },
+      }),
+      prisma.housekeepingLog.findMany({
+        where: {
+          note: { startsWith: "[TUGAS:" },
+          updatedAt: { gte: taskDayStart, lt: taskDayEnd },
+        },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        select: { roomId: true, note: true },
       }),
     ]);
 
@@ -250,15 +285,17 @@ export async function getHousekeepingListData(
     openCleaningSessions.map((session) => session.roomId),
   );
 
-  const rows = rooms
-    .sort((first, second) =>
-      roomNumberCollator.compare(first.number, second.number),
-    )
-    .map((room): HousekeepingListRow => {
+  const taskNotesByRoomId = new Map<number, string | null>();
+  for (const log of taskLogs) {
+    if (!taskNotesByRoomId.has(log.roomId)) taskNotesByRoomId.set(log.roomId, log.note);
+  }
+
+  const rows = rooms.map((room): HousekeepingListRow => {
       const roomReservations = reservationsByRoomId.get(room.id) ?? [];
       const departure = roomReservations.find(
         (reservation) =>
-          reservation.status === ReservationStatus.CHECKED_IN &&
+          (reservation.status === ReservationStatus.CHECKED_IN ||
+            reservation.status === ReservationStatus.CHECKED_OUT) &&
           reservation.departureDate.getTime() === date.getTime(),
       );
       const arrival = roomReservations.find(
@@ -286,6 +323,9 @@ export async function getHousekeepingListData(
       const housekeeper = assignmentsByRoomId.get(room.id) ?? null;
 
       return {
+        taskCode: housekeepingTaskCode(room.number),
+        priority: resolveRoomPriority({ status: room.status, date, reservations: roomReservations }),
+        taskNote: taskNotesByRoomId.get(room.id) ?? null,
         room: {
           id: room.id,
           number: room.number,
@@ -319,5 +359,20 @@ export async function getHousekeepingListData(
       };
     });
 
-  return { date, rows };
+  const query = options.q?.trim().toLocaleLowerCase("id");
+  const filteredRows = rows.filter((row) => {
+    if (options.priority && row.priority !== options.priority) return false;
+    if (!query) return true;
+    return [
+      row.room.number,
+      row.taskCode,
+      row.room.typeName,
+      row.room.typeCode,
+      row.serviceLabel,
+      row.assignedHousekeeper?.name,
+      ...row.reservationContexts.flatMap((context) => [context.reservationNo, context.guestName]),
+    ].some((value) => value?.toLocaleLowerCase("id").includes(query));
+  });
+
+  return { date, rows: sortHousekeepingRows(filteredRows, options.sortBy, options.sortOrder) };
 }
