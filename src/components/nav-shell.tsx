@@ -18,7 +18,8 @@ import {
   Archive,
   CircleDollarSign,
   Download,
-  Gauge,
+  LayoutGrid,
+  Shirt,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -80,38 +81,19 @@ const roleModuleNames: Record<AppRole, string> = {
   ADMIN: "ADMINISTRATOR",
 };
 
-const hkMemberNavGroup: NavGroup = {
+const hkNavGroup: NavGroup = {
   label: "Housekeeping",
   links: [
     {
-      label: "Kamar Saya",
-      href: "/app/hk/clean",
-      icon: ClipboardList,
-      activeMatch: "exact",
-      activePaths: [{ href: "/app/hk/rooms", match: "startsWith" }],
-    },
-    {
-      label: "Lost & Found",
-      href: "/app/hk/lost-found",
-      icon: Archive,
-      activeMatch: "exact",
-    },
-  ],
-};
-
-const hkSupervisorNavGroup: NavGroup = {
-  label: "Housekeeping",
-  links: [
-    {
-      label: "Supervisor",
-      href: "/app/hk/supervisor",
-      icon: Gauge,
+      label: "Room Board",
+      href: "/app/hk/rooms",
+      icon: LayoutGrid,
       activeMatch: "startsWith",
     },
     {
-      label: "Kamar",
-      href: "/app/hk/rooms",
-      icon: BedDouble,
+      label: "Laundry",
+      href: "/app/hk/laundry",
+      icon: Shirt,
       activeMatch: "startsWith",
     },
     {
@@ -166,7 +148,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
       ],
     },
   ],
-  HK: [hkMemberNavGroup],
+  HK: [hkNavGroup],
   FB: [
     {
       label: "Food & Beverage",
@@ -274,11 +256,7 @@ function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
     ?.link.href;
 }
 
-function getNavGroups(userRole: AppRole, userIsSupervisor: boolean) {
-  if (userRole === "HK" && userIsSupervisor) {
-    return [hkSupervisorNavGroup, accountGroup];
-  }
-
+function getNavGroups(userRole: AppRole) {
   return [...navGroupsByRole[userRole], accountGroup];
 }
 
@@ -332,7 +310,7 @@ export function NavShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const lastPathnameRef = useRef(pathname);
   const [, startTransition] = useTransition();
-  const navGroups = getNavGroups(userRole, userIsSupervisor);
+  const navGroups = getNavGroups(userRole);
   const desktopNavGroups = navGroups.filter((group) => group !== accountGroup);
   const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
   const profileLink = accountGroup.links[0];

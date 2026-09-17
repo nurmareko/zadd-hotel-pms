@@ -4,18 +4,18 @@ Describes the interactions between actors and the system features listed in the 
 
 ## Actors
 
-Five role actors interact with the system, with one implemented supervisor tier:
+Five role actors interact with the system; HK also retains a supervisor attribute:
 
 - **Front Office staff**, **Housekeeping staff**, **F&B staff**, and **Accounting staff (Night Auditor)** — each a role played by a praktikum student.
-- **Housekeeping supervisor** — an HK user with `User.isSupervisor = true`; this is an elevated tier on the HK role, not a separate role code.
-- **Administrator** — the supervising lecturer, responsible for master data and user accounts.
+- **Housekeeping supervisor** — an HK user with `User.isSupervisor = true`, not a separate role code. Under #240 Phase 1, shared HK operations no longer require this attribute; supervisors are also assignable as cleaning operators.
+- **Administrator** — the supervising lecturer, responsible for master data and user accounts, with access to the shared HK board, assignment, inspection, status override, Daily List print, and room history.
 
 ## Use cases by module
 
 The system has 30 primary use cases and 5 supporting use cases, grouped into five modules:
 
 - **Front Office** — guest lifecycle: reservation management, confirmed-reservation cancellation, required-deposit collection, check-in with required digital signature capture, mid-stay cleaning requests, guest folio management, and check-out. Every reservation's non-client-editable required deposit is the server-resolved first-night `ReservationNight.rateAmount`. On or after arrival, FO collects it before check-in through the canonical serializable, idempotent collection flow; a `PENDING` deposit blocks check-in with no override. Reservation creation can start from an empty Kalender cell with room/type/date context prefilled; physical-room allocation remains optional until check-in. Folio operations are reached from the reservation detail's `Folio` tab.
-- **Housekeeping** — role-aware room operations. Housekeepers work from My Rooms and shared room detail; supervisors forecast workload, assign rooms, inspect VCU rooms, override status, and print the Daily List. FO and HK share Lost & Found logging, search, and returned-item resolution. Vacant cleaning follows `VD → VCU → VC/VD`; occupied-room cleaning follows `OD → OC`. `CleaningSession` is the workflow source; `HousekeepingLog` is the room-status audit trail.
+- **Housekeeping** — unified room operations implemented in #240 Phase 1. All HK users and ADMIN can use the Room Board, assign rooms individually or in bulk, inspect VCU rooms, override status, print the Daily List, and view room history. Only the assigned HK operator can start/finish cleaning; HK supervisors are eligible for assignment. The Room Board includes the inspection inbox and worksheet/bulk-assignment tabs. Unified navigation is Room Board, Laundry, and Lost & Found; Laundry is only a placeholder for #242, not a full workflow. FO and HK retain unchanged Lost & Found logging, search, and returned-item resolution; ADMIN access does not extend to Lost & Found. Vacant cleaning follows `VD → VCU → VC/VD`; occupied-room cleaning follows `OD → OC`. `CleaningSession` is the workflow source; `HousekeepingLog` is the room-status audit trail. `/app/hk` redirects to `/app/hk/rooms`; `/app/hk/supervisor` is a query-preserving HTTP 308 redirect there, and `/app/hk/list` remains a compatibility redirect. `/app/hk/mobile` redirects to the assigned-operator worklist at `/app/hk/clean`.
 - **Food & Beverage** — captain orders, room-service order creation for in-house guests, floor actions for reserved/out-of-service tables, bill processing, and payment via cash, card, transfer, or charge-to-room.
 - **Accounting** — night audit execution and consolidated night report generation from NightAudit snapshot fields.
 - **Admin** — master data, restaurant table management and floor-layout arrangement (`/app/admin/tables`), and user/role management.
@@ -25,11 +25,11 @@ The system has 30 primary use cases and 5 supporting use cases, grouped into fiv
 | Actor | Use Cases |
 |---|---|
 | Front Office staff | Manage Reservations; Cancel Confirmed Reservation; Process Check-in; Request Mid-stay Cleaning; Log/Search/Return Lost & Found; Manage Guest Folio; Process Check-out |
-| Housekeeping staff | View My Rooms; Clean Assigned Room with Timer; Log/Search/Return Lost & Found |
-| Housekeeping supervisor | View Supervisor Dashboard; Assign Rooms; Bulk Assign Rooms; Inspect VCU Room; Override Room Status; Print Daily List; Log/Search/Return Lost & Found |
+| Housekeeping staff | View Room Board; View My Rooms; Assign Rooms; Bulk Assign Rooms; Clean Assigned Room with Timer (assigned operator only); Inspect VCU Room; Override Room Status; Print Daily List; View Room History; Log/Search/Return Lost & Found |
+| Housekeeping supervisor | Same HK use cases as Housekeeping staff, including cleaning when assigned; supervisor status is not required for shared HK operations |
 | F&B staff | Create Captain Order; Create Room Service Order; Seat Reserved Party; Release Table Reservation; Restore OOS Table; Process F&B Bill; Process F&B Payment |
 | Accounting staff | Run Night Audit; Generate Night Report |
-| Administrator | Manage Master Data; Manage Restaurant Tables (`/app/admin/tables`); Arrange Table Floor Layout; Manage Users & Roles |
+| Administrator | Manage Master Data; Manage Restaurant Tables (`/app/admin/tables`); Arrange Table Floor Layout; Manage Users & Roles; View Room Board; Assign Rooms; Bulk Assign Rooms; Inspect VCU Room; Override Room Status; Print Daily List; View Room History (no cleaning or Lost & Found access) |
 
 ## Use case relationships
 

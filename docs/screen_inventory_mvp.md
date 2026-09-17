@@ -11,7 +11,7 @@ Authoritative inventory for shipped screen counts and IDs, and a reference for i
 The application is built as a **single Next.js app** with four operational areas plus an admin area. MVP simplifications from the original plan:
 
 - **One account = one role.** If a student rotates between roles, they get a new account. The Module Switcher screen is removed entirely.
-- **Admin does master data + users only.** No cross-module monitoring dashboard. Admins can create themselves an FO/HK/FB/ACC account if they need operational access.
+- **Admin manages master data + users, with shared HK operational access.** Under #240 Phase 1, ADMIN can use the HK board, assignment, inspection, status override, Daily List print, and room history. Cleaning remains assigned-HK-operator only, and Lost & Found remains HK/FO only. No cross-module monitoring dashboard; other operational roles require separate per-role accounts.
 - **Single outlet for F&B.** Hardcoded to "Hotel Restaurant" in the seed. No Outlet CRUD.
 
 ```
@@ -62,17 +62,17 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 
 **Still cut/deferred from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
 
-### 3.2 Housekeeping (5 screens, role-aware)
+### 3.2 Housekeeping (5 destinations, including Laundry placeholder)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| HK-01 | My Rooms / Kamar Saya | Mobile-first | `/app/hk/clean`: housekeeper worklist grouped by room need, with reservation context and links to room detail. |
-| HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: role-aware detail. Housekeepers start/finish cleaning, add status notes, log found items, and see the live timer. Supervisors inspect VCU rooms, view history, and review status context. |
-| HK-03 | Supervisor Rooms | Page | `/app/hk/rooms`: merged status overview and daily worksheet with current room status, inline supervisor status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
-| HK-04 | Supervisor Dashboard | Page | `/app/hk/supervisor`: workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. |
+| HK-01 | My Rooms | Mobile-first | `/app/hk/clean`: assigned-operator worklist grouped by room need, with reservation context and links to room detail. `/app/hk/mobile` redirects here. |
+| HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: all HK users and ADMIN can inspect VCU rooms, view history, and review status context. Only the assigned HK operator can start/finish cleaning with the live timer; HK supervisors are assignable too. Lost & Found logging remains HK/FO only. |
+| HK-03 | Room Board | Page | `/app/hk/rooms`: shared by all HK users and ADMIN, with status overview, VCU inspection inbox, worksheet/bulk-assignment tabs, status override, reservation context, housekeeper, note, date navigation, and Daily List print. |
+| HK-04 | Laundry Placeholder | Page | Navigation placeholder for #242; no full laundry workflow is implemented in #240 Phase 1. |
 | HK-05 | Lost & Found | Page | `/app/hk/lost-found`: FO and HK can search/filter, log text-only items with optional room context, and mark an item returned with a resolution note; other roles are denied. |
 
-`/app/hk` is a role-based redirect, not a screen: HK members land on HK-01, and HK supervisors land on HK-04. HK-03 is reached canonically at `/app/hk/rooms`; `/app/hk/list` remains only as a temporary compatibility redirect and may be retired.
+#240 Phase 1 unifies HK navigation as **Room Board, Laundry, Lost & Found**. `/app/hk` redirects to `/app/hk/rooms` for all HK users and ADMIN. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate screen. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`. Shared operational access does not bypass assigned-operator cleaning or expand Lost & Found access.
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 
@@ -124,7 +124,7 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 |---|---:|---:|
 | Global | 3 | 1 (Module Switcher) |
 | Front Office | 8 | 5 |
-| Housekeeping | 5 | 1 |
+| Housekeeping | 5 (includes Laundry placeholder) | 1 |
 | Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
 | Admin | 7 | 4 |
@@ -154,7 +154,7 @@ Six core business flows the app supports end-to-end:
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.
 
 **Flow 6 — HK Cleaning + Inspection**
-`HK-01 My Rooms` → tap room → `HK-02 Shared Room Detail` → start timer → finish cleaning → `VD → VCU` or `OD → OC` → supervisor opens `HK-04 Supervisor Dashboard` / `HK-03 Supervisor Rooms` → inspect `VCU → VC` or reject `VCU → VD` → syncs to `FO-01 Kalender`.
+Any HK user or ADMIN assigns a room from `HK-03 Room Board` → assigned HK operator (including an assigned HK supervisor) opens `HK-01 My Rooms` → taps room → `HK-02 Shared Room Detail` → starts timer → finishes cleaning → `VD → VCU` or `OD → OC` → any HK user or ADMIN opens the `HK-03 Room Board` inspection inbox → inspects `VCU → VC` or rejects `VCU → VD` → syncs to `FO-01 Kalender`. Only the assigned operator can start/finish cleaning.
 
 ---
 

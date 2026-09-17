@@ -8,7 +8,6 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { isHkSupervisor } from "@/auth.config";
 import { todayDateOnly } from "@/lib/date-only";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
@@ -33,13 +32,12 @@ function revalidateRoomPaths(roomId: number) {
   revalidateRoomStatusViews({ roomId });
 }
 
-// The housekeeper work actions are scoped to this user's own assignment today.
-// Keep this separate from supervisor inspection so a supervisor cannot finish
-// a room from the housekeeper workflow.
+// Work actions require today's assignment inside the transaction; inspection
+// is available to all HK and ADMIN users regardless of assignment.
 async function requireHousekeeperMember() {
   const session = await auth();
 
-  if (session?.user.role !== "HK" || isHkSupervisor(session)) {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
     return null;
   }
 
@@ -49,7 +47,7 @@ async function requireHousekeeperMember() {
 async function requireInspectionUser() {
   const session = await auth();
 
-  if (!session?.user || !isHkSupervisor(session)) {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
     return null;
   }
 
@@ -216,7 +214,7 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
         if (room.status === RoomStatus.VD && (!linenChanged || !towelChanged)) {
           return {
             ok: false as const,
-            error: "Untuk kamar kosong (turnover), linen dan handuk wajib diganti.",
+            error: "Untuk kamar kosong setelah check-out, linen dan handuk wajib diganti.",
           };
         }
 
@@ -253,7 +251,7 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
             newStatus: nextStatus,
             updatedById: userId,
             updatedAt: now,
-            note: note || "Pembersihan selesai dari daftar kerja housekeeper",
+            note: note || "Pembersihan selesai dari daftar kerja petugas HK",
             linenChanged,
             towelChanged,
           },

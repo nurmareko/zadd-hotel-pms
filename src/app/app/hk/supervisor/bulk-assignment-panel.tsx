@@ -66,10 +66,10 @@ const statusClassNames: Record<
 };
 
 const reasonLabels: Record<HousekeepingForecastReason, string> = {
-  turnover: "Turnover",
-  "freshen-up": "Freshen-up",
-  "arrival-prep": "Arrival prep",
-  "dirty-now": "Dirty saat ini",
+  turnover: "Pembersihan setelah check-out",
+  "freshen-up": "Pembersihan selama menginap",
+  "arrival-prep": "Persiapan kedatangan",
+  "dirty-now": "Kotor saat ini",
 };
 
 const headerCellClass =
@@ -267,7 +267,7 @@ export function BulkAssignmentPanel({
     }
 
     if (!housekeeperId) {
-      toast.error("Pilih housekeeper");
+      toast.error("Pilih petugas HK");
       return;
     }
 
@@ -323,7 +323,7 @@ export function BulkAssignmentPanel({
   const controlsDisabled = isPending || housekeepers.length === 0;
 
   return (
-    <Card className="rounded-lg overflow-hidden p-0">
+    <Card className="min-w-0 rounded-lg overflow-hidden p-0">
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -333,19 +333,19 @@ export function BulkAssignmentPanel({
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Housekeeper
+                Petugas HK
               </span>
               <select
                 value={housekeeperId}
                 onChange={onHousekeeperChange}
                 disabled={controlsDisabled}
-                className="h-11 min-w-[250px] rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 desktop:h-10"
+                className="h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 desktop:h-10"
               >
                 {housekeepers.length === 0 ? (
-                  <option value="">Tidak ada member HK</option>
+                  <option value="">Tidak ada petugas HK aktif</option>
                 ) : null}
                 {housekeepers.map((housekeeper) => (
                   <option key={housekeeper.id} value={housekeeper.id}>
@@ -355,7 +355,7 @@ export function BulkAssignmentPanel({
               </select>
             </label>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="lg"
@@ -385,10 +385,15 @@ export function BulkAssignmentPanel({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent
+        className="min-w-0 max-w-full overflow-x-auto p-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        role="region"
+        aria-label="Penugasan massal kamar"
+        tabIndex={0}
+      >
         <table className="w-full min-w-[1080px] border-collapse text-[12px]">
           <caption className="sr-only">
-            Penugasan massal housekeeping supervisor per lantai
+            Penugasan massal petugas HK per lantai
           </caption>
           <thead>
             <tr>
@@ -494,7 +499,7 @@ export function BulkAssignmentPanel({
             })}
           </tbody>
         </table>
-        </CardContent>
+      </CardContent>
     </Card>
   );
 }

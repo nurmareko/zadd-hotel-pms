@@ -1,11 +1,9 @@
 "use server";
 
 import { Prisma, ReservationStatus, RoomStatus } from "@prisma/client";
-import type { Session } from "next-auth";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { isHkSupervisor } from "@/auth.config";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
@@ -34,16 +32,12 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-function isSupervisorSession(session: Session | null) {
-  return Boolean(session?.user && isHkSupervisor(session));
-}
-
 export async function updateRoomStatus(
   formData: FormData,
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "HK") {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
     return { ok: false, error: "Tidak berwenang" };
   }
 
@@ -108,7 +102,7 @@ export async function updateRoomStatus(
           return {
             ok: false as const,
             error:
-              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
+              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja petugas HK terlebih dahulu.",
           };
         }
 
@@ -121,7 +115,7 @@ export async function updateRoomStatus(
             newStatus: status,
             updatedById: userId,
             updatedAt: now,
-            note: "Perubahan status manual dari dashboard Housekeeping",
+            note: "Perubahan status manual dari papan kamar HK",
           },
         });
 
@@ -158,7 +152,7 @@ export async function setRoomStatusOverride(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!isSupervisorSession(session)) {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
     return { ok: false, error: "Tidak berwenang" };
   }
 
@@ -201,7 +195,7 @@ export async function setRoomStatusOverride(
           return {
             ok: false as const,
             error:
-              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
+              "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja petugas HK terlebih dahulu.",
           };
         }
 
@@ -212,9 +206,9 @@ export async function setRoomStatusOverride(
             roomId: room.id,
             oldStatus: room.status,
             newStatus: parsed.data.status,
-            updatedById: Number(session!.user.id),
+            updatedById: Number(session.user.id),
             updatedAt: now,
-            note: "Perubahan status manual oleh supervisor",
+            note: "Perubahan status manual oleh petugas HK atau ADMIN",
           },
         });
 

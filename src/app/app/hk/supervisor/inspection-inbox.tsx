@@ -72,7 +72,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
                         ) : null}
                       </>
                     ) : (
-                      <span>Housekeeper tidak diketahui</span>
+                      <span>Petugas tidak diketahui</span>
                     )}
                   </div>
                 </Link>

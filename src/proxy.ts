@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import authConfig, { isHkSupervisor, type AppRole } from "@/auth.config";
+import authConfig, { type AppRole } from "@/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
@@ -16,14 +16,6 @@ function routeMatches(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-function canUseHkSupervisorRoute(session: {
-  user?: {
-    role?: AppRole;
-    isSupervisor?: boolean;
-  };
-}) {
-  return isHkSupervisor(session);
-}
 
 export const proxy = auth((request) => {
   const session = request.auth;
@@ -72,7 +64,7 @@ export const proxy = auth((request) => {
   }
 
   if (pathname === "/app/hk") {
-    if (session.user.role !== "HK") {
+    if (!["HK", "ADMIN"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }
 
@@ -86,31 +78,18 @@ export const proxy = auth((request) => {
   }
 
   if (routeMatches(pathname, "/app/hk/supervisor")) {
-    if (!canUseHkSupervisorRoute(session)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
+    const url = request.nextUrl.clone();
+    url.pathname = "/app/hk/rooms";
+    return NextResponse.redirect(url, { status: 308 });
   }
 
-  if (pathname === "/app/hk/rooms") {
-    if (!canUseHkSupervisorRoute(session)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (routeMatches(pathname, "/app/hk/rooms")) {
-    if (session.user.role !== "HK") {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (routeMatches(pathname, "/app/hk/clean")) {
-    if (session.user.role !== "HK") {
+  if (
+    routeMatches(pathname, "/app/hk/rooms") ||
+    routeMatches(pathname, "/app/hk/mobile") ||
+    routeMatches(pathname, "/app/hk/clean") ||
+    routeMatches(pathname, "/app/hk/laundry")
+  ) {
+    if (!["HK", "ADMIN"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
     }
 

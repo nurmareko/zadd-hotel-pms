@@ -1,16 +1,22 @@
-import { addDays, formatISO } from "date-fns";
+import { RoomStatus } from "@prisma/client";
+import { formatISO } from "date-fns";
 import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   MessageSquareText,
   Printer,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { addDateOnlyDays, todayDateOnly } from "@/lib/date-only";
+import { getHousekeepingForecastData } from "@/lib/housekeeping-forecast-data";
+import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 import { formatDateWithWeekday, formatISODate } from "@/lib/format";
@@ -20,6 +26,8 @@ import {
 } from "@/lib/housekeeping-list-data";
 
 import { StatusPill } from "../status-pill";
+import { BulkAssignmentPanel } from "../supervisor/bulk-assignment-panel";
+import { InspectionInbox } from "../supervisor/inspection-inbox";
 import { RoomFilterForm } from "./room-filter-form";
 import { SupervisorRoomStatusSelect } from "./supervisor-room-status-select";
 
@@ -168,7 +176,7 @@ export default async function HkRoomsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const selectedDate = parseDateParam(firstParam(params.date));
+  const selectedDate = parseDateParam(firstParam(params.date)) ?? todayDateOnly().today;
   const q = firstParam(params.q)?.trim() ?? "";
   const statusParam = firstParam(params.status)?.trim() ?? "";
   const status =
@@ -181,8 +189,46 @@ export default async function HkRoomsPage({
       ? statusParam
       : undefined;
 
-  const { date, rows } = await getHousekeepingListData(selectedDate, q, status);
+  const [list, forecast, vcuRooms] = await Promise.all([
+    getHousekeepingListData(selectedDate, q, status),
+    getHousekeepingForecastData(selectedDate),
+    prisma.room.findMany({
+      where: { status: RoomStatus.VCU },
+      include: {
+        roomType: { select: { name: true } },
+        cleaningSessions: {
+          where: { finishedAt: { not: null } },
+          orderBy: [{ finishedAt: "desc" }, { createdAt: "desc" }],
+          take: 1,
+          include: { housekeeper: { select: { fullName: true } } },
+        },
+        housekeepingLogs: {
+          where: { newStatus: RoomStatus.VCU },
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: { number: "asc" },
+    }),
+
+  ]);
+  const { date, rows } = list;
   const groupedRows = groupRowsByFloor(rows);
+  const { housekeepers } = forecast;
+  const inspectionRooms = vcuRooms.map((room) => {
+    const lastSession = room.cleaningSessions[0];
+    const lastLog = room.housekeepingLogs[0];
+    return {
+      id: room.id,
+      number: room.number,
+      roomTypeName: room.roomType.name,
+      cleanedByName: lastSession?.housekeeper.fullName ?? null,
+      cleanedAt: lastSession?.finishedAt ?? null,
+      href: `/app/hk/rooms/${room.id}`,
+      linenChanged: lastLog?.linenChanged ?? false,
+      towelChanged: lastLog?.towelChanged ?? false,
+    };
+  });
 
   const queryParams = { date, q, status: statusParam };
 
@@ -191,33 +237,40 @@ export default async function HkRoomsPage({
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Worksheet Kamar
+            Papan Kamar
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {formatDateWithWeekday(date)} · {rows.length} kamar
           </p>
         </div>
 
-        <nav aria-label="Tanggal kamar housekeeping" className="flex flex-wrap gap-2">
+        <nav aria-label="Navigasi papan kamar" className="flex flex-wrap gap-2">
           <Link
-            href={dateHref({ ...queryParams, date: addDays(date, -1) })}
+            href="/app/hk/mobile"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
+          >
+            <Smartphone className="h-4 w-4" aria-hidden="true" />
+            Mode Ponsel
+          </Link>
+          <Link
+            href={dateHref({ ...queryParams, date: addDateOnlyDays(date, -1) })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            Prev
+            Sebelumnya
           </Link>
           <Link
-            href={dateHref({ ...queryParams, date: new Date() })}
+            href={dateHref({ ...queryParams, date: todayDateOnly().today })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
-            Today
+            Hari Ini
           </Link>
           <Link
-            href={dateHref({ ...queryParams, date: addDays(date, 1) })}
+            href={dateHref({ ...queryParams, date: addDateOnlyDays(date, 1) })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
-            Next
+            Berikutnya
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
           <Link
@@ -226,11 +279,19 @@ export default async function HkRoomsPage({
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <Printer className="h-4 w-4" aria-hidden="true" />
-            Print Daily List
+            Cetak Daftar Harian
           </Link>
         </nav>
       </div>
 
+      <InspectionInbox rooms={inspectionRooms} />
+
+      <Tabs defaultValue="worksheet" className="min-w-0">
+        <TabsList aria-label="Tampilan papan kamar" className="max-w-full">
+          <TabsTrigger value="worksheet">Lembar Kerja</TabsTrigger>
+          <TabsTrigger value="assignment">Penugasan Massal</TabsTrigger>
+        </TabsList>
+        <TabsContent value="worksheet" className="min-w-0">
       <section className="mb-4 rounded-lg border border-border bg-card">
         <RoomFilterForm
           dateIso={formatISO(date, { representation: "date" })}
@@ -242,15 +303,19 @@ export default async function HkRoomsPage({
       <Card className="rounded-lg overflow-hidden p-0">
         <CardHeader className="border-b border-border rounded-none px-5 py-4">
           <CardTitle className="text-[16px] font-semibold tracking-tight">
-            {formatISODate(date)} Supervisor Worksheet
+            Lembar Kerja · {formatISODate(date)}
           </CardTitle>
         </CardHeader>
-        <CardContent className="max-w-full overflow-hidden p-0 desktop:overflow-auto">
+        <CardContent
+                  className="min-w-0 max-w-full overflow-x-auto p-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  role="region"
+                  aria-label="Lembar kerja kamar"
+                  tabIndex={0}
+                >
           <table className="w-full border-collapse text-[12px] desktop:min-w-[1180px]">
             <caption className="sr-only">
-              Worksheet kamar housekeeping supervisor berisi status kamar,
-              kontrol ubah status, konteks reservasi bertanggal, catatan, dan
-              penugasan housekeeper
+              Lembar kerja kamar berisi status kamar, kontrol ubah status,
+              konteks reservasi bertanggal, catatan, dan penugasan petugas
             </caption>
             <thead>
               <tr>
@@ -267,7 +332,7 @@ export default async function HkRoomsPage({
                   Reservasi
                 </th>
                 <th className={headerCellClass} scope="col">
-                  Housekeeper
+                  Petugas
                 </th>
                 <th
                   className={`${headerCellClass} hidden desktop:table-cell`}
@@ -367,6 +432,51 @@ export default async function HkRoomsPage({
           </table>
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="assignment" className="min-w-0 space-y-4">
+          <Card className="overflow-hidden rounded-lg p-0">
+            <CardHeader className="border-b border-border px-5 py-4">
+              <CardTitle className="text-base font-semibold">
+                Distribusi Beban Kerja
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Jumlah kamar yang ditugaskan pada {formatISODate(date)}.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-2 p-4 md:grid-cols-3">
+              {housekeepers.map((housekeeper) => (
+                <div
+                  key={housekeeper.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
+                      {housekeeper.initials}
+                    </span>
+                    <span className="break-words text-sm font-medium">
+                      {housekeeper.name}
+                    </span>
+                  </div>
+                  <span className="num shrink-0 text-sm font-semibold">
+                    {housekeeper.assignedCount} kamar
+                  </span>
+                </div>
+              ))}
+              {housekeepers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Tidak ada petugas HK aktif.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+          <BulkAssignmentPanel
+            key={formatISODate(date)}
+            dateISO={formatISODate(date)}
+            housekeepers={housekeepers}
+            rooms={forecast.rooms}
+          />
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

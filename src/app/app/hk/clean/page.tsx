@@ -154,7 +154,7 @@ function CleanGroupSection({
 export default async function MyRoomsPage() {
   const session = await auth();
 
-  if (session?.user.role !== "HK") {
+  if (!session?.user || !["HK", "ADMIN"].includes(session.user.role)) {
     notFound();
   }
 

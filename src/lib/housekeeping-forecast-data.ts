@@ -193,7 +193,7 @@ export async function getHousekeepingForecastData(
     prisma.user.findMany({
       where: {
         isActive: true,
-        isSupervisor: false,
+
         roles: { some: { role: { code: "HK" } } },
       },
       select: { id: true, fullName: true },

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { isHkSupervisor } from "@/auth.config";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 
@@ -17,7 +16,7 @@ const DateStringSchema = z
 
 const AssignmentSchema = z.object({
   date: DateStringSchema,
-  housekeeperId: z.coerce.number().int().positive("Housekeeper tidak valid"),
+  housekeeperId: z.coerce.number().int().positive("Petugas HK tidak valid"),
   roomIds: z
     .array(z.coerce.number().int().positive("Kamar tidak valid"))
     .min(1, "Pilih minimal satu kamar"),
@@ -75,18 +74,20 @@ function selectedRoomIds(formData: FormData) {
 function revalidateSupervisorAssignmentViews() {
   revalidatePath("/app/hk/supervisor");
   revalidatePath("/app/hk/rooms");
+  revalidatePath("/app/hk/clean");
+  revalidatePath("/app/hk/rooms/[roomId]", "page");
 }
 
-async function authorizeSupervisor() {
+async function authorizeHousekeeping() {
   const session = await auth();
 
-  return Boolean(session?.user && isHkSupervisor(session));
+  return session?.user.role === "HK" || session?.user.role === "ADMIN";
 }
 
 export async function assignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!(await authorizeSupervisor())) {
+  if (!(await authorizeHousekeeping())) {
     return { ok: false, error: "Tidak berwenang" };
   }
 
@@ -115,7 +116,6 @@ export async function assignHousekeepingRooms(
             where: {
               id: parsed.data.housekeeperId,
               isActive: true,
-              isSupervisor: false,
               roles: { some: { role: { code: "HK" } } },
             },
             select: { id: true },
@@ -129,7 +129,7 @@ export async function assignHousekeepingRooms(
         if (!housekeeper) {
           return {
             ok: false as const,
-            error: "Housekeeper tidak ditemukan atau tidak aktif",
+            error: "Petugas HK tidak ditemukan atau tidak aktif",
           };
         }
 
@@ -183,7 +183,7 @@ export async function assignHousekeepingRooms(
 export async function unassignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!(await authorizeSupervisor())) {
+  if (!(await authorizeHousekeeping())) {
     return { ok: false, error: "Tidak berwenang" };
   }
 

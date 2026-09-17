@@ -64,25 +64,27 @@ export function RoomFilterForm({
           defaultValue={defaultQ}
           onChange={(e) => updateFilters("q", e.target.value, true)}
           placeholder="Cari kamar..."
+          aria-label="Cari kamar"
           className="h-11 w-full rounded-md border border-border bg-background pl-9 pr-3.5 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none desktop:h-10"
         />
       </div>
       <select
         name="status"
+        aria-label="Status kamar"
         defaultValue={defaultStatus}
         onChange={(e) => updateFilters("status", e.target.value)}
         className="h-11 w-full rounded-md border border-border bg-background px-3.5 text-sm font-normal text-foreground outline-none focus:border-ring focus:ring-ring/15 focus:ring-4 focus:outline-none desktop:h-10 sm:w-[180px]"
       >
         <option value="">Semua Status</option>
-        <option value="VC">VC - Vacant Clean</option>
-        <option value="OC">OC - Occupied Clean</option>
-        <option value="VD">VD - Vacant Dirty</option>
-        <option value="OD">OD - Occupied Dirty</option>
-        <option value="VCU">VCU - Vacant Clean Unchecked</option>
-        <option value="OOO">OOO - Out of Order</option>
+        <option value="VC">VC - Kosong bersih</option>
+        <option value="OC">OC - Terisi bersih</option>
+        <option value="VD">VD - Kosong kotor</option>
+        <option value="OD">OD - Terisi kotor</option>
+        <option value="VCU">VCU - Bersih, menunggu inspeksi</option>
+        <option value="OOO">OOO - Tidak dapat digunakan</option>
       </select>
       {isPending && (
-        <span className="text-xs text-muted-foreground italic ml-2">Loading...</span>
+        <span className="text-xs text-muted-foreground italic ml-2">Memuat...</span>
       )}
     </form>
   );

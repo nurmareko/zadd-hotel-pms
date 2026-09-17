@@ -3,7 +3,6 @@ import { differenceInCalendarDays } from "date-fns";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
-import { isHkSupervisor } from "@/auth.config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { todayDateOnly } from "@/lib/date-only";
 import { formatCompactDateID } from "@/lib/format";
@@ -40,11 +39,11 @@ function HousekeeperDeniedPanel() {
   return (
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
-        <CardTitle className="text-base font-semibold">Tugas Housekeeper</CardTitle>
+        <CardTitle className="text-base font-semibold">Tugas Petugas HK</CardTitle>
       </CardHeader>
       <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">
         Kamar ini tidak masuk daftar tugas Anda hari ini. Aksi pembersihan hanya
-        tersedia untuk housekeeper yang ditugaskan.
+        tersedia untuk petugas HK yang ditugaskan.
       </CardContent>
     </Card>
   );
@@ -65,9 +64,8 @@ export default async function HKRoomDetailPage({
   const { today } = todayDateOnly();
   const session = await auth();
   const currentUserId = Number(session?.user.id);
-  const canInspect = isHkSupervisor(session);
-  const isHousekeeperMember =
-    session?.user.role === "HK" && !isHkSupervisor(session);
+  const canInspect =
+    session?.user.role === "HK" || session?.user.role === "ADMIN";
   const [room, activeCleaningSession, latestCompletedCleaningSession, assignment] =
     await Promise.all([
       prisma.room.findUnique({
@@ -140,7 +138,7 @@ export default async function HKRoomDetailPage({
     null;
   const latestLog = room.housekeepingLogs[0] ?? null;
   const isAssignedToCurrentUser =
-    isHousekeeperMember && assignment?.housekeeperId === currentUserId;
+    canInspect && assignment?.housekeeperId === currentUserId;
   const activeCleaningSessionForPanel =
     activeCleaningSession?.startedAt
       ? {
@@ -172,7 +170,7 @@ export default async function HKRoomDetailPage({
     (room.status === RoomStatus.VD || room.status === RoomStatus.OD);
   const workContext = currentGuest
     ? {
-        label: "Tamu in-house",
+        label: "Tamu menginap",
         guestName: currentGuest.guest.fullName,
         detail: stayoverNightsLabel(
           today,
@@ -253,21 +251,23 @@ export default async function HKRoomDetailPage({
               workContext={workContext}
               isTurnover={room.status === RoomStatus.VD}
             />
-            <RoomHistory logs={room.housekeepingLogs.slice(0, 5)} />
+
           </>
         ) : null}
-        {isHousekeeperMember && !isAssignedToCurrentUser ? (
+        {canInspect && !isAssignedToCurrentUser ? (
           <HousekeeperDeniedPanel />
         ) : null}
         {canInspect ? (
           <>
-            <ActionPanel
-              roomId={room.id}
-              status={room.status}
-              activeCleaningSession={activeCleaningSessionForPanel}
-              latestCompletedCleaningSession={latestCompletedCleaningSessionForPanel}
-              assignedHousekeeperName={assignment?.housekeeper.fullName ?? null}
-            />
+            {!isAssignedToCurrentUser || room.status === RoomStatus.VCU ? (
+              <ActionPanel
+                roomId={room.id}
+                status={room.status}
+                activeCleaningSession={activeCleaningSessionForPanel}
+                latestCompletedCleaningSession={latestCompletedCleaningSessionForPanel}
+                assignedHousekeeperName={assignment?.housekeeper.fullName ?? null}
+              />
+            ) : null}
             <RoomHistory logs={room.housekeepingLogs} />
           </>
         ) : null}

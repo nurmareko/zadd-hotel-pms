@@ -30,18 +30,18 @@ Supports the guest lifecycle from booking to final payment.
 
 ## Housekeeping
 
-Role-aware for mobile housekeepers and supervisor control.
+Unified HK operations implemented in #240 Phase 1.
 
-- **Role-based HK landing** — `/app/hk` redirects HK members to My Rooms and HK supervisors to the supervisor dashboard.
-- **Supervisor tier** — `User.isSupervisor` elevates an HK user for supervisor-only routes and actions; the role code remains HK. ADMIN does not access HK operational screens.
-- **My Rooms / Kamar Saya** — `/app/hk/clean` is the housekeeper worklist, grouped by assigned room need and linked to shared room detail.
-- **Shared room detail** — `/app/hk/rooms/[id]` adapts by role. Housekeepers start/finish cleaning, see the live timer, add a status note, and log found items. Supervisors inspect rooms, view status/history, and review cleaning context.
-- **Supervisor Rooms** — `/app/hk/rooms` is the canonical merged status-board and Daily List worksheet: current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print. `/app/hk/list` is a temporary compatibility redirect that may be retired; new links and instructions must use `/app/hk/rooms`.
-- **Supervisor dashboard** — `/app/hk/supervisor` shows workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs.
-- **Manual assignment** — supervisors assign rooms by date, including bulk assignment by floor/workload; auto-dispatch remains deferred.
+- **Shared access and navigation** — all HK users and ADMIN can use the Room Board, assignment, inspection, status override, Daily List print, and room history. `User.isSupervisor` remains an HK attribute, not an access gate for these operations. Unified HK navigation is Room Board, Laundry, and Lost & Found; Lost & Found retains its separate HK/FO access rules.
+- **HK landing and compatibility routes** — `/app/hk` redirects to `/app/hk/rooms`. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate dashboard. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`.
+- **My Rooms** — `/app/hk/clean` remains the assigned-operator worklist, grouped by assigned room need and linked to shared room detail. `/app/hk/mobile` is an alias that redirects to `/app/hk/clean`.
+- **Shared room detail** — `/app/hk/rooms/[id]` provides cleaning context, status/history, and inspection. Only the assigned HK operator can start/finish cleaning and use its timer; HK supervisors are also eligible for assignment. Shared operational access does not bypass the assigned-operator cleaning restriction.
+- **Room Board** — `/app/hk/rooms` combines the status board, VCU inspection inbox, and worksheet/bulk-assignment tabs, with current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print.
+- **Manual assignment** — all HK users and ADMIN can assign rooms by date, including bulk assignment by floor/workload; HK supervisors can be assigned as cleaning operators. Auto-dispatch remains deferred.
+- **Laundry placeholder** — the Laundry navigation destination is a placeholder for #242, not an implemented laundry workflow.
 - **Cleaning timer** — `CleaningSession` is the single workflow source for assignment-to-clean-to-inspect timing. Active cleaning is derived from a started-but-unfinished session.
 - **VCU inspection workflow** — vacant cleaning follows `VD → VCU → VC` on pass or `VCU → VD` on rejection; occupied-room cleaning follows `OD → OC`.
-- **Supervisor status override** — supervisors can manually change a room's current status from the Supervisor Rooms page; each override creates a status audit.
+- **Status override** — all HK users and ADMIN can manually change a room's current status from the Room Board; each override creates a status audit.
 - **Reservation notes for HK** — `Reservation.notes` is the one reservation comment field. FO edits it; HK reads it as guest instruction/context.
 - **Lost & Found** — `/app/hk/lost-found` lets both FO and HK search/filter, log text-only items with optional room context, and mark items returned with a resolution note.
 - **FO sync** — HK actions revalidate HK screens and Front Office room/tape-chart views.
@@ -143,7 +143,7 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Visual floor plan | Housekeeping / Front Office | MVP uses lists/grids; spatial floor-map UI is a later visualization layer. |
 | Adult/child discrepancy report | Housekeeping / Front Office | HK person-count capture was removed; discrepancy reporting needs a dedicated workflow. |
 | Cross-stay guest database | Front Office | Guest data is kept per reservation in the MVP. |
-| Cross-module admin monitoring dashboard | Admin | The app is single-role: ADMIN covers master data, users, and settings only and has no operational-module access. A lecturer who needs operational access uses a separate per-role account. |
+| Cross-module admin monitoring dashboard | Admin | No cross-module monitoring dashboard is shipped. ADMIN has access to HK board, assignment, inspection, status override, Daily List print, and room history under #240 Phase 1; other operational roles still require separate per-role accounts. |
 
 ### Tracked Documentation Follow-ups — Tier 3
 

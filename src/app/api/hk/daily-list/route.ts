@@ -1,8 +1,6 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import type { Session } from "next-auth";
 
 import { auth } from "@/auth";
-import { isHkSupervisor } from "@/auth.config";
 import { formatISODate } from "@/lib/format";
 import {
   getHousekeepingForecastData,
@@ -38,10 +36,6 @@ function dateOnlyFromISO(value: string) {
   return date;
 }
 
-function isSupervisorSession(session: Session | null) {
-  return Boolean(session?.user && isHkSupervisor(session));
-}
-
 function housekeeperSections(
   housekeepers: HousekeepingForecastHousekeeperLoad[],
   rows: Awaited<ReturnType<typeof getHousekeepingListData>>["rows"],
@@ -61,11 +55,11 @@ export async function GET(req: Request) {
   const session = await auth();
 
   if (!session) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Silakan masuk terlebih dahulu", { status: 401 });
   }
 
-  if (!isSupervisorSession(session)) {
-    return new Response("Forbidden", { status: 403 });
+  if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+    return new Response("Tidak berwenang", { status: 403 });
   }
 
   const url = new URL(req.url);
@@ -73,7 +67,7 @@ export async function GET(req: Request) {
   const selectedDate = dateParam ? dateOnlyFromISO(dateParam) : undefined;
 
   if (dateParam && !selectedDate) {
-    return new Response("Invalid date", { status: 400 });
+    return new Response("Tanggal tidak valid", { status: 400 });
   }
 
   const date = selectedDate ?? undefined;
@@ -87,7 +81,7 @@ export async function GET(req: Request) {
   ]);
 
   if (!settings) {
-    return new Response("Hotel settings not found", { status: 500 });
+    return new Response("Pengaturan hotel tidak ditemukan", { status: 500 });
   }
 
   const attentionRoomIds = new Set(
