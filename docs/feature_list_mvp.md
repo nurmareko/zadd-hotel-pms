@@ -34,7 +34,7 @@ Unified HK operations implemented in #240 Phase 1 are retained. #241 Phase 2 ext
 
 - **Shared access and navigation** — all HK users and ADMIN can use the Room Board, assignment, inspection, status override, Daily List print, and room history. `User.isSupervisor` remains an HK attribute, not an access gate for these operations. Unified HK navigation is Room Board, Laundry, and Lost & Found; Lost & Found retains its separate HK/FO access rules.
 - **HK landing and compatibility routes** — `/app/hk` redirects to `/app/hk/rooms`. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate dashboard. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`.
-- **My Rooms** — `/app/hk/clean` remains the assigned-operator worklist, grouped by assigned room need and linked to shared room detail. `/app/hk/mobile` is an alias that redirects to `/app/hk/clean`.
+- **My Rooms / phone workspace** — #244 Phase 3 makes `/app/hk/mobile` a dedicated phone-first page for HK and ADMIN. `/app/hk/clean` is now a legacy permanent HTTP 308 redirect to `/app/hk/mobile`, reversing the former redirect direction. See the Phase 3 contract below; shared room detail remains available.
 - **Shared room detail** — `/app/hk/rooms/[id]` provides cleaning context, status/history, and inspection. Only the assigned HK operator can start/finish cleaning and use its timer; HK supervisors are also eligible for assignment. Shared operational access does not bypass the assigned-operator cleaning restriction.
 - **Room Board** — `/app/hk/rooms` combines the status board, VCU inspection inbox, and worksheet/bulk-assignment tabs, with current status, reservation context, assigned housekeeper, note, date navigation, inline status override, and Daily List print.
 - **Manual assignment** — all HK users and ADMIN can assign rooms by date, including bulk assignment by floor/workload; active HK users, including supervisors, are eligible assignees. Phase 2 adds inline assignment for the selected operating date. New Phase 2 assignment actions cannot displace an active-cleaning assignee; assigning the same assignee is a no-op. Auto-dispatch remains deferred.
@@ -62,6 +62,21 @@ Unified HK operations implemented in #240 Phase 1 are retained. #241 Phase 2 ext
 - **Notification schema compatibility** — use the existing `ASSIGNED` notification value, not `PENDING`; no schema changes are part of Phase 2.
 
 **Owner review:** the HK module owner remains the reviewer/domain expert for #241, including ordered priority rules, selected-date versus actual-today behavior, active-cleaning assignment protection, task history, and board/export parity. All Phase 1 features remain in scope. This documentation-only update changes no schema and runs no checks or Git operations.
+
+### #244 Phase 3 — Phone-first HK workspace
+
+Phase 3 retains the Phase 1 shared operations and Phase 2 Room Board contract above, while replacing the former mobile alias with a dedicated workspace.
+
+- **Access and route** — `/app/hk/mobile` serves HK and ADMIN directly. The legacy `/app/hk/clean` route uses Next.js `permanentRedirect` (308 semantics; streamed responses may carry a redirect meta tag); mobile no longer redirects to clean.
+- **My assigned rooms today** — show the current user's assignments for actual today in WIB across all room states, prioritized P1–P5 by reusing the existing Room Board priority engine rather than duplicating its rules.
+- **Unassigned pool** — include rooms unassigned for today that are `VD`, `OD`, or `VCU`, or have an arrival/departure today. Exclude `OOO` rooms and rooms with active cleaning on any date, not just today.
+- **Self-claim** — claim for the current user through a serializable transaction that rechecks current room eligibility, today's assignment, and active cleaning across all dates. Never steal another user's assignment; an existing assignment to the same user is a no-op.
+- **Inline cleaning and inspection** — start cleaning, display its live timer, and finish without leaving the phone workspace. Cleaning remains restricted to the assigned operator. Turnover completion requires both linen and towels. Cleaning transitions are `VD → VCU` and `OD → OC`; inspection passes `VCU → VC` or fails `VCU → VD`, with a required reason for failure.
+- **Shared transaction ownership** — `src/lib/housekeeping/cleaning-operations.ts` owns complete cleaning operations, including transaction boundaries, authoritative rechecks, and related writes. Desktop and mobile route actions reuse these operations; neither imports another route's actions or splits a complete transition into separately callable steps.
+- **Phone Lost & Found reporting** — the found-item dialog supports public-area reports with optional room context and selection from all rooms, without requiring assignment. HK and ADMIN can floor-report through the phone page. The existing full `/app/hk/lost-found` module remains unchanged and HK/FO-only; ADMIN's reporting access is limited to the phone flow and does not grant full-module access.
+- **Phone interaction** — provide at least 48px touch targets, sticky segments, explicit empty states, refresh, and an all-room found-item dialog independent of the assigned list or pool.
+
+**Owner review and verification:** the HK module owner must review #244, particularly pool eligibility, all-date active-cleaning exclusion, self-claim/no-steal behavior, shared transaction ownership, turnover requirements, inspection failure reasons, and ADMIN's phone-only Lost & Found boundary. No schema changes are part of Phase 3. Pure data/action tests, lint, TypeScript, and production build passed. Live checks covered HK/ADMIN access, FO denial, pointer/keyboard/touch navigation, and zero horizontal overflow at 320/375/390px for empty tasks, populated pool, and dialogs. Operational writes and database-backed concurrency remain unverified; assigned cleaning/inspection controls require an owner walkthrough with suitable demo assignments.
 
 ## Food & Beverage
 

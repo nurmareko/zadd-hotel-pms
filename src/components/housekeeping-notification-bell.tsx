@@ -25,7 +25,7 @@ function formatNotificationDate(value: string) {
   }).format(new Date(value));
 }
 
-export function HousekeepingNotificationBell() {
+export function HousekeepingNotificationBell({ touchTargets = false }: { touchTargets?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<HousekeepingNotificationItem[]>([]);
@@ -104,7 +104,7 @@ export function HousekeepingNotificationBell() {
   }
 
   return (
-    <div className="fixed right-14 top-2.5 z-30 desktop:right-6 desktop:top-4">
+    <div className={`fixed top-2.5 z-30 desktop:right-6 desktop:top-4 ${touchTargets ? "right-20" : "right-14"}`}>
       <button
         type="button"
         aria-label="Notifikasi housekeeping"
@@ -115,7 +115,7 @@ export function HousekeepingNotificationBell() {
             void loadNotifications();
           }
         }}
-        className="relative flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+        className={`relative flex items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 ${touchTargets ? "h-12 w-12" : "h-10 w-10"}`}
       >
         <Bell className="size-[18px]" aria-hidden="true" />
         {unreadCount > 0 ? (
@@ -126,7 +126,7 @@ export function HousekeepingNotificationBell() {
       </button>
 
       {open ? (
-        <section className="absolute right-0 top-12 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+        <section className={`w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl ${touchTargets ? "fixed right-4 top-16 desktop:right-6 desktop:top-20" : "absolute right-0 top-12"}`}>
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Notifikasi tugas</h2>

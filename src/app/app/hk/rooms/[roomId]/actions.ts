@@ -1,16 +1,17 @@
 "use server";
 
-import {
-  HousekeepingNotificationStatus,
-  Prisma,
-  RoomStatus,
-} from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { todayDateOnly } from "@/lib/date-only";
+import {
+  finishCleaningOperation,
+  inspectRoomOperation,
+  startCleaningOperation,
+  type CleaningOperator,
+} from "@/lib/housekeeping/cleaning-operations";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
-import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
 import {
@@ -32,26 +33,14 @@ function revalidateRoomPaths(roomId: number) {
   revalidateRoomStatusViews({ roomId });
 }
 
-// Work actions require today's assignment inside the transaction; inspection
-// is available to all HK and ADMIN users regardless of assignment.
-async function requireHousekeeperMember() {
+// Work actions require today's assignment inside the canonical transaction;
+// inspection remains available to HK and ADMIN regardless of assignment.
+async function requireHousekeeperMember(): Promise<CleaningOperator | null> {
   const session = await auth();
-
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return Number(session.user.id);
-}
-
-async function requireInspectionUser() {
-  const session = await auth();
-
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return Number(session.user.id);
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") return null;
+  const userId = Number(session.user.id);
+  if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2147483647) return null;
+  return { userId, role: session.user.role };
 }
 
 function isSerializationConflict(error: unknown) {
@@ -62,241 +51,31 @@ function isSerializationConflict(error: unknown) {
 }
 
 export async function startCleaning(formData: FormData): Promise<ActionResult> {
-  const userId = await requireHousekeeperMember();
-
-  if (!userId) {
-    return { ok: false, error: "Tidak berwenang" };
-  }
-
+  const operator = await requireHousekeeperMember();
+  if (!operator) return { ok: false, error: "Tidak berwenang" };
   const parsed = RoomActionSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  const { roomId } = parsed.data;
-  const { today } = todayDateOnly();
-
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw<Array<{ id: number }>>`
-          SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
-        `;
-
-        const assignment = await tx.housekeepingAssignment.findFirst({
-          where: { roomId, date: today, housekeeperId: userId },
-          select: { id: true },
-        });
-
-        if (!assignment) {
-          return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
-        }
-
-        const room = await tx.room.findUnique({
-          where: { id: roomId },
-          select: { status: true },
-        });
-
-        if (!room) {
-          return { ok: false as const, error: "Kamar tidak ditemukan" };
-        }
-
-        if (room.status !== RoomStatus.VD && room.status !== RoomStatus.OD) {
-          return {
-            ok: false as const,
-            error: "Kamar ini tidak berada dalam antrean pembersihan",
-          };
-        }
-
-        const openSession = await tx.cleaningSession.findFirst({
-          where: {
-            roomId,
-            date: today,
-            startedAt: { not: null },
-            finishedAt: null,
-          },
-          select: { id: true },
-        });
-
-        if (openSession) {
-          return {
-            ok: false as const,
-            error: "Pembersihan kamar ini sudah berjalan",
-          };
-        }
-
-        await tx.cleaningSession.create({
-          data: {
-            roomId,
-            housekeeperId: userId,
-            date: today,
-            startedAt: new Date(),
-          },
-        });
-
-        await upsertHousekeepingNotification(tx, {
-          assignmentId: assignment.id,
-          recipientId: userId,
-          status: HousekeepingNotificationStatus.IN_PROGRESS,
-        });
-
-        return { ok: true as const };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
-
-    if (result.ok) {
-      revalidateRoomPaths(roomId);
-    }
-
-    return result;
-  } catch (error) {
-    if (isSerializationConflict(error)) {
-      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
-    }
-
-    return { ok: false, error: "Gagal memulai pembersihan" };
-  }
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  const result = await startCleaningOperation({ ...operator, ...parsed.data });
+  if (result.ok) revalidateRoomPaths(parsed.data.roomId);
+  return result;
 }
 
 export async function finishCleaning(formData: FormData): Promise<ActionResult> {
-  const userId = await requireHousekeeperMember();
-
-  if (!userId) {
-    return { ok: false, error: "Tidak berwenang" };
-  }
-
+  const operator = await requireHousekeeperMember();
+  if (!operator) return { ok: false, error: "Tidak berwenang" };
   const parsed = FinishCleaningSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  const { roomId, linenChanged, towelChanged, note } = parsed.data;
-  const { today } = todayDateOnly();
-
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw<Array<{ id: number }>>`
-          SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
-        `;
-
-        const assignment = await tx.housekeepingAssignment.findFirst({
-          where: { roomId, date: today, housekeeperId: userId },
-          select: { id: true },
-        });
-
-        if (!assignment) {
-          return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
-        }
-
-        const room = await tx.room.findUnique({
-          where: { id: roomId },
-          select: { status: true },
-        });
-
-        if (!room) {
-          return { ok: false as const, error: "Kamar tidak ditemukan" };
-        }
-
-        if (room.status !== RoomStatus.VD && room.status !== RoomStatus.OD) {
-          return {
-            ok: false as const,
-            error: "Status kamar berubah. Muat ulang halaman.",
-          };
-        }
-
-        if (room.status === RoomStatus.VD && (!linenChanged || !towelChanged)) {
-          return {
-            ok: false as const,
-            error: "Untuk kamar kosong setelah check-out, linen dan handuk wajib diganti.",
-          };
-        }
-
-        const openSession = await tx.cleaningSession.findFirst({
-          where: {
-            roomId,
-            date: today,
-            housekeeperId: userId,
-            startedAt: { not: null },
-            finishedAt: null,
-          },
-          orderBy: { createdAt: "desc" },
-          select: { id: true },
-        });
-
-        if (!openSession) {
-          return { ok: false as const, error: "Tidak ada sesi pembersihan aktif" };
-        }
-
-        // VD turnover -> awaiting inspection (VCU); OD stayover -> occupied clean.
-        const nextStatus =
-          room.status === RoomStatus.OD ? RoomStatus.OC : RoomStatus.VCU;
-        const now = new Date();
-
-        await tx.cleaningSession.update({
-          where: { id: openSession.id },
-          data: { finishedAt: now },
-        });
-
-        await tx.housekeepingLog.create({
-          data: {
-            roomId,
-            oldStatus: room.status,
-            newStatus: nextStatus,
-            updatedById: userId,
-            updatedAt: now,
-            note: note || "Pembersihan selesai dari daftar kerja petugas HK",
-            linenChanged,
-            towelChanged,
-          },
-        });
-
-        await tx.room.update({
-          where: { id: roomId },
-          data: { status: nextStatus },
-        });
-
-        await upsertHousekeepingNotification(tx, {
-          assignmentId: assignment.id,
-          recipientId: userId,
-          status: HousekeepingNotificationStatus.COMPLETED,
-        });
-
-        return { ok: true as const };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
-
-    if (result.ok) {
-      revalidateRoomPaths(roomId);
-    }
-
-    return result;
-  } catch (error) {
-    if (isSerializationConflict(error)) {
-      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
-    }
-
-    return { ok: false, error: "Gagal menyelesaikan pembersihan" };
-  }
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  const result = await finishCleaningOperation({ ...operator, ...parsed.data });
+  if (result.ok) revalidateRoomPaths(parsed.data.roomId);
+  return result;
 }
 
 export async function logFoundItem(formData: FormData): Promise<ActionResult> {
-  const userId = await requireHousekeeperMember();
-
-  if (!userId) {
+  const operator = await requireHousekeeperMember();
+  if (!operator) {
     return { ok: false, error: "Tidak berwenang" };
   }
-
+  const { userId } = operator;
   const parsed = LogFoundItemSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
@@ -363,99 +142,11 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
 }
 
 export async function inspectRoom(formData: FormData): Promise<ActionResult> {
-  const userId = await requireInspectionUser();
-
-  if (!userId) {
-    return { ok: false, error: "Tidak berwenang" };
-  }
-
+  const operator = await requireHousekeeperMember();
+  if (!operator) return { ok: false, error: "Tidak berwenang" };
   const parsed = InspectRoomSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  const { roomId, passed, notes } = parsed.data;
-  const nextStatus = passed ? RoomStatus.VC : RoomStatus.VD;
-
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw<Array<{ id: number }>>`
-          SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
-        `;
-
-        const room = await tx.room.findUnique({
-          where: { id: roomId },
-          select: { id: true, status: true },
-        });
-
-        if (!room) {
-          return { ok: false as const, error: "Kamar tidak ditemukan" };
-        }
-
-        if (room.status !== RoomStatus.VCU) {
-          return {
-            ok: false as const,
-            error: "Kamar ini tidak menunggu inspeksi",
-          };
-        }
-
-        const now = new Date();
-        const session = await tx.cleaningSession.findFirst({
-          where: {
-            roomId,
-            finishedAt: { not: null },
-            inspectedAt: null,
-          },
-          orderBy: [{ finishedAt: "desc" }, { createdAt: "desc" }],
-          select: { id: true },
-        });
-
-        if (session) {
-          await tx.cleaningSession.update({
-            where: { id: session.id },
-            data: {
-              inspectedAt: now,
-              inspectedById: userId,
-            },
-          });
-        }
-
-        await tx.housekeepingLog.create({
-          data: {
-            roomId,
-            oldStatus: room.status,
-            newStatus: nextStatus,
-            updatedById: userId,
-            updatedAt: now,
-            note: notes,
-          },
-        });
-
-        await tx.room.update({
-          where: { id: roomId },
-          data: { status: nextStatus },
-        });
-
-        return { ok: true as const };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
-
-    if (result.ok) {
-      revalidateRoomPaths(roomId);
-    }
-
-    return result;
-  } catch (error) {
-    if (isSerializationConflict(error)) {
-      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
-    }
-
-    return { ok: false, error: "Gagal menyimpan hasil inspeksi" };
-  }
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  const result = await inspectRoomOperation({ ...operator, ...parsed.data });
+  if (result.ok) revalidateRoomPaths(parsed.data.roomId);
+  return result;
 }

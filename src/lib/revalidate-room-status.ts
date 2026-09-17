@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 const ROOM_STATUS_PATHS = [
   "/app/hk",
   "/app/hk/rooms",
+  "/app/hk/mobile",
   "/app/fo/reservasi/kalender",
   "/app/fo/reservasi/new",
   "/app/admin/rooms",

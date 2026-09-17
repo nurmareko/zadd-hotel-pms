@@ -75,6 +75,7 @@ function revalidateSupervisorAssignmentViews() {
   revalidatePath("/app/hk/supervisor");
   revalidatePath("/app/hk/rooms");
   revalidatePath("/app/hk/clean");
+  revalidatePath("/app/hk/mobile");
   revalidatePath("/app/hk/rooms/[roomId]", "page");
 }
 
