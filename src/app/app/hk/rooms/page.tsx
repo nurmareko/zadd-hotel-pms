@@ -22,8 +22,8 @@ import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 
-import { BulkAssignmentPanel } from "../supervisor/bulk-assignment-panel";
-import { InspectionInbox } from "../supervisor/inspection-inbox";
+import { BulkAssignmentPanel } from "./bulk-assignment-panel";
+import { InspectionInbox } from "./inspection-inbox";
 import { RoomFilterForm } from "./room-filter-form";
 import { RoomBoardTable, type BoardSortBy } from "./room-board-table";
 import { RoomTaskNoteDialog } from "./room-task-note-dialog";

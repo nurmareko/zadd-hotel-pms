@@ -64,16 +64,13 @@ export function DashboardSkeleton({
   kpiCount = 4,
   sectionCount = 3,
   actionCount = 0,
-  variant = "default",
+
 }: {
   kpiCount?: number;
   sectionCount?: number;
   actionCount?: number;
-  variant?: "default" | "hkSupervisor";
+
 }) {
-  if (variant === "hkSupervisor") {
-    return <HkSupervisorDashboardSkeleton actionCount={actionCount} />;
-  }
 
   return (
     <PageShell>
@@ -100,68 +97,6 @@ export function DashboardSkeleton({
   );
 }
 
-function HkSupervisorDashboardSkeleton({
-  actionCount,
-}: {
-  actionCount: number;
-}) {
-  return (
-    <PageShell>
-      <PageHeaderSkeleton
-        titleWidth="w-64"
-        subtitleWidth="w-72"
-        actionCount={actionCount}
-      />
-
-      <section className="mb-4">
-        <PanelHeaderSkeleton titleWidth="w-28" />
-        <KpiStripSkeleton
-          count={3}
-          className="mt-2 grid-cols-3 xl:grid-cols-3"
-        />
-      </section>
-
-      <section className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <PanelHeaderSkeleton titleWidth="w-32" metaWidth="w-16" />
-        <TableSkeleton rows={4} cols={4} minWidth="680px" />
-      </section>
-
-      <section className="mb-4">
-        <PanelHeaderSkeleton titleWidth="w-52" />
-        <KpiStripSkeleton
-          count={6}
-          className="mt-2 grid-cols-2 xl:grid-cols-6"
-        />
-      </section>
-
-      <section className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <PanelHeaderSkeleton titleWidth="w-36" />
-        <div className="grid gap-2 p-3 md:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 shadow-sm"
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <Skeleton className="size-8 rounded-md border border-gray-200 bg-slate-100" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-5 w-8" />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <PanelHeaderSkeleton titleWidth="w-44" metaWidth="w-24" />
-        <div className="grid gap-3 p-3 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <FieldRowsSkeleton rows={3} />
-          <TableSkeleton rows={6} cols={5} minWidth="720px" />
-        </div>
-      </section>
-    </PageShell>
-  );
-}
 
 export function CrudTablePageSkeleton({
   cols,

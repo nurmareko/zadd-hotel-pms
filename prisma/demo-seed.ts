@@ -617,13 +617,11 @@ async function seedAdditionalFrontOfficeUsers() {
         fullName: userToSeed.fullName,
         passwordHash,
         isActive: true,
-        isSupervisor: false,
       },
       update: {
         fullName: userToSeed.fullName,
         passwordHash,
         isActive: true,
-        isSupervisor: false,
       },
     });
 
@@ -695,20 +693,6 @@ async function findSecondHousekeepingUser() {
   }
 
   return hkUser;
-}
-
-async function findHousekeepingSupervisor() {
-  const hkSupervisor = await prisma.user.findUnique({
-    where: { username: "hksup" },
-  });
-
-  if (!hkSupervisor) {
-    throw new Error(
-      "Run the main Prisma seed first so inspection audits can be attributed to hksup.",
-    );
-  }
-
-  return hkSupervisor;
 }
 
 async function findFoodBeverageUser() {
@@ -1444,7 +1428,6 @@ async function main() {
     const frontOfficeUsers = await seedAdditionalFrontOfficeUsers();
     const housekeepingUser = await findHousekeepingUser();
     const secondHousekeepingUser = await findSecondHousekeepingUser();
-    const housekeepingSupervisor = await findHousekeepingSupervisor();
     const fbUser = await findFoodBeverageUser();
     const accountingUser = await findAccountingUser();
     const roomTypesByCode = new Map<RoomTypeCode, { id: number; baseRate: unknown }>();
@@ -1839,18 +1822,18 @@ async function main() {
     await seedHousekeepingLogs({
       roomsByNumber,
       updatedById: housekeepingUser.id,
-      inspectedById: housekeepingSupervisor.id,
+      inspectedById: secondHousekeepingUser.id,
     });
 
     await seedHousekeepingListDemo({
       roomsByNumber,
       primaryHousekeeperId: housekeepingUser.id,
       secondaryHousekeeperId: secondHousekeepingUser.id,
-      inspectedById: housekeepingSupervisor.id,
+      inspectedById: secondHousekeepingUser.id,
       date: today,
     });
 
-    await seedLinenBatches(housekeepingUser.id, housekeepingSupervisor.id);
+    await seedLinenBatches(housekeepingUser.id, secondHousekeepingUser.id);
 
     await seedLostFoundItems({
       roomsByNumber,

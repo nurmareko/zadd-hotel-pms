@@ -69,7 +69,7 @@ type NavShellProps = {
   initialNavBadges: NavBadgeMap;
   initialSidebarCollapsed: boolean;
   userRole: AppRole;
-  userIsSupervisor: boolean;
+
   userFullName: string;
 };
 
@@ -299,7 +299,7 @@ export function NavShell({
   initialNavBadges,
   initialSidebarCollapsed,
   userRole,
-  userIsSupervisor,
+
   userFullName,
 }: NavShellProps) {
   const pathname = usePathname();
@@ -379,7 +379,7 @@ export function NavShell({
       style={shellStyle}
       className="min-h-screen flex-1 bg-background text-foreground"
     >
-      {userRole === "HK" && !userIsSupervisor ? (
+      {userRole === "HK" ? (
         <HousekeepingNotificationBell touchTargets={pathname === "/app/hk/mobile"} />
       ) : null}
       <aside
@@ -553,7 +553,7 @@ export function NavShell({
       </aside>
 
       <div className="sticky top-0 z-10 flex h-(--app-mobile-header-height) items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 desktop:hidden">
-        <div className={`flex min-w-0 items-center gap-2.5 ${pathname === "/app/hk/mobile" && userRole === "HK" && !userIsSupervisor ? "mr-14" : ""}`}>
+        <div className={`flex min-w-0 items-center gap-2.5 ${pathname === "/app/hk/mobile" && userRole === "HK" ? "mr-14" : ""}`}>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-900 text-[11px] font-bold text-white">
             Z
           </div>

@@ -2,7 +2,7 @@
 
 Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **31 logical screens** across four operational modules, Admin, and shared/global access.
 
-**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` role landing, the temporary `/app/hk/list` compatibility redirect to canonical Supervisor Rooms, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The `/app/hk/list` shim may be retired and must not be used as the worksheet destination. Under this rule, **31 is the authoritative total**.
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` shared landing, the preserved `/app/hk/supervisor` and `/app/hk/list` compatibility redirects to the canonical Room Board, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The HK compatibility shims are retained, not slated for removal; new links use `/app/hk/rooms` as the worksheet destination. Under this rule, **31 is the authoritative total**.
 
 ---
 
@@ -11,7 +11,7 @@ Authoritative inventory for shipped screen counts and IDs, and a reference for i
 The application is built as a **single Next.js app** with four operational areas plus an admin area. MVP simplifications from the original plan:
 
 - **One account = one role.** If a student rotates between roles, they get a new account. The Module Switcher screen is removed entirely.
-- **Admin manages master data + users, with shared HK operational access.** Under #240 Phase 1, ADMIN can use the HK board, assignment, inspection, status override, Daily List print, and room history. Cleaning remains assigned-HK-operator only. Under #243, HK, FO, and ADMIN share the full Lost & Found page, creation, claim, disposal/donation, and export. No cross-module monitoring dashboard; other operational roles require separate per-role accounts.
+- **Admin manages master data + users, with shared HK operational access.** Under #240 Phase 1, ADMIN can use the HK board, assignment, inspection, status override, Daily List print, and room history. Cleaning remains assigned-operator only for HK and ADMIN; full operational access does not bypass assignment or current-state guards. Under #243, HK, FO, and ADMIN share the full Lost & Found page, creation, claim, disposal/donation, and export. No cross-module monitoring dashboard; other operational roles require separate per-role accounts.
 - **Single outlet for F&B.** Hardcoded to "Hotel Restaurant" in the seed. No Outlet CRUD.
 
 ```
@@ -67,12 +67,12 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | HK-01 | Phone HK Workspace / My Rooms | Phone-first page | #244 Phase 3: `/app/hk/mobile` is a dedicated HK/ADMIN page with today's prioritized assignments, an unassigned pool and self-claim, inline cleaning/timer/inspection, and floor Lost & Found reporting. `/app/hk/clean` is a legacy permanent HTTP 308 redirect here, reversing the old direction. See the Phase 3 contract below. |
-| HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: all HK users and ADMIN can inspect VCU rooms, view history, and review status context. Only the assigned HK operator can start/finish cleaning with the live timer; HK supervisors are assignable too. Lost & Found uses the shared HK/FO/ADMIN mutation authorization under #243. |
+| HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: all HK users and ADMIN can inspect VCU rooms, view history, and review status context. Only the assigned operator can start/finish cleaning with the live timer; there is no supervisor tier. Lost & Found uses the shared HK/FO/ADMIN mutation authorization under #243. |
 | HK-03 | Room Board | Page | `/app/hk/rooms`: shared by all HK users and ADMIN, with status overview, VCU inspection inbox, worksheet/bulk-assignment tabs, status override, reservation context, housekeeper, note, date navigation, and Daily List print. #241 Phase 2 adds automatic P1–P5 priorities, `TSK-{roomNumber}` codes, URL-backed search/filter/sort, inline assignment, a task dialog, and filtered CSV export. |
 | HK-04 | Linen Circulation | Page + dispatch/receipt modals | #242: `/app/hk/laundry`, accessible to HK and ADMIN, implements linen dispatch, washing, and one-time receipt with clean/damaged/lost reconciliation, unit-based KPIs, search, and filters. See the linen circulation contract below. |
 | HK-05 | Barang Temuan (Lost & Found) | Page + create/claim/disposal modals | #243: `/app/hk/lost-found` is shared by HK, FO, and ADMIN, with four global summary cards, responsive table/cards, shared search/category/status/room-number/date filters, text-only room/public-area reporting, irreversible claim or disposal/donation with staff/time audit, and filtered CSV export. See the full registry contract below. |
 
-#240 Phase 1 unifies HK navigation as **Room Board, Laundry, Lost & Found**. `/app/hk` redirects to `/app/hk/rooms` for all HK users and ADMIN. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate screen. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`. Shared operational access does not bypass assigned-operator cleaning. Lost & Found page, mutation, and export access is HK/FO/ADMIN under #243.
+#240 Phase 1 unifies HK navigation as **Room Board, Laundry, Lost & Found**. `/app/hk` redirects to `/app/hk/rooms` for all HK users and ADMIN. `/app/hk/supervisor` is a preserved permanent, query-preserving HTTP 308 compatibility shim to `/app/hk/rooms`, not a separate screen. `/app/hk/list` remains a preserved compatibility redirect to the same board. Neither is slated for removal; new links use `/app/hk/rooms`. The supervisor tier is decommissioned: HK and ADMIN have uniform full HK operational access. Historical actor links, cleaning sessions, inspections, and audit logs remain intact. Shared operational access does not bypass assigned-operator cleaning. Lost & Found page, mutation, and export access is HK/FO/ADMIN under #243.
 
 Phase 3 adds the HK/ADMIN phone workspace and floor reporting described below. #243 separately provides HK/FO/ADMIN access to the full Lost & Found registry; ADMIN reporting is no longer phone-only.
 
@@ -109,7 +109,7 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
   | P5 | Fallback for every remaining room. |
 
 - **Rows, filters, and sorting:** display `TSK-{roomNumber}` codes. Urgency ordering is global across the board, with natural room-number sorting rather than lexical ordering. Preserve multi-field search `q`, `status`, and `priority` filters in the URL, together with `sortBy` (`priority`, `room`, `floor`, `status`, or `assignee`) and `sortOrder` (`asc` or `desc`).
-- **Inline assignment:** HK and ADMIN can assign active HK users, including supervisors, for the selected operating date. New Phase 2 assignment actions cannot displace the assignee of active cleaning; assigning the same assignee is a no-op.
+- **Inline assignment:** HK and ADMIN can assign active HK users, for the selected operating date. New Phase 2 assignment actions cannot displace the assignee of active cleaning; assigning the same assignee is a no-op.
 - **Task dialog:** priority is automatic and read-only. Submission creates an immutable log for **actual today (WIB)**, even while viewing another operating date: `oldStatus = newStatus`, with a `[TUGAS: category]` note. Optional assignment also applies to actual today. The dialog does not append to `Reservation.notes` or change room status; its assignment follows the same active-cleaning and same-assignee guards.
 - **Notes and history:** the board displays the newest task note for the selected WIB day. All logs remain available in room history; a new task note does not overwrite older logs. FO-owned reservation notes remain separate guest context.
 - **CSV export:** `/app/hk/rooms/export` uses the same selected operating date, `q`/`status`/`priority` filters, and `sortBy`/`sortOrder` as the board, returning identical filtered rows in the same order. Access is HK/ADMIN only: unauthenticated requests return HTTP 401 and forbidden roles HTTP 403. Export uses the shared safe CSV serializer with a UTF-8 BOM.
@@ -119,7 +119,7 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
 
 #### #242 — Linen circulation contract
 
-`HK-04` replaces the Laundry placeholder at `/app/hk/laundry`. All HK users and ADMIN can use the workflow; supervisor status is not required. User-facing labels, item names, validation, and feedback are Indonesian; internal enum values remain English.
+`HK-04` replaces the Laundry placeholder at `/app/hk/laundry`. All HK users and ADMIN can use the workflow; there is no supervisor tier. User-facing labels, item names, validation, and feedback are Indonesian; internal enum values remain English.
 
 - **Unit-based KPIs:** clean received sums clean units received on `CLEAN` records; washing sums dispatched quantities on `WASHING` records; awaiting processing sums dispatched quantities on `SENT` records; damaged sums recorded damaged units. These are quantities, not counts of dispatch records. Clean received is cumulative receipt history, not current available stock: there is no linen consumption workflow or full stock ledger.
 - **Search and filters:** `q` searches dispatch code, vendor, and notes; combine it with status, item, and date filters.
@@ -227,7 +227,7 @@ Six core business flows the app supports end-to-end:
 `AC-01 Dashboard` → Night Audit button → `AC-02 Night Audit` → run → `AC-03 Night Report` → PDF export.
 
 **Flow 6 — HK Cleaning + Inspection**
-Any HK user or ADMIN assigns a room from `HK-03 Room Board` → assigned HK operator (including an assigned HK supervisor) opens `HK-01 My Rooms` → taps room → `HK-02 Shared Room Detail` → starts timer → finishes cleaning → `VD → VCU` or `OD → OC` → any HK user or ADMIN opens the `HK-03 Room Board` inspection inbox → inspects `VCU → VC` or rejects `VCU → VD` → syncs to `FO-01 Kalender`. Only the assigned operator can start/finish cleaning.
+Any HK user or ADMIN assigns a room to active HK staff from `HK-03 Room Board` → assigned HK operator opens `HK-01 My Rooms` → taps room → `HK-02 Shared Room Detail` → starts timer → finishes cleaning → `VD → VCU` or `OD → OC` → any HK user or ADMIN opens the `HK-03 Room Board` inspection inbox → inspects `VCU → VC` or rejects `VCU → VD` → syncs to `FO-01 Kalender`. Only the assigned operator can start/finish cleaning. ADMIN can also self-claim an eligible room from `/app/hk/mobile` and clean it as the assigned operator.
 
 ---
 

@@ -9,7 +9,7 @@ description: Build, launch, and drive the ZADD Hotel PMS app to verify changes e
 
 - `.env` is already populated (Neon DB, remote). No local DB needed.
 - Dev server: `npm run dev -- --port 3456 > /path/to/scratch/dev.log 2>&1 &` — ready in ~1s.
-- Login credentials (from `prisma/seed.ts`): `admin/admin123`, `fo1/fo123`, `hksup/hksup123`, `hk1/hk123`, `fb1/fb123`, `acc1/acc123`.
+- Login credentials (from `prisma/seed.ts`): `admin/admin123`, `fo1/fo123`, `hk1/hk123`, `hk2/hk2123`, `fb1/fb123`, `acc1/acc123`.
 - Login form fields: `input#username` / `input#password` (or `[name=...]`), submit via `button[type=submit]`; NextAuth credentials — success navigates to `/`, which redirects into the role app.
 
 ## Browser automation

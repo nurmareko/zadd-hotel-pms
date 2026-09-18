@@ -55,7 +55,6 @@ export const { auth, handlers } = NextAuth({
           username: user.username,
           fullName: user.fullName,
           role,
-          isSupervisor: user.isSupervisor,
         };
       },
     }),

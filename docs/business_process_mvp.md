@@ -200,20 +200,20 @@ flowchart TD
 
 ## 6. Housekeeping Process
 
-Role-aware room cleaning lifecycle. FO can create dirty-room demand, supervisors plan and inspect, housekeepers clean from their assigned worklist, and every room-status change feeds back to Kalender.
+Unified room cleaning lifecycle. FO can create dirty-room demand; HK and ADMIN have uniform full HK operational access for planning, cleaning when assigned, inspection, and status override. The supervisor tier is decommissioned. Only the assigned operator can start/finish cleaning, and every room-status change feeds back to Kalender.
 
 ```mermaid
 flowchart TD
     A([Guest checks out<br/>or stay continues]) --> B{Room status<br/>at start of day?}
 
-    B -->|VD<br/>Vacant Dirty| S[Supervisor reviews<br/>forecast / rooms worksheet]
+    B -->|VD<br/>Vacant Dirty| S[HK or ADMIN reviews Room Board]
     B -->|OD<br/>Occupied Dirty| S
     B -->|VC<br/>Vacant Clean| D[Room ready,<br/>no action]
     B -->|OC<br/>Occupied Clean| D
     B -->|OOO<br/>Out of Order| E[Maintenance only<br/>no cleaning cycle]
 
     S --> T[Assign room for date<br/>or bulk assign]
-    T --> U[Housekeeper opens<br/>My Rooms / Kamar Saya]
+    T --> U[Assigned operator opens My Rooms]
     U --> C[Open shared room detail]
     C --> F[Start CleaningSession<br/>timer]
     F --> G[Cleaning in progress]
@@ -221,7 +221,7 @@ flowchart TD
     R --> H{Occupied stay?}
     H -->|Yes| P[Room flips to OC]
     H -->|No| I[Room status:<br/>Vacant Clean Unchecked]
-    I --> J[Supervisor inspects]
+    I --> J[HK or ADMIN inspects]
     J --> K{Pass<br/>inspection?}
     K -->|Yes| L[Room flips to VC]
     K -->|No| M[Returns to VD<br/>for re-cleaning]
@@ -242,13 +242,13 @@ flowchart TD
     style O fill:#f1f5f9
 ```
 
-**Mobile-first staff flow:** HK staff operates from phones or tablets through `/app/hk/clean` and `/app/hk/rooms/[id]` while walking the corridors. Every status update syncs immediately to FO Kalender so receptionists see the live picture.
+**Mobile-first staff flow:** HK and ADMIN operate from phones or tablets through `/app/hk/mobile` and `/app/hk/rooms/[id]` while walking the corridors. `/app/hk/clean` permanently redirects to the phone workspace (HTTP 308). Every status update syncs immediately to FO Kalender so receptionists see the live picture.
 
-**Supervisor flow:** `/app/hk/supervisor` gives the supervisor workload forecast, bulk assignment, VCU awaiting-inspection inbox, and live-status KPIs. `/app/hk/rooms` is the canonical daily worksheet and merged status board with inline status override, reservation context, assigned housekeeper, notes, date navigation, and Daily List print. `/app/hk/list` remains only as a temporary compatibility redirect and may be retired; operational links should use `/app/hk/rooms`.
+**Shared board flow:** `/app/hk` redirects HK and ADMIN to `/app/hk/rooms`, the canonical Room Board with VCU inspection inbox, worksheet/bulk assignment, inline status override, reservation context, assigned housekeeper, notes, date navigation, and Daily List print. `/app/hk/supervisor` is a preserved permanent, query-preserving HTTP 308 shim to the board. `/app/hk/list` also remains a preserved compatibility redirect to the board; neither shim is slated for removal. Operational links use `/app/hk/rooms`. Linen circulation and the full Lost & Found registry are also available to HK and ADMIN; FO shares the registry.
 
 **Inspection step:** for vacant rooms, the VCU intermediate state separates "I cleaned this" from "I verified this is ready." Occupied rooms return from OD to OC after mid-stay cleaning because they remain assigned to the in-house guest.
 
-**Cleaning model:** `CleaningSession` is the single source for the assign → clean with timer → finish → inspect lifecycle. `HousekeepingLog` is the status-change audit capturing who, when, old status, new status, and optional status note.
+**Cleaning model:** `CleaningSession` is the single source for the assign → clean with timer → finish → inspect lifecycle. `HousekeepingLog` is the status-change audit capturing who, when, old status, new status, and optional status note. Tier removal preserves historical actor links, sessions, inspections, and logs; it does not erase accountability or relax transaction-local workflow guards.
 
 **Reservation note:** `Reservation.notes` is the one reservation comment field. Front Office edits it; Housekeeping reads it as guest instruction/context on lists, cards, and room detail.
 

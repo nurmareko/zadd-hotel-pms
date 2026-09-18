@@ -419,12 +419,14 @@ Priority order:
 
 HK surface guidance:
 
-- `/app/hk` redirects by role and should not be treated as a standalone destination.
-- `/app/hk/clean` is "Kamar Saya": mobile-first, thumb-friendly, and optimized for corridor work.
-- `/app/hk/rooms/[id]` is the shared room detail. Keep housekeeper controls prominent on mobile; keep supervisor inspection and history controls clear on wider screens.
-- `/app/hk/rooms` is the canonical supervisor rooms worksheet and merged status board. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
-- `/app/hk/list` remains only as a temporary compatibility redirect and may be retired. Do not link to it or design a standalone Daily List route.
-- `/app/hk/lost-found` is text-only in MVP. Use compact search, filter, and table patterns, not galleries or photo upload controls.
+- HK and ADMIN have uniform full HK operational access; there is no supervisor tier, badge, or separate supervisor navigation.
+- `/app/hk` redirects to `/app/hk/rooms` for HK and ADMIN and is not a standalone destination.
+- `/app/hk/mobile` is the phone workspace: mobile-first, thumb-friendly, and optimized for corridor work. `/app/hk/clean` is a permanent HTTP 308 redirect to it.
+- `/app/hk/rooms/[id]` is the shared room detail. Keep assigned-operator cleaning controls prominent on mobile and inspection/history clear on wider screens. Shared access does not bypass assignment or current-state guards.
+- `/app/hk/rooms` is the canonical Room Board with inspection inbox and worksheet/bulk-assignment tabs. Treat it as a dense operational table with date navigation, inline status override, reservation context, housekeeper, notes, and Daily List print.
+- `/app/hk/supervisor` is a preserved permanent, query-preserving HTTP 308 compatibility shim to `/app/hk/rooms`; `/app/hk/list` is also a preserved compatibility redirect to the board. Neither is slated for removal. New links use the board; do not design standalone screens for the shims.
+- `/app/hk/laundry` is the shared HK/ADMIN linen circulation workspace.
+- `/app/hk/lost-found` is the text-only registry shared by HK, FO, and ADMIN. Use compact search, filter, and table patterns, not galleries or photo upload controls.
 
 ### Front Office
 

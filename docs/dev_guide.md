@@ -14,16 +14,15 @@ After running the seed, these accounts exist. Passwords are intentionally weak �
 |----------|----------|-------|---------------------|
 | admin    | admin123 | ADMIN | `/app/admin/users`  |
 | fo1      | fo123    | FO    | `/app/fo/reservasi` → preferred Kalender/List view |
-| hksup    | hksup123 | HK supervisor | `/app/hk` → `/app/hk/supervisor` |
-| hk1      | hk123    | HK    | `/app/hk` → `/app/hk/clean` |
-| hk2      | hk2123   | HK    | `/app/hk` → `/app/hk/clean` |
-| hk3      | hk3123   | HK    | `/app/hk` → `/app/hk/clean` |
+| hk1      | hk123    | HK    | `/app/hk` → `/app/hk/rooms` |
+| hk2      | hk2123   | HK    | `/app/hk` → `/app/hk/rooms` |
+| hk3      | hk3123   | HK    | `/app/hk` → `/app/hk/rooms` |
 | fb1      | fb123    | FB    | `/app/fb`           |
 | acc1     | acc123   | ACC   | `/app/acc`          |
 
 For Front Office, `/app/fo/reservasi` reads the `zadd_fo_reservasi_view` cookie and redirects to `/app/fo/reservasi/kalender` or `/app/fo/reservasi/list`; when no preference exists, Kalender is the default. Do not assume a fixed FO destination beyond the canonical Reservasi entry route.
 
-**One account = one role.** Supervisor access is a tier on top of the role, not a separate role code. For HK, `User.isSupervisor` unlocks supervisor pages/actions while the role remains `HK`; ADMIN has no Housekeeping access at all. A user with role FO cannot access operational HK routes except `/app/hk/lost-found` search — other HK routes return 403. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
+**One account = one role.** The HK supervisor tier is decommissioned. HK and ADMIN have uniform full HK operational access; starting and finishing cleaning still requires assignment to the current operator. FO shares the full `/app/hk/lost-found` registry (page, creation, claim, disposal/donation, and export) with HK and ADMIN; other operational HK routes remain forbidden to FO. To test cross-module flows (e.g., F&B charge-to-room creating a folio entry), open two browsers (or one regular + one incognito) and log in as different users.
 
 To reset all data and re-seed: `npm run db:reset` (drops everything, re-runs migrations + seed).
 
@@ -139,17 +138,19 @@ AGENTS.md                     ← AI tool context
 
 Housekeeping route map:
 
-- `/app/hk` — role-based redirect; HK members go to `/app/hk/clean`, HK supervisors go to `/app/hk/supervisor`. ADMIN has no HK access.
-- `/app/hk/clean` — My Rooms / Kamar Saya housekeeper worklist.
-- `/app/hk/rooms/[id]` — shared role-aware room detail.
-- `/app/hk/rooms` — canonical supervisor rooms worksheet and merged status board. `/app/hk/list` is a temporary compatibility redirect that may be retired; do not use it in new links or instructions.
-- `/app/hk/supervisor` — supervisor dashboard with forecast, bulk assignment, VCU inbox, and KPIs.
-- `/app/hk/lost-found` — text-only Lost & Found log/search/return flow for HK and FO only.
+- `/app/hk` — redirects to `/app/hk/rooms` for HK and ADMIN; not a separate screen.
+- `/app/hk/mobile` — phone workspace with assigned rooms, self-claim, cleaning timer, and inspection. `/app/hk/clean` permanently redirects here (HTTP 308).
+- `/app/hk/rooms/[id]` — shared room detail, cleaning when assigned, inspection, and history.
+- `/app/hk/rooms` — canonical Room Board with inspection inbox, worksheet/bulk assignment, status override, and Daily List print.
+- `/app/hk/supervisor` — preserved permanent, query-preserving HTTP 308 compatibility shim to `/app/hk/rooms`, not a dashboard.
+- `/app/hk/list` — preserved compatibility redirect to `/app/hk/rooms`. Neither compatibility shim is slated for removal; new links and instructions use the canonical board.
+- `/app/hk/laundry` — linen circulation for HK and ADMIN.
+- `/app/hk/lost-found` — text-only registry for HK, FO, and ADMIN, including creation, claim, disposal/donation, and export.
 
 Housekeeping data model:
 
 - `CleaningSession` is the source for the assign → start timer → finish → inspect lifecycle.
-- `HousekeepingLog` is the audit trail for room-status changes and optional status notes.
+- `HousekeepingLog` is the audit trail for room-status changes and optional status notes. Tier removal must preserve existing user identity links, cleaning/inspection attribution, and historical logs; do not rewrite old actors or remove audit records.
 - `Reservation.notes` is the only reservation note/comment field. FO edits it; HK reads it as guest instruction/context.
 
 ---

@@ -16,7 +16,6 @@ Manual book ini membantu pengguna memahami langkah dasar penggunaan aplikasi ses
 
 - Front Office
 - Housekeeping
-- Supervisor Housekeeping
 - Food & Beverage
 - Akuntansi
 - Admin
@@ -159,7 +158,7 @@ Housekeeping membersihkan kamar yang ditugaskan dan mencatat barang temuan.
 
 ### 1. Melihat Kamar Saya
 
-1. Buka menu **Kamar Saya**.
+1. Buka ruang kerja ponsel di `/app/hk/mobile` untuk melihat kamar yang ditugaskan kepada Anda.
 
    ![Kamar Saya Housekeeping](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/hk-01-my-rooms.png)
 
@@ -185,7 +184,7 @@ Housekeeping membersihkan kamar yang ditugaskan dan mencatat barang temuan.
 
    ![Pembersihan selesai](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/hk-04-cleaning-finished.png)
 
-   Kamar berpindah ke status menunggu inspeksi. Supervisor Housekeeping dapat memeriksa kamar dari inbox VCU.
+   Kamar kosong berpindah dari VD ke VCU untuk menunggu inspeksi; kamar berpenghuni berpindah dari OD ke OC. Semua petugas HK dan Admin dapat memeriksa kamar VCU dari papan kamar.
 
 ### 4. Catat Lost & Found
 
@@ -201,25 +200,25 @@ Housekeeping membersihkan kamar yang ditugaskan dan mencatat barang temuan.
 
    Barang muncul di daftar Lost & Found agar dapat ditindaklanjuti oleh tim hotel.
 
-## Supervisor Housekeeping
+## Penugasan dan Inspeksi Housekeeping
 
-Supervisor Housekeeping mengatur penugasan kamar, melakukan inspeksi, dan mencetak daily list.
+Semua petugas HK dan Admin memiliki akses operasional Housekeeping yang sama, tanpa tingkat supervisor. Memulai dan menyelesaikan pembersihan tetap hanya dapat dilakukan oleh petugas yang ditugaskan; riwayat petugas, inspeksi, dan perubahan status tetap disimpan.
 
-### 1. Melihat Dashboard Supervisor
+### 1. Melihat Papan Kamar
 
-1. Buka dashboard **Housekeeping Supervisor**.
+1. Buka papan kamar di `/app/hk/rooms`. `/app/hk` mengarah ke halaman ini. Alamat lama `/app/hk/supervisor` tetap dialihkan secara permanen (HTTP 308, parameter pencarian dipertahankan), dan `/app/hk/list` tetap menjadi pengalihan kompatibilitas ke papan kamar; keduanya tidak dijadwalkan untuk dihapus.
 
-   ![Dashboard Supervisor Housekeeping](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/sup-01-dashboard.png)
+   ![Tampilan historis dashboard supervisor Housekeeping](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/sup-01-dashboard.png)
 
-   Dashboard menampilkan KPI kamar, forecast, dan ringkasan pekerjaan harian.
+   Gambar di bagian ini merupakan dokumentasi tampilan lama, bukan bukti adanya tingkat akses supervisor saat ini. Gunakan papan kamar untuk melihat status, penugasan, daftar inspeksi VCU, dan mencetak daftar harian.
 
-### 2. Assign Rooms
+### 2. Menugaskan Kamar
 
-1. Buka bagian **Assignment**.
+1. Buka bagian penugasan di papan kamar.
 
    ![Bulk assignment Housekeeping](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/sup-02-bulk-assignment.png)
 
-   Pilih kamar dan housekeeper, lalu jalankan bulk assignment. Kamar yang dipilih masuk ke worklist housekeeper.
+   Pilih kamar dan petugas, lalu jalankan penugasan massal. Kamar yang dipilih masuk ke daftar tugas petugas.
 
 ### 3. Inspeksi Kamar VCU
 
@@ -229,15 +228,15 @@ Supervisor Housekeeping mengatur penugasan kamar, melakukan inspeksi, dan mencet
 
    Periksa kondisi kamar dan isi checklist inspeksi sebelum memberi keputusan.
 
-2. Klik **Pass Inspection** jika kamar sudah layak jual.
+2. Setujui inspeksi jika kamar sudah layak jual.
 
    ![Inspeksi kamar berhasil](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/sup-04-inspection-passed.png)
 
    Status kamar berubah menjadi **VC**. Kamar kembali tersedia untuk Front Office.
 
-### 4. Cetak Daily List
+### 4. Cetak Daftar Harian
 
-1. Buka **Daily List**, lalu pilih print atau unduh PDF.
+1. Buka lembar kerja di `/app/hk/rooms`, lalu cetak daftar harian.
 
    ![PDF Daily List Housekeeping](https://raw.githubusercontent.com/nurmareko/zadd-hotel-pms/main/docs/user-guide/images/sup-05-daily-list-pdf.png)
 

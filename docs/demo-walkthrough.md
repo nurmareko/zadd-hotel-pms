@@ -18,7 +18,6 @@ A single guest lifecycle that exercises **every module and every cross-module se
 |------|----------|----------|
 | Admin | admin | admin123 |
 | Front Office | fo1 | fo123 |
-| HK Supervisor | hksup | hksup123 |
 | Housekeeping | hk1 | hk123 |
 | Housekeeping | hk2 | hk2123 |
 | Housekeeping | hk3 | hk3123 |
@@ -58,12 +57,12 @@ A single guest lifecycle that exercises **every module and every cross-module se
 **Demo note:** *"Resepsionis melihat tagihan F&B tanpa rekonsiliasi manual."*
 
 ### 6. HK — assignment, cleaning, and inspection
-**Action:** As `hksup`, open Supervisor Dashboard, review the workload forecast, and assign a dirty room to `hk1` (single room or bulk assignment). As `hk1` on a mobile viewport, open Kamar Saya, open the room detail, start the cleaning timer, finish with a note, then return to `hksup` and approve the VCU inspection to VC.
-**Verify:** `CleaningSession` timing is visible in the room detail/history, the dirty room moves `VD → VCU → VC` (or stayover `OD → OC`), the supervisor VCU inbox updates, and the FO Kalender reflects the status change.
-**Demo note:** *"Supervisor membagi pekerjaan, room boy membersihkan dari HP, lalu supervisor inspeksi sebelum kamar kembali dijual."*
+**Action:** As `hk2`, open the Room Board at `/app/hk/rooms` and assign a vacant dirty room to `hk1` (single room or bulk assignment). As `hk1` on a mobile viewport, open `/app/hk/mobile`, start the assigned room's cleaning timer, complete the required linen/towel checklist, and finish with a note. Return to `hk2` and approve the VCU inspection from the board. Use a separate stayover room to exercise `OD → OC` without a vacant-room inspection.
+**Verify:** HK and ADMIN have the same full HK operational access, with no supervisor tier; both can open the board, phone workspace, linen circulation, and full Lost & Found registry. Only the assigned operator can start/finish cleaning. `CleaningSession` timing and inspection attribution remain visible in room history, `VD → VCU → VC` updates the board's VCU inbox, and FO Kalender reflects the status change. Confirm `/app/hk` lands on `/app/hk/rooms`; `/app/hk/supervisor` is a permanent, query-preserving HTTP 308 shim and `/app/hk/list` remains a compatibility redirect to the board. Both shims are retained, not slated for removal. These are walkthrough checks to perform, not claims of completed verification.
+**Demo note:** *"Petugas HK dan Admin memiliki akses operasional yang sama. Petugas `hk2` membagi tugas, petugas `hk1` yang ditugaskan membersihkan dari HP, lalu petugas `hk2` memeriksa kamar sebelum kembali dijual. Setiap tindakan tetap tercatat."*
 
-### 7. HK / FO — Lost & Found
-**Action:** As `hk1`, log a text-only found item from Lost & Found or room detail. As `fo1`, search for it and mark it returned with a resolution note; both FO and HK have the same log/search/return permissions.
+### 7. HK / FO / ADMIN — Lost & Found
+**Action:** As `hk1`, log a text-only found item from Lost & Found or room detail. As `fo1`, search for it and mark it returned with a resolution note; HK, FO, and ADMIN share the full registry permissions, including claim, disposal/donation, and export.
 **Verify:** Item starts UNCLAIMED, search finds it by text/room/status, and returned resolution sets RETURNED with a returned timestamp.
 **Demo note:** *"Barang tertinggal dapat dicatat, dicari, dan diselesaikan oleh petugas HK maupun FO."*
 

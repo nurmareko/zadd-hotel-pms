@@ -36,10 +36,10 @@ function form(overrides: Record<string, string> = {}) {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.useRealTimers();
-  auth.mockResolvedValue({ user: { id: "9", role: "HK", isSupervisor: false } });
+  auth.mockResolvedValue({ user: { id: "9", role: "HK" } });
   transaction.mockImplementation(async (run) => run(tx));
   tx.room.findUnique.mockResolvedValue({ id: 1, status: "OC" });
-  tx.user.findFirst.mockResolvedValue({ id: 2, isSupervisor: true });
+  tx.user.findFirst.mockResolvedValue({ id: 2 });
   tx.cleaningSession.findFirst.mockResolvedValue(null);
   tx.housekeepingAssignment.findUnique.mockResolvedValue(null);
   tx.housekeepingAssignment.upsert.mockResolvedValue({ id: 7 });
@@ -54,7 +54,7 @@ describe("room board server actions", () => {
     expect(transaction).not.toHaveBeenCalled();
   });
 
-  it.each(["HK", "ADMIN"])("allows %s to assign active HK, including supervisors", async (role) => {
+  it.each(["HK", "ADMIN"])("allows %s to assign active HK staff", async (role) => {
     auth.mockResolvedValue({ user: { id: "9", role } });
     expect(await setRoomHousekeeper(1, "2026-09-17", 2)).toEqual({ ok: true });
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));

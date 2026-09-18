@@ -23,7 +23,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       initialNavBadges={navBadges}
       initialSidebarCollapsed={initialSidebarCollapsed}
       userRole={session.user.role}
-      userIsSupervisor={session.user.isSupervisor}
       userFullName={session.user.fullName}
     >
       {children}

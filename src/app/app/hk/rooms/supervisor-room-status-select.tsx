@@ -52,12 +52,12 @@ export function SupervisorRoomStatusSelect({
   return (
     <div className="min-w-[190px]">
       <label className="sr-only" htmlFor={`room-status-override-${roomId}`}>
-        Ubah status supervisor kamar {roomNumber}
+        Ubah status kamar {roomNumber}
       </label>
       <div className="relative">
         <select
           id={`room-status-override-${roomId}`}
-          aria-label={`Ubah status supervisor kamar ${roomNumber}`}
+          aria-label={`Ubah status kamar ${roomNumber}`}
           value={selectedStatus}
           disabled={isPending}
           onChange={(event) => applyStatus(event.target.value as RoomStatus)}

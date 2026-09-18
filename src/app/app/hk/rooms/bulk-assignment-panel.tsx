@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import {
   assignHousekeepingRooms,
   unassignHousekeepingRooms,
-} from "./actions";
+} from "./bulk-actions";
 
 type FloorGroup = {
   floor: number;

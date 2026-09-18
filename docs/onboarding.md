@@ -84,10 +84,11 @@ Open http://localhost:3000 — you should see the V2 light-enterprise login page
 
 | Username | Password | Role | Landing |
 |---|---|---|---|
-| hksup | hksup123 | HK supervisor (`isSupervisor`) | `/app/hk` → `/app/hk/supervisor` |
-| hk1 | hk123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
-| hk2 | hk2123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
-| hk3 | hk3123 | HK housekeeper | `/app/hk` → `/app/hk/clean` |
+| hk1 | hk123 | HK | `/app/hk` → `/app/hk/rooms` |
+| hk2 | hk2123 | HK | `/app/hk` → `/app/hk/rooms` |
+| hk3 | hk3123 | HK | `/app/hk` → `/app/hk/rooms` |
+
+The supervisor tier is decommissioned; HK and ADMIN have uniform full HK operational access, subject to the same assignment and current-state workflow guards.
 
 ### About the database
 
@@ -154,13 +155,17 @@ Navigation badges are intentionally small in scope: `GET /api/nav-badges` serves
 - **ARR:** Accounting computes weighted ARR live from integrity-checked paid room-charge postings linked to service-night snapshots. It does not use `NightAudit.roomNightsSold`.
 - **Whole-IDR convention:** money input and settlement use whole rupiah. Dynamic pricing calculates in `Decimal`, rounds each final nightly rate once half-up before persistence, and ARR retains Decimal precision until display.
 
-Housekeeping routes are role-aware:
+Housekeeping routes are shared by HK and ADMIN:
 
-- `/app/hk` is a redirect, not a screen. HK members land on `/app/hk/clean`; HK supervisors land on `/app/hk/supervisor`. ADMIN has no HK access.
-- `/app/hk/clean` is My Rooms / Kamar Saya for assigned housekeeper work.
-- `/app/hk/rooms/[id]` is the shared room detail. Housekeepers clean/log; supervisors inspect/history/status.
-- `/app/hk/rooms` is the canonical supervisor rooms worksheet and merged status board. `/app/hk/list` is a temporary compatibility redirect that may be retired; use `/app/hk/rooms` in new work.
-- `/app/hk/lost-found` is shared by HK and FO only. Both roles can search/filter, log a text-only item, and mark it returned with a resolution note.
+- `/app/hk` redirects to `/app/hk/rooms`, not a separate screen.
+- `/app/hk/mobile` is the phone workspace for assigned rooms, self-claim, cleaning, and inspection. `/app/hk/clean` permanently redirects here (HTTP 308).
+- `/app/hk/rooms/[id]` is shared room detail with cleaning, inspection, history, and status context. Only the assigned operator can start/finish cleaning.
+- `/app/hk/rooms` is the canonical Room Board with inspection inbox, worksheet/bulk assignment, status override, and Daily List print.
+- `/app/hk/supervisor` is a preserved permanent, query-preserving HTTP 308 compatibility shim to `/app/hk/rooms`. `/app/hk/list` is also a preserved compatibility redirect to the board. Neither is slated for removal; use `/app/hk/rooms` in new work.
+- `/app/hk/laundry` provides linen circulation.
+- `/app/hk/lost-found` is shared by HK, FO, and ADMIN for the full text-only registry: search/filter, creation, claim, disposal/donation, and export.
+
+Tier removal preserves historical auditability: keep existing user identity links, cleaning sessions, inspection attribution, and status/activity logs intact. Archived designs and meeting records remain historical, not current access rules.
 
 Housekeeping data has two separate responsibilities: `CleaningSession` is the source for assignment, timer, finish, and inspection; `HousekeepingLog` is the audit trail for room-status changes. Reservation comments are not duplicated for HK: `Reservation.notes` is the canonical note, editable by FO and read-only to HK.
 

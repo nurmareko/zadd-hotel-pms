@@ -460,7 +460,7 @@ flowchart TD
 ## 6. Update Room Status
 
 **Use case:** UC-HK-02 Clean Assigned Room with timer and VCU inspection workflow
-**Actors:** Front Office staff, Housekeeping staff, Housekeeping supervisor, System
+**Actors:** Front Office staff, Housekeeping staff, Administrator, System
 **Trigger:** HK sees an assigned vacant dirty room after check-out, or FO requests cleaning for an in-house room
 
 ```mermaid
@@ -472,13 +472,13 @@ flowchart TD
         FO2[Open reservation detail<br/>and request cleaning]
     end
 
-    subgraph SUP1[HK Supervisor]
-        SP1[Open Supervisor Dashboard<br/>or Supervisor Rooms]
+    subgraph SUP1[HK or ADMIN Assignment]
+        SP1[Open Room Board]
         SP2[Assign room for date]
         SP3[Optional bulk assignment<br/>by floor/workload]
     end
 
-    subgraph HK[Housekeeping Staff]
+    subgraph HK[Assigned Operator - HK or ADMIN]
         HK1[Open My Rooms<br/>Kamar Saya]
         HK2[Open shared room detail]
         HK3[Tap Start Cleaning timer]
@@ -487,13 +487,13 @@ flowchart TD
         HK6[Add optional status note]
     end
 
-    subgraph HS[HK Supervisor Inspection]
+    subgraph HS[HK or ADMIN Inspection]
         HS1[See VCU rooms in<br/>inspection inbox or rooms page]
         HS2[Walk to room and inspect]
         HS3{Inspection pass?}
         HS4[Tap Approve - VC]
         HS5[Tap Reject - back to VD]
-        HS6[Optional manual override<br/>from Supervisor Rooms]
+        HS6[Optional manual override from Room Board]
     end
 
     subgraph S[System]
@@ -549,8 +549,10 @@ flowchart TD
 - **HousekeepingLog is the audit trail:** every room-status change appends a `housekeeping_log` row with old status, new status, actor, timestamp, and optional status note. It is not the source for active timer state.
 - **Occupied-room loop:** FO can request cleaning from an in-house reservation detail, changing the room from `OC → OD`. When HK stops cleaning an occupied room, the room returns directly to `OC`.
 - **Vacant-room inspection:** stopping cleaning for a vacant dirty room changes `VD → VCU`. Inspection then approves `VCU → VC` or rejects `VCU → VD`.
-- **Supervisor tier:** inspection, assignment, bulk assignment, Daily List print, and manual override are gated to HK users with `User.isSupervisor = true`. ADMIN has no HK access. Housekeepers clean only their operational worklist.
-- **Manual override:** supervisors can bypass the normal clean/inspect path from Supervisor Rooms when operations require it; the override still writes the status audit.
+- **Uniform operational access:** the HK supervisor tier is decommissioned. HK and ADMIN can assign individually or in bulk, clean when assigned, inspect, print the Daily List, view history, and override status. Start/finish cleaning requires assignment to the current operator; transaction-local state and active-cleaning guards remain authoritative.
+- **Routes:** `/app/hk` redirects to `/app/hk/rooms`. `/app/hk/supervisor` is a preserved permanent, query-preserving HTTP 308 shim to that board, and `/app/hk/list` is a preserved compatibility redirect there; neither is slated for removal. The phone workspace is `/app/hk/mobile`, with `/app/hk/clean` permanently redirecting to it (HTTP 308).
+- **Manual override:** HK and ADMIN can use the Room Board override when operations require it, subject to its current-state guards; the override still writes the status audit.
+- **Historical auditability:** preserve existing cleaning sessions, inspection actors/timestamps, and status/activity logs. Decommissioning the tier must not rewrite prior actor identities or erase history.
 - **Loop on rejection:** if inspection fails, the room returns to VD. The cleaning cycle repeats — same staff or different, depending on shift. The housekeeping_log row history captures every iteration for accountability.
 - **Kalender sync:** every status change revalidates Front Office reservation views. The FO receptionist sees room status updates in Kalender without maintaining a separate room-status dashboard widget.
 
@@ -708,7 +710,7 @@ This document covers the use cases with non-trivial decision logic or multi-acto
 
 | Use Case | Reason for omission |
 |---|---|
-| UC-HK-01 View My Rooms / Supervisor Rooms | Read-only list/worksheet display; no decision logic |
+| UC-HK-01 View My Rooms / Room Board | Read-only list/worksheet display; no decision logic |
 | UC-AC-02 Generate Night Report | Read-only render of NightAudit snapshot fields |
 | UC-AD-01 Manage Master Data | CRUD operations; covered by use case narrative |
 | UC-AD-02 Manage Users & Roles | CRUD operations; covered by use case narrative |

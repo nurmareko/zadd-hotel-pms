@@ -71,8 +71,7 @@ function selectedRoomIds(formData: FormData) {
   return formData.getAll("roomId").map((value) => String(value));
 }
 
-function revalidateSupervisorAssignmentViews() {
-  revalidatePath("/app/hk/supervisor");
+function revalidateAssignmentViews() {
   revalidatePath("/app/hk/rooms");
   revalidatePath("/app/hk/clean");
   revalidatePath("/app/hk/mobile");
@@ -166,7 +165,7 @@ export async function assignHousekeepingRooms(
     );
 
     if (result.ok) {
-      revalidateSupervisorAssignmentViews();
+      revalidateAssignmentViews();
     }
 
     return result;
@@ -232,7 +231,7 @@ export async function unassignHousekeepingRooms(
     );
 
     if (result.ok) {
-      revalidateSupervisorAssignmentViews();
+      revalidateAssignmentViews();
     }
 
     return result;

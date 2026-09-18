@@ -25,7 +25,6 @@ const loginSchema = z.object({
 
 const demoAccounts = [
   { username: "fo1", password: "fo123", role: "Front Office" },
-  { username: "hksup", password: "hksup123", role: "HK Supervisor" },
   { username: "hk1", password: "hk123", role: "Housekeeping" },
   { username: "fb1", password: "fb123", role: "Food & Beverage" },
   { username: "acc1", password: "acc123", role: "Accounting" },
@@ -93,7 +92,7 @@ export function LoginForm() {
                     autoFocus
                     autoComplete="username"
                     disabled={isSubmitting}
-                    placeholder="Enter your username"
+                    placeholder="Masukkan username Anda"
                     className="h-10 rounded-md border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
@@ -116,7 +115,7 @@ export function LoginForm() {
                     type="password"
                     autoComplete="current-password"
                     disabled={isSubmitting}
-                    placeholder="Enter your password"
+                    placeholder="Masukkan password Anda"
                     className="h-10 rounded-md border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
@@ -150,17 +149,17 @@ export function LoginForm() {
               Memproses
             </>
           ) : (
-            "Sign In"
+            "Masuk"
           )}
         </Button>
 
         <div className="mt-4 border-t border-gray-200 pt-6">
           <div className="mb-4 flex items-baseline justify-between">
             <p className="text-[13px] font-medium text-slate-700">
-              Demo Accounts
+              Akun Demo
             </p>
             <p className="text-[12px] text-slate-400">
-              Click to autofill
+              Klik untuk mengisi otomatis
             </p>
           </div>
 
