@@ -49,8 +49,8 @@ The application is built as a **single Next.js app** with four operational areas
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FO-01 | **Kalender (Tape Chart)** | Page | `/app/fo/reservasi/kalender`: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, and in-house guest selection. `/app/fo/reservasi` redirects to the user's stored Kalender/List preference. |
-| FO-02 | Reservation List | Page | `/app/fo/reservasi/list`: searchable/filterable arrival-window list with in-house carryover, folio balance, and group badges linking to FO-07; the whole row opens reservation detail. |
+| FO-01 | **Kalender (Tape Chart)** | Page | `/app/fo/reservasi/kalender`: room-type-grouped room × date grid with unified status colors, unallocated-reservation lanes, checkout marker, click-empty-cell booking, in-house guest selection, interactive calendar date-range popover (`DateRangePickerPopover`, #204), and unified visual row styling for unallocated lanes and out-of-order (OOO) room blocks (#205). `/app/fo/reservasi` redirects to the user's stored Kalender/List preference. |
+| FO-02 | Reservation List | Page | `/app/fo/reservasi/list`: searchable/filterable list supporting guest/reservation query (`q`), check-in date (`checkIn`, #206), check-out date (`checkOut`, #207), and status selector with default "Aktif", "Semua Status" (`ALL`), and individual statuses including "No-show" (`NO_SHOW`) (#208, #209). Features in-house carryover, folio balance, active filter reset ("Atur Ulang"), live result count, group badges linking to FO-07, and role-gated CSV export (`/app/fo/reservasi/export`) using the shared CSV library (#210, #211); the whole row opens reservation detail. |
 | FO-03 | Unified Reservation Form / Detail | Page | `/app/fo/reservasi/new` and `/app/fo/reservasi/[id]`: one form handles single- or multi-room creation with repeatable 1–20 room rows, shared stay/guest data, per-room occupancy and allocation, dynamic nightly quotes, atomic creation, and pinned form actions. Read-only detail/edit uses the same structure, with Detail, Inklusi, Pembayaran, and Tagihan tabs plus group sibling context. |
 | FO-04 | Check-in | Embedded workflow | Embedded in reservation detail at `/app/fo/reservasi/[id]`: show the required, non-client-editable deposit resolved by the server from the first-night `ReservationNight.rateAmount`; on or after arrival, collect it before check-in through the canonical serializable, idempotent writer, which creates or reuses the folio, records exactly one `DEPOSIT`-purpose payment, and atomically transitions `PENDING → COLLECTED`. `PENDING` blocks with no override. Check-in then requires `CONFIRMED`, `COLLECTED`, the existing folio, and its matching deposit payment before room confirmation, inline GRC completion, required signature, and compare-and-set `CHECKED_IN`. |
 | FO-05 | Guest Folio | Embedded workspace | Embedded in FO-03 at `/app/fo/reservasi/[id]?tab=pembayaran` and `?tab=tagihan`: payments, line items, manual charges, and balance. The deprecated `/app/fo/folios/[id]` route is compatibility infrastructure that redirects to the reservation's Tagihan tab, not a standalone screen. |
@@ -59,6 +59,16 @@ The application is built as a **single Next.js app** with four operational areas
 | FO-08 | Kinerja Petugas | Page | `/app/fo/staff-performance` and `/app/fo/staff-performance/[userId]`: ActivityLog-based FO comparison, preset/custom date ranges, sorting, per-user metrics, and paginated activity history. Accessible to FO and ADMIN. |
 
 The retired FO summary route is a compatibility redirect to Reservasi, not a screen. Its departures-due-today queue and occupancy KPI are deferred to a future FO Reports page.
+
+#### Recently Completed Front Office Enhancements (#204–#211)
+
+| Feature / Issue | Screen / Route | Shipped Capability & Behavior |
+|---|---|---|
+| **Tape Chart Calendar Popover (#204)** | FO-01 (`/app/fo/reservasi/kalender`) | Interactive date-range popover (`DateRangePickerPopover`) enabling arbitrary date window selection with quick calendar navigation. |
+| **Unified Unallocated & OOO Row Styling (#205)** | FO-01 (`/app/fo/reservasi/kalender`) | Harmonized visual presentation, borders, and status chips between unallocated reservation lanes and out-of-order (OOO) room blocks on the Tape Chart. |
+| **Reservation List Date Filters (#206, #207)** | FO-02 (`/app/fo/reservasi/list`) | Independent check-in (`checkIn`) and check-out (`checkOut`) date inputs allowing staff to filter arrivals and departures by specific dates or windows. |
+| **Expanded Status Options & "No-show" (#208, #209)** | FO-02 (`/app/fo/reservasi/list`) | Status dropdown with default "Aktif" (`CONFIRMED`, `CHECKED_IN`, `CHECKED_OUT`), "Semua Status" (`ALL`), and specific status filters including "No-show" (`NO_SHOW`) and "Dibatalkan" (`CANCELLED`), accompanied by a one-click "Atur Ulang" reset button and live result counter. |
+| **Reservation List CSV Export & Shared CSV Utility (#210, #211)** | FO-02 (`/app/fo/reservasi/export`) | Role-gated `/app/fo/reservasi/export` endpoint (FO, ADMIN) generating downloadable CSVs respecting all active filters (`q`, `status`, `checkIn`, `checkOut`). Powered by the shared library `src/lib/csv.ts` providing UTF-8 BOM, spreadsheet formula-injection protection (`=`, `+`, `-`, `@`), and sanitized filename handling. |
 
 **Still cut/deferred from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
 
@@ -244,6 +254,7 @@ Build these seven before opening Stitch / Claude Design:
 | PDFButton | bills, reports | Wrapper around a print-to-PDF route |
 | NavShell | every authenticated page | Sidebar desktop + one bottom tab bar for all roles on mobile and coarse-pointer tablets |
 | EmptyState | tables with no data | Plain text "Belum ada data." + CTA button |
+| CsvExport / csv.ts | FO-02, HK-03, HK-05, ACC export | Shared CSV utility (`src/lib/csv.ts`) providing UTF-8 BOM (`\uFEFF`), spreadsheet formula-injection protection (`=`, `+`, `-`, `@`), RFC 4180 escaping, and no-cache attachment response creation. |
 
 ---
 
