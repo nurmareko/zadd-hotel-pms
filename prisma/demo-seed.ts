@@ -6,6 +6,8 @@ import {
   FolioStatus,
   GuestIdType,
   LostFoundStatus,
+  LinenBatchStatus,
+  LinenItemType,
   NightAuditStatus,
   PaymentMethod,
   PaymentPurpose,
@@ -1073,6 +1075,62 @@ async function seedHousekeepingListDemo({
   );
 }
 
+async function seedLinenBatches(recordedById: number, receivedById: number) {
+  const batches = [
+    {
+      batchCode: "DEMO-LINEN-001",
+      itemType: LinenItemType.BED_SHEET,
+      sentQuantity: 40,
+      receivedQuantity: 37,
+      damagedQuantity: 2,
+      status: LinenBatchStatus.CLEAN,
+      vendor: "Laundry Mitra Bandung",
+      notes: "Rekonsiliasi selesai: 37 bersih, 2 rusak, 1 hilang.",
+      sentAt: hoursAgo(72),
+      completedAt: hoursAgo(24),
+      receivedById,
+    },
+    {
+      batchCode: "DEMO-LINEN-002",
+      itemType: LinenItemType.BATH_TOWEL,
+      sentQuantity: 30,
+      receivedQuantity: null,
+      damagedQuantity: 0,
+      status: LinenBatchStatus.WASHING,
+      vendor: "Laundry Mitra Bandung",
+      notes: "Sedang dicuci oleh penyedia laundry.",
+      sentAt: hoursAgo(24),
+      completedAt: null,
+      receivedById: null,
+    },
+    {
+      batchCode: "DEMO-LINEN-003",
+      itemType: LinenItemType.PILLOW_CASE,
+      sentQuantity: 50,
+      receivedQuantity: null,
+      damagedQuantity: 0,
+      status: LinenBatchStatus.SENT,
+      vendor: "Laundry Mitra Bandung",
+      notes: "Dikirim, menunggu proses pencucian.",
+      sentAt: hoursAgo(2),
+      completedAt: null,
+      receivedById: null,
+    },
+  ];
+
+  // Upsert only these fixtures; no unrelated batches or User FK targets are deleted.
+  await prisma.$transaction(
+    batches.map((batch) =>
+      prisma.linenBatch.upsert({
+        where: { batchCode: batch.batchCode },
+        create: { ...batch, recordedById },
+        update: { ...batch, recordedById },
+      }),
+    ),
+  );
+  console.log("✓ seeded 3 linen batches (clean, washing, sent)");
+}
+
 async function seedLostFoundItems({
   roomsByNumber,
   housekeepingUserId,
@@ -1717,6 +1775,8 @@ async function main() {
       inspectedById: housekeepingSupervisor.id,
       date: today,
     });
+
+    await seedLinenBatches(housekeepingUser.id, housekeepingSupervisor.id);
 
     await seedLostFoundItems({
       roomsByNumber,

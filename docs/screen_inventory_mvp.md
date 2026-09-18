@@ -62,14 +62,14 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 
 **Still cut/deferred from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
 
-### 3.2 Housekeeping (5 destinations, including Laundry placeholder)
+### 3.2 Housekeeping (5 destinations)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | HK-01 | Phone HK Workspace / My Rooms | Phone-first page | #244 Phase 3: `/app/hk/mobile` is a dedicated HK/ADMIN page with today's prioritized assignments, an unassigned pool and self-claim, inline cleaning/timer/inspection, and floor Lost & Found reporting. `/app/hk/clean` is a legacy permanent HTTP 308 redirect here, reversing the old direction. See the Phase 3 contract below. |
 | HK-02 | Shared Room Detail | Mobile-first | `/app/hk/rooms/[id]`: all HK users and ADMIN can inspect VCU rooms, view history, and review status context. Only the assigned HK operator can start/finish cleaning with the live timer; HK supervisors are assignable too. Lost & Found logging remains HK/FO only. |
 | HK-03 | Room Board | Page | `/app/hk/rooms`: shared by all HK users and ADMIN, with status overview, VCU inspection inbox, worksheet/bulk-assignment tabs, status override, reservation context, housekeeper, note, date navigation, and Daily List print. #241 Phase 2 adds automatic P1–P5 priorities, `TSK-{roomNumber}` codes, URL-backed search/filter/sort, inline assignment, a task dialog, and filtered CSV export. |
-| HK-04 | Laundry Placeholder | Page | Navigation placeholder for #242; no full laundry workflow is implemented in #240 Phase 1. |
+| HK-04 | Linen Circulation | Page + dispatch/receipt modals | #242: `/app/hk/laundry`, accessible to HK and ADMIN, implements linen dispatch, washing, and one-time receipt with clean/damaged/lost reconciliation, unit-based KPIs, search, and filters. See the linen circulation contract below. |
 | HK-05 | Lost & Found | Page | `/app/hk/lost-found`: FO and HK can search/filter, log text-only items with optional room context, and mark an item returned with a resolution note; other roles are denied. |
 
 #240 Phase 1 unifies HK navigation as **Room Board, Laundry, Lost & Found**. `/app/hk` redirects to `/app/hk/rooms` for all HK users and ADMIN. `/app/hk/supervisor` is a query-preserving HTTP 308 redirect to `/app/hk/rooms`, not a separate screen. `/app/hk/list` remains a compatibility redirect; new links use `/app/hk/rooms`. Shared operational access does not bypass assigned-operator cleaning or expand Lost & Found access.
@@ -98,6 +98,20 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
 - **Notification contract:** the existing notification schema uses `ASSIGNED`, not `PENDING`.
 
 **Owner review:** the HK module owner remains the reviewer/domain expert for #241, especially priority precedence, selected-date versus actual-today behavior, assignment guards, and CSV parity. No schema changes are part of this phase. This documentation-only update runs no checks or Git operations.
+
+#### #242 — Linen circulation contract
+
+`HK-04` replaces the Laundry placeholder at `/app/hk/laundry`. All HK users and ADMIN can use the workflow; supervisor status is not required. User-facing labels, item names, validation, and feedback are Indonesian; internal enum values remain English.
+
+- **Unit-based KPIs:** clean received sums clean units received on `CLEAN` records; washing sums dispatched quantities on `WASHING` records; awaiting processing sums dispatched quantities on `SENT` records; damaged sums recorded damaged units. These are quantities, not counts of dispatch records. Clean received is cumulative receipt history, not current available stock: there is no linen consumption workflow or full stock ledger.
+- **Search and filters:** `q` searches dispatch code, vendor, and notes; combine it with status, item, and date filters.
+- **Dispatch modal:** choose from the seven supported item enum types, displayed with Indonesian labels; enter an integer quantity of at least 1, vendor, and notes. Create a `SENT` record with a sequential `LND-yyMM-####` code.
+- **Advance to washing:** only `SENT → WASHING` is allowed.
+- **Receipt modal:** accept a record in either `SENT` or `WASHING` directly into terminal `CLEAN`, once only. Clean and damaged quantities must be nonnegative integers with `clean + damaged <= sent`; derive lost units as `sent - (clean + damaged)`. Receipt finalizes the dispatch even when some units are damaged or lost; it is not a repeatable partial-receipt workflow.
+- **Audit and notes:** record operator and timestamp audit data and append receipt notes without replacing existing dispatch notes.
+- **Transaction safety:** mutations use serializable transactions, row locking, and retries. Recheck current status and receipt eligibility inside the transaction so concurrent attempts cannot advance an invalid state or receive the same dispatch twice.
+
+**Owner review:** the HK module owner should review KPI unit semantics, the seven Indonesian item labels, dispatch-code sequencing, direct receipt from `SENT`, reconciliation, and duplicate-receipt protection. This contract documents the supplied implementation scope; it does not assert runtime or concurrency verification.
 
 #### #244 Phase 3 — Phone workspace contract
 
@@ -165,7 +179,7 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 |---|---:|---:|
 | Global | 3 | 1 (Module Switcher) |
 | Front Office | 8 | 5 |
-| Housekeeping | 5 (includes Laundry placeholder) | 1 |
+| Housekeeping | 5 | 1 |
 | Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
 | Admin | 7 | 4 |

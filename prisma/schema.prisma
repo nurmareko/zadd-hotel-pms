@@ -143,6 +143,22 @@ enum NightAuditStatus {
   COMPLETED
 }
 
+enum LinenItemType {
+  BED_SHEET
+  DUVET_COVER
+  PILLOW_CASE
+  BATH_TOWEL
+  HAND_TOWEL
+  BATH_MAT
+  OTHER
+}
+
+enum LinenBatchStatus {
+  SENT
+  WASHING
+  CLEAN
+}
+
 enum LostFoundStatus {
   UNCLAIMED
   RETURNED
@@ -215,6 +231,8 @@ model User {
   cleaningInspections     CleaningSession[]        @relation("CleaningSessionInspector")
   housekeepingNotifications HousekeepingNotification[] @relation("HousekeepingNotificationRecipient")
   lostFoundItemsFound     LostFoundItem[]          @relation("LostFoundItemFoundBy")
+  linenBatchesRecorded    LinenBatch[]             @relation("LinenBatchRecordedBy")
+  linenBatchesReceived    LinenBatch[]             @relation("LinenBatchReceivedBy")
   nightAuditsRun          NightAudit[]
   paymentsReceived        Payment[]
   stayFeesSelected        ReservationStayFee[]
@@ -665,6 +683,32 @@ model LostFoundItem {
   @@index([status])
   @@index([roomId])
   @@map("lost_found_item")
+}
+
+model LinenBatch {
+  id               String           @id @default(cuid())
+  batchCode        String           @unique @map("batch_code")
+  itemType         LinenItemType    @map("item_type")
+  sentQuantity     Int              @map("sent_quantity")
+  receivedQuantity Int?             @map("received_quantity")
+  damagedQuantity  Int              @default(0) @map("damaged_quantity")
+  status           LinenBatchStatus @default(SENT)
+  vendor           String?
+  notes            String?
+  sentAt           DateTime         @default(now()) @map("sent_at")
+  completedAt      DateTime?        @map("completed_at")
+  recordedById     Int              @map("recorded_by_id")
+  receivedById     Int?             @map("received_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  recordedBy User  @relation("LinenBatchRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  receivedBy User? @relation("LinenBatchReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  // Quantity checks live in the SQL migration; lost is derived after reconciliation.
+  @@index([status, sentAt])
+  @@index([itemType])
+  @@map("linen_batch")
 }
 
 // ============================================================

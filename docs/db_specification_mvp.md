@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 26 tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 27 numbered tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows all 26 entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows the 27 numbered entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -19,6 +19,8 @@ erDiagram
   USER ||--o{ CLEANING_SESSION : "cleans"
   USER ||--o{ CLEANING_SESSION : "inspects"
   USER ||--o{ LOST_FOUND_ITEM : "logs_found_item"
+  USER ||--o{ LINEN_BATCH : "records"
+  USER |o--o{ LINEN_BATCH : "receives"
   USER ||--o{ NIGHT_AUDIT : "runs"
   USER ||--o{ PAYMENT : "receives"
   USER ||--o{ RESERVATION : "creates"
@@ -56,6 +58,24 @@ erDiagram
   FB_ORDER ||--o{ FB_ORDER_ITEM : "contains"
   FB_ORDER ||--o{ PAYMENT : "settled_by"
   FB_ORDER ||--o{ FOLIO_LINE_ITEM : "charged_to_room"
+
+  LINEN_BATCH {
+    text id PK
+    text batch_code UK
+    LinenItemType item_type
+    int sent_quantity
+    int received_quantity
+    int damaged_quantity
+    LinenBatchStatus status
+    text vendor
+    text notes
+    timestamp sent_at
+    timestamp completed_at
+    int recorded_by_id FK
+    int received_by_id FK
+    timestamp created_at
+    timestamp updated_at
+  }
 
   USER {
     int id PK
@@ -397,6 +417,10 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 26. RoomBlock(*id*, *room_id\#*, start_date, end_date, reason, status, note nullable, *created_by_id\#*, created_at, updated_at)
 
+**Housekeeping laundry (Slice 1)**
+
+27. LinenBatch(*id*, batch_code, item_type, sent_quantity, received_quantity nullable, damaged_quantity, status, vendor nullable, notes nullable, sent_at, completed_at nullable, *recorded_by_id\#*, received_by_id\# nullable, created_at, updated_at)
+
 ## Enum specifications
 
 | Enum | Values |
@@ -421,6 +445,8 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | DepositStatus | PENDING, COLLECTED |
 | NightAuditStatus | COMPLETED |
 | LostFoundStatus | UNCLAIMED, RETURNED |
+| LinenItemType | BED_SHEET, DUVET_COVER, PILLOW_CASE, BATH_TOWEL, HAND_TOWEL, BATH_MAT, OTHER |
+| LinenBatchStatus | SENT, WASHING, CLEAN |
 | ActivityAction | RESERVATION_CREATED, RESERVATION_UPDATED, RESERVATION_CANCELLED, CHECK_IN_COMPLETED, CHECK_OUT_COMPLETED, PAYMENT_RECORDED, FOLIO_CHARGE_POSTED |
 | PricingRuleSelectorKind | DAY_OF_WEEK, DATE_RANGE |
 | PricingRuleDayOfWeek | MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY |
@@ -1024,6 +1050,36 @@ Indexes:
 - INDEX (`room_id`) — room search/filter lookup.
 
 Lost & Found is text-only in the MVP. Records may be room-specific or public-area items (`room_id` null). Marking an item returned stores `returned_at` and optional `resolution`; it does not mutate room status or create maintenance work.
+
+### `linen_batch` (table 27)
+
+One batch contains one linen item type. Prisma uses conventional camelCase fields mapped to the snake_case columns below.
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | TEXT | PRIMARY KEY | Prisma-generated cuid (`String`) |
+| batch_code | TEXT | UNIQUE, NOT NULL | Human-readable batch identity |
+| item_type | LinenItemType | NOT NULL | Linen category |
+| sent_quantity | INT | NOT NULL, CHECK >= 0 | Quantity sent |
+| received_quantity | INT | NULLABLE, CHECK >= 0 | Usable quantity received; null until reconciled |
+| damaged_quantity | INT | NOT NULL, DEFAULT 0, CHECK >= 0 | Damaged returns, separate from usable received quantity |
+| status | LinenBatchStatus | NOT NULL, DEFAULT 'SENT' | SENT → WASHING → CLEAN |
+| vendor | TEXT | NULLABLE | Laundry vendor |
+| notes | TEXT | NULLABLE | Operational notes |
+| sent_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Dispatch timestamp |
+| completed_at | TIMESTAMP | NULLABLE | Reconciliation/completion timestamp |
+| recorded_by_id | INT | NOT NULL, FOREIGN KEY → user(id), ON DELETE RESTRICT | Recording user; Prisma relation `recordedBy` |
+| received_by_id | INT | NULLABLE, FOREIGN KEY → user(id), ON DELETE SET NULL | Receiving user; Prisma relation `receivedBy` |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL | Maintained by Prisma `@updatedAt` |
+
+Indexes: UNIQUE (`batch_code`), INDEX (`status`, `sent_at`), INDEX (`item_type`). Both User foreign keys use ON UPDATE CASCADE. User exposes `linenBatchesRecorded` and `linenBatchesReceived` reverse relations.
+
+Reconciliation: **lost = sentQuantity - (receivedQuantity + damagedQuantity)**. Lost is derived, never stored. While `receivedQuantity` is null, reconciliation is pending, not a confirmed loss. CLEAN means reconciliation is complete, not necessarily that every item returned undamaged. Future workflow mutations must set `receivedQuantity`, `completedAt`, and `receivedById` on completion; Slice 1 adds no workflow or UI.
+
+Migration-level CHECK constraints enforce nonnegative quantities and `COALESCE(received_quantity, 0) + damaged_quantity <= sent_quantity` (using BIGINT arithmetic to avoid integer overflow). These checks are maintained in SQL because Prisma v6 cannot express CHECK constraints in the model. Status transitions and completion metadata consistency are deferred to the workflow slice.
+
+Destructive cleanup must remove linen batches before deleting recording users. The existing whole-schema reset removes the table, and DB-test cleanup uses cascading truncation; neither is run as part of this slice. Demo batches are upserted by their unique demo batch codes without deleting unrelated batches.
 
 ### `night_audit`
 
