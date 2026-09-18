@@ -194,13 +194,6 @@ async function loadPricingSet(
   return roomType;
 }
 
-export async function resolveNightlyRate(
-  roomTypeId: number,
-  date: string,
-): Promise<ResolvedNightlyRate> {
-  const pricingSet = await loadPricingSet(roomTypeId);
-  return resolveFromPricingSet(pricingSet, parseISODateOnly(date));
-}
 
 export async function resolveNightlySchedule(
   {
