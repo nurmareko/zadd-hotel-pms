@@ -228,9 +228,26 @@ describe("mobile self-claim", () => {
 });
 
 describe("floor lost and found", () => {
+  beforeEach(() => {
+    tx.$queryRaw.mockImplementation(async (sql: TemplateStringsArray) =>
+      sql.join("?").includes('AS "maximum"')
+        ? [{ count: "0", maximum: "0" }]
+        : [{ id: 10 }],
+    );
+  });
+
   it.each([null, 10])("logs optional room %s without assignment and attributes the operator", async (roomId) => {
     expect(await reportFloorLostFoundOperation({ ...input, roomId, description: "  Dompet hitam  " })).toEqual({ ok: true });
-    expect(tx.lostFoundItem.create).toHaveBeenCalledWith({ data: { roomId, description: "Dompet hitam", foundById: 7 } });
+    expect(tx.lostFoundItem.create).toHaveBeenCalledWith({
+      data: {
+        referenceCode: "LF-2609-0001",
+        createdAt: now,
+        roomId,
+        description: "Dompet hitam",
+        foundById: 7,
+        category: "OTHER",
+      },
+    });
     expect(tx.housekeepingAssignment.findFirst).not.toHaveBeenCalled();
     expect(tx.room.updateMany).not.toHaveBeenCalled();
   });

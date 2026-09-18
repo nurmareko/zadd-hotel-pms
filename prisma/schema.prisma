@@ -162,6 +162,16 @@ enum LinenBatchStatus {
 enum LostFoundStatus {
   UNCLAIMED
   RETURNED
+  DISPOSED
+}
+
+enum LostFoundCategory {
+  ELECTRONICS
+  CLOTHING
+  DOCUMENTS
+  VALUABLES
+  ACCESSORIES
+  OTHER
 }
 
 enum ActivityAction {
@@ -231,6 +241,8 @@ model User {
   cleaningInspections     CleaningSession[]        @relation("CleaningSessionInspector")
   housekeepingNotifications HousekeepingNotification[] @relation("HousekeepingNotificationRecipient")
   lostFoundItemsFound     LostFoundItem[]          @relation("LostFoundItemFoundBy")
+  lostFoundItemsReturned  LostFoundItem[]          @relation("LostFoundItemReturnedBy")
+  lostFoundItemsDisposed  LostFoundItem[]          @relation("LostFoundItemDisposedBy")
   linenBatchesRecorded    LinenBatch[]             @relation("LinenBatchRecordedBy")
   linenBatchesReceived    LinenBatch[]             @relation("LinenBatchReceivedBy")
   nightAuditsRun          NightAudit[]
@@ -668,19 +680,34 @@ model CleaningSession {
 }
 
 model LostFoundItem {
-  id          Int             @id @default(autoincrement())
-  roomId      Int?            @map("room_id")
-  description String          @db.Text
-  foundById   Int             @map("found_by_id")
-  status      LostFoundStatus @default(UNCLAIMED)
-  returnedAt  DateTime?       @map("returned_at")
-  resolution  String?         @db.Text
-  createdAt   DateTime        @default(now()) @map("created_at")
+  id               Int               @id @default(autoincrement())
+  /// LF-YYMM-XXXX (hotel month; suffix is at least four digits), supplied by callers.
+  referenceCode    String            @unique @map("reference_code") @db.Text
+  category         LostFoundCategory @default(OTHER)
+  roomId           Int?              @map("room_id")
+  locationDetails  String?           @map("location_details") @db.Text
+  description      String            @db.Text
+  foundById        Int               @map("found_by_id")
+  status           LostFoundStatus   @default(UNCLAIMED)
+  claimantName     String?           @map("claimant_name") @db.Text
+  claimantPhone    String?           @map("claimant_phone") @db.Text
+  claimantIdNumber String?           @map("claimant_id_number") @db.Text
+  returnedById     Int?              @map("returned_by_id")
+  returnedAt       DateTime?         @map("returned_at")
+  resolution       String?           @db.Text
+  disposedById     Int?              @map("disposed_by_id")
+  disposedAt       DateTime?         @map("disposed_at")
+  disposalReason   String?           @map("disposal_reason") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at")
 
-  room    Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  foundBy User  @relation("LostFoundItemFoundBy", fields: [foundById], references: [id])
+  room       Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  foundBy    User  @relation("LostFoundItemFoundBy", fields: [foundById], references: [id])
+  returnedBy User? @relation("LostFoundItemReturnedBy", fields: [returnedById], references: [id], onDelete: SetNull)
+  disposedBy User? @relation("LostFoundItemDisposedBy", fields: [disposedById], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([category])
+  @@index([createdAt])
   @@index([roomId])
   @@map("lost_found_item")
 }

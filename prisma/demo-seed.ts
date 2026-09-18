@@ -6,6 +6,7 @@ import {
   FolioStatus,
   GuestIdType,
   LostFoundStatus,
+  LostFoundCategory,
   LinenBatchStatus,
   LinenItemType,
   NightAuditStatus,
@@ -1142,8 +1143,6 @@ async function seedLostFoundItems({
   secondHousekeepingUserId: number;
   frontOfficeUserId: number;
 }) {
-  await prisma.lostFoundItem.deleteMany({});
-
   function roomId(roomNumber: string) {
     const room = roomsByNumber.get(roomNumber);
 
@@ -1154,17 +1153,26 @@ async function seedLostFoundItems({
     return room.id;
   }
 
-  await prisma.lostFoundItem.createMany({
-    data: [
+  const fixtures: Array<
+    Omit<Prisma.LostFoundItemCreateManyInput, "referenceCode" | "createdAt"> & {
+      createdAt: Date;
+    }
+  > = [
       {
         roomId: roomId("102"),
-        description: "Phone charger hitam tertinggal di samping tempat tidur",
+
+        category: LostFoundCategory.ELECTRONICS,
+        locationDetails: "Di samping tempat tidur",
+        description: "Pengisi daya ponsel hitam tertinggal di samping tempat tidur",
         foundById: secondHousekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
         createdAt: minutesAgo(90),
       },
       {
         roomId: roomId("301"),
+
+        category: LostFoundCategory.CLOTHING,
+        locationDetails: "Lemari pakaian",
         description: "Jaket denim biru tertinggal di lemari pakaian",
         foundById: housekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
@@ -1172,17 +1180,83 @@ async function seedLostFoundItems({
       },
       {
         roomId: null,
-        description: "Botol minum silver ditemukan di area duduk lobby",
+
+        category: LostFoundCategory.OTHER,
+        locationDetails: "Area duduk lobi",
+        description: "Botol minum perak ditemukan di area duduk lobi",
         foundById: frontOfficeUserId,
         status: LostFoundStatus.RETURNED,
         returnedAt: minutesAgo(25),
-        resolution: "Dikembalikan ke tamu setelah konfirmasi ID di front desk",
+        returnedById: frontOfficeUserId,
+        claimantName: "Tamu Demo",
+        claimantPhone: "000000000000",
+        claimantIdNumber: "DEMO-ID-0003",
+        resolution: "Dikembalikan ke tamu setelah konfirmasi identitas di resepsionis",
         createdAt: hoursAgo(6),
       },
-    ],
-  });
+      {
 
-  console.log("✓ seeded 3 lost & found items");
+        category: LostFoundCategory.ACCESSORIES,
+        roomId: null,
+        locationDetails: "Area payung lobi",
+        description: "Payung rusak tidak diambil setelah masa penyimpanan",
+        foundById: housekeepingUserId,
+        status: LostFoundStatus.DISPOSED,
+        disposedById: housekeepingUserId,
+        disposedAt: hoursAgo(1),
+        disposalReason: "Masa penyimpanan berakhir; barang rusak dan tidak dapat digunakan",
+        createdAt: addDays(new Date(), -90),
+      },
+  ];
+  const legacyDescriptions: Record<string, string> = {
+    "Pengisi daya ponsel hitam tertinggal di samping tempat tidur":
+      "Phone charger hitam tertinggal di samping tempat tidur",
+    "Botol minum perak ditemukan di area duduk lobi":
+      "Botol minum silver ditemukan di area duduk lobby",
+  };
+
+  await prisma.$transaction(async (tx) => {
+    // Block competing inserts while checking fixture identity and allocating suffixes.
+    await tx.$executeRaw`LOCK TABLE "lost_found_item" IN SHARE ROW EXCLUSIVE MODE`;
+    const references = await tx.lostFoundItem.findMany({
+      select: { referenceCode: true },
+    });
+    const maxSequenceByMonth = new Map<string, bigint>();
+    for (const { referenceCode } of references) {
+      const match = /^LF-(\d{4})-(\d{4,})$/.exec(referenceCode);
+      if (!match) continue;
+      const sequence = BigInt(match[2]);
+      if (sequence > (maxSequenceByMonth.get(match[1]) ?? BigInt(0))) {
+        maxSequenceByMonth.set(match[1], sequence);
+      }
+    }
+
+    for (const fixture of fixtures) {
+      const legacyDescription = legacyDescriptions[fixture.description];
+      const existing = await tx.lostFoundItem.findFirst({
+        where: {
+          roomId: fixture.roomId,
+          foundById: fixture.foundById,
+          description: {
+            in: legacyDescription
+              ? [fixture.description, legacyDescription]
+              : [fixture.description],
+          },
+        },
+        select: { id: true },
+      });
+      if (existing) continue;
+
+      const hotelDate = hotelTodayDateOnly(fixture.createdAt);
+      const month = hotelDate.toISOString().slice(2, 7).replace("-", "");
+      const sequence = (maxSequenceByMonth.get(month) ?? BigInt(0)) + BigInt(1);
+      const referenceCode = `LF-${month}-${sequence.toString().padStart(4, "0")}`;
+      await tx.lostFoundItem.create({ data: { ...fixture, referenceCode } });
+      maxSequenceByMonth.set(month, sequence);
+    }
+  }, { timeout: 20000 });
+
+  console.log("✓ ensured 4 lost & found demo fixtures (existing records preserved)");
 }
 
 type FrontOfficeUserSeed = Awaited<

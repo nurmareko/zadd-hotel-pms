@@ -19,6 +19,8 @@ erDiagram
   USER ||--o{ CLEANING_SESSION : "cleans"
   USER ||--o{ CLEANING_SESSION : "inspects"
   USER ||--o{ LOST_FOUND_ITEM : "logs_found_item"
+  USER |o--o{ LOST_FOUND_ITEM : "returns_found_item"
+  USER |o--o{ LOST_FOUND_ITEM : "disposes_found_item"
   USER ||--o{ LINEN_BATCH : "records"
   USER |o--o{ LINEN_BATCH : "receives"
   USER ||--o{ NIGHT_AUDIT : "runs"
@@ -306,12 +308,22 @@ erDiagram
   }
   LOST_FOUND_ITEM {
     int id PK
+    text reference_code UK
+    varchar category "ELECTRONICS, CLOTHING, DOCUMENTS, VALUABLES, ACCESSORIES, OTHER"
     int room_id FK "nullable; NULL = public area / unspecified"
+    text location_details
     text description
     int found_by_id FK
-    varchar status "UNCLAIMED, RETURNED"
+    varchar status "UNCLAIMED, RETURNED, DISPOSED"
+    text claimant_name
+    text claimant_phone
+    text claimant_id_number
+    int returned_by_id FK "nullable"
     timestamp returned_at
     text resolution
+    int disposed_by_id FK "nullable"
+    timestamp disposed_at
+    text disposal_reason
     timestamp created_at
   }
   NIGHT_AUDIT {
@@ -397,7 +409,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 19. HousekeepingLog(*id*, *room_id\#*, *updated_by_id\#*, old_status, new_status, note, updated_at, cleaning_started_at, cleaning_completed_at, linen_changed, towel_changed)
 20. HousekeepingAssignment(*id*, *room_id\#*, *housekeeper_id\#*, date, created_at)
 21. CleaningSession(*id*, *room_id\#*, *housekeeper_id\#*, inspected_by_id\# nullable, date, started_at, finished_at, inspected_at, created_at)
-22. LostFoundItem(*id*, room_id\# nullable, *found_by_id\#*, description, status, returned_at, resolution, created_at)
+22. LostFoundItem(*id*, *reference_code* unique, category, room_id\# nullable, location_details, *found_by_id\#*, description, status, claimant_name, claimant_phone, claimant_id_number, returned_by_id\# nullable, returned_at, resolution, disposed_by_id\# nullable, disposed_at, disposal_reason, created_at)
 
 **Accounting**
 
@@ -444,7 +456,8 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | PaymentPurpose | DEPOSIT, PAYMENT, SETTLEMENT |
 | DepositStatus | PENDING, COLLECTED |
 | NightAuditStatus | COMPLETED |
-| LostFoundStatus | UNCLAIMED, RETURNED |
+| LostFoundStatus | UNCLAIMED, RETURNED, DISPOSED |
+| LostFoundCategory | ELECTRONICS, CLOTHING, DOCUMENTS, VALUABLES, ACCESSORIES, OTHER |
 | LinenItemType | BED_SHEET, DUVET_COVER, PILLOW_CASE, BATH_TOWEL, HAND_TOWEL, BATH_MAT, OTHER |
 | LinenBatchStatus | SENT, WASHING, CLEAN |
 | ActivityAction | RESERVATION_CREATED, RESERVATION_UPDATED, RESERVATION_CANCELLED, CHECK_IN_COMPLETED, CHECK_OUT_COMPLETED, PAYMENT_RECORDED, FOLIO_CHARGE_POSTED |
@@ -467,7 +480,7 @@ A few choices worth explaining:
 6. **Cleaning workflow uses existing room statuses.** The room-status enum already covers the housekeeping flow: vacant rooms move `VD → VCU → VC`, while occupied-room cleaning moves `OD → OC`. No separate "in progress" status is stored; active cleaning is derived from `CleaningSession.started_at IS NOT NULL AND finished_at IS NULL`.
 7. **CleaningSession is the workflow source.** CleaningSession stores per-room, per-housekeeper timestamps so cleaning duration (`finished_at - started_at`) and inspection history are preserved beyond the current Room status. HousekeepingLog timing/linen fields remain in the physical table as legacy audit payload columns, but the final HK module reads the cleaning lifecycle from CleaningSession.
 8. **Reservation notes are canonical.** `Reservation.notes` is the single free-text reservation note. Front Office can edit it while the reservation is non-terminal; Housekeeping reads it as guest instructions on HK worklists, cleaning cards, and room detail surfaces. Terminal reservations remain read-only under the modify policy below.
-9. **Lost & Found is operationally independent.** LostFoundItem records text descriptions, optional room context, the user who logged the item, and return resolution. It does not create maintenance tickets, store photos, or change Room.status automatically.
+9. **Lost & Found is operationally independent.** LostFoundItem records unique references, categories, text descriptions, optional room/location context, the user who logged the item, nullable claimant details, and return/disposal audit data. It does not create maintenance tickets, store photos, or change Room.status automatically.
 10. **F&B charges appear as folio line items.** When an F&B bill is charge-to-room, a FolioLineItem row is created with `fb_order_id` populated, preserving the link between the folio and the originating F&B order.
 11. **Room-type capacity has two meanings in operations.** `RoomType.capacity` is the maximum guest count for one room of that type. Reservation overbooking prevention instead uses the room type's inventory capacity: the count of physical `Room` rows registered for that type. A reservation must pass both checks.
 12. **Group bookings are a light reservation label.** `Reservation.group_booking_id` links several normal reservation rows created together by the Front Office multi-room flow. There is no parent booking table: each room remains its own reservation, folio, check-in, and checkout lifecycle.
@@ -1036,20 +1049,39 @@ Active cleaning is derived from `started_at` being set while `finished_at` is nu
 | Attribute | Type | Constraint | Notes |
 |---|---|---|---|
 | id | SERIAL | PRIMARY KEY | Unique lost-and-found item identifier |
+| reference_code | TEXT | NOT NULL, UNIQUE; no default | Prisma `referenceCode`; caller-supplied `LF-YYMM-XXXX`, e.g. `LF-2609-0001`; suffix has a four-digit minimum |
+| category | LostFoundCategory | NOT NULL, DEFAULT 'OTHER' | Prisma `category`; historical items default to OTHER |
 | room_id | INT | FOREIGN KEY -> room(id), ON DELETE SET NULL | Room where item was found, if applicable |
+| location_details | TEXT | NULL allowed | Prisma `locationDetails`; specific room/public-area location |
 | description | TEXT | NOT NULL | Text description of the item |
 | found_by_id | INT | NOT NULL, FOREIGN KEY -> user(id) | User who logged the found item |
-| status | LostFoundStatus | NOT NULL, DEFAULT 'UNCLAIMED' | Whether the item is still held or has been returned |
-| returned_at | TIMESTAMP | — | Return/resolution time |
-| resolution | TEXT | — | Free-text claimant or resolution note |
+| status | LostFoundStatus | NOT NULL, DEFAULT 'UNCLAIMED' | Held, returned, or disposed |
+| claimant_name | TEXT | NULL allowed | Prisma `claimantName`; claimant personal data |
+| claimant_phone | TEXT | NULL allowed | Prisma `claimantPhone`; string, not numeric |
+| claimant_id_number | TEXT | NULL allowed | Prisma `claimantIdNumber`; string preserving leading zeroes |
+| returned_by_id | INT | NULL allowed, FOREIGN KEY -> user(id), ON DELETE SET NULL, ON UPDATE CASCADE | Prisma `returnedById` / `returnedBy`; inverse `User.lostFoundItemsReturned`, relation `LostFoundItemReturnedBy` |
+| returned_at | TIMESTAMP(3) | NULL allowed | Existing Prisma `returnedAt`; return/resolution time preserved |
+| resolution | TEXT | NULL allowed | Existing free-text claimant or resolution note preserved |
+| disposed_by_id | INT | NULL allowed, FOREIGN KEY -> user(id), ON DELETE SET NULL, ON UPDATE CASCADE | Prisma `disposedById` / `disposedBy`; inverse `User.lostFoundItemsDisposed`, relation `LostFoundItemDisposedBy` |
+| disposed_at | TIMESTAMP(3) | NULL allowed | Prisma `disposedAt`; disposal time |
+| disposal_reason | TEXT | NULL allowed | Prisma `disposalReason`; disposal explanation |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Item log time |
 
 Indexes:
 
-- INDEX (`status`) — unclaimed/returned list filtering.
-- INDEX (`room_id`) — room search/filter lookup.
+- UNIQUE INDEX (`reference_code`) — reference identity.
+- INDEX (`status`) — unclaimed/returned/disposed list filtering (existing).
+- INDEX (`category`) — category filtering.
+- INDEX (`created_at`) — chronological filtering/sorting.
+- INDEX (`room_id`) — room search/filter lookup (existing).
 
-Lost & Found is text-only in the MVP. Records may be room-specific or public-area items (`room_id` null). Marking an item returned stores `returned_at` and optional `resolution`; it does not mutate room status or create maintenance work.
+Lost & Found is text-only in the MVP. Records may be room-specific or public-area items (`room_id` null). Marking an item returned stores `returned_at` and optional `resolution`; these existing fields and historical values remain unchanged. Return/disposal operator and claimant fields are nullable so historical records do not acquire invented audit identities. No room status changes or maintenance work are implied. This schema does not enforce workflow-specific required fields or terminal-state transitions; those remain action-layer responsibilities. Claimant fields are personal data and must not be exposed through unrestricted lists or logs.
+
+**Issue #243 reference contract:** `LF-YYMM-XXXX`, for example `LF-2609-0001` for September 2026. Interpret Prisma's UTC `TIMESTAMP(3)` `created_at` values as UTC and convert to `Asia/Jakarta` before deriving the hotel month. Historical sequence allocation uses `ROW_NUMBER() OVER (PARTITION BY hotel_month ORDER BY created_at, id)`, starting at 1. The suffix has a four-digit *minimum*: use a padding width of `GREATEST(4, length(sequence::text))` so 10000 is not truncated. The database enforces required/unique references; format and future allocation remain caller responsibilities, with no runtime default introduced in this schema-only slice.
+
+**Migration correction:** the already-applied initial migration emitted six-digit year/month prefixes. Preserve that migration unchanged. A subsequent transactional corrective migration converts those prefixes to `YYMM`, preserving each suffix and all other fields. Exclude concurrent writes, check the complete proposed reference set for collisions (including already-correct references and century collisions), and abort without changes if any collision exists. Never delete or renumber historical records to resolve a collision silently.
+
+**Demo fixture allocation:** fixtures use the same `LF-YYMM-XXXX` format, deriving the prefix from each fixture's hotel-local creation month. Within a write-locked transaction, recognize existing fixtures by description (including legacy descriptions), room, and logging user; skip them without overwriting state or reference codes. For missing fixtures, allocate monotonically above the largest existing numeric suffix for that prefix, in stable fixture order, using arbitrary-precision integers and minimum-width padding. This prevents collisions with historical/operator records and keeps reruns idempotent while fixture identity fields remain unchanged, including across month changes. Descriptions are the fixture identity, not a new persistent marker; editing identity fields makes a record no longer recognizable as that fixture. The full demo seed remains unsuitable for non-destructive execution because unrelated sections perform cleanup.
 
 ### `linen_batch` (table 27)
 

@@ -12,6 +12,7 @@ import {
   type CleaningOperator,
 } from "@/lib/housekeeping/cleaning-operations";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { allocateLostFoundReference, isLostFoundReferenceConflict } from "@/lib/lost-found/reference-allocation";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 
 import {
@@ -83,62 +84,77 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
   }
 
   const { roomId, description } = parsed.data;
-  const { today } = todayDateOnly();
 
-  try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw<Array<{ id: number }>>`
-          SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
-        `;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw<Array<{ id: number }>>`
+            SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE
+          `;
 
-        const assignment = await tx.housekeepingAssignment.findFirst({
-          where: { roomId, date: today, housekeeperId: userId },
-          select: { id: true },
-        });
+          const { today } = todayDateOnly();
+          const assignment = await tx.housekeepingAssignment.findFirst({
+            where: { roomId, date: today, housekeeperId: userId },
+            select: { id: true },
+          });
 
-        if (!assignment) {
-          return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
-        }
+          if (!assignment) {
+            return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
+          }
 
-        const room = await tx.room.findUnique({
-          where: { id: roomId },
-          select: { id: true },
-        });
+          const room = await tx.room.findUnique({
+            where: { id: roomId },
+            select: { id: true },
+          });
 
-        if (!room) {
-          return { ok: false as const, error: "Kamar tidak ditemukan" };
-        }
+          if (!room) {
+            return { ok: false as const, error: "Kamar tidak ditemukan" };
+          }
 
-        await tx.lostFoundItem.create({
-          data: {
-            roomId,
-            description,
-            foundById: userId,
-          },
-        });
+          const currentOperator = await tx.user.findFirst({
+            where: { id: userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
+            select: { id: true },
+          });
+          if (!currentOperator) return { ok: false as const, error: "Tidak berwenang" };
 
-        return { ok: true as const };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        ...TRANSACTION_OPTIONS,
-      },
-    );
+          const allocation = await allocateLostFoundReference(tx);
+          await tx.lostFoundItem.create({
+            data: {
+              ...allocation,
+              roomId,
+              description,
+              foundById: userId,
+              category: "OTHER",
+            },
+          });
 
-    if (result.ok) {
-      revalidatePath("/app/hk/lost-found");
-      revalidateRoomPaths(roomId);
+          return { ok: true as const };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          ...TRANSACTION_OPTIONS,
+        },
+      );
+
+      if (result.ok) {
+        revalidatePath("/app/hk/lost-found");
+        revalidatePath("/app/hk/mobile");
+        revalidateRoomPaths(roomId);
+      }
+
+      return result;
+    } catch (error) {
+      const retryable = isLostFoundReferenceConflict(error) ||
+        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034");
+      if (retryable && attempt < 2) continue;
+      if (retryable || isSerializationConflict(error)) {
+        return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
+      }
+      return { ok: false, error: "Gagal mencatat barang temuan" };
     }
-
-    return result;
-  } catch (error) {
-    if (isSerializationConflict(error)) {
-      return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
-    }
-
-    return { ok: false, error: "Gagal mencatat barang temuan" };
   }
+  return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
 }
 
 export async function inspectRoom(formData: FormData): Promise<ActionResult> {

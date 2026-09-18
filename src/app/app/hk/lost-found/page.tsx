@@ -1,388 +1,97 @@
 import { Prisma, type LostFoundStatus } from "@prisma/client";
-import { Archive, CheckCircle2, Plus, Search } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
+import { Archive, CheckCircle2, ClipboardList, Trash2 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ZodError } from "zod";
+import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCompactDateTimeID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-
-import {
-  createLostFoundItem,
-  markLostFoundItemReturned,
-} from "./actions";
-import {
-  LOST_FOUND_STATUS_VALUES,
-  parseLostFoundStatus,
-} from "./schema";
+import { canAccessLostFound } from "@/lib/lost-found/access";
+import { buildLostFoundWhere, parseLostFoundFilters, type LostFoundFilters as FilterValues } from "@/lib/lost-found/filters";
+import { LOST_FOUND_CATEGORY_ICONS, LOST_FOUND_CATEGORY_LABELS, LOST_FOUND_STATUS_LABELS, LOST_FOUND_STATUS_STYLES } from "@/lib/lost-found/labels";
+import { ClaimLostFoundDialog, CreateLostFoundDialog, DisposeLostFoundDialog } from "./lost-found-dialogs";
+import { LostFoundFilters } from "./lost-found-filters";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = {
-  q?: string | string[];
-  room?: string | string[];
-  status?: string | string[];
-};
+const itemSelect = {
+  id: true, referenceCode: true, description: true, category: true, status: true,
+  locationDetails: true, createdAt: true, claimantName: true, claimantPhone: true,
+  returnedAt: true, resolution: true, disposedAt: true, disposalReason: true,
+  room: { select: { number: true } }, foundBy: { select: { fullName: true } },
+  returnedBy: { select: { fullName: true } }, disposedBy: { select: { fullName: true } },
+} satisfies Prisma.LostFoundItemSelect;
+type Item = Prisma.LostFoundItemGetPayload<{ select: typeof itemSelect }>;
 
-const fieldClass =
-  "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none desktop:h-10";
-const headerCellClass =
-  "bg-white border-b border-slate-200 px-3 py-2 text-left text-[12px] font-medium text-slate-500";
-const bodyCellClass =
-  "border-b border-slate-100 px-3 py-[9px] align-top";
-
-const statusClassNames: Record<
-  LostFoundStatus,
-  { badge: string; pip: string; label: string }
-> = {
-  UNCLAIMED: {
-    badge: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
-    pip: "bg-status-vd-pip",
-    label: "Belum diambil",
-  },
-  RETURNED: {
-    badge: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
-    pip: "bg-status-vc-pip",
-    label: "Dikembalikan",
-  },
-};
-
-type LostFoundRow = {
-  id: number;
-  description: string;
-  status: LostFoundStatus;
-  returnedAt: Date | null;
-  resolution: string | null;
-  createdAt: Date;
-  room: { id: number; number: string } | null;
-  foundBy: { fullName: string };
-};
-
-function firstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
+function ItemStatus({ status }: { status: LostFoundStatus }) {
+  const style = LOST_FOUND_STATUS_STYLES[status];
+  return <StatusBadge label={LOST_FOUND_STATUS_LABELS[status]} className={style.badge} pipClassName={style.pip} size="md" />;
 }
 
-function statusBadge(status: LostFoundStatus) {
-  const classes = statusClassNames[status];
-
-  return (
-    <StatusBadge
-      label={classes.label}
-      className={classes.badge}
-      pipClassName={classes.pip}
-      size="md"
-    />
-  );
+function ItemLocation({ item }: { item: Item }) {
+  return <div className="space-y-1"><p className="whitespace-pre-wrap break-words font-medium">{item.description}</p><p className="break-words text-xs text-muted-foreground">{item.room ? `Kamar ${item.room.number}` : "Area Publik"}{item.locationDetails ? ` · ${item.locationDetails}` : ""}</p></div>;
 }
 
-function ReturnedInfo({ item }: { item: LostFoundRow }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-status-vc-fg">
-        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="num text-[11px] font-semibold">
-          {item.returnedAt
-            ? formatCompactDateTimeID(item.returnedAt)
-            : "Dikembalikan"}
-        </span>
-      </div>
-      <div className="text-[12px] leading-5 text-slate-600">
-        {item.resolution ?? "Tidak ada catatan penyelesaian"}
-      </div>
-    </div>
-  );
+function ItemCategory({ item }: { item: Item }) {
+  const Icon = LOST_FOUND_CATEGORY_ICONS[item.category];
+  return <span className="inline-flex items-center gap-2 text-xs"><Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />{LOST_FOUND_CATEGORY_LABELS[item.category]}</span>;
 }
 
-function MarkReturnedForm({ item }: { item: LostFoundRow }) {
-  return (
-    <form
-      action={markLostFoundItemReturned}
-      className="flex flex-col gap-2"
-    >
-      <input type="hidden" name="itemId" value={item.id} />
-      <input
-        type="text"
-        name="resolution"
-        maxLength={500}
-        placeholder="Catatan penyelesaian"
-        className={fieldClass}
-      />
-      <Button type="submit" className="w-fit rounded-md">
-        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-        Tandai dikembalikan
-      </Button>
-    </form>
-  );
-}
-
-function LostFoundCard({ item }: { item: LostFoundRow }) {
-  return (
-    <Card className="rounded-lg p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
-          <Archive
-            className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
-            aria-hidden="true"
-          />
-          <span className="text-[13px] leading-5 text-slate-900">
-            {item.description}
-          </span>
-        </div>
-        {statusBadge(item.status)}
-      </div>
-
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
-        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
-          Kamar
-        </dt>
-        <dd>
-          {item.room ? (
-            <span className="num font-semibold">{item.room.number}</span>
-          ) : (
-            <span className="text-[11px] italic text-slate-400">
-              Tanpa kamar
-            </span>
-          )}
-        </dd>
-        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
-          Ditemukan Oleh
-        </dt>
-        <dd>{item.foundBy.fullName}</dd>
-        <dt className="text-[11px] font-medium tracking-tight text-slate-500">
-          Waktu
-        </dt>
-        <dd className="num text-slate-600">
-          {formatCompactDateTimeID(item.createdAt)}
-        </dd>
-      </dl>
-
-      <div className="border-t border-border pt-3">
-        {item.status === "RETURNED" ? (
-          <ReturnedInfo item={item} />
-        ) : (
-          <MarkReturnedForm item={item} />
-        )}
-      </div>
-    </Card>
-  );
-}
-
-export default async function LostFoundPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const params = await searchParams;
-  const q = firstParam(params.q)?.trim() ?? "";
-  const room = firstParam(params.room)?.trim() ?? "";
-  const status = parseLostFoundStatus(firstParam(params.status));
-
-  const where: Prisma.LostFoundItemWhereInput = {};
-
-  if (q) {
-    where.description = {
-      contains: q,
-      mode: Prisma.QueryMode.insensitive,
-    };
+function ItemResolution({ item, now }: { item: Item; now: number }) {
+  if (item.status === "UNCLAIMED") {
+    const identity = { id: item.id, referenceCode: item.referenceCode, description: item.description };
+    return <div className="flex flex-wrap gap-2"><ClaimLostFoundDialog item={identity} /><DisposeLostFoundDialog item={identity} daysElapsed={Math.max(0, Math.floor((now - item.createdAt.getTime()) / 86400000))} /></div>;
   }
+  const returned = item.status === "RETURNED";
+  const date = returned ? item.returnedAt : item.disposedAt;
+  const operator = returned ? item.returnedBy : item.disposedBy;
+  return <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-xs">
+    <p className="break-words font-semibold">{returned ? item.claimantName ?? "Data pengambil belum tercatat" : item.disposalReason ?? "Alasan belum tercatat"}</p>
+    {returned && item.claimantPhone && <p className="break-words">{item.claimantPhone}</p>}
+    {returned && item.resolution && <p className="whitespace-pre-wrap break-words text-muted-foreground">{item.resolution}</p>}
+    <p className="text-muted-foreground">{date ? formatCompactDateTimeID(date) : "Waktu belum tercatat"}</p>
+    <p className="text-muted-foreground">Oleh: {operator?.fullName ?? "Petugas belum tercatat"}</p>
+  </div>;
+}
 
-  if (room) {
-    where.room = {
-      number: {
-        contains: room,
-        mode: Prisma.QueryMode.insensitive,
-      },
-    };
+export default async function LostFoundPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await canAccessLostFound(session.user))) return <main className="p-6"><h1 className="text-xl font-semibold">Akses Ditolak</h1><p>Anda tidak memiliki akses ke daftar barang temuan.</p></main>;
+  let filters: FilterValues = {};
+  let filterError: string | null = null;
+  try { filters = parseLostFoundFilters(await searchParams); } catch (error) {
+    if (!(error instanceof ZodError)) throw error;
+    const issue = error.issues[0];
+    filterError = (issue?.code === "invalid_union" ? issue.errors[0]?.[0]?.message : issue?.message) ?? "Filter tidak valid.";
   }
-
-  if (status) {
-    where.status = status;
-  }
-
-  const [items, rooms] = await Promise.all([
-    prisma.lostFoundItem.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        description: true,
-        status: true,
-        returnedAt: true,
-        resolution: true,
-        createdAt: true,
-        room: { select: { id: true, number: true } },
-        foundBy: { select: { fullName: true } },
-      },
-    }),
-    prisma.room.findMany({
-      orderBy: [{ floor: "asc" }, { number: "asc" }],
-      select: { id: true, number: true },
-    }),
+  const [items, rooms, counts] = await Promise.all([
+    filterError ? Promise.resolve([]) : prisma.lostFoundItem.findMany({ where: buildLostFoundWhere(filters), orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: itemSelect }),
+    prisma.room.findMany({ orderBy: [{ floor: "asc" }, { number: "asc" }], select: { id: true, number: true } }),
+    prisma.lostFoundItem.groupBy({ by: ["status"], _count: { _all: true } }),
   ]);
-
-  return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-6 text-foreground">
-      <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Lost &amp; Found
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {items.length} barang · terbaru dulu
-          </p>
-        </div>
-      </div>
-
-        <Card className="mb-4 rounded-lg overflow-hidden p-0">
-          <form
-            action="/app/hk/lost-found"
-            method="get"
-            className="flex flex-wrap items-center gap-2 border-b border-border p-3.5"
-          >
-            <div className="relative w-full sm:w-[300px]">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Cari deskripsi..."
-                className="h-11 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3.5 text-sm font-normal text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/15 focus:ring-4 focus:outline-none desktop:h-10"
-              />
-            </div>
-            <input
-              type="search"
-              name="room"
-              defaultValue={room}
-              placeholder="Kamar"
-              className={`${fieldClass} sm:w-[110px]`}
-            />
-            <select
-              name="status"
-              defaultValue={status ?? ""}
-              className={`${fieldClass} sm:w-[150px]`}
-            >
-              <option value="">Semua Status</option>
-              <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
-              <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
-            </select>
-            <Button type="submit" variant="outline" size="default" className="rounded-md">
-              <Search className="h-4 w-4" aria-hidden="true" />
-              Cari
-            </Button>
-            <span className="min-w-0 flex-1" />
-            <span className="num whitespace-nowrap text-right text-xs font-semibold text-slate-500">
-              {items.length} hasil
-            </span>
-          </form>
-
-          <form
-            action={createLostFoundItem}
-            className="grid gap-2 p-3.5 md:grid-cols-[minmax(220px,1fr)_150px_auto]"
-          >
-            <input
-              type="text"
-              name="description"
-              required
-              minLength={3}
-              maxLength={500}
-              placeholder="Tambah manual: deskripsi barang"
-              className={fieldClass}
-            />
-            <select name="roomId" defaultValue="" className={fieldClass}>
-              <option value="">Tanpa kamar</option>
-              {rooms.map((roomOption) => (
-                <option key={roomOption.id} value={roomOption.id}>
-                  Kamar {roomOption.number}
-                </option>
-              ))}
-            </select>
-            <Button type="submit" className="rounded-md px-4">
-              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-              Tambah Barang
-            </Button>
-          </form>
-        </Card>
-
-      <section className="space-y-2 md:hidden">
-        {items.length === 0 ? (
-          <p className="rounded-lg border border-border bg-card px-3 py-8 text-center text-sm italic text-muted-foreground">
-            Tidak ada barang Lost &amp; Found yang cocok dengan filter.
-          </p>
-        ) : (
-          items.map((item) => <LostFoundCard key={item.id} item={item} />)
-        )}
-      </section>
-
-      <Card className="hidden overflow-hidden rounded-lg md:block p-0">
-        <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full border-collapse text-[12px]">
-            <thead>
-              <tr>
-                <th className={headerCellClass}>Barang</th>
-                <th className={headerCellClass}>Kamar</th>
-                <th className={headerCellClass}>Ditemukan Oleh</th>
-                <th className={headerCellClass}>Waktu</th>
-                <th className={headerCellClass}>Status</th>
-                <th className={headerCellClass}>Penyelesaian</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-3 py-8 text-center text-[12px] italic text-slate-400"
-                  >
-                    Tidak ada barang Lost & Found yang cocok dengan filter.
-                  </td>
-                </tr>
-              ) : (
-                items.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className={`${bodyCellClass} max-w-[320px]`}>
-                      <div className="flex items-start gap-2">
-                        <Archive
-                          className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
-                          aria-hidden="true"
-                        />
-                        <span className="leading-5 text-slate-900">
-                          {item.description}
-                        </span>
-                      </div>
-                    </td>
-                    <td className={bodyCellClass}>
-                      {item.room ? (
-                        <span className="num font-semibold">
-                          {item.room.number}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] italic text-slate-400">
-                          Tanpa kamar
-                        </span>
-                      )}
-                    </td>
-                    <td className={bodyCellClass}>{item.foundBy.fullName}</td>
-                    <td className={`${bodyCellClass} num text-slate-600`}>
-                      {formatCompactDateTimeID(item.createdAt)}
-                    </td>
-                    <td className={bodyCellClass}>{statusBadge(item.status)}</td>
-                    <td className={`${bodyCellClass} min-w-[280px]`}>
-                      {item.status === "RETURNED" ? (
-                        <ReturnedInfo item={item} />
-                      ) : (
-                        <MarkReturnedForm item={item} />
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </main>
-  );
+  const count = (status: LostFoundStatus) => counts.find((row) => row.status === status)?._count._all ?? 0;
+  const metrics = [
+    { label: "Disimpan", hint: "Menunggu Klaim", value: count("UNCLAIMED"), icon: Archive },
+    { label: "Dikembalikan", hint: "Telah diserahkan ke tamu", value: count("RETURNED"), icon: CheckCircle2 },
+    { label: "Dimusnahkan / Dihibahkan", hint: "Penyelesaian sesuai kebijakan", value: count("DISPOSED"), icon: Trash2 },
+    { label: "Total Register", hint: "Seluruh barang tercatat", value: counts.reduce((sum, row) => sum + row._count._all, 0), icon: ClipboardList },
+  ];
+  // This dynamic server page captures one request-time clock for every disposal preview.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  return <main className="space-y-6 p-4 text-foreground md:p-6">
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold tracking-tight">Barang Temuan</h1><p className="mt-1 text-sm text-muted-foreground">Pencatatan, penyimpanan, dan penyelesaian barang temuan hotel.</p></div><CreateLostFoundDialog rooms={rooms} /></header>
+    <section aria-label="Ringkasan seluruh barang temuan" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, hint, value, icon: Icon }) => <Card className="gap-2 p-4" key={label}><div className="flex items-start justify-between gap-3"><h2 className="text-sm font-medium">{label}</h2><Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" /></div><p className="text-3xl font-bold tabular-nums">{value}</p><p className="text-xs text-muted-foreground">{hint}</p></Card>)}</section>
+    <Card className="gap-0 overflow-hidden p-0">
+      <LostFoundFilters key={JSON.stringify(filters)} filters={filters} canExport={!filterError} />
+      {filterError && <p role="alert" className="m-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{filterError} Atur ulang filter untuk menampilkan daftar.</p>}
+      <div className="border-b px-4 py-3 text-sm text-muted-foreground">{items.length} barang sesuai filter · terbaru dahulu</div>
+      {items.length === 0 ? <div className="space-y-2 p-8 text-center"><Archive className="mx-auto size-8 text-muted-foreground" aria-hidden="true" /><h2 className="font-semibold">Tidak ada barang yang ditampilkan</h2><p className="text-sm text-muted-foreground">Sesuaikan filter atau catat barang temuan baru.</p></div> : <>
+        <div className="hidden overflow-x-auto desktop:block"><table className="w-full min-w-[1100px] text-sm"><caption className="sr-only">Daftar barang temuan dan riwayat penyelesaiannya</caption><thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground"><tr>{["Kode & Waktu", "Barang & Lokasi", "Kategori", "Ditemukan Oleh", "Status", "Aksi / Penyelesaian"].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}</tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20"><td className="px-4 py-3 align-top"><p className="font-semibold">{item.referenceCode}</p><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></td><td className="px-4 py-3 align-top"><ItemLocation item={item} /></td><td className="px-4 py-3 align-top"><ItemCategory item={item} /></td><td className="break-words px-4 py-3 align-top">{item.foundBy.fullName}</td><td className="px-4 py-3 align-top"><ItemStatus status={item.status} /></td><td className="px-4 py-3 align-top"><ItemResolution item={item} now={now} /></td></tr>)}</tbody></table></div>
+        <div className="divide-y desktop:hidden">{items.map((item) => <article key={item.id} className="space-y-4 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="text-sm font-semibold">{item.referenceCode}</h2><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></div><ItemStatus status={item.status} /></div><ItemLocation item={item} /><ItemCategory item={item} /><p className="text-xs text-muted-foreground">Ditemukan oleh: {item.foundBy.fullName}</p><ItemResolution item={item} now={now} /></article>)}</div>
+      </>}
+    </Card>
+  </main>;
 }

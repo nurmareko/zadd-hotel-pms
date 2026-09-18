@@ -4,6 +4,7 @@ import { hotelTodayDateOnly } from "@/lib/date-only";
 import { isMobilePoolEligible } from "@/lib/housekeeper-mobile-eligibility";
 import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
+import { allocateLostFoundReference, isLostFoundReferenceConflict } from "@/lib/lost-found/reference-allocation";
 
 export type CleaningResult = { ok: true } | { ok: false; error: string };
 export type CleaningOperator = { userId: number; role: "HK" | "ADMIN" };
@@ -36,6 +37,10 @@ async function runTransaction(
       return { ok: true };
     } catch (error) {
       if (error instanceof CleaningError) return { ok: false, error: error.message };
+      if (isLostFoundReferenceConflict(error)) {
+        if (attempt < 2) continue;
+        return { ok: false, error: conflictMessage };
+      }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2034" && attempt < 2) continue;
         if (error.code === "P2034" || error.code === "P2028") {
@@ -243,8 +248,9 @@ export async function reportFloorLostFoundOperation(
     if (description.length < 3 || description.length > 500) {
       throw new CleaningError("Deskripsi harus terdiri dari 3–500 karakter");
     }
+    const allocation = await allocateLostFoundReference(tx);
     await tx.lostFoundItem.create({
-      data: { roomId: input.roomId, description, foundById: input.userId },
+      data: { ...allocation, roomId: input.roomId, description, foundById: input.userId, category: "OTHER" },
     });
   });
 }
