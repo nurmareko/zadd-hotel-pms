@@ -10,6 +10,7 @@ export const FOLIO_FAILURE_CODES = [
   "INVALID_INPUT",
   "FOLIO_NOT_FOUND",
   "FOLIO_NOT_OPEN",
+  "NIGHT_AUDIT_CLOSED",
   "ARTICLE_NOT_FOUND",
   "PROTECTED_TAX_ARTICLE",
   "PROTECTED_STAY_ARTICLE",
@@ -34,6 +35,8 @@ export const FOLIO_FAILURE_MESSAGES: Record<FolioFailureCode, string> = {
     "Folio tidak ditemukan. Muat ulang halaman lalu coba lagi.",
   FOLIO_NOT_OPEN:
     "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
+  NIGHT_AUDIT_CLOSED:
+    "Audit malam untuk tanggal bisnis hari ini sudah selesai. Transaksi folio tidak dapat dicatat.",
   ARTICLE_NOT_FOUND:
     "Artikel tidak ditemukan atau sudah tidak tersedia. Pilih artikel lain.",
   PROTECTED_TAX_ARTICLE:

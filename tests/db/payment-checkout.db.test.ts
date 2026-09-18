@@ -9,6 +9,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { completeCheckout, recordFinalPayment } from "@/app/app/fo/check-out/[folioId]/actions";
+import { hotelTodayDateOnly } from "@/lib/date-only";
 import { postCharge, recordPayment } from "@/lib/folio/actions";
 import { prisma } from "@/lib/prisma";
 import {
@@ -131,12 +132,33 @@ async function createCheckoutFolio({
   return { folio, reservation, room };
 }
 
+async function createCompletedAudit() {
+  return prisma.nightAudit.create({
+    data: {
+      businessDate: hotelTodayDateOnly(FROZEN_NOW),
+      runAt: FROZEN_NOW,
+      runById: user.id,
+      totalRooms: 1,
+      roomsOccupied: 1,
+      occupancyRate: 100,
+      roomRevenue: ROOM_CHARGE,
+      fbRevenue: 0,
+      otherRevenue: 0,
+      totalRevenue: ROOM_CHARGE,
+      checkInCount: 1,
+      checkOutCount: 0,
+      inHouseCount: 1,
+    },
+  });
+}
+
 beforeAll(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(FROZEN_NOW);
 });
 
 beforeEach(async () => {
+  vi.setSystemTime(FROZEN_NOW);
   await resetTestDatabase();
 
   user = await createUser();
@@ -157,6 +179,45 @@ afterAll(async () => {
 });
 
 describe("postCharge", () => {
+  it("rejects manual charges after today's audit without line items or activity logs", async () => {
+    const { folio } = await createCheckoutFolio();
+    await prisma.folioLineItem.deleteMany({ where: { folioId: folio.id } });
+    const article = await createArticle({ code: "LAUNDRY", type: ArticleType.MISC });
+    const audit = await createCompletedAudit();
+
+    expect(await postCharge(chargeFormData({ folioId: folio.id, articleId: article.id })))
+      .toEqual({
+        ok: false,
+        code: "NIGHT_AUDIT_CLOSED",
+        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Transaksi folio tidak dapat dicatat.",
+      });
+    expect(await prisma.folioLineItem.count()).toBe(0);
+    expect(await prisma.activityLog.count()).toBe(0);
+    expect(await prisma.folio.findUniqueOrThrow({ where: { id: folio.id } })).toEqual(folio);
+    expect(await prisma.nightAudit.findUniqueOrThrow({ where: { id: audit.id } })).toEqual(audit);
+  });
+
+  it("posts a manual charge on the next WIB business date without changing the prior audit", async () => {
+    const { folio } = await createCheckoutFolio();
+    const article = await createArticle({ code: "LAUNDRY", type: ArticleType.MISC });
+    const audit = await createCompletedAudit();
+    const nextBusinessDate = new Date("2026-08-05T17:05:00.000Z"); // Aug 6, 00:05 WIB
+    vi.setSystemTime(nextBusinessDate);
+
+    expect(await postCharge(chargeFormData({ folioId: folio.id, articleId: article.id })))
+      .toEqual({ ok: true });
+    const lines = await prisma.folioLineItem.findMany({
+      where: { folioId: folio.id, articleId: article.id },
+    });
+    expect(lines).toHaveLength(1);
+    expect(lines[0].postedAt).toEqual(nextBusinessDate);
+    expect(lines[0].fbOrderId).toBeNull();
+    expect(lines[0].amount.toNumber()).toBe(50_000);
+    expect(await prisma.activityLog.count({
+      where: { folioId: folio.id, action: "FOLIO_CHARGE_POSTED" },
+    })).toBe(1);
+    expect(await prisma.nightAudit.findUniqueOrThrow({ where: { id: audit.id } })).toEqual(audit);
+  });
   it("rejects posting a manual charge when a stale read observes a closed folio as open", async () => {
     const { folio } = await createCheckoutFolio({
       folioStatus: FolioStatus.CLOSED,
@@ -236,6 +297,33 @@ describe("postCharge", () => {
       },
     });
     expect(activity.metadata).toEqual({ amount: 50_000 });
+  });
+});
+
+describe("post-audit settlement", () => {
+  it("allows ordinary payment, final payment, and checkout after today's audit", async () => {
+    const { folio, reservation, room } = await createCheckoutFolio();
+    const audit = await createCompletedAudit();
+
+    expect(await recordPayment(paymentFormData({ folioId: folio.id, amount: 40_000 })))
+      .toEqual({ ok: true });
+    expect(await recordFinalPayment(paymentFormData({ folioId: folio.id, amount: 60_000 })))
+      .toEqual({ ok: true });
+    const payments = await prisma.payment.findMany({
+      where: { folioId: folio.id }, orderBy: { id: "asc" },
+    });
+    expect(payments).toHaveLength(2);
+    expect(payments.map((payment) => [payment.amount.toNumber(), payment.purpose]))
+      .toEqual([[40_000, PaymentPurpose.PAYMENT], [60_000, PaymentPurpose.SETTLEMENT]]);
+
+    expect(await completeCheckout(checkoutFormData(folio.id))).toEqual({ ok: true });
+    expect(await prisma.folio.findUniqueOrThrow({ where: { id: folio.id } }))
+      .toMatchObject({ status: FolioStatus.CLOSED });
+    expect(await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id } }))
+      .toMatchObject({ status: ReservationStatus.CHECKED_OUT });
+    expect(await prisma.room.findUniqueOrThrow({ where: { id: room.id } }))
+      .toMatchObject({ status: RoomStatus.VD });
+    expect(await prisma.nightAudit.findUniqueOrThrow({ where: { id: audit.id } })).toEqual(audit);
   });
 });
 

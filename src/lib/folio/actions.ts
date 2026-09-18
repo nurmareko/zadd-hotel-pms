@@ -11,6 +11,7 @@ import {
   runPostCommitSideEffects,
 } from "@/lib/action-errors";
 import { logActivity } from "@/lib/activity-log";
+import { assertBusinessDateOpen, NightAuditClosedError } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
@@ -135,6 +136,7 @@ export async function postCharge(
       try {
         await prisma.$transaction(
           async (tx) => {
+            const now = new Date();
             const currentFolio = await tx.folio.findUnique({
               where: { id: folio.id },
               select: { id: true, status: true },
@@ -148,6 +150,15 @@ export async function postCharge(
               throw new ChargeDomainError("FOLIO_NOT_OPEN");
             }
 
+            try {
+              await assertBusinessDateOpen(tx, now);
+            } catch (error) {
+              if (error instanceof NightAuditClosedError) {
+                throw new ChargeDomainError("NIGHT_AUDIT_CLOSED");
+              }
+              throw error;
+            }
+
             await tx.folioLineItem.create({
               data: {
                 articleId: article.id,
@@ -157,7 +168,7 @@ export async function postCharge(
                 unitPrice: parsed.data.unitPrice,
                 amount,
                 postedById: authResult.userId,
-                postedAt: new Date(),
+                postedAt: now,
               },
             });
           },

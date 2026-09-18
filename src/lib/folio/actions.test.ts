@@ -275,6 +275,7 @@ describe("folio server actions", () => {
             }),
           },
           folioLineItem: { create: vi.fn().mockResolvedValueOnce({ id: 1 }) },
+          nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
         };
         return callback(tx);
       });
@@ -367,6 +368,7 @@ describe("folio server actions", () => {
             }),
           },
           folioLineItem: { create: vi.fn().mockResolvedValueOnce({ id: 1 }) },
+          nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
         };
         return callback(tx);
       });
@@ -407,6 +409,7 @@ describe("folio server actions", () => {
             }),
           },
           folioLineItem: { create: vi.fn().mockResolvedValueOnce({ id: 1 }) },
+          nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
         };
         return callback(tx);
       });
