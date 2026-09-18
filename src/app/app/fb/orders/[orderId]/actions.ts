@@ -20,6 +20,7 @@ import {
   parseFBOrderItemNotes,
 } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
+import { assertBusinessDateOpen, NightAuditClosedError } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 import {
@@ -1351,6 +1352,17 @@ export async function chargeOrderToRoom(
   try {
     const result = await prisma.$transaction(
       async (tx) => {
+        try {
+          await assertBusinessDateOpen(tx, now);
+        } catch (error) {
+          if (error instanceof NightAuditClosedError) {
+            throw new PaymentActionError(
+              "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pesanan tidak dapat ditagihkan ke kamar.",
+            );
+          }
+          throw error;
+        }
+
         const openFolio = await tx.$queryRaw<Array<{ id: number }>>`
           SELECT id FROM "folio"
           WHERE id = ${roomLookup.folioId}

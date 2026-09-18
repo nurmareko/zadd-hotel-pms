@@ -3,11 +3,15 @@ import {
   DepositStatus,
   FBOrderStatus,
   FolioStatus,
+  PaymentMethod,
   ReservationStatus,
   RoomStatus,
+  TableStatus,
 } from "@prisma/client";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { chargeOrderToRoom } from "@/app/app/fb/orders/[orderId]/actions";
+import { computeFolioTotals } from "@/lib/folio-totals";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import {
   buildNightAuditPlan,
@@ -65,6 +69,223 @@ describe("Night Audit Database Integration Tests", () => {
   beforeEach(async () => {
     await resetTestDatabase();
     process.env.TEST_AUTH_ROLE = "ACC";
+  });
+
+  describe("#201: charge-to-room Night Audit boundary", () => {
+    const AFTER_AUDIT_TIME = new Date("2026-08-05T16:30:00.000Z"); // 23:30 WIB
+    const NEXT_WIB_DATE = new Date("2026-08-05T17:05:00.000Z"); // Aug 6, 00:05 WIB
+
+    beforeEach(() => {
+      // Freeze application timestamps only; PostgreSQL/Prisma timers must keep running.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(AFTER_AUDIT_TIME);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      delete process.env.TEST_AUTH_ROLE;
+      delete process.env.TEST_AUTH_USER_ID;
+    });
+
+    async function setupBilledRoomCharge() {
+      const user = await createUser();
+      process.env.TEST_AUTH_ROLE = "FB";
+      const settings = await createHotelSettings({
+        serviceChargePercent: 10,
+        taxPercent: 10,
+      });
+      await setupStayChargeArticles();
+      const dinnerArticle = await createArticle({
+        code: "DINNER",
+        type: ArticleType.FB,
+        defaultPrice: 50_000,
+      });
+      const roomType = await createRoomType({ baseRate: 500_000 });
+      const room = await createRoom(roomType.id, RoomStatus.OC);
+      const guest = await createGuest();
+      const { reservation } = await createReservationFixture({
+        userId: user.id,
+        roomTypeId: roomType.id,
+        guestId: guest.id,
+        roomId: room.id,
+        arrivalDate: "2026-08-05",
+        nightlyRates: [500_000, 500_000],
+        status: ReservationStatus.CHECKED_IN,
+        depositStatus: DepositStatus.COLLECTED,
+      });
+      const folio = await createFolio(reservation.id);
+      const table = await prisma.restaurantTable.create({
+        data: { number: "T201", status: TableStatus.OCCUPIED },
+      });
+      const menuItem = await prisma.menuItem.create({
+        data: {
+          code: "DINNER-201",
+          name: "Makan malam",
+          category: "Makanan",
+          price: 50_000,
+        },
+      });
+      const order = await createFBOrder({
+        waitedById: user.id,
+        status: FBOrderStatus.BILLED,
+        subtotal: 100_000,
+        serviceCharge: 10_000,
+        tax: 11_000,
+        total: 121_000,
+        tableNo: table.number,
+      });
+      await prisma.fBOrder.update({
+        where: { id: order.id },
+        data: { tableId: table.id, openedAt: AFTER_AUDIT_TIME },
+      });
+      const item = await prisma.fBOrderItem.create({
+        data: {
+          fbOrderId: order.id,
+          menuItemId: menuItem.id,
+          quantity: 2,
+          unitPrice: 50_000,
+          amount: 100_000,
+        },
+      });
+      return { user, settings, dinnerArticle, room, folio, table, order, item };
+    }
+
+    async function readBillingState() {
+      // Include all rows so a partial selection cannot leave an unnoticed split order.
+      return {
+        orders: await prisma.fBOrder.findMany({ orderBy: { id: "asc" } }),
+        items: await prisma.fBOrderItem.findMany({ orderBy: { id: "asc" } }),
+        folios: await prisma.folio.findMany({ orderBy: { id: "asc" } }),
+        lines: await prisma.folioLineItem.findMany({ orderBy: { id: "asc" } }),
+        tables: await prisma.restaurantTable.findMany({ orderBy: { id: "asc" } }),
+        payments: await prisma.payment.findMany({ orderBy: { id: "asc" } }),
+        audits: await prisma.nightAudit.findMany({ orderBy: { id: "asc" } }),
+      };
+    }
+
+    it.each([
+      { selection: "full", quantity: 2 },
+      { selection: "partial", quantity: 1 },
+    ])("rejects $selection billing after today's audit without any billing mutations", async ({ quantity }) => {
+      const { user, room, order, item } = await setupBilledRoomCharge();
+      const audit = await executeNightAudit({ runById: user.id, now: new Date() });
+      expect(audit.ok).toBe(true);
+      const before = await readBillingState();
+
+      const result = await chargeOrderToRoom({
+        orderId: order.id,
+        roomNumber: room.number,
+        selectedItems: [{ orderItemId: item.id, quantity }],
+      });
+
+      expect(result).toEqual({
+        ok: false,
+        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pesanan tidak dapat ditagihkan ke kamar.",
+      });
+      expect(await readBillingState()).toEqual(before);
+    });
+
+    it("bills before audit, counts inclusive F&B revenue once, and does not tax it again on the folio", async () => {
+      const { user, settings, dinnerArticle, room, folio, table, order, item } =
+        await setupBilledRoomCharge();
+
+      const result = await chargeOrderToRoom({
+        orderId: order.id,
+        roomNumber: room.number,
+        selectedItems: [{ orderItemId: item.id, quantity: 2 }],
+      });
+      expect(result).toMatchObject({
+        ok: true,
+        receiptOrderId: order.id,
+        paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+        paidTotal: "121000",
+        folioId: folio.id,
+        fullyPaid: true,
+      });
+      const closedOrder = await prisma.fBOrder.findUniqueOrThrow({ where: { id: order.id } });
+      expect(closedOrder).toMatchObject({
+        status: FBOrderStatus.CLOSED,
+        paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+        chargedFolioId: folio.id,
+        closedAt: AFTER_AUDIT_TIME,
+      });
+      expect(closedOrder.subtotal.toString()).toBe("100000");
+      expect(closedOrder.serviceCharge.toString()).toBe("10000");
+      expect(closedOrder.tax.toString()).toBe("11000");
+      expect(closedOrder.total.toString()).toBe("121000");
+      expect(await prisma.restaurantTable.findUniqueOrThrow({ where: { id: table.id } }))
+        .toMatchObject({ status: TableStatus.AVAILABLE });
+
+      const billedLines = await prisma.folioLineItem.findMany({
+        where: { folioId: folio.id },
+        include: { article: true },
+      });
+      expect(billedLines).toHaveLength(1);
+      expect(billedLines[0]).toMatchObject({
+        articleId: dinnerArticle.id,
+        fbOrderId: order.id,
+        postedAt: AFTER_AUDIT_TIME,
+      });
+      expect(billedLines[0].amount.toString()).toBe("121000");
+      expect(computeFolioTotals(billedLines, [], settings)).toEqual({
+        subtotal: 0, serviceCharge: 0, tax: 0, taxableExtras: 0,
+        totalCharges: 121_000, totalPaid: 0, balance: 121_000,
+      });
+
+      const audit = await executeNightAudit({ runById: user.id, now: new Date() });
+      expect(audit).toMatchObject({
+        ok: true,
+        summary: {
+          roomRevenue: "500000",
+          fbRevenue: "121000",
+          otherRevenue: "0",
+          totalRevenue: "621000",
+          lineItemsPosted: 1,
+        },
+      });
+      const savedAudit = await prisma.nightAudit.findUniqueOrThrow({
+        where: { businessDate: BUSINESS_DATE },
+      });
+      expect(savedAudit.fbRevenue.toString()).toBe("121000");
+      expect(savedAudit.otherRevenue.toString()).toBe("0");
+      expect(savedAudit.totalRevenue.toString()).toBe("621000");
+      const auditedLines = await prisma.folioLineItem.findMany({
+        where: { folioId: folio.id },
+        include: { article: true },
+      });
+      expect(auditedLines).toHaveLength(2);
+      expect(auditedLines.filter((line) => line.fbOrderId === order.id)).toHaveLength(1);
+      expect(computeFolioTotals(auditedLines, [], settings)).toEqual({
+        subtotal: 500_000, serviceCharge: 50_000, tax: 55_000, taxableExtras: 0,
+        totalCharges: 726_000, totalPaid: 0, balance: 726_000,
+      });
+    });
+
+    it("allows billing on the next WIB date even while UTC is still the audited date", async () => {
+      const { user, room, folio, order, item } = await setupBilledRoomCharge();
+      expect(await executeNightAudit({ runById: user.id, now: new Date() }))
+        .toMatchObject({ ok: true });
+      vi.setSystemTime(NEXT_WIB_DATE);
+
+      const result = await chargeOrderToRoom({
+        orderId: order.id,
+        roomNumber: room.number,
+        selectedItems: [{ orderItemId: item.id, quantity: 2 }],
+      });
+      expect(result).toMatchObject({ ok: true, paidTotal: "121000", fullyPaid: true });
+      expect(await prisma.fBOrder.findUniqueOrThrow({ where: { id: order.id } }))
+        .toMatchObject({ status: FBOrderStatus.CLOSED, closedAt: NEXT_WIB_DATE });
+      const lines = await prisma.folioLineItem.findMany({
+        where: { folioId: folio.id, fbOrderId: order.id },
+      });
+      expect(lines).toHaveLength(1);
+      expect(lines[0].postedAt).toEqual(NEXT_WIB_DATE);
+      const priorAudit = await prisma.nightAudit.findUniqueOrThrow({
+        where: { businessDate: BUSINESS_DATE },
+      });
+      expect(priorAudit.fbRevenue.toString()).toBe("0");
+      expect(await prisma.nightAudit.count()).toBe(1);
+    });
   });
 
   it("Test 1: Baseline Night Audit Run - commits authoritative 17-field snapshot and posts stay charges", async () => {

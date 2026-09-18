@@ -911,6 +911,28 @@ export async function buildNightAuditPlan({
   };
 }
 
+export class NightAuditClosedError extends Error {
+  constructor(public readonly businessDate: Date) {
+    super(`Audit malam untuk ${businessDateLabel(businessDate)} sudah selesai.`);
+    this.name = "NightAuditClosedError";
+  }
+}
+
+export async function assertBusinessDateOpen(
+  tx: Prisma.TransactionClient,
+  now: Date = new Date(),
+): Promise<void> {
+  const businessDate = hotelTodayDateOnly(now);
+  const existingAudit = await tx.nightAudit.findUnique({
+    where: { businessDate },
+    select: { id: true },
+  });
+
+  if (existingAudit) {
+    throw new NightAuditClosedError(businessDate);
+  }
+}
+
 class NightAuditAlreadyCompletedError extends Error {
   constructor(public readonly businessDate: Date) {
     super(`Night audit untuk ${businessDateLabel(businessDate)} sudah selesai.`);
