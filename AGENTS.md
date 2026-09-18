@@ -65,10 +65,10 @@ MUST update both files in the same change.
 ### Verification and testing
 
 - Vitest has two configurations. `npm test` runs the pure `src/**/*.test.ts`
-  suite (currently about 51 tests) with no database. Run it for changes to covered
-  helpers and business logic.
-- `npm run test:db` runs the DB-backed suite (currently about 42 tests) for
-  transaction and integration behavior. It requires a dedicated
+  suite (baseline: about 893 tests across 47 files) with no database. Run it for
+  changes to covered helpers and business logic.
+- `npm run test:db` runs the DB-backed suite in `tests/db/` (baseline: about 50
+  tests across 6 files) for transaction and integration behavior. It requires a dedicated
   `TEST_DATABASE_URL`, refuses to fall back to `DATABASE_URL`, and refuses to run
   destructive cleanup when the two URLs match unless the test guard itself has
   established the normalized safety marker. Never point it at a development or
@@ -77,6 +77,13 @@ MUST update both files in the same change.
   `npm run lint`, `npx tsc --noEmit`, the relevant pure and/or DB-backed tests, a
   relevant browser/runtime check, and human review. Apply each check in proportion
   to the change; document any check that cannot be run.
+- Test counts are baseline drift indicators, not fixed requirements. Investigate
+  unexpected changes and update the baselines when intentional suite changes land.
+- Before pushing changes touching folios, pricing/rates, deposits, Night Audit, or
+  database schema/transactions, contributors MUST run `npm run test:db` locally
+  against a dedicated disposable PostgreSQL database and obtain a passing result.
+  CI is not a substitute. If the suite cannot run or fails, resolve the blocker
+  before pushing. Agents remain prohibited from committing or pushing.
 - GitHub Actions runs lint, type-checking, pure tests, and build, plus the
   PostgreSQL-backed DB suite, on every push. Local targeted verification is still
   required before review.

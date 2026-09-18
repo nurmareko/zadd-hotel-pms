@@ -9,7 +9,7 @@ npm test
 npm run test:watch
 ```
 
-These tests live in `src/lib/__tests__/`, use `vitest.config.mts`, and never require PostgreSQL or a running application.
+These tests run across `src/**/*.test.ts` (not only `src/lib/__tests__/`), use `vitest.config.mts`, and never require PostgreSQL or a running application.
 
 ## PostgreSQL integration tests
 
@@ -59,7 +59,11 @@ export TEST_DATABASE_URL=postgresql://zadd_test:zadd_test@127.0.0.1:55432/zadd_p
 npm run test:db
 ```
 
-A successful run currently reports **43 passed tests**. The command runs `prisma migrate deploy` against the test URL before Vitest. Fixtures create only the users, room types, rooms, guests, reservations, nightly snapshots, folios, articles, settings, lines, and payments required by each assertion; the demo seed is not used.
+Current suite baselines are **893 pure unit tests across 47 files** (`npm test`) and **50 integration tests across 6 files** (`npm run test:db`). These counts are baseline drift indicators, not fixed requirements; investigate unexpected changes and update the baselines when intentional suite changes land.
+
+Before pushing changes touching folios, pricing/rates, deposits, Night Audit, or database schema/transactions, contributors MUST run `npm run test:db` locally against the dedicated disposable PostgreSQL database and obtain a passing result. CI is not a substitute for this local check. If the suite cannot run or fails, resolve the blocker before pushing. Agents remain prohibited from committing or pushing.
+
+The DB command runs `prisma migrate deploy` against the test URL before Vitest. Fixtures create only the users, room types, rooms, guests, reservations, nightly snapshots, folios, articles, settings, lines, and payments required by each assertion; the demo seed is not used.
 
 ### Common local database failures
 
