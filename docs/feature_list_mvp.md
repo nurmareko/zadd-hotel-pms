@@ -137,6 +137,7 @@ Shared access features used by all role workspaces.
 
 | Feature | Module | Status / reference |
 |---|---|---|
+| Manual folio charge/payment writer stale-status race hardening (#202) | Front Office / Folio | **DONE.** `postCharge` and `recordPayment` in `src/lib/folio/actions.ts`, and `recordFinalPayment` in `src/app/app/fo/check-out/[folioId]/actions.ts`, use `Serializable` transactions to atomically re-read folio status and reject closed folios before inserting charges or payments. Final payment also recomputes the current balance inside the transaction. Integration coverage is in `tests/db/payment-checkout.db.test.ts`. |
 | Dynamic / adjustable room pricing | Front Office | **DONE.** Per-night rule resolution, immutable booking snapshots, pricing-relevant requotes, nightly totals/displays/GRC, and snapshot-linked automatic posting are delivered. See [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
 | ARR (Average Room Rate) | Accounting | **DONE.** Weighted paid-night ARR with linked-line integrity, COMP exclusion, and explicit cutover handling is delivered. See [`db_specification_mvp.md`](./db_specification_mvp.md#dynamic-pricing-per-night-model-contract). |
 | Multi-room / group booking | Front Office | **DONE for light group operations.** One create flow supports 1–20 rooms linked by `groupBookingId`; group summary, batch eligible check-in, per-folio settlement, and eligible checkout are shipped. Master/shared billing and adding rooms after creation remain deferred. |
@@ -161,7 +162,6 @@ Identified during requirements gathering but deferred to later releases. The cur
 | Admin correction / historical-record modification | Front Office / Accounting / Admin | Terminal reservations are locked in the standard edit flow. Legitimate corrections to completed historical or financial records belong to the same future RBAC-gated family as allowance/rebate adjustments and require manager-only permission, an explicit reason, and a durable audit log. |
 | COMP operational workflow | Front Office / Accounting | `ReservationNight.revenueClass` and ARR exclusion are ready, but no user workflow currently creates or approves complimentary service nights. |
 | Per-service-night room-status identity for mid-stay OOO ARR | Accounting / Housekeeping | ARR must not use current `Room.status`; historical exclusion of a charged night that was OOO requires a service-night status snapshot/model. |
-| Manual folio charge/payment writer stale-status race hardening | Front Office / Accounting | Manual charge and payment writers must recheck folio status and relevant balance invariants atomically at insert time so concurrent checkout cannot accept a stale OPEN-state decision. |
 | Multi-outlet F&B | F&B | One outlet (hotel restaurant) is enough for the early praktikum. |
 | Waiter Mobile (tablet/HP) | F&B | Separate mobile ordering surface; MVP prioritizes the desktop POS workflow. |
 | Banquet | F&B | Event/package ordering remains outside the restaurant and room-service POS workflow. |
