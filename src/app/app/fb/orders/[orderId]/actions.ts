@@ -1177,6 +1177,17 @@ export async function payOrderDirect(
           );
         }
 
+        try {
+          await assertBusinessDateOpen(tx, now);
+        } catch (error) {
+          if (error instanceof NightAuditClosedError) {
+            throw new PaymentActionError(
+              "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pembayaran pesanan tidak dapat diproses.",
+            );
+          }
+          throw error;
+        }
+
         const paidSelection = await applyPaymentSelection(
           tx,
           lockedOrder,

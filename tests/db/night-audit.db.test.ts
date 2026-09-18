@@ -10,7 +10,7 @@ import {
 } from "@prisma/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { chargeOrderToRoom } from "@/app/app/fb/orders/[orderId]/actions";
+import { chargeOrderToRoom, payOrderDirect } from "@/app/app/fb/orders/[orderId]/actions";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import {
@@ -71,7 +71,7 @@ describe("Night Audit Database Integration Tests", () => {
     process.env.TEST_AUTH_ROLE = "ACC";
   });
 
-  describe("#201: charge-to-room Night Audit boundary", () => {
+  describe("F&B payment Night Audit boundary", () => {
     const AFTER_AUDIT_TIME = new Date("2026-08-05T16:30:00.000Z"); // 23:30 WIB
     const NEXT_WIB_DATE = new Date("2026-08-05T17:05:00.000Z"); // Aug 6, 00:05 WIB
 
@@ -184,6 +184,81 @@ describe("Night Audit Database Integration Tests", () => {
       });
       expect(await readBillingState()).toEqual(before);
     });
+
+    it.each([
+      { method: PaymentMethod.CASH, selection: "full", quantity: 2 },
+      { method: PaymentMethod.CASH, selection: "partial", quantity: 1 },
+      { method: PaymentMethod.CARD, selection: "full", quantity: 2 },
+      { method: PaymentMethod.CARD, selection: "partial", quantity: 1 },
+    ])("rejects $selection direct $method payment after today's audit without mutations", async ({ method, quantity }) => {
+      const { user, table, order, item } = await setupBilledRoomCharge();
+      expect(await executeNightAudit({ runById: user.id, now: new Date() }))
+        .toMatchObject({ ok: true });
+      const before = await readBillingState();
+
+      const result = await payOrderDirect({
+        orderId: order.id,
+        method,
+        amountTendered: 121_000,
+        selectedItems: [{ orderItemId: item.id, quantity }],
+      });
+
+      expect(result).toEqual({
+        ok: false,
+        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pembayaran pesanan tidak dapat diproses.",
+      });
+      expect(await readBillingState()).toEqual(before);
+      expect(await prisma.fBOrder.findUniqueOrThrow({ where: { id: order.id } }))
+        .toMatchObject({ status: FBOrderStatus.BILLED, closedAt: null });
+      expect(await prisma.restaurantTable.findUniqueOrThrow({ where: { id: table.id } }))
+        .toMatchObject({ status: TableStatus.OCCUPIED });
+      expect(await prisma.payment.count()).toBe(0);
+    });
+
+    it.each([PaymentMethod.CASH, PaymentMethod.CARD])(
+      "accepts direct %s payment on the next WIB date and includes revenue only in that audit",
+      async (method) => {
+        const { user, table, order, item } = await setupBilledRoomCharge();
+        expect(await executeNightAudit({ runById: user.id, now: new Date() }))
+          .toMatchObject({ ok: true, summary: { fbRevenue: "0" } });
+        const priorAudit = await prisma.nightAudit.findUniqueOrThrow({
+          where: { businessDate: BUSINESS_DATE },
+        });
+        vi.setSystemTime(NEXT_WIB_DATE);
+
+        const result = await payOrderDirect({
+          orderId: order.id,
+          method,
+          amountTendered: 121_000,
+          selectedItems: [{ orderItemId: item.id, quantity: 2 }],
+        });
+
+        expect(result).toMatchObject({
+          ok: true, receiptOrderId: order.id, paymentMethod: method,
+          paidTotal: "121000", fullyPaid: true,
+        });
+        expect(await prisma.fBOrder.findUniqueOrThrow({ where: { id: order.id } }))
+          .toMatchObject({ status: FBOrderStatus.CLOSED, paymentMethod: method, closedAt: NEXT_WIB_DATE });
+        expect(await prisma.restaurantTable.findUniqueOrThrow({ where: { id: table.id } }))
+          .toMatchObject({ status: TableStatus.AVAILABLE });
+        const payments = await prisma.payment.findMany();
+        expect(payments).toHaveLength(1);
+        expect(payments[0]).toMatchObject({
+          fbOrderId: order.id, folioId: null, method, receivedAt: NEXT_WIB_DATE,
+        });
+        expect(payments[0].amount.toString()).toBe("121000");
+
+        expect(await executeNightAudit({ runById: user.id, now: new Date() }))
+          .toMatchObject({ ok: true, summary: { fbRevenue: "121000", totalRevenue: "621000" } });
+        const nextAudit = await prisma.nightAudit.findUniqueOrThrow({
+          where: { businessDate: hotelTodayDateOnly(NEXT_WIB_DATE) },
+        });
+        expect(nextAudit.fbRevenue.toString()).toBe("121000");
+        expect(nextAudit.totalRevenue.toString()).toBe("621000");
+        expect(await prisma.nightAudit.findUniqueOrThrow({ where: { id: priorAudit.id } }))
+          .toEqual(priorAudit);
+      },
+    );
 
     it("bills before audit, counts inclusive F&B revenue once, and does not tax it again on the folio", async () => {
       const { user, settings, dinnerArticle, room, folio, table, order, item } =
