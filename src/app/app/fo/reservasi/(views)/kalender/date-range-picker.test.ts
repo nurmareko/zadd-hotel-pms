@@ -8,7 +8,7 @@ import {
   formatCalendarMonthTitle,
   isDateInVisibleWindow,
   WEEKDAY_LABELS,
-} from "./kalender/date-range-picker";
+} from "./date-range-picker";
 
 describe("date range picker calendar", () => {
   it("builds a Monday-first grid spanning the full displayed month", () => {

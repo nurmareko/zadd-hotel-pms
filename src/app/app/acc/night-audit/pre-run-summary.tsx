@@ -1,5 +1,6 @@
 import { ArrangementType } from "@prisma/client";
-import { BedDouble } from "lucide-react";
+import { ArrowRight, BedDouble } from "lucide-react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatIDR } from "@/lib/format";
@@ -55,6 +56,15 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
               <div key={warning}>{warning}</div>
             ))}
           </div>
+          {plan.openFbOrderCount > 0 ? (
+            <Link
+              href="/app/fb"
+              className="mt-2 inline-flex items-center gap-1 rounded-sm font-semibold underline underline-offset-4 hover:text-amber-950 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              Buka modul F&B
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          ) : null}
         </section>
       ) : null}
 

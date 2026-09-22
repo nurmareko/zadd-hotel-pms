@@ -133,7 +133,7 @@ export function RoomFilterForm({
           onClick={() => navigate({ q: "", status: "", priority: "" })}
         >
           <RotateCcw className="size-4" aria-hidden="true" />
-          Reset
+          Atur Ulang
         </Button>
       )}
       <span role="status" className="text-xs text-muted-foreground">

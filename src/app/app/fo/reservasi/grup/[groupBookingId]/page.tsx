@@ -15,7 +15,7 @@ import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
-import { formatDateID, formatIDR, formatISODate } from "@/lib/format";
+import { formatDateID, formatDecimalID, formatIDR, formatISODate } from "@/lib/format";
 import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { prisma } from "@/lib/prisma";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
@@ -351,13 +351,13 @@ export default async function GroupBookingPage({
                   "Validasi massal",
                   "Tanggal",
                   "Deposit",
-                  "Saldo folio",
+                  "Saldo folio (Rp)",
                   "Detail",
                 ].map((label) => (
                   <th
                     key={label}
                     className={`bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 ${
-                      label === "Saldo folio" || label === "Detail"
+                      label === "Saldo folio (Rp)" || label === "Detail"
                         ? "text-right"
                         : "text-left"
                     }`}
@@ -491,7 +491,7 @@ export default async function GroupBookingPage({
                           {reservation.folio ? "Folio VOIDED" : "Belum check-in"}
                         </span>
                       ) : (
-                        formatIDR(roundedFolioBalance(balance))
+                        formatDecimalID(roundedFolioBalance(balance), 0)
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
