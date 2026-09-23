@@ -5,6 +5,7 @@ vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: mocks.transaction }, TRANSACTION_OPTIONS: {} }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { createRoomBlockAction, releaseRoomBlockAction } from "./actions";
+import { setRoomStatusOverride, updateRoomStatus } from "@/app/app/hk/actions";
 
 const input = { roomId: 10, startDate: "2026-09-14", endDate: "2026-09-17", reason: "MAINTENANCE" };
 function transactionClient() {
@@ -31,6 +32,157 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.useRealTimers());
+
+describe.each(["board", "override"] as const)("atomic HK %s transitions", (source) => {
+  async function change(status: "OOO" | "VD" | "VC" | "OC") {
+    if (source === "override") return setRoomStatusOverride(10, status);
+    const form = new FormData();
+    form.set("roomId", "10");
+    form.set("status", status);
+    return updateRoomStatus(form);
+  }
+
+  beforeEach(() => {
+    mocks.auth.mockResolvedValue({ user: { id: "7", role: "HK" } });
+  });
+
+  it("creates a one-day block and OOO log in one transaction", async () => {
+    expect(await change("OOO")).toEqual({ ok: true });
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+    expect(mocks.transaction.mock.calls[0][1]).toMatchObject({ isolationLevel: "Serializable" });
+    expect(tx.roomBlock.create).toHaveBeenCalledWith({ data: {
+      roomId: 10, startDate: new Date("2026-09-14"), endDate: new Date("2026-09-15"),
+      reason: "MAINTENANCE", note: "Blokir OOO manual dari Housekeeping", createdById: 7,
+    } });
+    expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VC" }, data: { status: "OOO" } });
+    expect(tx.housekeepingLog.create).toHaveBeenCalledOnce();
+  });
+
+  it("uses the Jakarta date after hotel midnight while UTC is still yesterday", async () => {
+    vi.setSystemTime(new Date("2026-09-14T17:30:00Z"));
+    expect(await change("OOO")).toEqual({ ok: true });
+    expect(tx.roomBlock.create.mock.calls[0][0].data).toMatchObject({
+      startDate: new Date("2026-09-15"), endDate: new Date("2026-09-16"),
+    });
+    expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VC" }, data: { status: "OOO" } });
+  });
+
+  it("atomically releases every current block and uses the requested target status", async () => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, number: "101", roomTypeId: 2, status: "OOO" });
+    tx.roomBlock.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+    tx.roomBlock.updateMany.mockResolvedValue({ count: 2 });
+    expect(await change("VC")).toEqual({ ok: true });
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+    expect(tx.roomBlock.findMany).toHaveBeenCalledWith({
+      where: { roomId: 10, status: "ACTIVE", startDate: { lte: new Date("2026-09-14") }, endDate: { gt: new Date("2026-09-14") } },
+      select: { id: true },
+    });
+    expect(tx.roomBlock.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: [1, 2] }, roomId: 10, status: "ACTIVE" }, data: { status: "RELEASED" },
+    });
+    expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "OOO" }, data: { status: "VC" } });
+    expect(tx.housekeepingLog.create).toHaveBeenCalledOnce();
+    expect(tx.housekeepingLog.create.mock.calls[0][0].data).toMatchObject({ oldStatus: "OOO", newStatus: "VC", updatedById: 7 });
+  });
+
+  it("can clear physical OOO without a covering block", async () => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: "OOO" });
+    tx.roomBlock.findMany.mockResolvedValue([]);
+    expect(await change("VD")).toEqual({ ok: true });
+    expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
+    expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "OOO" }, data: { status: "VD" } });
+  });
+
+  it.each(["VC", "OOO"])("rejects unfinished cleaning from %s before changing blocks", async (currentStatus) => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: currentStatus });
+    tx.cleaningSession.findFirst.mockResolvedValue({ id: 9 });
+    expect(await change(currentStatus === "OOO" ? "VD" : "OOO")).toEqual({ ok: false, error: "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja petugas HK terlebih dahulu." });
+    expect(tx.roomBlock.create).not.toHaveBeenCalled();
+    expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each(["VC", "OOO"])("rejects physical occupancy during an OOO transition from %s", async (currentStatus) => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, number: "101", roomTypeId: 2, status: currentStatus });
+    tx.reservation.findFirst.mockResolvedValue({ id: 4 });
+    expect(await change(currentStatus === "OOO" ? "OC" : "OOO")).toMatchObject({ ok: false, error: expect.stringContaining("belum check-out") });
+    expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("preserves reservation-conflict errors", async () => {
+    tx.reservation.findMany.mockResolvedValueOnce([{ id: 4, reservationNo: "RSV-004" }]);
+    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("RSV-004") });
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a block that consumes unallocated capacity", async () => {
+    tx.roomType.findUnique.mockResolvedValue({ name: "Standar", _count: { rooms: 1 } });
+    tx.reservation.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([{ arrivalDate: new Date(input.startDate), departureDate: new Date(input.endDate) }]);
+    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("Blokir tidak dapat dibuat") });
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("throws rather than committing a partial block release on count mismatch", async () => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: "OOO" });
+    tx.roomBlock.updateMany.mockResolvedValue({ count: 0 });
+    expect(await change("VD")).toMatchObject({ ok: false });
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+    expect(tx.housekeepingLog.create).not.toHaveBeenCalled();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    await expect(mocks.transaction.mock.results[0].value).rejects.toThrow();
+  });
+
+  it.each(["room write", "audit log"])("aborts the transaction on a failed %s after releasing blocks", async (failure) => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: "OOO" });
+    if (failure === "room write") tx.room.updateMany.mockResolvedValue({ count: 0 });
+    else tx.housekeepingLog.create.mockRejectedValue(new Error("log unavailable"));
+    expect(await change("VD")).toMatchObject({ ok: false });
+    expect(tx.roomBlock.updateMany).toHaveBeenCalledOnce();
+    await expect(mocks.transaction.mock.results[0].value).rejects.toThrow();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+
+  it("reports committed success even when revalidation fails", async () => {
+    mocks.revalidate.mockImplementation(() => { throw new Error("cache unavailable"); });
+    expect(await change("OOO")).toEqual({ ok: true });
+    expect(tx.roomBlock.create).toHaveBeenCalledOnce();
+  });
+
+  it("rechecks cleaning after a serialization retry", async () => {
+    mocks.transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("retry", { code: "P2034", clientVersion: "6" }));
+    tx.cleaningSession.findFirst.mockResolvedValue({ id: 9 });
+    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("Pembersihan") });
+    expect(mocks.transaction).toHaveBeenCalledTimes(2);
+    expect(tx.roomBlock.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps same-status requests idempotent", async () => {
+    tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: "OOO" });
+    expect(await change("OOO")).toEqual({ ok: true });
+    expect(tx.roomBlock.create).not.toHaveBeenCalled();
+    expect(tx.housekeepingLog.create).not.toHaveBeenCalled();
+  });
+
+  it("retains board occupancy validation and the explicit override policy", async () => {
+    const result = await change("OC");
+    if (source === "board") {
+      expect(result).toEqual({ ok: false, error: "Kamar tanpa tamu check-in hanya bisa memakai status VC, VD, VCU, atau OOO." });
+      expect(tx.room.updateMany).not.toHaveBeenCalled();
+    } else {
+      expect(result).toEqual({ ok: true });
+      expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VC" }, data: { status: "OC" } });
+    }
+    expect(tx.roomBlock.create).not.toHaveBeenCalled();
+    expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects unauthorized requests before a transaction", async () => {
+    mocks.auth.mockResolvedValue({ user: { id: "7", role: "FO" } });
+    expect(await change("OOO")).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+});
 
 describe("room block actions and atomic operations", () => {
   it.each(["create", "release"])("requires FO or ADMIN for %s", async (kind) => {

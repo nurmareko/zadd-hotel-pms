@@ -5,6 +5,7 @@ import {
   FolioStatus,
   Prisma,
   ReservationStatus,
+  RoomBlockStatus,
   RoomStatus,
 } from "@prisma/client";
 import { addDays } from "date-fns";
@@ -1269,6 +1270,84 @@ export async function executeNightAudit({
           }
 
           let transactionWriteCount = 0;
+          const roomBlockWarnings: string[] = [];
+
+          // Keep closing-day metrics above unchanged. Lock rooms before folio writes,
+          // matching the room-first order used by check-in/checkout and block writers.
+          const coveringBlockWhere = {
+            status: RoomBlockStatus.ACTIVE,
+            startDate: { lte: nextBusinessDate },
+            endDate: { gt: nextBusinessDate },
+          };
+          const roomCandidates = await tx.room.findMany({
+            where: {
+              OR: [
+                { status: RoomStatus.OOO },
+                { roomBlocks: { some: coveringBlockWhere } },
+              ],
+            },
+            select: { id: true },
+            orderBy: { id: "asc" },
+          });
+
+          for (const candidate of roomCandidates) {
+            await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${candidate.id} FOR UPDATE`;
+            const room = await tx.room.findUnique({
+              where: { id: candidate.id },
+              select: { id: true, number: true, status: true },
+            });
+            if (!room) continue;
+
+            const block = await tx.roomBlock.findFirst({
+              where: { roomId: room.id, ...coveringBlockWhere },
+              select: { id: true },
+              orderBy: { id: "asc" },
+            });
+            const newStatus = block
+              ? RoomStatus.OOO
+              : room.status === RoomStatus.OOO ? RoomStatus.VD : null;
+            if (!newStatus || newStatus === room.status) continue;
+
+            // Dates do not end physical occupancy; unfinished cleaning can span days.
+            const occupant = await tx.reservation.findFirst({
+              where: { roomId: room.id, status: ReservationStatus.CHECKED_IN },
+              select: { id: true },
+            });
+            const cleaningSession = await tx.cleaningSession.findFirst({
+              where: { roomId: room.id, startedAt: { not: null }, finishedAt: null },
+              select: { id: true },
+            });
+            if (occupant || cleaningSession) {
+              roomBlockWarnings.push(
+                `Status kamar ${room.number} tidak diubah pada pergantian hari bisnis: ${occupant ? "tamu belum check-out" : "pembersihan masih berjalan"}. Tinjau status kamar setelah proses selesai.`,
+              );
+              continue;
+            }
+
+            const updated = await tx.room.updateMany({
+              where: { id: room.id, status: room.status },
+              data: { status: newStatus },
+            });
+            if (updated.count !== 1) {
+              throw new Prisma.PrismaClientKnownRequestError(
+                "Status kamar berubah saat Night Audit dijalankan.",
+                { code: "P2034", clientVersion: Prisma.prismaVersion.client },
+              );
+            }
+            await tx.housekeepingLog.create({
+              data: {
+                roomId: room.id,
+                oldStatus: room.status,
+                newStatus,
+                updatedById: runById,
+                updatedAt: now,
+                note: block
+                  ? `Blokir kamar #${block.id} aktif pada pergantian hari bisnis.`
+                  : "Blokir kamar telah berakhir. Kamar dialihkan ke VD untuk pembersihan.",
+              },
+            });
+            transactionWriteCount += 2;
+          }
 
           // 6. Insert shortfall lines with tx.folioLineItem.createMany
           if (lineItemsToCreate.length > 0) {
@@ -1316,7 +1395,7 @@ export async function executeNightAudit({
           });
           transactionWriteCount += 1;
 
-          const warnings = [...reservationWarnings];
+          const warnings = [...reservationWarnings, ...roomBlockWarnings];
           if (openFbOrderCount > 0) {
             warnings.push(
               `${openFbOrderCount} order F&B masih terbuka - pertimbangkan untuk menyelesaikan dulu.`,

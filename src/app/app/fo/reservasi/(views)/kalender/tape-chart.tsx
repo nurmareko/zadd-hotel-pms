@@ -354,7 +354,9 @@ function GroupRow({
 }) {
   const Icon = isCollapsed ? ChevronDown : ChevronUp;
   const roomCount = roomType.rooms.length;
-  const oooCount = roomType.rooms.filter((room) => room.isBlockedToday).length;
+  const oooCount = roomType.rooms.filter(
+    (room) => room.isBlockedToday || room.status === "OOO",
+  ).length;
 
   return (
     <div className={`${styles.gridRow} ${styles.groupRow}`}>
@@ -505,6 +507,8 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                 }
 
                 if (row.kind === "room") {
+                  const unavailableToday = row.room.isBlockedToday || row.room.status === "OOO";
+                  const outOfOrderLabel = row.room.isBlockedToday ? "Out of Order" : "Status Fisik OOO";
                   return (
                     <div
                       key={`room-${row.room.id}`}
@@ -516,16 +520,16 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         <span className="min-w-0 text-xs font-semibold text-slate-800">
                           {row.room.number}
                         </span>
-                        {row.room.isBlockedToday ? (
+                        {unavailableToday ? (
                           <span
                             className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-red-600"
-                            aria-label={ROOM_STATUS_FULL_NAMES.OOO}
+                            aria-label={outOfOrderLabel}
                           >
                             <Wrench
                               className="h-3 w-3 text-red-500"
                               aria-hidden="true"
                             />
-                            {ROOM_STATUS_FULL_NAMES.OOO}
+                            {outOfOrderLabel}
                           </span>
                         ) : (
                           <span className="shrink-0 text-xs font-semibold text-slate-500">
@@ -540,11 +544,12 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                             endDate: addDateOnlyDays(parseISODateOnly(day.iso), 1).toISOString().slice(0, 10),
                           }),
                         );
+                        const isUnavailable = block || (day.iso === todayIso && unavailableToday);
                         const blockLabel = block
                           ? `Kamar ${row.room.number} ${day.iso}: Tidak tersedia — ${ROOM_BLOCK_REASON_LABELS[block.reason]}${block.note ? ` — ${block.note}` : ""}`
-                          : undefined;
+                          : `Kamar ${row.room.number} ${day.iso}: Tidak tersedia — ${row.room.isBlockedToday ? "Diblokir hari ini" : "Status Fisik OOO"}`;
 
-                        return block ? (
+                        return isUnavailable ? (
                           <div
                             key={`${row.room.id}-${day.iso}`}
                             className={getCellClassName(
@@ -552,6 +557,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                               todayIso,
                               `${styles.outOfOrderCell} ${styles.unavailableCell}`,
                             )}
+                            role="img"
                             title={blockLabel}
                             aria-label={blockLabel}
                           />

@@ -66,8 +66,17 @@ describe("tape chart room blocks", () => {
     const rooms = data.roomTypes[0].rooms;
     expect(rooms.filter((room) => room.isBlockedToday)).toHaveLength(1);
     expect(rooms[1]).toMatchObject({ status: "VC", isBlockedToday: true, roomBlocks: [] });
-    // Legacy OOO alone is not a dated block and must not blind the row.
+    // Physical OOO remains separate from today's dated-block signal.
     expect(rooms[0]).toMatchObject({ status: "OOO", isBlockedToday: false, roomBlocks: [] });
+  });
+
+  it.each([{ blockedRooms: [] }, { blockedRooms: [{ roomId: 108 }] }])("preserves physical OOO independently of today's blocks $blockedRooms", async ({ blockedRooms }) => {
+    db.roomBlock.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce(blockedRooms);
+    const data = await getTapeChartData(new Date(2026, 9, 1), 14);
+    expect(data.roomTypes[0].rooms).toMatchObject([
+      { id: 108, status: "OOO", isBlockedToday: blockedRooms.length > 0, roomBlocks: [] },
+      { id: 109, status: "VC", isBlockedToday: false, roomBlocks: [] },
+    ]);
   });
 
   it("retains allocated and unallocated reservations alongside blocks", async () => {
