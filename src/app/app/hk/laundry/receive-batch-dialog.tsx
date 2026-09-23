@@ -53,7 +53,7 @@ export function ReceiveBatchDialog({ batch }: { batch: ReceiptBatch }) {
           startTransition(async () => {
             try {
               const result = await receiveLinenBatch(data);
-              if ("error" in result) {
+              if (!result.ok) {
                 setError(result.error);
                 toast.error(result.error);
                 return;

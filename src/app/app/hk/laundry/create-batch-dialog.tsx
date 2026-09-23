@@ -35,7 +35,7 @@ export function CreateBatchDialog() {
           startTransition(async () => {
             try {
               const result = await createLinenBatch(data);
-              if ("error" in result) {
+              if (!result.ok) {
                 setError(result.error);
                 toast.error(result.error);
                 return;

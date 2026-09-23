@@ -272,6 +272,12 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
                 label={`Tax ${settings.taxPercent.toString()}%`}
                 value={formatIDR(totals.tax)}
               />
+              {totals.inclusiveCharges > 0 ? (
+                <SummaryRow
+                  label="F&B Inklusif"
+                  value={formatIDR(totals.inclusiveCharges)}
+                />
+              ) : null}
               <SummaryRow
                 label="Total"
                 value={formatIDR(totals.totalCharges)}

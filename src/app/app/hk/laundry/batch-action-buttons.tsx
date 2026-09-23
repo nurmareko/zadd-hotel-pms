@@ -22,7 +22,7 @@ export function StartWashingButton({ id, batchCode }: { id: string; batchCode: s
         startTransition(async () => {
           try {
             const result = await advanceLinenBatchStatus(data);
-            if ("error" in result) {
+            if (!result.ok) {
               setError(result.error);
               toast.error(result.error);
               return;

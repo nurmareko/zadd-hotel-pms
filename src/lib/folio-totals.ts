@@ -11,6 +11,7 @@ export type FolioTotals = {
   serviceCharge: number;
   tax: number;
   taxableExtras: number;
+  inclusiveCharges: number;
   totalCharges: number;
   totalPaid: number;
   balance: number;
@@ -86,6 +87,7 @@ export function computeFolioTotals(
     serviceCharge,
     tax,
     taxableExtras,
+    inclusiveCharges,
     totalCharges,
     totalPaid,
     balance,

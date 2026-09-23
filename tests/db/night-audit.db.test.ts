@@ -304,7 +304,8 @@ describe("Night Audit Database Integration Tests", () => {
       expect(billedLines[0].amount.toString()).toBe("121000");
       expect(computeFolioTotals(billedLines, [], settings)).toEqual({
         subtotal: 0, serviceCharge: 0, tax: 0, taxableExtras: 0,
-        totalCharges: 121_000, totalPaid: 0, balance: 121_000,
+        inclusiveCharges: 121_000,
+                totalCharges: 121_000, totalPaid: 0, balance: 121_000,
       });
 
       const audit = await executeNightAudit({ runById: user.id, now: new Date() });
@@ -332,7 +333,8 @@ describe("Night Audit Database Integration Tests", () => {
       expect(auditedLines.filter((line) => line.fbOrderId === order.id)).toHaveLength(1);
       expect(computeFolioTotals(auditedLines, [], settings)).toEqual({
         subtotal: 500_000, serviceCharge: 50_000, tax: 55_000, taxableExtras: 0,
-        totalCharges: 726_000, totalPaid: 0, balance: 726_000,
+        inclusiveCharges: 121_000,
+                totalCharges: 726_000, totalPaid: 0, balance: 726_000,
       });
     });
 

@@ -4,13 +4,14 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
+import type { ActionResult } from "@/lib/action-errors";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   AdvanceLinenBatchStatusSchema, appendReceiptNotes, CreateLinenBatchSchema,
   generateLinenBatchCode, getLaundryCodeMonth, ReceiveLinenBatchSchema, reconcileLinenBatch,
 } from "./logic";
 
-export type LaundryActionResult = { success: true } | { error: string };
+export type LaundryActionResult = ActionResult;
 type LaundryOperator = { userId: number; role: "HK" | "ADMIN" };
 class LaundryError extends Error {}
 const conflictMessage = "Pengiriman sedang diproses. Muat ulang halaman dan coba lagi.";
@@ -43,20 +44,20 @@ async function runTransaction(operation: (tx: Prisma.TransactionClient) => Promi
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
       await prisma.$transaction(operation, { ...TRANSACTION_OPTIONS, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-      return { success: true };
+      return { ok: true };
     } catch (error) {
-      if (error instanceof LaundryError) return { error: error.message };
+      if (error instanceof LaundryError) return { ok: false, code: "LAUNDRY_ERROR", error: error.message };
       if (isRetryable(error, creating)) {
         if (attempt < 3) {
           await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
           continue;
         }
-        return { error: conflictMessage };
+        return { ok: false, code: "CONFLICT", error: conflictMessage };
       }
-      return { error: "Gagal menyimpan pengiriman laundry. Silakan coba lagi." };
+      return { ok: false, code: "UNEXPECTED", error: "Gagal menyimpan pengiriman laundry. Silakan coba lagi." };
     }
   }
-  return { error: conflictMessage };
+  return { ok: false, code: "CONFLICT", error: conflictMessage };
 }
 
 async function lockBatch(tx: Prisma.TransactionClient, batchId: string) {
@@ -117,11 +118,11 @@ async function receiveBatchOperation(input: z.infer<typeof ReceiveLinenBatchSche
 
 async function submit<T>(formData: FormData, schema: z.ZodType<T>, operation: (input: T, operator: LaundryOperator) => Promise<LaundryActionResult>): Promise<LaundryActionResult> {
   const operator = await requireLaundryOperator();
-  if (!operator) return { error: "Tidak berwenang mengelola laundry." };
+  if (!operator) return { ok: false, code: "FORBIDDEN", error: "Tidak berwenang mengelola laundry." };
   const parsed = schema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data pengiriman tidak valid." };
+  if (!parsed.success) return { ok: false, code: "INVALID_INPUT", error: parsed.error.issues[0]?.message ?? "Data pengiriman tidak valid." };
   const result = await operation(parsed.data, operator);
-  if ("success" in result) revalidatePath("/app/hk/laundry");
+  if (result.ok) revalidatePath("/app/hk/laundry");
   return result;
 }
 
