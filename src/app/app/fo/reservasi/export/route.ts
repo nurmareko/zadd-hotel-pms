@@ -1,25 +1,17 @@
-import { Prisma, ReservationStatus } from "@prisma/client";
+import type { ReservationStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
-import {
-  hotelTodayISO,
-  isValidISODateOnly,
-  parseISODateOnly,
-} from "@/lib/date-only";
+import { hotelTodayISO } from "@/lib/date-only";
 import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+import { buildReservationListWhere, parseReservationListParams } from "../(views)/list/query";
 
-const ACTIVE_STATUSES: ReservationStatus[] = [
-  ReservationStatus.CONFIRMED,
-  ReservationStatus.CHECKED_IN,
-  ReservationStatus.CHECKED_OUT,
-];
+export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
   CONFIRMED: "Terkonfirmasi",
@@ -28,8 +20,6 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   CANCELLED: "Dibatalkan",
   NO_SHOW: "No-show",
 };
-
-type ReservationStatusFilter = ReservationStatus | "ALL";
 
 type ReservationCsvRow = {
   reservationNo: string;
@@ -47,24 +37,6 @@ type ReservationCsvRow = {
   outstanding: number | null;
   groupLabel: string | null;
 };
-
-function parseStatusFilter(value: string | null): ReservationStatusFilter | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalizedValue = value.toUpperCase();
-
-  if (normalizedValue === "ALL") {
-    return "ALL";
-  }
-
-  return Object.values(ReservationStatus).some(
-    (status) => status === normalizedValue,
-  )
-    ? (normalizedValue as ReservationStatus)
-    : undefined;
-}
 
 function guestCountLabel(adults: number, children: number): string {
   return children > 0
@@ -101,52 +73,12 @@ export async function GET(req: Request) {
   }
 
   const searchParams = new URL(req.url).searchParams;
-  const q = searchParams.get("q")?.trim() ?? "";
-  const statusFilter = parseStatusFilter(searchParams.get("status"));
-  const checkInRaw = searchParams.get("checkIn")?.trim();
-  const checkOutRaw = searchParams.get("checkOut")?.trim();
-  const checkInDate =
-    checkInRaw && isValidISODateOnly(checkInRaw)
-      ? parseISODateOnly(checkInRaw)
-      : undefined;
-  const checkOutDate =
-    checkOutRaw && isValidISODateOnly(checkOutRaw)
-      ? parseISODateOnly(checkOutRaw)
-      : undefined;
-
-  const where: Prisma.ReservationWhereInput = {};
-
-  if (q) {
-    where.OR = [
-      {
-        reservationNo: {
-          contains: q,
-          mode: Prisma.QueryMode.insensitive,
-        },
-      },
-      {
-        guest: {
-          fullName: {
-            contains: q,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-      },
-    ];
-  }
-
-  if (statusFilter !== "ALL") {
-    where.status = statusFilter ?? { in: ACTIVE_STATUSES };
-  }
-
-  if (checkInDate && checkOutDate) {
-    where.arrivalDate = { gte: checkInDate };
-    where.departureDate = { lte: checkOutDate };
-  } else if (checkInDate) {
-    where.arrivalDate = { gte: checkInDate };
-  } else if (checkOutDate) {
-    where.departureDate = { lte: checkOutDate };
-  }
+  const filters = parseReservationListParams(
+    Object.fromEntries(
+      Array.from(new Set(searchParams.keys()), (key) => [key, searchParams.getAll(key)]),
+    ),
+  );
+  const where = buildReservationListWhere(filters);
 
   const [reservations, settings] = await Promise.all([
     prisma.reservation.findMany({

@@ -4,28 +4,23 @@ import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 
-type ReservationFilters = {
-  q: string;
-  status: ReservationStatus | "ALL" | "";
-  checkIn?: string;
-  checkOut?: string;
-};
+import {
+  buildExportQuery,
+  type ReservationListFilters,
+  type ReservationListPreset,
+} from "./query";
+
+const presetOptions: Array<{ value?: ReservationListPreset; label: string }> = [
+  { label: "Semua" },
+  { value: "today_arrivals", label: "Kedatangan Hari Ini" },
+  { value: "today_departures", label: "Keberangkatan Hari Ini" },
+];
 
 type ReservationFiltersProps = {
-  filters: ReservationFilters;
+  filters: ReservationListFilters;
   resultCount: number;
 };
 
-export function buildExportQuery(filters: ReservationFilters): string {
-  const query = new URLSearchParams();
-
-  if (filters.q) query.set("q", filters.q);
-  if (filters.status) query.set("status", filters.status);
-  if (filters.checkIn) query.set("checkIn", filters.checkIn);
-  if (filters.checkOut) query.set("checkOut", filters.checkOut);
-
-  return query.toString();
-}
 
 const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
   { value: "CONFIRMED", label: "Terkonfirmasi" },
@@ -36,14 +31,14 @@ const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
 ];
 
 const fieldClass =
-  "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
+  "h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 transition-colors";
 
 export function ReservationFilters({
   filters,
   resultCount,
 }: ReservationFiltersProps) {
   const hasActiveFilters =
-    filters.q || filters.status || filters.checkIn || filters.checkOut;
+    filters.q || filters.status || filters.checkIn || filters.checkOut || filters.preset;
   const exportQuery = buildExportQuery(filters);
   const exportHref = `/app/fo/reservasi/export${exportQuery ? `?${exportQuery}` : ""}`;
 
@@ -51,25 +46,45 @@ export function ReservationFilters({
     <form
       action="/app/fo/reservasi/list"
       method="get"
-      className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white p-4"
+      key={exportQuery}
+      className="desktop:sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white p-4"
     >
+      <nav aria-label="Filter cepat reservasi" className="flex w-full flex-wrap gap-2">
+        {presetOptions.map((option) => {
+          const query = buildExportQuery({ q: filters.q, preset: option.value });
+          const active = filters.preset === option.value;
+          return (
+            <Link
+              key={option.value ?? "all"}
+              href={`/app/fo/reservasi/list${query ? `?${query}` : ""}`}
+              aria-current={active ? "page" : undefined}
+              className={`inline-flex min-h-11 desktop:min-h-9 items-center rounded-full border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-300 bg-emerald-50 font-medium text-emerald-800" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+            >
+              {option.label}
+            </Link>
+          );
+        })}
+      </nav>
+      {filters.preset ? <input type="hidden" name="preset" value={filters.preset} /> : null}
       <div className="relative w-full sm:w-[280px]">
         <Search
           aria-hidden="true"
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
         />
         <input
-                  type="search"
-                  name="q"
-                  defaultValue={filters.q}
-                  placeholder="Cari nomor reservasi atau nama tamu..."
-                  className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                />
+          type="search"
+          name="q"
+          aria-label="Cari nomor reservasi atau nama tamu"
+          defaultValue={filters.q}
+          placeholder="Cari nomor reservasi atau nama tamu..."
+          className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+        />
       </div>
 
       <select
         name="status"
-        defaultValue={filters.status}
+        aria-label="Status reservasi"
+        defaultValue={filters.status ?? ""}
         className={`${fieldClass} sm:w-[160px]`}
       >
         <option value="">Aktif</option>
@@ -92,7 +107,8 @@ export function ReservationFilters({
           id="filter-check-in"
           type="date"
           name="checkIn"
-          defaultValue={filters.checkIn ?? ""}
+          disabled={Boolean(filters.preset)}
+          defaultValue={filters.preset ? "" : filters.checkIn ?? ""}
           className={`${fieldClass} sm:w-[145px]`}
         />
       </div>
@@ -108,11 +124,17 @@ export function ReservationFilters({
           id="filter-check-out"
           type="date"
           name="checkOut"
-          defaultValue={filters.checkOut ?? ""}
+          disabled={Boolean(filters.preset)}
+          defaultValue={filters.preset ? "" : filters.checkOut ?? ""}
           className={`${fieldClass} sm:w-[145px]`}
         />
       </div>
 
+      {filters.preset ? (
+        <p className="w-full text-xs text-slate-500">
+          Pilih Semua untuk menggunakan rentang tanggal khusus.
+        </p>
+      ) : null}
       <Button type="submit">Cari</Button>
       {hasActiveFilters ? (
         <Link

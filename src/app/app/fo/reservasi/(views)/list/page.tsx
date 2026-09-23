@@ -1,107 +1,22 @@
-import { Prisma, ReservationStatus } from "@prisma/client";
-
-import { isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+import { buildReservationListWhere, parseReservationListParams } from "./query";
 import { ReservationFilters } from "./reservation-filters";
 import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
 export const dynamic = "force-dynamic";
 
-// Default scope: reservations that are still operationally relevant.
-const ACTIVE_STATUSES: ReservationStatus[] = [
-  ReservationStatus.CONFIRMED,
-  ReservationStatus.CHECKED_IN,
-  ReservationStatus.CHECKED_OUT,
-];
-
-type SearchParams = {
-  q?: string;
-  status?: string;
-  checkIn?: string;
-  checkOut?: string;
-};
-
-type ReservationStatusFilter = ReservationStatus | "ALL";
-
-function parseStatusFilter(
-  value: string | undefined,
-): ReservationStatusFilter | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalizedValue = value.toUpperCase();
-
-  if (normalizedValue === "ALL") {
-    return "ALL";
-  }
-
-  return Object.values(ReservationStatus).some(
-    (status) => status === normalizedValue,
-  )
-    ? (normalizedValue as ReservationStatus)
-    : undefined;
-}
-
 export default async function ReservationListPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
-  const q = params.q?.trim() ?? "";
-  const statusFilter = parseStatusFilter(params.status);
-  const checkInRaw =
-    typeof params.checkIn === "string" ? params.checkIn.trim() : undefined;
-  const checkOutRaw =
-    typeof params.checkOut === "string" ? params.checkOut.trim() : undefined;
-  const checkInDate =
-    checkInRaw && isValidISODateOnly(checkInRaw)
-      ? parseISODateOnly(checkInRaw)
-      : undefined;
-  const checkOutDate =
-    checkOutRaw && isValidISODateOnly(checkOutRaw)
-      ? parseISODateOnly(checkOutRaw)
-      : undefined;
-
-  const where: Prisma.ReservationWhereInput = {};
-
-  if (q) {
-    where.OR = [
-      {
-        reservationNo: {
-          contains: q,
-          mode: Prisma.QueryMode.insensitive,
-        },
-      },
-      {
-        guest: {
-          fullName: {
-            contains: q,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-      },
-    ];
-  }
-
-  if (statusFilter !== "ALL") {
-    where.status = statusFilter ?? { in: ACTIVE_STATUSES };
-  }
-
-  if (checkInDate && checkOutDate) {
-    where.arrivalDate = { gte: checkInDate };
-    where.departureDate = { lte: checkOutDate };
-  } else if (checkInDate) {
-    where.arrivalDate = { gte: checkInDate };
-  } else if (checkOutDate) {
-    where.departureDate = { lte: checkOutDate };
-  }
+  const filters = parseReservationListParams(await searchParams);
+  const where = buildReservationListWhere(filters);
 
   // MVP: no pagination. Add when result sets exceed ~500.
   const [reservations, settings] = await Promise.all([
@@ -220,13 +135,6 @@ export default async function ReservationListPage({
         : null,
     });
   }
-
-  const filters = {
-    q,
-    status: statusFilter ?? ("" as const),
-    checkIn: checkInRaw,
-    checkOut: checkOutRaw,
-  };
 
   return (
     <section className="animate-in fade-in overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm duration-300">
