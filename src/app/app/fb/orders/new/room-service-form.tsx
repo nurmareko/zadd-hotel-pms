@@ -10,7 +10,7 @@ import {
   createRoomServiceOrder,
   lookupRoomForCharge,
   type ChargeLookupResult,
-} from "../[orderId]/actions";
+} from "@/lib/fb-orders/actions";
 
 export function RoomServiceForm() {
   const [roomNumber, setRoomNumber] = useState("");

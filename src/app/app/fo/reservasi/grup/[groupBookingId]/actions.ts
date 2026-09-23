@@ -29,13 +29,13 @@ import { checkInDepositMethods } from "@/lib/check-in/schema";
 import {
   completeCheckout,
   recordFinalPayment,
-} from "../../../check-out/[folioId]/actions";
+} from "@/lib/check-out/actions";
 import {
   checkoutAuthorizationFailure,
   checkoutFailure,
   type CheckoutActionResult,
   type CheckoutFailureCode,
-} from "../../../check-out/[folioId]/errors";
+} from "@/lib/check-out/errors";
 
 const GroupBookingIdSchema = z.string().trim().min(1, "Booking grup tidak valid");
 

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { createOrder } from "../[orderId]/actions";
+import { createOrder } from "@/lib/fb-orders/actions";
 
 type ConfirmFormProps = {
   table: {

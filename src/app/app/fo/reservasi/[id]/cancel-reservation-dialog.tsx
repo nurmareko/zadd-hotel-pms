@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
-import { cancelReservation } from "../new/actions";
+import { cancelReservation } from "@/lib/reservations/actions";
 import { safelyRunReservationAction } from "../new/reservation-errors";
 
 type CancelReservationDialogProps = {

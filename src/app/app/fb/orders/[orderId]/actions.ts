@@ -10,9 +10,7 @@ import {
   ReservationStatus,
   TableStatus,
 } from "@prisma/client";
-import { format } from "date-fns";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import {
@@ -26,15 +24,22 @@ import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   AddItemToOrderSchema,
   ChargeOrderToRoomSchema,
-  CreateOrderSchema,
-  CreateRoomServiceOrderSchema,
-  LookupRoomForChargeSchema,
   OrderItemIdSchema,
   PayOrderDirectSchema,
   UpdateItemNotesSchema,
   UpdateItemQuantitySchema,
   VoidOrderSchema,
 } from "./schema";
+
+import {
+  createOrder,
+  createRoomServiceOrder,
+  lookupRoomForCharge,
+  type ChargeLookupResult,
+} from "@/lib/fb-orders/actions";
+
+export { createOrder, createRoomServiceOrder, lookupRoomForCharge };
+export type { ChargeLookupResult } from "@/lib/fb-orders/actions";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 export type PaymentActionResult =
@@ -52,17 +57,6 @@ export type PaymentActionResult =
   }
   | { ok: false; error: string };
 
-export type ChargeLookupResult =
-  | {
-    ok: true;
-    guestName: string;
-    roomNumber: string;
-    folioNo: string;
-    folioId: number;
-    reservationId: number;
-  }
-  | { ok: false; error: string };
-
 type OrderTotalDb = Pick<typeof prisma, "fBOrderItem" | "hotelSettings">;
 type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
   $queryRaw?: Prisma.TransactionClient["$queryRaw"];
@@ -76,20 +70,6 @@ class PaymentActionError extends Error { }
 
 function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid order data";
-}
-
-function isRetryableOrderNoError(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    (error.code === "P2002" || error.code === "P2034")
-  );
-}
-
-function isSerializationConflict(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    (error.code === "P2034" || error.code === "P2028")
-  );
 }
 
 async function canManageFbOrders() {
@@ -528,233 +508,6 @@ function revalidatePaymentPaths(
   }
 }
 
-async function runCreateOrderTransaction(
-  input: { tableId: number; guestCount: number },
-  userId: number,
-) {
-  return prisma.$transaction(
-    async (tx) => {
-      await tx.$queryRaw<Array<{ id: number }>>`
-        SELECT id FROM "restaurant_table" WHERE id = ${input.tableId} FOR UPDATE
-      `;
-
-      const table = await tx.restaurantTable.findUnique({
-        where: { id: input.tableId },
-        select: { id: true, number: true, status: true, capacity: true },
-      });
-
-      if (!table) {
-        return { ok: false as const, error: "Table not found" };
-      }
-
-      if (
-        table.status !== TableStatus.AVAILABLE &&
-        table.status !== TableStatus.RESERVED
-      ) {
-        return {
-          ok: false as const,
-          error: `Meja ${table.number} tidak tersedia untuk order baru.`,
-        };
-      }
-
-      if (input.guestCount > table.capacity) {
-        return {
-          ok: false as const,
-          error: `Jumlah tamu tidak boleh melebihi kapasitas meja ${table.capacity}.`,
-        };
-      }
-
-      const existingOpenOrder = await tx.fBOrder.findFirst({
-        where: { tableId: table.id, status: FBOrderStatus.OPEN },
-        select: { id: true },
-      });
-
-      if (existingOpenOrder) {
-        return {
-          ok: false as const,
-          error: `Meja ${table.number} sudah memiliki order terbuka.`,
-        };
-      }
-
-      const now = new Date();
-      const orderPrefix = `FB-${format(now, "ddMM")}-`;
-      const orderCount = await tx.fBOrder.count({
-        where: { orderNo: { startsWith: orderPrefix } },
-      });
-      const orderNo = `${orderPrefix}${String(orderCount + 1).padStart(4, "0")}`;
-
-      const order = await tx.fBOrder.create({
-        data: {
-          orderNo,
-          tableId: table.id,
-          tableNo: table.number,
-          guestCount: input.guestCount,
-          waitedById: userId,
-          status: FBOrderStatus.OPEN,
-        },
-        select: { id: true },
-      });
-
-      await tx.restaurantTable.update({
-        where: { id: table.id },
-        data: { status: TableStatus.OCCUPIED },
-      });
-
-      return { ok: true as const, orderId: order.id };
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      ...TRANSACTION_OPTIONS,
-    },
-  );
-}
-
-export async function createOrder(input: unknown): Promise<ActionResult> {
-  const userId = await canManageFbOrders();
-
-  if (!userId) {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = CreateOrderSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  let result: Awaited<ReturnType<typeof runCreateOrderTransaction>> | null =
-    null;
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      result = await runCreateOrderTransaction(parsed.data, userId);
-      break;
-    } catch (error) {
-      if (attempt < 2 && isRetryableOrderNoError(error)) {
-        continue;
-      }
-
-      if (isSerializationConflict(error)) {
-        return { ok: false, error: "Table was updated by another cashier." };
-      }
-
-      return { ok: false, error: "Something went wrong creating order" };
-    }
-  }
-
-  if (!result) {
-    return { ok: false, error: "Something went wrong creating order" };
-  }
-
-  if (!result.ok) {
-    return result;
-  }
-
-  revalidateOrderPaths(result.orderId);
-  redirect(`/app/fb/orders/${result.orderId}`);
-}
-
-async function runCreateRoomServiceOrderTransaction(
-  input: { roomNumber: string; guestCount: number },
-  userId: number,
-) {
-  return prisma.$transaction(
-    async (tx) => {
-      const roomLookup = await resolveRoomForCharge(tx, input.roomNumber, {
-        lockRows: true,
-      });
-
-      if (!roomLookup.ok) {
-        return roomLookup;
-      }
-
-      const now = new Date();
-      const orderPrefix = `FB-${format(now, "ddMM")}-`;
-      const orderCount = await tx.fBOrder.count({
-        where: { orderNo: { startsWith: orderPrefix } },
-      });
-      const orderNo = `${orderPrefix}${String(orderCount + 1).padStart(4, "0")}`;
-
-      const order = await tx.fBOrder.create({
-        data: {
-          orderNo,
-          tableId: null,
-          tableNo: null,
-          serviceType: FBOrderServiceType.ROOM_SERVICE,
-          chargedFolioId: roomLookup.folioId,
-          guestCount: input.guestCount,
-          waitedById: userId,
-          status: FBOrderStatus.OPEN,
-        },
-        select: { id: true },
-      });
-
-      return { ok: true as const, orderId: order.id };
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      ...TRANSACTION_OPTIONS,
-    },
-  );
-}
-
-export async function createRoomServiceOrder(
-  input: unknown,
-): Promise<ActionResult> {
-  const userId = await canManageFbOrders();
-
-  if (!userId) {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = CreateRoomServiceOrderSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  let result: Awaited<
-    ReturnType<typeof runCreateRoomServiceOrderTransaction>
-  > | null = null;
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      result = await runCreateRoomServiceOrderTransaction(parsed.data, userId);
-      break;
-    } catch (error) {
-      if (attempt < 2 && isRetryableOrderNoError(error)) {
-        continue;
-      }
-
-      if (isSerializationConflict(error)) {
-        return {
-          ok: false,
-          error: "Data kamar atau folio berubah. Coba lagi.",
-        };
-      }
-
-      return {
-        ok: false,
-        error: "Something went wrong creating room service order",
-      };
-    }
-  }
-
-  if (!result) {
-    return {
-      ok: false,
-      error: "Something went wrong creating room service order",
-    };
-  }
-
-  if (!result.ok) {
-    return result;
-  }
-
-  revalidateOrderPaths(result.orderId);
-  redirect(`/app/fb/orders/${result.orderId}`);
-}
-
 export async function addItemToOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
@@ -1057,27 +810,6 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
   }
 
   return result;
-}
-
-export async function lookupRoomForCharge(
-  input: unknown,
-): Promise<ChargeLookupResult> {
-  const userId = await canManageFbOrders();
-
-  if (!userId) {
-    return { ok: false, error: "Unauthorized" };
-  }
-
-  const parsed = LookupRoomForChargeSchema.safeParse(input);
-
-  if (!parsed.success) {
-    return { ok: false, error: validationError(parsed.error) };
-  }
-
-  return prisma.$transaction(
-    (tx) => resolveRoomForCharge(tx, parsed.data.roomNumber),
-    TRANSACTION_OPTIONS,
-  );
 }
 
 export async function payOrderDirect(

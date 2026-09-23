@@ -20,7 +20,7 @@ import {
 import {
   changeReservationMealPlan,
   setReservationStayFee,
-} from "../../[id]/actions";
+} from "@/lib/reservation-inclusions/actions";
 import type { GroupRoomActionResult } from "./actions";
 
 const GroupScopeSchema = z.discriminatedUnion("scope", [

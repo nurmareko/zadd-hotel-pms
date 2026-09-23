@@ -46,7 +46,7 @@ vi.mock("@/components/check-in/signature-pad-field", () => ({
 vi.mock("@/lib/folio-totals", () => ({
   computeFolioTotals: mocks.computeFolioTotals,
 }));
-vi.mock("../../../check-out/[folioId]/actions", () => ({
+vi.mock("@/lib/check-out/actions", () => ({
   recordFinalPayment: mocks.recordFinalPayment,
   completeCheckout: mocks.completeCheckout,
 }));
@@ -62,7 +62,7 @@ import {
   checkoutFailure,
   createMutationGuard,
   type MutationGuard,
-} from "../../../check-out/[folioId]/errors";
+} from "@/lib/check-out/errors";
 import {
   checkoutEligibleGroupRooms,
   collectGroupDeposits,
