@@ -15,6 +15,7 @@ import {
 } from "@/lib/date-only";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
 
 export type ManagerFlashDay = {
   date: string;
@@ -71,8 +72,9 @@ async function getBookingSourceContributions(
   date: string,
 ): Promise<BookingSourceContribution[]> {
   const dateOnly = parseISODateOnly(date);
+  const nextDate = addDateOnlyDays(dateOnly, 1);
   const { start, end } = dayRange(date);
-  const [reservations, folioLineItems, closedFbOrders] = await Promise.all([
+  const [reservations, stayLineItems, otherLineItems, closedFbOrders] = await Promise.all([
     prisma.reservation.findMany({
       where: {
         reservationNights: { some: { date: dateOnly } },
@@ -85,7 +87,21 @@ async function getBookingSourceContributions(
       },
     }),
     prisma.folioLineItem.findMany({
-      where: { postedAt: { gte: start, lt: end }, fbOrderId: null },
+      where: {
+        reservationNight: { date: { gte: dateOnly, lt: nextDate } },
+        fbOrderId: null,
+      },
+      select: {
+        amount: true,
+        folio: { select: { reservation: { select: { reservationType: true } } } },
+      },
+    }),
+    prisma.folioLineItem.findMany({
+      where: {
+        postedAt: { gte: start, lt: end },
+        fbOrderId: null,
+        reservationNightId: null,
+      },
       select: {
         amount: true,
         folio: { select: { reservation: { select: { reservationType: true } } } },
@@ -116,7 +132,7 @@ async function getBookingSourceContributions(
     if (row) row.roomNights += reservation.reservationNights.length;
   }
 
-  for (const line of folioLineItems) {
+  for (const line of [...stayLineItems, ...otherLineItems]) {
     const row = rows.get(sourceFor(line.folio.reservation.reservationType));
     if (row) row.revenue += Number(line.amount ?? 0);
   }
@@ -213,9 +229,20 @@ async function calculateDay(
     checkInCount = audit.checkInCount;
     checkOutCount = audit.checkOutCount;
   } else {
-    const [lineItems, closedFbRevenue] = await Promise.all([
+    const [stayLineItems, otherLineItems, closedFbRevenue] = await Promise.all([
       prisma.folioLineItem.findMany({
-        where: { postedAt: { gte: start, lt: end }, fbOrderId: null },
+        where: {
+          reservationNight: { date: { gte: dateOnly, lt: nextDate } },
+          fbOrderId: null,
+        },
+        select: { amount: true, article: { select: { code: true, type: true } } },
+      }),
+      prisma.folioLineItem.findMany({
+        where: {
+          postedAt: { gte: start, lt: end },
+          fbOrderId: null,
+          reservationNightId: null,
+        },
         select: { amount: true, article: { select: { type: true } } },
       }),
       prisma.fBOrder.aggregate({
@@ -223,14 +250,14 @@ async function calculateDay(
         _sum: { total: true },
       }),
     ]);
-    roomRevenue = lineItems
-      .filter((line) => line.article.type === ArticleType.ROOM)
+    roomRevenue = stayLineItems
+      .filter((line) => line.article.code === ROOM_CHARGE_ARTICLE_CODE)
       .reduce((sum, line) => sum + Number(line.amount), 0);
-    const inclusionRevenue = lineItems
+    const inclusionRevenue = stayLineItems
       .filter((line) => line.article.type === ArticleType.FB)
       .reduce((sum, line) => sum + Number(line.amount), 0);
     fbRevenue = inclusionRevenue + Number(closedFbRevenue._sum.total ?? 0);
-    otherRevenue = lineItems
+    otherRevenue = otherLineItems
       .filter(
         (line) =>
           line.article.type !== ArticleType.ROOM &&

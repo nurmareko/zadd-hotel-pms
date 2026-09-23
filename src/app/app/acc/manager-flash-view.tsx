@@ -127,7 +127,7 @@ export function ManagerFlashView({
         />
         <KpiCard
           className="border-emerald-100 bg-emerald-50/50 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
-          label="PENDAPATAN HARI INI"
+          label="PENDAPATAN HARIAN"
           sub={metricSubline(day)}
           value={money(day.totalRevenue)}
         />
@@ -189,7 +189,7 @@ export function ManagerFlashView({
               <table className="w-full min-w-[680px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {['Tanggal', 'Okupansi %', 'ARR / ADR', 'RevPAR', 'Pendapatan'].map((heading) => (
+                    {['Tanggal', 'Okupansi %', 'ARR / ADR', 'RevPAR', 'Total Pendapatan'].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>
