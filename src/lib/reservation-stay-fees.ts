@@ -7,6 +7,7 @@ import {
   ReservationStayFeeStatus,
 } from "@prisma/client";
 
+import { assertBusinessDateOpen } from "@/lib/night-audit";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 
 export class ReservationStayFeeError extends Error {
@@ -165,6 +166,10 @@ export async function postPendingReservationStayFees(
     },
     orderBy: { id: "asc" },
   });
+
+  if (fees.length === 0) return 0;
+
+  await assertBusinessDateOpen(tx, input.postedAt);
 
   for (const fee of fees) {
     if (!fee.unitPrice.isInteger() || fee.unitPrice.isNegative()) {

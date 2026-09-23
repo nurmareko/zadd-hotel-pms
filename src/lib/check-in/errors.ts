@@ -27,6 +27,7 @@ export const CHECK_IN_FAILURE_CODES = [
   "GRC_INCOMPLETE",
   "RESERVATION_CHANGED",
   "STAY_FEE_UNAVAILABLE",
+  "NIGHT_AUDIT_CLOSED",
   "CHECK_IN_CONFLICT",
   "CHECK_IN_UNEXPECTED",
   "REVIEW_UNEXPECTED",
@@ -97,6 +98,8 @@ export const CHECK_IN_FAILURE_MESSAGES: Record<CheckInFailureCode, string> = {
     "Data reservasi berubah. Muat ulang, tinjau kembali GRC, lalu minta tanda tangan ulang.",
   STAY_FEE_UNAVAILABLE:
     "Biaya fleksibilitas belum dapat dicatat. Periksa konfigurasi biaya lalu coba lagi.",
+  NIGHT_AUDIT_CLOSED:
+    "Audit malam untuk tanggal bisnis hari ini sudah selesai. Check-in tidak dapat diproses.",
   CHECK_IN_CONFLICT:
     "Check-in mengalami konflik data. Muat ulang halaman dan periksa status reservasi serta kamar.",
   CHECK_IN_UNEXPECTED: "Check-in tidak dapat diselesaikan. Silakan coba lagi.",

@@ -5,12 +5,14 @@ import {
   FolioStatus,
   PaymentMethod,
   ReservationStatus,
+  ReservationStayFeeKind,
   RoomStatus,
   TableStatus,
 } from "@prisma/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { chargeOrderToRoom, payOrderDirect } from "@/app/app/fb/orders/[orderId]/actions";
+import { setReservationStayFee } from "@/app/app/fo/reservasi/[id]/actions";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import {
@@ -19,6 +21,7 @@ import {
 } from "@/lib/night-audit";
 import { prisma } from "@/lib/prisma";
 import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
+import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 
 import {
   createArticle,
@@ -69,6 +72,79 @@ describe("Night Audit Database Integration Tests", () => {
   beforeEach(async () => {
     await resetTestDatabase();
     process.env.TEST_AUTH_ROLE = "ACC";
+  });
+
+  describe("Stay fee Night Audit boundary", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(FROZEN_NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      delete process.env.TEST_AUTH_ROLE;
+      delete process.env.TEST_AUTH_USER_ID;
+    });
+
+    it.each([
+      ReservationStayFeeKind.EARLY_CHECK_IN,
+      ReservationStayFeeKind.LATE_CHECK_OUT,
+    ])("rejects checked-in %s after a successful audit without mutations", async (kind) => {
+      const user = await createUser();
+      await createHotelSettings();
+      await setupStayChargeArticles();
+      const definition = STAY_FEE_DEFINITIONS[kind];
+      await createArticle({
+        code: definition.articleCode,
+        type: ArticleType.MISC,
+        defaultPrice: definition.unitPrice,
+        name: definition.label,
+      });
+      const roomType = await createRoomType();
+      const room = await createRoom(roomType.id, RoomStatus.OC);
+      const guest = await createGuest();
+      const { reservation } = await createReservationFixture({
+        userId: user.id,
+        roomTypeId: roomType.id,
+        guestId: guest.id,
+        roomId: room.id,
+        arrivalDate: "2026-08-05",
+        nightlyRates: [550_000, 550_000],
+        status: ReservationStatus.CHECKED_IN,
+        depositStatus: DepositStatus.COLLECTED,
+      });
+      await createFolio(reservation.id);
+
+      const audit = await executeNightAudit({ runById: user.id, now: FROZEN_NOW });
+      expect(audit).toMatchObject({ ok: true });
+
+      const readState = async () => ({
+        reservations: await prisma.reservation.findMany({ orderBy: { id: "asc" } }),
+        rooms: await prisma.room.findMany({ orderBy: { id: "asc" } }),
+        fees: await prisma.reservationStayFee.findMany({ orderBy: { id: "asc" } }),
+        folios: await prisma.folio.findMany({ orderBy: { id: "asc" } }),
+        lines: await prisma.folioLineItem.findMany({ orderBy: { id: "asc" } }),
+        payments: await prisma.payment.findMany({ orderBy: { id: "asc" } }),
+        audits: await prisma.nightAudit.findMany({ orderBy: { id: "asc" } }),
+      });
+      const before = await readState();
+      expect(before.fees).toHaveLength(0);
+      expect(before.audits).toHaveLength(1);
+
+      const result = await setReservationStayFee({
+        reservationId: reservation.id,
+        kind,
+        selected: true,
+      });
+
+      expect(result).toEqual({
+        ok: false,
+        error:
+          "Audit malam untuk tanggal bisnis hari ini sudah selesai. Biaya fleksibilitas tidak dapat diposting.",
+        disposition: "skipped",
+      });
+      expect(await readState()).toEqual(before);
+    });
   });
 
   describe("F&B payment Night Audit boundary", () => {

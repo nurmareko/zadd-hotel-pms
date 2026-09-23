@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAuditStayChargeLines,
+  classifyNightAuditRevenues,
   MAX_AUDIT_ATTEMPTS,
   type NightAuditStayChargeReservation,
 } from "@/lib/night-audit";
@@ -10,6 +11,77 @@ import { ROOM_CHARGE_ARTICLE_CODE, type StayChargeArticle } from "@/lib/stay-cha
 
 const decimal = (value: Prisma.Decimal.Value) => new Prisma.Decimal(value);
 const date = (value: string) => new Date(`${value}T00:00:00.000Z`);
+
+describe("classifyNightAuditRevenues", () => {
+  it.each([
+    { code: "ROOM-CHARGE", type: "ROOM" as const, bucket: "roomRevenue" as const },
+    { code: "ROOM-CUSTOM", type: "ROOM" as const, bucket: "roomRevenue" as const },
+    { code: "MEAL-BB", type: "FB" as const, bucket: "inclusionRevenue" as const },
+    { code: "LAUNDRY", type: "MISC" as const, bucket: "otherRevenue" as const },
+  ])("classifies daytime $code as $bucket", ({ code, type, bucket }) => {
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: [],
+      existingDaytimeFolioLines: [{ amount: decimal("123.45"), article: { code, type } }],
+      closedFbRevenueTotal: null,
+      roomArticleId: 1,
+    });
+
+    expect(revenue[bucket].toString()).toBe("123.45");
+    expect(revenue.fbRevenue.toString()).toBe(type === "FB" ? "123.45" : "0");
+    expect(revenue.totalRevenue.toString()).toBe("123.45");
+  });
+
+  it("combines shortfalls, daytime charges, and closed F&B orders exactly once", () => {
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: [
+        { articleId: 1, amount: decimal(500_000) },
+        { articleId: 2, amount: decimal(100_000) },
+      ],
+      existingDaytimeFolioLines: [
+        { amount: decimal(400_000), article: { code: "ROOM-CHARGE", type: "ROOM" } },
+        { amount: decimal(50_000), article: { code: "MEAL-BB", type: "FB" } },
+        { amount: decimal(25_000), article: { code: "LAUNDRY", type: "MISC" } },
+      ],
+      closedFbRevenueTotal: "75000",
+      roomArticleId: 1,
+    });
+
+    expect(revenue.roomRevenue.toString()).toBe("900000");
+    expect(revenue.inclusionRevenue.toString()).toBe("150000");
+    expect(revenue.closedFbOrderRevenue.toString()).toBe("75000");
+    expect(revenue.fbRevenue.toString()).toBe("225000");
+    expect(revenue.otherRevenue.toString()).toBe("25000");
+    expect(revenue.totalRevenue.toString()).toBe("1150000");
+    expect(revenue.totalRevenue.equals(
+      revenue.roomRevenue.plus(revenue.fbRevenue).plus(revenue.otherRevenue),
+    )).toBe(true);
+  });
+
+  it("gives ROOM-CHARGE code precedence over FB type without double counting", () => {
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: [],
+      existingDaytimeFolioLines: [
+        { amount: decimal(100), article: { code: "ROOM-CHARGE", type: "FB" } },
+      ],
+      closedFbRevenueTotal: null,
+      roomArticleId: 1,
+    });
+    expect(revenue.roomRevenue.toString()).toBe("100");
+    expect(revenue.inclusionRevenue.toString()).toBe("0");
+    expect(revenue.fbRevenue.toString()).toBe("0");
+    expect(revenue.totalRevenue.toString()).toBe("100");
+  });
+
+  it("returns zero revenue when there are no charges or room article", () => {
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: [],
+      existingDaytimeFolioLines: [],
+      closedFbRevenueTotal: undefined,
+      roomArticleId: undefined,
+    });
+    expect(Object.values(revenue).every((value) => value.isZero())).toBe(true);
+  });
+});
 
 describe("night audit domain logic", () => {
   it("exports MAX_AUDIT_ATTEMPTS = 3", () => {

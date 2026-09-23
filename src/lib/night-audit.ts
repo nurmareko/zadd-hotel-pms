@@ -1,5 +1,6 @@
 import {
   ArrangementType,
+  ArticleType,
   FBOrderStatus,
   FolioStatus,
   Prisma,
@@ -231,6 +232,69 @@ function decimal(
   }
 
   return new Prisma.Decimal(value ?? 0);
+}
+
+export function classifyNightAuditRevenues({
+  shortfallLineItems,
+  existingDaytimeFolioLines,
+  closedFbRevenueTotal,
+  roomArticleId,
+}: {
+  shortfallLineItems: Array<{ articleId: number; amount: Prisma.Decimal }>;
+  existingDaytimeFolioLines: Array<{
+    amount: Prisma.Decimal;
+    article: { code: string; type: ArticleType };
+  }>;
+  closedFbRevenueTotal: Prisma.Decimal | number | string | null | undefined;
+  roomArticleId: number | undefined;
+}) {
+  const shortfallRoomRevenue = shortfallLineItems
+    .filter((line) => line.articleId === roomArticleId)
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+  const shortfallInclusionRevenue = shortfallLineItems
+    .filter((line) => line.articleId !== roomArticleId)
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+  const existingRoomRevenue = existingDaytimeFolioLines
+    .filter(
+      (line) =>
+        line.article.code === ROOM_CHARGE_ARTICLE_CODE ||
+        line.article.type === ArticleType.ROOM,
+    )
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+  const existingInclusionRevenue = existingDaytimeFolioLines
+    .filter(
+      (line) =>
+        line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
+        line.article.type === ArticleType.FB,
+    )
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+  const otherRevenue = existingDaytimeFolioLines
+    .filter(
+      (line) =>
+        line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
+        line.article.type !== ArticleType.ROOM &&
+        line.article.type !== ArticleType.FB,
+    )
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+
+  const roomRevenue = shortfallRoomRevenue.plus(existingRoomRevenue);
+  const inclusionRevenue = shortfallInclusionRevenue.plus(existingInclusionRevenue);
+  const closedFbOrderRevenue = decimal(closedFbRevenueTotal);
+  const fbRevenue = inclusionRevenue.plus(closedFbOrderRevenue);
+  const totalRevenue = roomRevenue.plus(fbRevenue).plus(otherRevenue);
+
+  return {
+    roomRevenue,
+    inclusionRevenue,
+    closedFbOrderRevenue,
+    fbRevenue,
+    otherRevenue,
+    totalRevenue,
+  };
 }
 
 function addDecimal(
@@ -776,12 +840,15 @@ export async function buildNightAuditPlan({
       },
       _sum: { total: true },
     }),
-    prisma.folioLineItem.aggregate({
+    prisma.folioLineItem.findMany({
       where: {
         postedAt: { gte: timestampStart, lt: timestampEnd },
         fbOrderId: null,
       },
-      _sum: { amount: true },
+      select: {
+        amount: true,
+        article: { select: { code: true, type: true } },
+      },
     }),
   ]);
 
@@ -803,20 +870,19 @@ export async function buildNightAuditPlan({
   });
 
   const roomArticleId = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE)?.id;
-  const roomRevenue = addDecimal(
-    lineItems
-      .filter((lineItem) => lineItem.articleId === roomArticleId)
-      .map((lineItem) => lineItem.amount),
-  );
-  const fbInclusionRevenue = addDecimal(
-    lineItems
-      .filter((lineItem) => lineItem.articleId !== roomArticleId)
-      .map((lineItem) => lineItem.amount),
-  );
-  const closedFbOrderRevenue = decimal(closedFbRevenue._sum.total);
-  const fbRevenue = fbInclusionRevenue.plus(closedFbOrderRevenue);
-  const otherRevenue = decimal(otherFolioRevenue._sum.amount);
-  const totalRevenue = roomRevenue.plus(fbRevenue).plus(otherRevenue);
+  const {
+    roomRevenue,
+    inclusionRevenue: fbInclusionRevenue,
+    closedFbOrderRevenue,
+    fbRevenue,
+    otherRevenue,
+    totalRevenue,
+  } = classifyNightAuditRevenues({
+    shortfallLineItems: lineItems,
+    existingDaytimeFolioLines: otherFolioRevenue,
+    closedFbRevenueTotal: closedFbRevenue._sum.total,
+    roomArticleId,
+  });
   const computedOccupancyRate = occupancyRate(roomsOccupied, totalRooms);
   const arrangementBreakdown: Record<ArrangementType, number> = {
     [ArrangementType.RO]: 0,
@@ -1128,12 +1194,15 @@ export async function executeNightAudit({
               },
               _sum: { total: true },
             }),
-            tx.folioLineItem.aggregate({
+            tx.folioLineItem.findMany({
               where: {
                 postedAt: { gte: timestampStart, lt: timestampEnd },
                 fbOrderId: null,
               },
-              _sum: { amount: true },
+              select: {
+                amount: true,
+                article: { select: { code: true, type: true } },
+              },
             }),
             tx.fBOrder.count({
               where: { status: FBOrderStatus.OPEN },
@@ -1210,19 +1279,13 @@ export async function executeNightAudit({
           // 7. Calculate roomRevenue, inclusionRevenue, fbRevenue, totalRevenue, and occupancyRate
           const roomArticleId = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE)?.id;
 
-          const roomRevenue = lineItemsToCreate
-            .filter((line) => line.articleId === roomArticleId)
-            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
-
-          const inclusionRevenue = lineItemsToCreate
-            .filter((line) => line.articleId !== roomArticleId)
-            .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
-
-          const closedFbOrderRevenue = decimal(closedFbRevenue._sum.total);
-          const fbRevenue = inclusionRevenue.plus(closedFbOrderRevenue);
-
-          const otherRevenue = decimal(otherFolioRevenue._sum.amount);
-          const totalRevenue = roomRevenue.plus(fbRevenue).plus(otherRevenue);
+          const { roomRevenue, fbRevenue, otherRevenue, totalRevenue } =
+            classifyNightAuditRevenues({
+              shortfallLineItems: lineItemsToCreate,
+              existingDaytimeFolioLines: otherFolioRevenue,
+              closedFbRevenueTotal: closedFbRevenue._sum.total,
+              roomArticleId,
+            });
 
           const computedOccupancyRate = occupancyRate(
             roomsOccupied,

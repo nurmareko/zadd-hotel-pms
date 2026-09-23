@@ -18,6 +18,7 @@ import {
   getFreshCheckInReview,
 } from "@/lib/check-in/actions";
 import { hotelTodayDateOnly } from "@/lib/date-only";
+import { NightAuditClosedError } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   buildReservationMealPlanChange,
@@ -521,6 +522,15 @@ export async function setReservationStayFee(
 
       return result;
     } catch (error) {
+      if (error instanceof NightAuditClosedError) {
+        return {
+          ok: false as const,
+          error:
+            "Audit malam untuk tanggal bisnis hari ini sudah selesai. Biaya fleksibilitas tidak dapat diposting.",
+          disposition: "skipped" as const,
+        };
+      }
+
       if (error instanceof ReservationStayFeeError) {
         return { ok: false, error: error.message, disposition: "failed" };
       }

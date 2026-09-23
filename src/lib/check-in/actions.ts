@@ -30,6 +30,7 @@ import {
   buildGrcSnapshot,
   GRC_SNAPSHOT_SCHEMA_VERSION,
 } from "@/lib/grc-snapshot";
+import { NightAuditClosedError } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 import { roomBlockedMessage } from "@/lib/room-blocks/overlap";
@@ -1019,6 +1020,13 @@ export async function completeCheckIn(
       );
       break;
     } catch (error) {
+      if (error instanceof NightAuditClosedError) {
+        return checkInFailure("NIGHT_AUDIT_CLOSED", {
+          message:
+            "Audit malam untuk tanggal bisnis hari ini sudah selesai. Check-in tidak dapat diproses.",
+        });
+      }
+
       if (error instanceof CheckInDomainError) {
         return checkInFailure(error.code, {
           field: error.field,
