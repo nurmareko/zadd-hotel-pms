@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCompactDateID, formatFixedPercent, formatIDR } from "@/lib/format";
-import type { ManagerFlashDay } from "@/lib/manager-flash";
+import type {
+  BookingSourceContribution,
+  ManagerFlashDay,
+} from "@/lib/manager-flash";
 import Link from "next/link";
 
 import { KpiCard } from "./kpi-card";
@@ -16,7 +19,44 @@ function money(value: number) {
 }
 
 function metricSubline(day: ManagerFlashDay) {
-  return `Room ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · Lain ${money(day.otherRevenue)}`;
+  return `Kamar ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · Lain ${money(day.otherRevenue)}`;
+}
+
+const bookingSourceLabels: Record<BookingSourceContribution["source"], string> = {
+  INDIVIDUAL: "Individual",
+  COMPANY: "Perusahaan",
+  GOVERNMENT: "Pemerintah",
+  OTA: "Online Travel Agent",
+  WALK_IN: "Walk-in",
+  UNKNOWN: "Lainnya",
+};
+
+function BookingSourceRows({ rows }: { rows: BookingSourceContribution[] }) {
+  if (rows.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Belum ada pendapatan berdasarkan sumber pemesanan.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3 text-sm">
+      {rows.map((row) => (
+        <div className="flex items-start justify-between gap-3" key={row.source}>
+          <div>
+            <p className="font-medium text-foreground">{bookingSourceLabels[row.source]}</p>
+            <p className="text-xs text-muted-foreground">
+              {row.reservationCount} reservasi · {row.roomNights} room night
+            </p>
+          </div>
+          <span className="whitespace-nowrap font-semibold text-foreground">
+            {money(row.revenue)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function ManagerFlashView({
@@ -34,10 +74,10 @@ export function ManagerFlashView({
             Accounting
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-            Manager Flash
+            Night Report
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Ringkasan kinerja hotel dan pendapatan harian.
+            Ringkasan kinerja hotel untuk {dateLabel(report.selectedDate)}.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end print:hidden">
@@ -87,11 +127,52 @@ export function ManagerFlashView({
         />
         <KpiCard
           className="border-emerald-100 bg-emerald-50/50 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
-          label="PENDAPATAN HARI INI"
+          label="PENDAPATAN HARIAN"
           sub={metricSubline(day)}
           value={money(day.totalRevenue)}
         />
       </section>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="rounded-lg border border-border p-0">
+          <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
+            <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+              Pendapatan Harian
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-5 text-sm">
+            {[
+              ["Pendapatan Kamar", day.roomRevenue],
+              ["Pendapatan F&B", day.fbRevenue],
+              ["Pendapatan Lain", day.otherRevenue],
+              ["Total Pendapatan", day.totalRevenue],
+            ].map(([label, value], index) => (
+              <div
+                className={`flex items-center justify-between gap-3 ${
+                  index === 3 ? "border-t border-border pt-3 font-bold" : ""
+                }`}
+                key={label}
+              >
+                <span className={index === 3 ? "text-foreground" : "text-muted-foreground"}>
+                  {label}
+                </span>
+                <span className="whitespace-nowrap text-foreground">{money(Number(value))}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-lg border border-border p-0">
+          <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
+            <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+              Sumber Pemesanan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <BookingSourceRows rows={day.bookingSources} />
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="min-w-0 overflow-hidden rounded-lg border border-border p-0">
@@ -108,7 +189,7 @@ export function ManagerFlashView({
               <table className="w-full min-w-[680px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {['Tanggal', 'Okupansi %', 'ARR / ADR', 'RevPAR', 'Pendapatan'].map((heading) => (
+                    {['Tanggal', 'Okupansi %', 'ARR / ADR', 'RevPAR', 'Total Pendapatan'].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>
