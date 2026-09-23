@@ -12,9 +12,16 @@ const roles = [
   { code: "FB", name: "Food & Beverage" },
   { code: "ACC", name: "Accounting" },
   { code: "ADMIN", name: "Administrator" },
+  { code: "GM", name: "General Manager", permissions: [] },
 ] as const;
 
 const users = [
+  {
+    username: "gm1",
+    fullName: "General Manager Demo",
+    roleCode: "GM",
+    password: "password123",
+  },
   {
     username: "admin",
     fullName: "Noah Py",
@@ -83,11 +90,11 @@ async function main() {
       create: {
         code: role.code,
         name: role.name,
-        permissions: EMPTY_PERMISSIONS,
+        permissions: "permissions" in role ? role.permissions : EMPTY_PERMISSIONS,
       },
       update: {
         name: role.name,
-        permissions: EMPTY_PERMISSIONS,
+        permissions: "permissions" in role ? role.permissions : EMPTY_PERMISSIONS,
       },
     });
 

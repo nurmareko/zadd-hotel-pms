@@ -11,6 +11,7 @@ type AccountCardProps = {
 };
 
 const roleDisplayNames: Record<AppRole, string> = {
+  GM: "General Manager",
   FO: "Front Office",
   HK: "Housekeeping",
   FB: "Food & Beverage",

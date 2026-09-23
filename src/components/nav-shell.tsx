@@ -74,6 +74,7 @@ type NavShellProps = {
 };
 
 const roleModuleNames: Record<AppRole, string> = {
+  GM: "GENERAL MANAGER",
   FO: "FRONT OFFICE",
   HK: "HOUSEKEEPING",
   FB: "FOOD & BEVERAGE",
@@ -106,6 +107,90 @@ const hkNavGroup: NavGroup = {
 };
 
 const navGroupsByRole: Record<AppRole, NavGroup[]> = {
+  GM: [
+    {
+      label: "Front Office",
+      links: [
+        {
+          label: "Reservasi",
+          href: "/app/fo/reservasi",
+          icon: ClipboardList,
+          activeMatch: "startsWith",
+          activePaths: [
+            { href: "/app/fo/reservations", match: "startsWith" },
+            { href: "/app/fo/tape-chart", match: "startsWith" },
+            { href: "/app/fo/check-out", match: "startsWith" },
+          ],
+        },
+        {
+          label: "Blokir Kamar",
+          href: "/app/fo/room-blocks",
+          icon: Wrench,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Tamu",
+          href: "/app/fo/tamu",
+          icon: Users,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Kinerja",
+          href: "/app/fo/staff-performance",
+          icon: BarChart3,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Lost & Found",
+          href: "/app/hk/lost-found",
+          icon: Archive,
+          activeMatch: "exact",
+        },
+      ],
+    },
+    hkNavGroup,
+    {
+      label: "Food & Beverage",
+      links: [
+        {
+          label: "Meja",
+          href: "/app/fb",
+          icon: UtensilsCrossed,
+          activeMatch: "startsWith",
+        },
+      ],
+    },
+    {
+      label: "Accounting",
+      links: [
+        {
+          label: "Dashboard",
+          href: "/app/acc",
+          icon: LayoutDashboard,
+          activeMatch: "exact",
+        },
+        {
+          label: "Night Audit",
+          href: "/app/acc/night-audit",
+          icon: Moon,
+          activeMatch: "startsWith",
+        },
+        {
+          label: "Night Report",
+          href: "/app/acc/night-report",
+          icon: FileText,
+          activeMatch: "exact",
+          activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
+        },
+        {
+          label: "Accounting Export",
+          href: "/app/acc/accounting-export",
+          icon: Download,
+          activeMatch: "startsWith",
+        },
+      ],
+    },
+  ],
   FO: [
     {
       label: "Front Office",

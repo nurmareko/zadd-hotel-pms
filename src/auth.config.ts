@@ -1,10 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
 
-export type AppRole = "FO" | "HK" | "FB" | "ACC" | "ADMIN";
+export type AppRole = "ADMIN" | "GM" | "FO" | "HK" | "FB" | "ACC";
 
-const appRoles = ["FO", "HK", "FB", "ACC", "ADMIN"] as const;
+const appRoles = ["ADMIN", "GM", "FO", "HK", "FB", "ACC"] as const;
 
-export function isAppRole(role: string | undefined): role is AppRole {
+export function isAppRole(role: unknown): role is AppRole {
   return appRoles.some((appRole) => appRole === role);
 }
 
