@@ -2,6 +2,7 @@ import {
   ArticleType,
   FBOrderStatus,
   ReservationStatus,
+  ReservationType,
 } from "@prisma/client";
 
 import { computeArr, getArrCutover, type ArrCutoverResult } from "@/lib/arr";
@@ -32,6 +33,14 @@ export type ManagerFlashDay = {
   checkInCount: number;
   checkOutCount: number;
   noShowCount: number;
+  bookingSources: BookingSourceContribution[];
+};
+
+export type BookingSourceContribution = {
+  source: ReservationType | "UNKNOWN";
+  revenue: number;
+  reservationCount: number;
+  roomNights: number;
 };
 
 export type ManagerFlashReport = {
@@ -49,6 +58,87 @@ function dayRange(date: string) {
   return { start, end: hotelTimestampBoundaryForDate(formatISODate(addDateOnlyDays(parseISODateOnly(date), 1))) };
 }
 
+const bookingSourceOrder: Array<ReservationType | "UNKNOWN"> = [
+  ReservationType.INDIVIDUAL,
+  ReservationType.COMPANY,
+  ReservationType.GOVERNMENT,
+  ReservationType.OTA,
+  ReservationType.WALK_IN,
+  "UNKNOWN",
+];
+
+async function getBookingSourceContributions(
+  date: string,
+): Promise<BookingSourceContribution[]> {
+  const dateOnly = parseISODateOnly(date);
+  const { start, end } = dayRange(date);
+  const [reservations, folioLineItems, closedFbOrders] = await Promise.all([
+    prisma.reservation.findMany({
+      where: {
+        reservationNights: { some: { date: dateOnly } },
+        status: { notIn: [ReservationStatus.CANCELLED, ReservationStatus.NO_SHOW] },
+      },
+      select: {
+        id: true,
+        reservationType: true,
+        reservationNights: { where: { date: dateOnly }, select: { id: true } },
+      },
+    }),
+    prisma.folioLineItem.findMany({
+      where: { postedAt: { gte: start, lt: end }, fbOrderId: null },
+      select: {
+        amount: true,
+        folio: { select: { reservation: { select: { reservationType: true } } } },
+      },
+    }),
+    prisma.fBOrder.findMany({
+      where: { status: FBOrderStatus.CLOSED, closedAt: { gte: start, lt: end } },
+      select: {
+        total: true,
+        chargedFolio: {
+          select: { reservation: { select: { reservationType: true } } },
+        },
+      },
+    }),
+  ]);
+
+  const rows = new Map(
+    bookingSourceOrder.map((source) => [
+      source,
+      { source, revenue: 0, reservationIds: new Set<number>(), roomNights: 0 },
+    ]),
+  );
+  const sourceFor = (source: ReservationType | null | undefined) => source ?? "UNKNOWN";
+
+  for (const reservation of reservations) {
+    const row = rows.get(sourceFor(reservation.reservationType));
+    row?.reservationIds.add(reservation.id);
+    if (row) row.roomNights += reservation.reservationNights.length;
+  }
+
+  for (const line of folioLineItems) {
+    const row = rows.get(sourceFor(line.folio.reservation.reservationType));
+    if (row) row.revenue += Number(line.amount ?? 0);
+  }
+
+  for (const order of closedFbOrders) {
+    const row = rows.get(sourceFor(order.chargedFolio?.reservation.reservationType));
+    if (row) row.revenue += Number(order.total ?? 0);
+  }
+
+  return bookingSourceOrder
+    .map((source) => {
+      const row = rows.get(source);
+      return {
+        source,
+        revenue: row?.revenue ?? 0,
+        reservationCount: row?.reservationIds.size ?? 0,
+        roomNights: row?.roomNights ?? 0,
+      };
+    })
+    .filter((row) => row.revenue !== 0 || row.reservationCount !== 0 || row.roomNights !== 0);
+}
+
 async function calculateDay(
   date: string,
   totalRooms: number,
@@ -64,11 +154,12 @@ async function calculateDay(
     checkOutCount: number;
   } | null,
   cutover: ArrCutoverResult,
+  includeBookingSources = false,
 ): Promise<ManagerFlashDay> {
   const dateOnly = parseISODateOnly(date);
   const nextDate = addDateOnlyDays(dateOnly, 1);
   const { start, end } = dayRange(date);
-  const [arr, movement, noShowCount] = await Promise.all([
+  const [arr, movement, noShowCount, bookingSources] = await Promise.all([
     computeArr({
       fromInclusive: dateOnly,
       toExclusive: nextDate,
@@ -98,6 +189,9 @@ async function calculateDay(
         status: ReservationStatus.NO_SHOW,
       },
     }),
+    includeBookingSources
+      ? getBookingSourceContributions(date)
+      : Promise.resolve([] as BookingSourceContribution[]),
   ]);
 
   let roomRevenue: number;
@@ -175,7 +269,7 @@ async function calculateDay(
   const occupancyRate = audit
     ? Number(audit.occupancyRate.toString())
     : safeDivide(roomsOccupied * 100, totalRooms);
-  const adr = safeDivide(roomRevenue, soldRoomNights);
+  const adr = arr.arr ? Number(arr.arr.toString()) : 0;
   const revPar = safeDivide(roomRevenue, totalRooms);
   const revPax = safeDivide(roomRevenue + fbRevenue + otherRevenue, inHouseCount);
 
@@ -196,6 +290,7 @@ async function calculateDay(
     checkInCount,
     checkOutCount,
     noShowCount,
+    bookingSources,
   };
 }
 
@@ -229,7 +324,15 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
   const cutover = await getArrCutover();
   const auditByDate = new Map(audits.map((audit) => [formatISODate(audit.businessDate), audit]));
   const history = await Promise.all(
-    historyDates.map((date) => calculateDay(date, totalRooms, auditByDate.get(date) ?? null, cutover)),
+    historyDates.map((date, index) =>
+      calculateDay(
+        date,
+        totalRooms,
+        auditByDate.get(date) ?? null,
+        cutover,
+        index === 0,
+      ),
+    ),
   );
 
   return { selectedDate: selected, selected: history[0], history };
