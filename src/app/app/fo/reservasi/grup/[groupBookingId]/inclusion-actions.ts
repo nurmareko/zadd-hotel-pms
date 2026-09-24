@@ -2,6 +2,7 @@
 
 import {
   ArrangementType,
+  Prisma,
   ReservationStatus,
   ReservationStayFeeKind,
   ReservationStayFeeStatus,
@@ -10,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import {
@@ -236,6 +237,7 @@ export async function previewGroupMealPlan(
     reservations.map((reservation) => [reservation.id, reservation]),
   );
 
+  const mealPlanPrices = await getMealPlanPrices();
   const rooms = candidates.map((candidate): GroupMealPlanPreviewRoom => {
     const reservation = reservationById.get(candidate.id);
     if (!reservation || reservation.groupBookingId !== groupBookingId) {
@@ -267,6 +269,7 @@ export async function previewGroupMealPlan(
       status: reservation.status,
       currentPlan: reservation.arrangementType,
       targetPlan: arrangementType,
+      unitPriceOverride: new Prisma.Decimal(mealPlanPrices[arrangementType]),
       adults: reservation.adults,
       children: reservation.children,
       roomCapacity: reservation.roomType.capacity,

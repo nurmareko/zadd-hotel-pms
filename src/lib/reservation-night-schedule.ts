@@ -12,6 +12,7 @@ import type { ResolvedNightlyRate } from "@/lib/pricing-resolver";
 type MealSnapshotInput = {
   arrangementType: ArrangementType;
   mealPax: number;
+  unitPriceOverride?: Prisma.Decimal | null;
   fromDate?: Date;
 };
 
@@ -39,6 +40,7 @@ export type ReservationNightMealSnapshot = {
 export function createReservationNightMealSnapshot(
   arrangementType: ArrangementType,
   mealPax: number,
+  unitPriceOverride?: Prisma.Decimal | null,
 ): ReservationNightMealSnapshot {
   const definition = MEAL_PLAN_DEFINITIONS[arrangementType];
 
@@ -55,7 +57,7 @@ export function createReservationNightMealSnapshot(
     throw new RangeError("Meal snapshot pax must be a positive integer.");
   }
 
-  const mealUnitPrice = new Prisma.Decimal(definition.unitPrice);
+  const mealUnitPrice = new Prisma.Decimal(unitPriceOverride ?? definition.unitPrice);
 
   return {
     mealPlan: arrangementType,
@@ -73,6 +75,7 @@ function mealSnapshotForNight(date: Date, input?: MealSnapshotInput) {
   return createReservationNightMealSnapshot(
     input.arrangementType,
     input.mealPax,
+    input.unitPriceOverride,
   );
 }
 

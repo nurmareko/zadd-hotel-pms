@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ReservationStayFeeKind } from "@prisma/client";
+import type { ArrangementType, ReservationStayFeeKind } from "@prisma/client";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -42,7 +42,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
+
 import { countries, findCountryByName } from "@/lib/countries";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
@@ -99,6 +99,7 @@ type ActiveReservation = {
 
 type ReservationFormProps = {
   defaultValues: CreateReservationInput;
+  mealPlanPrices: Record<ArrangementType, number>;
   roomTypes: RoomTypeOption[];
   rooms: RoomOption[];
   activeReservations: ActiveReservation[];
@@ -143,24 +144,7 @@ const arrangementTypeLabels = {
   FB: "FB — Sarapan, makan siang, dan makan malam",
 } as const;
 
-const arrangementTypeOptions = [
-  { value: "RO", label: arrangementTypeLabels.RO, price: 0 },
-  {
-    value: "BB",
-    label: arrangementTypeLabels.BB,
-    price: MEAL_PLAN_DEFINITIONS.BB.unitPrice,
-  },
-  {
-    value: "HB",
-    label: arrangementTypeLabels.HB,
-    price: MEAL_PLAN_DEFINITIONS.HB.unitPrice,
-  },
-  {
-    value: "FB",
-    label: arrangementTypeLabels.FB,
-    price: MEAL_PLAN_DEFINITIONS.FB.unitPrice,
-  },
-] as const;
+
 
 const stayFeeOptions = (
   ["EARLY_CHECK_IN", "LATE_CHECK_OUT"] as ReservationStayFeeKind[]
@@ -337,6 +321,7 @@ function firstRoomReservationValues(
 
 export function ReservationForm({
   defaultValues,
+  mealPlanPrices,
   roomTypes,
   rooms,
   activeReservations,
@@ -352,6 +337,9 @@ export function ReservationForm({
   readOnlyDeposit,
   readOnlyNightlySchedule = [],
 }: ReservationFormProps) {
+  const arrangementTypeOptions = (["RO", "BB", "HB", "FB"] as const).map((value) => ({
+    value, label: arrangementTypeLabels[value], price: mealPlanPrices[value],
+  }));
   const hasMountedRoomValidation = useRef(false);
   const [activeTab, setActiveTab] = useState<ReservationTab>("detail");
   const [pendingFocusField, setPendingFocusField] =
@@ -1538,7 +1526,7 @@ export function ReservationForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Meal plan <RequiredMark />
+                              Paket makan <RequiredMark />
                             </FormLabel>
                             <FormControl>
                               <div className="grid gap-3 sm:grid-cols-2">

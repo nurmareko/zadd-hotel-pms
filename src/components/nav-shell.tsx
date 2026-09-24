@@ -116,6 +116,12 @@ const revenueNavGroup: NavGroup = {
       icon: TrendingUp,
       activeMatch: "startsWith",
     },
+    {
+      label: "Paket Makan",
+      href: "/app/revenue/meal-plans",
+      icon: UtensilsCrossed,
+      activeMatch: "startsWith",
+    },
   ],
 };
 
@@ -262,6 +268,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     },
   ],
   ACC: [
+    revenueNavGroup,
     {
       label: "Accounting",
       links: [

@@ -6,6 +6,7 @@ import {
   FO_RESERVASI_VIEW_PATHS,
   parseFoReservasiView,
 } from "@/lib/nav-preferences";
+import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
 import { prisma } from "@/lib/prisma";
 import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 
@@ -70,6 +71,7 @@ export default async function NewReservationPage({
   searchParams,
 }: NewReservationPageProps) {
   const params = await searchParams;
+  const mealPlanPrices = await getMealPlanPrices();
   const requestedGuestId = parsePositiveIntParam(firstParam(params.guestId));
   const requestedRoomId = parsePositiveIntParam(firstParam(params.roomId));
   const requestedRoomTypeId = parsePositiveIntParam(
@@ -184,6 +186,7 @@ export default async function NewReservationPage({
       <div className="min-w-0">
         <ReservationForm
           defaultValues={defaultValues}
+          mealPlanPrices={mealPlanPrices}
           roomTypes={roomTypes.map((roomType) => ({
             ...roomType,
             baseRate: roomType.baseRate.toString(),

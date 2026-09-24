@@ -544,13 +544,15 @@ These belong to the same future money-lifecycle family as the existing [allowanc
 
 Meal plans use package-level pricing: one plan price per guest per night, not a sum of breakfast/lunch/dinner component prices.
 
-| Plan | Operational inclusion | Price per guest per night |
+| Plan | Operational inclusion | Seed / fallback price per guest per night |
 |---|---|---:|
 | RO | Room only | Rp 0 |
 | BB | Breakfast | Rp 50.000 |
 | HB | Breakfast plus one main meal (lunch or dinner) | Rp 150.000 |
 | FB | Breakfast, lunch, and dinner | Rp 250.000 |
 
+- The active catalog is `Article.defaultPrice` for `MEAL-BB`, `MEAL-HB`, and `MEAL-FB`. Missing articles or null prices fall back to the definitions above; RO is always zero. `/app/revenue/meal-plans` lets ADMIN/GM atomically update the three existing articles; ACC has read-only access. A missing article blocks the entire update rather than creating catalog data.
+- New reservations snapshot catalog prices read inside the creation transaction. Explicit plan changes use the active target-plan price only for future unposted nights. Catalog edits alone never rewrite existing snapshots; pax-only edits retain each eligible night's stored plan and unit price. Date/room-type edits preserve retained meal snapshots and use active prices for newly added nights. Group previews include active prices and are rejected if prices change before application.
 - Billable meal pax is `Reservation.adults + Reservation.children`. Children are billed at the same rate as adults; there are no child age bands.
 - The HB lunch-or-dinner choice is operational only. The system does not store or track which main meal is chosen.
 - FB deliberately drops the coffee break included by legacy FBM. This is an intentional semantic change, not an omission.
@@ -560,7 +562,7 @@ Meal plans use package-level pricing: one plan price per guest per night, not a 
 
 - Each applicable `ReservationNight` carries `mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount`; these fields are the authoritative meal-charge source. RO nights keep all four fields null.
 - `mealPax` is the snapshotted `adults + children`; `mealUnitPrice` is the plan's per-pax whole-IDR price; and `mealAmount` is `mealPax × mealUnitPrice`, also whole IDR.
-- `Reservation.arrangementType` is the reservation-level current meal plan and command state. It supplies the current selection, no-op detection for plan changes, future unposted snapshot regeneration after pricing-relevant or pax edits, group-preview concurrency checks, and GRC metadata. The scalar itself is not historical or authoritative meal-money data and must never be read as the booked value of any night. Per-night `ReservationNight.mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount` snapshots are authoritative for plan history and all meal money.
+- `Reservation.arrangementType` is the reservation-level current meal plan and command state. It supplies the current selection, no-op detection for plan changes, the plan for newly added nights, group-preview concurrency checks, and GRC metadata. Pax-only edits use each night's stored plan and unit price rather than this scalar. The scalar itself is not historical or authoritative meal-money data and must never be read as the booked value of any night. Per-night `ReservationNight.mealPlan`, `mealPax`, `mealUnitPrice`, and `mealAmount` snapshots are authoritative for plan history and all meal money.
 - Once a nightly meal snapshot has posted to a folio, its plan, pax, unit price, and amount are immutable.
 - A plan or pax change affects future unposted nights only. Elapsed or posted nights are never repriced or rewritten by the standard reservation flow.
 

@@ -50,6 +50,7 @@ export function buildReservationMealPlanChange(input: {
   status: ReservationStatus;
   currentPlan: ArrangementType;
   targetPlan: ArrangementType;
+  unitPriceOverride?: Prisma.Decimal | null;
   adults: number;
   children: number;
   roomCapacity: number;
@@ -113,7 +114,7 @@ export function buildReservationMealPlanChange(input: {
     };
   }
 
-  const data = createReservationNightMealSnapshot(input.targetPlan, pax);
+  const data = createReservationNightMealSnapshot(input.targetPlan, pax, input.unitPriceOverride);
   const nightlyAmount = data.mealAmount ?? new Prisma.Decimal(0);
 
   return {

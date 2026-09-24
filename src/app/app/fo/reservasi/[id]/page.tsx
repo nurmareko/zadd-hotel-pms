@@ -15,7 +15,7 @@ import { notFound } from "next/navigation";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
-import { MEAL_ARTICLE_CODES, MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
@@ -230,6 +230,7 @@ export default async function ReservationDetailPage({
 }: ReservationDetailPageProps) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const reservationId = Number(id);
+  const mealPlanPrices = await getMealPlanPrices();
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
     notFound();
@@ -564,6 +565,7 @@ export default async function ReservationDetailPage({
           </section>
           <div className="min-w-0">
             <ReservationForm
+              mealPlanPrices={mealPlanPrices}
               defaultValues={defaultValues}
               roomTypes={roomTypes.map((roomType) => ({
                 ...roomType,
@@ -641,7 +643,7 @@ export default async function ReservationDetailPage({
           options={Object.values(ArrangementType).map((plan) => ({
             value: plan,
             label: mealPlanLabels[plan],
-            unitPrice: MEAL_PLAN_DEFINITIONS[plan]?.unitPrice.toString() ?? "0",
+            unitPrice: mealPlanPrices[plan].toString(),
           }))}
           terminal={isTerminalReservation}
           effectiveDateLabel={editableInclusionNights[0]?.dateLabel ?? null}

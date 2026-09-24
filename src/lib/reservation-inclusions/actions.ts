@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { NightAuditClosedError } from "@/lib/night-audit";
 import { can } from "@/lib/permissions";
@@ -183,6 +183,7 @@ export async function changeReservationMealPlan(
           };
         }
 
+        const mealPlanPrices = await getMealPlanPrices(tx);
         const change = buildReservationMealPlanChange({
           reservationId: reservation.id,
           groupBookingId: reservation.groupBookingId,
@@ -190,6 +191,7 @@ export async function changeReservationMealPlan(
           status: reservation.status,
           currentPlan: reservation.arrangementType,
           targetPlan: arrangementType,
+          unitPriceOverride: new Prisma.Decimal(mealPlanPrices[arrangementType]),
           adults: reservation.adults,
           children: reservation.children,
           roomCapacity: reservation.roomType.capacity,

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  articleFindMany: vi.fn(),
   cookieSet: vi.fn(),
   cookies: vi.fn(),
   logActivity: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("@/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/activity-log", () => ({ logActivity: mocks.logActivity }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    article: { findMany: mocks.articleFindMany },
     roomType: { findMany: mocks.roomTypeFindMany },
     $transaction: mocks.transaction,
   },
@@ -102,6 +104,7 @@ function transactionClient(options: {
   updatedCount?: number;
 } = {}) {
   return {
+    article: { findMany: vi.fn().mockResolvedValue([]) },
     $queryRaw: vi.fn(async () => []),
     roomBlock: { findMany: vi.fn(async () => options.blocked ? [{ id: 1, roomId: 10, startDate: new Date("2026-10-01"), endDate: new Date("2026-10-02"), status: "ACTIVE", reason: "MAINTENANCE" }] : []) },
     roomType: {
@@ -138,6 +141,7 @@ function runTransactionWith(tx: ReturnType<typeof transactionClient>) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.auth.mockResolvedValue({ user: { id: "1", role: "FO" } });
+  mocks.articleFindMany.mockResolvedValue([]);
   mocks.cookies.mockResolvedValue({ set: mocks.cookieSet });
   mocks.logActivity.mockResolvedValue(undefined);
   mocks.redirect.mockImplementation(() => undefined);
@@ -224,6 +228,104 @@ describe("reservation guest linking", () => {
     }));
     expect(tx.reservationNight.createMany).toHaveBeenCalledOnce();
     expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+  });
+});
+
+describe("catalog-backed reservation snapshots", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-24T10:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  function mealTransaction() {
+    const base = transactionClient({
+      room: { id: 10, number: "101", roomTypeId: 1, status: RoomStatus.VC },
+    });
+    return {
+      ...base,
+      article: { findMany: vi.fn().mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(90000) }]) },
+      roomType: { findUnique: vi.fn().mockResolvedValue({ id: 1, name: "Standar", capacity: 2, baseRate: new Prisma.Decimal(500000), _count: { rooms: 5 } }) },
+      guest: { create: vi.fn().mockResolvedValue({ id: 1 }), update: vi.fn() },
+      reservation: {
+        ...base.reservation,
+        findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ id: 77 }), update: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ id: 77, guestId: 1, roomTypeId: 1,
+          arrivalDate: new Date("2026-10-01"), departureDate: new Date("2026-10-02"),
+          adults: 1, children: 0, arrangementType: "BB", status: "CONFIRMED", folio: null,
+          reservationNights: [
+            { id: "future", date: new Date("2026-10-01"), mealPlan: "BB", mealPax: 1,
+              mealUnitPrice: new Prisma.Decimal(65000), mealAmount: new Prisma.Decimal(65000), folioLineItems: [] },
+            { id: "past", date: new Date("2026-09-23"), mealPlan: "BB", mealPax: 1,
+              mealUnitPrice: new Prisma.Decimal(50000), mealAmount: new Prisma.Decimal(50000), folioLineItems: [] },
+            { id: "posted", date: new Date("2026-10-02"), mealPlan: "BB", mealPax: 1,
+              mealUnitPrice: new Prisma.Decimal(50000), mealAmount: new Prisma.Decimal(50000), folioLineItems: [{ id: 9 }] },
+          ],
+        }),
+      },
+      reservationNight: { createMany: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    };
+  }
+
+  it("uses transaction-local catalog prices, not caller-supplied prices, for new bookings", async () => {
+    const tx = mealTransaction();
+    runTransactionWith(tx);
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([
+      { date: new Date("2026-10-01"), rate: new Prisma.Decimal(500000), sourceRule: null },
+    ]);
+    await createReservation({ ...validCreateInput, arrangementType: "BB", mealUnitPrice: 1 });
+    expect(tx.reservationNight.createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({
+      mealPlan: "BB", mealUnitPrice: new Prisma.Decimal(90000), mealAmount: new Prisma.Decimal(90000),
+    })] });
+  });
+
+  it("pax-only changes keep stored prices and exclude past and posted nights", async () => {
+    const tx = mealTransaction();
+    runTransactionWith(tx);
+    await updateReservation(77, { ...validEditInput, adults: 2 });
+    expect(tx.article.findMany).not.toHaveBeenCalled();
+    expect(tx.reservationNight.updateMany).toHaveBeenCalledExactlyOnceWith({
+      where: expect.objectContaining({ id: "future" }),
+      data: { mealPlan: "BB", mealPax: 2, mealUnitPrice: new Prisma.Decimal(65000), mealAmount: new Prisma.Decimal(130000) },
+    });
+  });
+
+  it("fails the transaction when a pax snapshot write loses its eligibility", async () => {
+    const tx = mealTransaction();
+    tx.reservationNight.updateMany.mockResolvedValue({ count: 0 });
+    runTransactionWith(tx);
+    expect(await updateReservation(77, { ...validEditInput, adults: 2 })).toMatchObject({ ok: false });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("extensions preserve retained meal prices and snapshot the active price for added nights", async () => {
+    const tx = mealTransaction();
+    const reservation = await tx.reservation.findUnique();
+    tx.reservation.findUnique.mockResolvedValue({ ...reservation,
+      reservationNights: reservation.reservationNights.filter((night: { id: string }) => night.id === "future"),
+    });
+    runTransactionWith(tx);
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([1, 2].map((day) => ({
+      date: new Date(`2026-10-0${day}`), rate: new Prisma.Decimal(500000), sourceRule: null,
+    })));
+    await updateReservation(77, { ...validEditInput, departureDate: "2026-10-03" });
+    expect(tx.reservationNight.createMany).toHaveBeenCalledWith({ data: [
+      expect.objectContaining({ mealUnitPrice: new Prisma.Decimal(65000), mealAmount: new Prisma.Decimal(65000) }),
+      expect.objectContaining({ mealUnitPrice: new Prisma.Decimal(90000), mealAmount: new Prisma.Decimal(90000) }),
+    ] });
+  });
+
+  it("quotes active prices without accepting a client price", async () => {
+    mocks.articleFindMany.mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(90000) }]);
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([
+      { date: new Date("2026-10-01"), rate: new Prisma.Decimal(500000), sourceRule: null },
+    ]);
+    const result = await getReservationQuote({ ...validCreateInput, arrangementType: "BB" });
+    expect(result).toMatchObject({
+      ok: true, inclusionTotal: "90000",
+      inclusionRooms: [{ pax: 1, nights: 1, unitPrice: "90000", total: "90000" }],
+    });
   });
 });
 

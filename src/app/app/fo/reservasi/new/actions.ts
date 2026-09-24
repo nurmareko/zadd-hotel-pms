@@ -20,7 +20,7 @@ import { cancelReservation } from "@/lib/reservations/actions";
 
 export { cancelReservation };
 import { logActivity } from "@/lib/activity-log";
-import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import {
   dateOnlyBoundary,
   hotelTodayDateOnly,
@@ -427,6 +427,7 @@ async function runCreateReservationTransaction(
 ) {
   return prisma.$transaction(
     async (tx) => {
+      const mealPlanPrices = await getMealPlanPrices(tx);
       const assignments: ReservationRoomAssignment[] = [];
       // Lock multi-room allocations in a stable order before validating any row.
       const roomIds = [...new Set(input.rooms.flatMap((room) => room.roomId === null ? [] : [room.roomId]))].sort((a, b) => a - b);
@@ -580,6 +581,7 @@ async function runCreateReservationTransaction(
             mealSnapshot: {
               arrangementType: input.arrangementType,
               mealPax: room.adults + room.children,
+              unitPriceOverride: new Prisma.Decimal(mealPlanPrices[input.arrangementType]),
             },
           }),
         });
@@ -624,9 +626,14 @@ async function runUpdateReservationTransaction(
           arrangementType: true,
           status: true,
           reservationNights: {
-            where: { date: { gte: mealSnapshotBoundary } },
+            orderBy: { date: "asc" },
             select: {
               id: true,
+              date: true,
+              mealPlan: true,
+              mealPax: true,
+              mealUnitPrice: true,
+              mealAmount: true,
               folioLineItems: {
                 where: {
                   article: { code: { in: [...MEAL_ARTICLE_CODES] } },
@@ -785,6 +792,7 @@ async function runUpdateReservationTransaction(
       });
 
       if (resolvedSchedule) {
+        const mealPlanPrices = await getMealPlanPrices(tx);
         await tx.reservationNight.deleteMany({
           where: { reservationId },
         });
@@ -795,18 +803,38 @@ async function runUpdateReservationTransaction(
             mealSnapshot: {
               arrangementType: existingReservation.arrangementType,
               mealPax: input.adults + input.children,
+              unitPriceOverride: new Prisma.Decimal(mealPlanPrices[existingReservation.arrangementType]),
             },
+          }).map((night) => {
+            const previous = existingReservation.reservationNights.find(
+              (stored) => sameDateOnly(stored.date, night.date as Date),
+            );
+            if (!previous) return night;
+            // Room/date edits must not silently reprice retained meal snapshots.
+            const snapshot = previous.date < mealSnapshotBoundary || !isMealSnapshotRelevant
+              ? {
+                  mealPlan: previous.mealPlan,
+                  mealPax: previous.mealPax,
+                  mealUnitPrice: previous.mealUnitPrice,
+                  mealAmount: previous.mealAmount,
+                }
+              : createReservationNightMealSnapshot(
+                  previous.mealPlan ?? "RO",
+                  input.adults + input.children,
+                  previous.mealUnitPrice,
+                );
+            return { ...night, ...snapshot };
           }),
         });
       } else if (isMealSnapshotRelevant) {
-        const eligibleNightIds = existingReservation.reservationNights
-          .filter((night) => night.folioLineItems.length === 0)
-          .map((night) => night.id);
+        const eligibleNights = existingReservation.reservationNights.filter(
+          (night) => night.date >= mealSnapshotBoundary && night.folioLineItems.length === 0,
+        );
 
-        if (eligibleNightIds.length > 0) {
-          await tx.reservationNight.updateMany({
+        for (const night of eligibleNights) {
+          const updated = await tx.reservationNight.updateMany({
             where: {
-              id: { in: eligibleNightIds },
+              id: night.id,
               reservationId,
               date: { gte: mealSnapshotBoundary },
               folioLineItems: {
@@ -816,10 +844,14 @@ async function runUpdateReservationTransaction(
               },
             },
             data: createReservationNightMealSnapshot(
-              existingReservation.arrangementType,
+              night.mealPlan ?? "RO",
               input.adults + input.children,
+              night.mealUnitPrice,
             ),
           });
+          if (updated.count !== 1) {
+            throw new Error("MEAL_SNAPSHOT_CONFLICT");
+          }
         }
       }
 
@@ -879,6 +911,7 @@ export async function getReservationQuote(
       );
     }
 
+    const mealPlanPrices = await getMealPlanPrices();
     const deposits: string[] = [];
     const inclusionRooms: Array<{
       pax: number;
@@ -907,6 +940,7 @@ export async function getReservationQuote(
       const nightlyMealSnapshot = createReservationNightMealSnapshot(
         parsed.data.arrangementType,
         pax,
+        new Prisma.Decimal(mealPlanPrices[parsed.data.arrangementType]),
       );
       const unitPrice = new Prisma.Decimal(
         nightlyMealSnapshot.mealUnitPrice ?? 0,
@@ -1114,7 +1148,10 @@ export async function updateReservation(
       return reservationFailure("PRICING_QUOTE_FAILED");
     }
 
-    if (isSerializationConflict(error)) {
+    if (
+      isSerializationConflict(error) ||
+      (error instanceof Error && error.message === "MEAL_SNAPSHOT_CONFLICT")
+    ) {
       return reservationConflictFailure(parsed.data.roomId);
     }
 
