@@ -108,8 +108,14 @@ const hkNavGroup: NavGroup = {
 };
 
 const revenueNavGroup: NavGroup = {
-  label: "Revenue",
+  label: "Pendapatan",
   links: [
+    {
+      label: "Laporan Pendapatan",
+      href: "/app/revenue/reports",
+      icon: BarChart3,
+      activeMatch: "startsWith",
+    },
     {
       label: "Musim & Tarif",
       href: "/app/revenue/seasons",
