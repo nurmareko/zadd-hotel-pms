@@ -56,6 +56,73 @@ describe("shared action-errors foundation", () => {
       });
     });
 
+    it.each([null, undefined, {}])(
+      "returns SESSION_EXPIRED for missing capability-call sessions: %j",
+      (session) => {
+        expect(checkActionAuthorization(session, "reservations:write")).toEqual({
+          ok: false,
+          code: "SESSION_EXPIRED",
+          error: UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED,
+        });
+      },
+    );
+
+    it.each(["ADMIN", "GM", "FO"])(
+      "authorizes %s through the reservation capability",
+      (role) => {
+        expect(
+          checkActionAuthorization({ user: { role } }, "reservations:write"),
+        ).toBeNull();
+      },
+    );
+
+    it.each([undefined, "", "HK", "FB", "ACC", "UNKNOWN", "toString"])(
+      "rejects missing, unauthorized, or unknown capability roles: %s",
+      (role) => {
+        expect(
+          checkActionAuthorization({ user: { role } }, "reservations:write"),
+        ).toEqual({
+          ok: false,
+          code: "FORBIDDEN",
+          error: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
+        });
+      },
+    );
+
+    it("uses capability-specific access rather than a general management gate", () => {
+      expect(
+        checkActionAuthorization({ user: { role: "FO" } }, "lost_found:manage"),
+      ).toBeNull();
+      expect(
+        checkActionAuthorization({ user: { role: "FO" } }, "rooms:clean"),
+      ).toEqual({
+        ok: false,
+        code: "FORBIDDEN",
+        error: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
+      });
+    });
+
+    it("preserves exact legacy role-array membership, including custom roles", () => {
+      const allowed = ["CUSTOM"] as const;
+      expect(
+        checkActionAuthorization({ user: { role: "CUSTOM" } }, allowed),
+      ).toBeNull();
+      for (const role of [undefined, "", "ADMIN", "GM", "FO"]) {
+        expect(checkActionAuthorization({ user: { role } }, allowed)).toEqual({
+          ok: false,
+          code: "FORBIDDEN",
+          error: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
+        });
+      }
+      expect(
+        checkActionAuthorization({ user: { role: "FO" } }, []),
+      ).toEqual({
+        ok: false,
+        code: "FORBIDDEN",
+        error: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
+      });
+    });
+
     it("returns null when user role is authorized", () => {
       expect(
         checkActionAuthorization({ user: { role: "FO" } }, ["FO", "ADMIN"]),

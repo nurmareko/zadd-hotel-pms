@@ -1,6 +1,8 @@
 import type { ReservationStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
 import { hotelTodayISO } from "@/lib/date-only";
 import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
@@ -68,7 +70,7 @@ export async function GET(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (!["FO", "ADMIN"].includes(session.user.role)) {
+  if (!can(session.user.role as AppRole, "reservations:read")) {
     return new Response("Forbidden", { status: 403 });
   }
 

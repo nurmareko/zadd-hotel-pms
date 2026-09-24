@@ -4,6 +4,8 @@ import { FBOrderStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
@@ -18,7 +20,7 @@ function validationError(error: { issues: { message: string }[] }) {
 async function canManageFbOrders() {
   const session = await auth();
 
-  if (session?.user.role !== "FB") {
+  if (!session?.user || !can(session.user.role as AppRole, "orders:bill")) {
     return false;
   }
 

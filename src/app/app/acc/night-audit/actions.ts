@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { computeArr } from "@/lib/arr";
 import { addDateOnlyDays } from "@/lib/date-only";
 import {
@@ -30,7 +32,7 @@ export type NightAuditRunResult =
 async function canRunNightAudit() {
   const session = await auth();
 
-  if (session?.user.role !== "ACC") {
+  if (!session?.user || !can(session.user.role as AppRole, "night_audit:run")) {
     return null;
   }
 

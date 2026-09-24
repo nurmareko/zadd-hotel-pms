@@ -3,6 +3,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import {
   GRC_TEMPLATE_VERSION,
@@ -55,7 +57,7 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (session.user.role !== "FO") {
+  if (!can(session.user.role as AppRole, "reservations:read")) {
     return new Response("Forbidden", { status: 403 });
   }
 

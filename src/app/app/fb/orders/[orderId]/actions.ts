@@ -13,6 +13,8 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import {
   formatFBOrderItemNotes,
   parseFBOrderItemNotes,
@@ -72,10 +74,10 @@ function validationError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid order data";
 }
 
-async function canManageFbOrders() {
+async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "pos:settle" = "orders:write") {
   const session = await auth();
 
-  if (session?.user.role !== "FB") {
+  if (!session?.user || !can(session.user.role as AppRole, capability)) {
     return null;
   }
 
@@ -815,7 +817,7 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
 export async function payOrderDirect(
   input: unknown,
 ): Promise<PaymentActionResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canManageFbOrders("pos:settle");
 
   if (!userId) {
     return { ok: false, error: "Unauthorized" };
@@ -997,7 +999,7 @@ export async function payOrderDirect(
 export async function chargeOrderToRoom(
   input: unknown,
 ): Promise<PaymentActionResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canManageFbOrders("orders:bill");
 
   if (!userId) {
     return { ok: false, error: "Unauthorized" };

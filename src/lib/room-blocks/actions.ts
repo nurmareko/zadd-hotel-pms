@@ -16,7 +16,7 @@ import { CreateRoomBlockSchema, ReleaseRoomBlockSchema } from "./schema";
 async function runRoomBlockAction(kind: "create" | "release", input: unknown): Promise<RoomBlockActionResult> {
   try {
     const session = await auth();
-    const denied = checkActionAuthorization(session, ["FO", "ADMIN"]);
+    const denied = checkActionAuthorization(session, "room_blocks:manage");
     if (denied) return denied;
     const operatorId = Number(session?.user?.id);
     if (!Number.isSafeInteger(operatorId) || operatorId <= 0) {

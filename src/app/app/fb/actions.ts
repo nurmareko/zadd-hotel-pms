@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -20,7 +22,7 @@ const TableIdSchema = z.object({
 async function canManageFbFloor() {
   const session = await auth();
 
-  return session?.user.role === "FB";
+  return !!session?.user && can(session.user.role as AppRole, "orders:write");
 }
 
 function revalidateFbFloor() {

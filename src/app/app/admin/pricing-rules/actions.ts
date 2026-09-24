@@ -8,6 +8,8 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { parseISODateOnly } from "@/lib/date-only";
 import {
   applyPricingRuleAdjustment,
@@ -79,7 +81,7 @@ function validationFailure(error: {
 
 async function canManagePricingRules() {
   const session = await auth();
-  return session?.user.role === "ADMIN";
+  return !!session?.user && can(session.user.role as AppRole, "pricing_rules:manage");
 }
 
 function dateOnlyFromISO(value: string | null | undefined) {

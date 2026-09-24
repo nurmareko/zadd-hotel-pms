@@ -14,6 +14,7 @@ import { auth } from "@/auth";
 import { MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { NightAuditClosedError } from "@/lib/night-audit";
+import { can } from "@/lib/permissions";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   buildReservationMealPlanChange,
@@ -114,7 +115,7 @@ export async function changeReservationMealPlan(
 ): Promise<MealPlanChangeResult> {
   const session = await auth();
 
-  if (session?.user.role !== "FO") {
+  if (!session?.user || !can(session.user.role, "reservations:write")) {
     return { ok: false, error: "Unauthorized" };
   }
 
@@ -310,7 +311,7 @@ export async function setReservationStayFee(
 ): Promise<StayFeeSelectionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "FO") {
+  if (!session?.user || !can(session.user.role, "reservations:write")) {
     return { ok: false, error: "Tidak diizinkan" };
   }
 

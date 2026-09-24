@@ -1,4 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
+import { isAppRole } from "@/auth.config";
+import { can, type Capability } from "@/lib/permissions";
 
 export const UNIVERSAL_ACTION_FAILURE_CODES = [
   "SESSION_EXPIRED",
@@ -39,7 +41,7 @@ export const UNIVERSAL_ACTION_MESSAGES: Record<
 
 export function checkActionAuthorization(
   session: { user?: { role?: string } } | null | undefined,
-  allowedRoles: readonly string[],
+  allowed: Capability | readonly string[],
 ): ActionFailure<"SESSION_EXPIRED" | "FORBIDDEN"> | null {
   if (!session?.user) {
     return {
@@ -49,7 +51,21 @@ export function checkActionAuthorization(
     };
   }
 
-  return session.user.role && allowedRoles.includes(session.user.role)
+  const role = session.user.role;
+  if (!role) {
+    return {
+      ok: false,
+      code: "FORBIDDEN",
+      error: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
+    };
+  }
+
+  const isAuthorized =
+    typeof allowed === "string"
+      ? isAppRole(role) && can(role, allowed)
+      : allowed.includes(role);
+
+  return isAuthorized
     ? null
     : {
         ok: false,

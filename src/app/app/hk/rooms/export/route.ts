@@ -2,6 +2,8 @@ import { RoomStatus } from "@prisma/client";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
 import { hotelTodayISO, isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 import { getHousekeepingListData, type HousekeepingListRow } from "@/lib/housekeeping-list-data";
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
   if (!session?.user) {
     return new Response("Silakan masuk terlebih dahulu.", { status: 401 });
   }
-  if (!["HK", "ADMIN"].includes(session.user.role)) {
+  if (!can(session.user.role as AppRole, "rooms:clean")) {
     return new Response("Anda tidak memiliki akses untuk mengekspor papan kamar.", { status: 403 });
   }
 

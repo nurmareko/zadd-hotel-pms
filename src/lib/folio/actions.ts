@@ -12,6 +12,7 @@ import {
 } from "@/lib/action-errors";
 import { logActivity } from "@/lib/activity-log";
 import { assertBusinessDateOpen, NightAuditClosedError } from "@/lib/night-audit";
+import type { Capability } from "@/lib/permissions";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
@@ -54,12 +55,12 @@ function isPaymentSerializationConflict(error: unknown) {
   );
 }
 
-async function canManageFoFolio(): Promise<
-  { ok: true; userId: number } | FolioFailure
-> {
+async function canManageFoFolio(
+  capability: Capability = "folio:charge",
+): Promise<{ ok: true; userId: number } | FolioFailure> {
   const session = await auth();
 
-  const authFailure = checkActionAuthorization(session, ["FO"]);
+  const authFailure = checkActionAuthorization(session, capability);
   if (authFailure) {
     return folioFailure(authFailure.code as FolioFailureCode);
   }
@@ -273,7 +274,7 @@ export async function recordPayment(
   let folioIdForLog: number | undefined;
 
   try {
-    const authResult = await canManageFoFolio();
+    const authResult = await canManageFoFolio("folio:settle");
     if (!authResult.ok) {
       return authResult;
     }

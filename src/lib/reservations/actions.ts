@@ -70,11 +70,7 @@ export async function cancelReservation(
     return unexpectedReservationFailure("cancel");
   }
 
-  // Cancel is permitted for FO (who own the screen) and ADMIN.
-  const authorizationFailure = reservationAuthorizationFailure(session, [
-    "FO",
-    "ADMIN",
-  ]);
+  const authorizationFailure = reservationAuthorizationFailure(session);
 
   if (authorizationFailure) {
     return authorizationFailure;

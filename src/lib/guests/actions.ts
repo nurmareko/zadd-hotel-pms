@@ -1,13 +1,14 @@
 "use server";
 
 import { auth } from "@/auth";
+import { can } from "@/lib/permissions";
 import { normalizeGuestQuery } from "./filters";
 import { findGuests } from "./queries";
 import type { GuestLookupResult } from "./types";
 
 export async function searchGuestsAction(q: string): Promise<GuestLookupResult[]> {
   const session = await auth();
-  if (!session?.user || !["FO", "ADMIN"].includes(session.user.role)) {
+  if (!session?.user || !can(session.user.role, "reservations:read")) {
     throw new Error("Anda tidak memiliki akses untuk mencari tamu.");
   }
   if (typeof q !== "string") {

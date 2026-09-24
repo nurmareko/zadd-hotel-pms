@@ -182,7 +182,7 @@ export async function getCheckInReviewData(
   input: number | { reservationId: number },
 ): Promise<CheckInReviewResult> {
   const session = await auth();
-  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  const authFailure = checkInAuthorizationFailure(session);
   if (authFailure) {
     return authFailure;
   }
@@ -874,7 +874,7 @@ export async function collectCheckInDepositForGroup(input: {
   groupBookingId: string;
 }): Promise<CollectDepositResult> {
   const session = await auth();
-  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  const authFailure = checkInAuthorizationFailure(session);
   if (authFailure || !session?.user) {
     return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }
@@ -911,7 +911,7 @@ export async function collectCheckInDeposit(
   formData: FormData,
 ): Promise<CollectDepositResult> {
   const session = await auth();
-  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  const authFailure = checkInAuthorizationFailure(session);
   if (authFailure || !session?.user) {
     return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }
@@ -961,7 +961,7 @@ export async function completeCheckIn(
   options: CompleteCheckInOptions = {},
 ): Promise<ActionResult> {
   const session = await auth();
-  const authFailure = checkInAuthorizationFailure(session, ["FO"]);
+  const authFailure = checkInAuthorizationFailure(session);
   if (authFailure || !session?.user) {
     return authFailure ?? checkInFailure("SESSION_EXPIRED");
   }

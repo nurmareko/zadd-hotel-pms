@@ -3,6 +3,7 @@ import {
   logActionFailure,
   UNIVERSAL_ACTION_MESSAGES,
 } from "@/lib/action-errors";
+import type { Capability } from "@/lib/permissions";
 import {
   StayChargePostingError,
   type StayChargePostingBlocker,
@@ -141,8 +142,9 @@ export function checkoutFailure(
 
 export function checkoutAuthorizationFailure(
   session: { user?: { role?: string } } | null | undefined,
+  capability: Capability = "checkout:manage",
 ): CheckoutFailure | null {
-  const failure = checkActionAuthorization(session, ["FO"]);
+  const failure = checkActionAuthorization(session, capability);
   return failure ? checkoutFailure(failure.code) : null;
 }
 

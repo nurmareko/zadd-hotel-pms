@@ -845,7 +845,10 @@ export async function getReservationQuote(
     return unexpectedReservationFailure("quote");
   }
 
-  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+  const authorizationFailure = reservationAuthorizationFailure(
+    session,
+    "reservations:read",
+  );
 
   if (authorizationFailure) {
     return authorizationFailure;
@@ -954,7 +957,7 @@ export async function createReservation(
     return unexpectedReservationFailure("create");
   }
 
-  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+  const authorizationFailure = reservationAuthorizationFailure(session);
 
   if (authorizationFailure) {
     return authorizationFailure;
@@ -1073,7 +1076,7 @@ export async function updateReservation(
     return unexpectedReservationFailure("edit");
   }
 
-  const authorizationFailure = reservationAuthorizationFailure(session, ["FO"]);
+  const authorizationFailure = reservationAuthorizationFailure(session);
 
   if (authorizationFailure) {
     return authorizationFailure;

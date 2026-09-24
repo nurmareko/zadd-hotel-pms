@@ -4,6 +4,8 @@ import { RoomStatus } from "@prisma/client";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { runPostCommitSideEffects } from "@/lib/action-errors";
 import { revalidateRoomStatusViews } from "@/lib/revalidate-room-status";
 import { RoomBlockError } from "@/lib/room-blocks/errors";
@@ -30,7 +32,7 @@ export async function updateRoomStatus(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
+  if (!session?.user || !can(session.user.role as AppRole, "rooms:clean")) {
     return { ok: false, error: "Tidak berwenang" };
   }
 
@@ -63,7 +65,7 @@ export async function setRoomStatusOverride(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
+  if (!session?.user || !can(session.user.role as AppRole, "rooms:override_status")) {
     return { ok: false, error: "Tidak berwenang" };
   }
 

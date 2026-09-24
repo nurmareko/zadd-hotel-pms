@@ -1,6 +1,8 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { formatISODate } from "@/lib/format";
 import {
   getHousekeepingForecastData,
@@ -58,7 +60,7 @@ export async function GET(req: Request) {
     return new Response("Silakan masuk terlebih dahulu", { status: 401 });
   }
 
-  if (session.user.role !== "HK" && session.user.role !== "ADMIN") {
+  if (!can(session.user.role as AppRole, "rooms:read")) {
     return new Response("Tidak berwenang", { status: 403 });
   }
 

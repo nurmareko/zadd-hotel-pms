@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import {
   createAccountingExportCsv,
   getAccountingExportRange,
@@ -9,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (session?.user.role !== "ACC") {
+  if (!session?.user || !can(session.user.role as AppRole, "accounting:export")) {
     return new Response("Forbidden", { status: session?.user ? 403 : 401 });
   }
 

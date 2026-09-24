@@ -2,6 +2,7 @@ import {
   checkActionAuthorization,
   safelyRunAction,
 } from "@/lib/action-errors";
+import type { Capability } from "@/lib/permissions";
 
 export const RESERVATION_FAILURE_CODES = [
   "SESSION_EXPIRED",
@@ -97,9 +98,9 @@ export function reservationFailureMessage(code: ReservationFailureCode) {
 
 export function reservationAuthorizationFailure(
   session: { user?: { role?: string } } | null | undefined,
-  allowedRoles: readonly string[],
+  capability: Capability | readonly string[] = "reservations:write",
 ): ReservationFailure | null {
-  const failure = checkActionAuthorization(session, allowedRoles);
+  const failure = checkActionAuthorization(session, capability);
   if (!failure) {
     return null;
   }

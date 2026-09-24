@@ -2,6 +2,8 @@ import { FBOrderStatus } from "@prisma/client";
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { FBBill } from "@/lib/pdf/fb-bill";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +18,10 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (session.user.role !== "FB") {
+  if (
+    !can(session.user.role as AppRole, "orders:bill") &&
+    !can(session.user.role as AppRole, "orders:read")
+  ) {
     return new Response("Forbidden", { status: 403 });
   }
 

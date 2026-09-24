@@ -2,128 +2,84 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
 import authConfig, { type AppRole } from "@/auth.config";
+import { canAccessModule, type AppModule } from "@/lib/permissions";
 
 const { auth } = NextAuth(authConfig);
 
-const roleRoutes: Array<{ prefix: string; roles: AppRole[] }> = [
-  { prefix: "/app/fo", roles: ["FO"] },
-  { prefix: "/app/fb", roles: ["FB"] },
-  { prefix: "/app/acc", roles: ["ACC"] },
-  { prefix: "/app/admin", roles: ["ADMIN"] },
+const modulePrefixes: Array<{ prefix: string; module: AppModule }> = [
+  { prefix: "/app/fo", module: "front_office" },
+  { prefix: "/app/hk", module: "housekeeping" },
+  { prefix: "/app/fb", module: "food_and_beverage" },
+  { prefix: "/app/acc", module: "accounting" },
+  { prefix: "/app/admin", module: "admin" },
 ];
 
 function routeMatches(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+export type RouteAccessDecision =
+  | { type: "next" }
+  | { type: "login_redirect" }
+  | { type: "redirect"; destination: string; status?: number }
+  | { type: "forbidden_rewrite" }
+  | { type: "forbidden_response"; message: string };
 
-export const proxy = auth((request) => {
-  const session = request.auth;
-  const { pathname } = request.nextUrl;
-
-  // Downloads return HTTP errors instead of redirecting to an HTML page.
-  if (pathname === "/app/hk/rooms/export") {
-    if (!session?.user) {
-      return new NextResponse("Silakan masuk terlebih dahulu.", { status: 401 });
-    }
-    if (!["HK", "ADMIN"].includes(session.user.role)) {
-      return new NextResponse("Anda tidak memiliki akses untuk mengekspor papan kamar.", { status: 403 });
-    }
-    return NextResponse.next();
+export function resolveAppRouteAccess(
+  pathname: string,
+  userRole?: AppRole,
+): RouteAccessDecision {
+  if (!userRole) {
+    return { type: "login_redirect" };
   }
 
-  if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (routeMatches(pathname, "/app/fo/staff-performance")) {
-    if (!["FO", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (routeMatches(pathname, "/app/acc/folios")) {
-    if (!["ACC", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (
-    routeMatches(pathname, "/app/fo/reservasi") ||
-    routeMatches(pathname, "/app/fo/reservations") ||
-    routeMatches(pathname, "/app/fo/tape-chart") ||
-    routeMatches(pathname, "/app/fo/tamu") ||
-    routeMatches(pathname, "/app/fo/room-blocks")
-  ) {
-    if (!["FO", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (routeMatches(pathname, "/app/hk/lost-found")) {
-    if (!["HK", "FO", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
-  }
-
-  if (pathname === "/app/hk") {
-    if (!["HK", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
+  if (pathname === "/app" || pathname === "/app/" || pathname === "/app/forbidden") {
+    return { type: "next" };
   }
 
   if (routeMatches(pathname, "/app/hk/list")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app/hk/rooms";
-    return NextResponse.redirect(url);
+    return { type: "redirect", destination: "/app/hk/rooms", status: 307 };
   }
-
   if (routeMatches(pathname, "/app/hk/supervisor")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app/hk/rooms";
-    return NextResponse.redirect(url, { status: 308 });
+    return { type: "redirect", destination: "/app/hk/rooms", status: 308 };
   }
 
-  if (
-    routeMatches(pathname, "/app/hk/rooms") ||
-    routeMatches(pathname, "/app/hk/mobile") ||
-    routeMatches(pathname, "/app/hk/clean") ||
-    routeMatches(pathname, "/app/hk/laundry")
-  ) {
-    if (!["HK", "ADMIN"].includes(session.user.role)) {
-      return NextResponse.rewrite(new URL("/app/forbidden", request.url));
+  // Authenticated downloads return HTTP errors instead of an HTML page.
+  if (pathname === "/app/hk/rooms/export") {
+    if (!canAccessModule(userRole, "housekeeping")) {
+      return {
+        type: "forbidden_response",
+        message: "Anda tidak memiliki akses untuk mengekspor papan kamar.",
+      };
     }
-
-    return NextResponse.next();
+    return { type: "next" };
   }
 
-  if (routeMatches(pathname, "/app/hk")) {
-    if (session.user.role !== "HK") {
+  const matched = modulePrefixes.find(({ prefix }) => routeMatches(pathname, prefix));
+  if (matched && !canAccessModule(userRole, matched.module)) {
+    return { type: "forbidden_rewrite" };
+  }
+
+  return { type: "next" };
+}
+
+export const proxy = auth((request) => {
+  const decision = resolveAppRouteAccess(request.nextUrl.pathname, request.auth?.user?.role);
+
+  switch (decision.type) {
+    case "login_redirect":
+      return NextResponse.redirect(new URL("/login", request.url));
+    case "redirect":
+      return NextResponse.redirect(new URL(decision.destination, request.url), {
+        status: decision.status,
+      });
+    case "forbidden_rewrite":
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-    }
-
-    return NextResponse.next();
+    case "forbidden_response":
+      return new NextResponse(decision.message, { status: 403 });
+    case "next":
+      return NextResponse.next();
   }
-
-  const requiredRoles = roleRoutes.find(({ prefix }) =>
-    routeMatches(pathname, prefix),
-  )?.roles;
-
-  if (requiredRoles && !requiredRoles.includes(session.user.role)) {
-    return NextResponse.rewrite(new URL("/app/forbidden", request.url));
-  }
-
-  return NextResponse.next();
 });
 
 export const config = {

@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import type { ActionResult } from "@/lib/action-errors";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
@@ -12,16 +14,16 @@ import {
 } from "./logic";
 
 export type LaundryActionResult = ActionResult;
-type LaundryOperator = { userId: number; role: "HK" | "ADMIN" };
+type LaundryOperator = { userId: number; role: AppRole };
 class LaundryError extends Error {}
 const conflictMessage = "Pengiriman sedang diproses. Muat ulang halaman dan coba lagi.";
 
 async function requireLaundryOperator(): Promise<LaundryOperator | null> {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "HK" && session.user.role !== "ADMIN")) return null;
+  if (!session?.user || !can(session.user.role as AppRole, "laundry:manage")) return null;
   const userId = Number(session.user.id);
   if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2147483647) return null;
-  return { userId, role: session.user.role };
+  return { userId, role: session.user.role as AppRole };
 }
 
 async function requireCurrentOperator(tx: Prisma.TransactionClient, operator: LaundryOperator) {

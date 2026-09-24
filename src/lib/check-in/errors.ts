@@ -4,6 +4,7 @@ import {
   type ActionFailure,
   type ActionResult,
 } from "@/lib/action-errors";
+import type { Capability } from "@/lib/permissions";
 
 export const CHECK_IN_FAILURE_CODES = [
   "SESSION_EXPIRED",
@@ -152,9 +153,9 @@ export function checkInFailure(
 
 export function checkInAuthorizationFailure(
   session: { user?: { role?: string } } | null | undefined,
-  allowedRoles: readonly string[] = ["FO"],
+  capability: Capability | readonly string[] = "checkin:manage",
 ): CheckInFailure | null {
-  const failure = checkActionAuthorization(session, allowedRoles);
+  const failure = checkActionAuthorization(session, capability);
   if (!failure) {
     return null;
   }

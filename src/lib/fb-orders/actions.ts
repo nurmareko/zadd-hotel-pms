@@ -13,6 +13,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
   CreateOrderSchema,
@@ -58,7 +60,7 @@ function isSerializationConflict(error: unknown) {
 async function canManageFbOrders() {
   const session = await auth();
 
-  if (session?.user.role !== "FB") {
+  if (!session?.user || !can(session.user.role as AppRole, "orders:write")) {
     return null;
   }
 

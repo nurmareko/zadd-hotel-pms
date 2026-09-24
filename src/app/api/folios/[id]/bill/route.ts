@@ -1,6 +1,8 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { Bill } from "@/lib/pdf/bill";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +17,10 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (!["FO", "ACC", "ADMIN"].includes(session.user.role)) {
+  if (
+    !can(session.user.role as AppRole, "folios:audit") &&
+    !can(session.user.role as AppRole, "reservations:read")
+  ) {
     return new Response("Forbidden", { status: 403 });
   }
 

@@ -1,6 +1,8 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { formatISODate } from "@/lib/format";
 import { NightReport } from "@/lib/pdf/night-report";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +17,10 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
-  if (session.user.role !== "ACC") {
+  if (
+    !can(session.user.role as AppRole, "revenue:read") &&
+    !can(session.user.role as AppRole, "accounting:export")
+  ) {
     return new Response("Forbidden", { status: 403 });
   }
 

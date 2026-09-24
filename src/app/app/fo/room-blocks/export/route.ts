@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import type { AppRole } from "@/auth.config";
+import { can } from "@/lib/permissions";
 import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
 import { hotelTodayISO } from "@/lib/date-only";
 import { ROOM_BLOCK_REASON_LABELS } from "@/lib/room-blocks/overlap";
@@ -22,7 +24,7 @@ const columns: CsvColumn<RoomBlockRow>[] = [
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user) return new Response("Silakan masuk terlebih dahulu.", { status: 401 });
-  if (!["FO", "ADMIN"].includes(session.user.role)) {
+  if (!can(session.user.role as AppRole, "room_blocks:manage")) {
     return new Response("Anda tidak memiliki akses untuk mengekspor blokir kamar.", { status: 403 });
   }
   const search = new URL(request.url).searchParams;
