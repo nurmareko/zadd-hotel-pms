@@ -9,27 +9,25 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   BedDouble,
   BarChart3,
   ClipboardList,
   Archive,
-
+  CalendarDays,
+  ConciergeBell,
   Download,
   LayoutGrid,
   Shirt,
   FileText,
-  LayoutDashboard,
   LogOut,
   MoreHorizontal,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  Tag,
-  Table2,
   TrendingUp,
   User,
   Users,
@@ -79,15 +77,40 @@ const roleModuleNames: Record<AppRole, string> = {
   FO: "FRONT OFFICE",
   HK: "HOUSEKEEPING",
   FB: "FOOD & BEVERAGE",
-  ACC: "ACCOUNTING",
+  ACC: "AKUNTANSI",
   ADMIN: "ADMINISTRATOR",
+};
+
+const frontDeskNavGroup: NavGroup = {
+  label: "Front Office",
+  links: [
+    {
+      label: "Kalender",
+      href: "/app/fo/reservasi/kalender",
+      icon: CalendarDays,
+      activePaths: [{ href: "/app/fo/tape-chart", match: "startsWith" }],
+    },
+    {
+      label: "Daftar Reservasi",
+      href: "/app/fo/reservasi/list",
+      icon: ClipboardList,
+      activePaths: [
+        { href: "/app/fo/reservasi", match: "startsWith" },
+        { href: "/app/fo/reservations", match: "startsWith" },
+        { href: "/app/fo/check-out", match: "startsWith" },
+        { href: "/app/fo/folios", match: "startsWith" },
+      ],
+    },
+    { label: "Tamu", href: "/app/fo/tamu", icon: Users },
+    { label: "Blokir Kamar", href: "/app/fo/room-blocks", icon: Wrench },
+  ],
 };
 
 const hkNavGroup: NavGroup = {
   label: "Housekeeping",
   links: [
     {
-      label: "Room Board",
+      label: "Papan Kamar",
       href: "/app/hk/rooms",
       icon: LayoutGrid,
       activeMatch: "startsWith",
@@ -102,7 +125,7 @@ const hkNavGroup: NavGroup = {
       label: "Lost & Found",
       href: "/app/hk/lost-found",
       icon: Archive,
-      activeMatch: "exact",
+      activeMatch: "startsWith",
     },
   ],
 };
@@ -131,196 +154,76 @@ const revenueNavGroup: NavGroup = {
   ],
 };
 
-const navGroupsByRole: Record<AppRole, NavGroup[]> = {
-  GM: [
-    revenueNavGroup,
-    {
-      label: "Front Office",
-      links: [
-        {
-          label: "Reservasi",
-          href: "/app/fo/reservasi",
-          icon: ClipboardList,
-          activeMatch: "startsWith",
-          activePaths: [
-            { href: "/app/fo/reservations", match: "startsWith" },
-            { href: "/app/fo/tape-chart", match: "startsWith" },
-            { href: "/app/fo/check-out", match: "startsWith" },
-          ],
-        },
-        {
-          label: "Blokir Kamar",
-          href: "/app/fo/room-blocks",
-          icon: Wrench,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Tamu",
-          href: "/app/fo/tamu",
-          icon: Users,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Kinerja",
-          href: "/app/fo/staff-performance",
-          icon: BarChart3,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Lost & Found",
-          href: "/app/hk/lost-found",
-          icon: Archive,
-          activeMatch: "exact",
-        },
-      ],
-    },
-    hkNavGroup,
-    {
-      label: "Food & Beverage",
-      links: [
-        {
-          label: "Meja",
-          href: "/app/fb",
-          icon: UtensilsCrossed,
-          activeMatch: "startsWith",
-        },
-      ],
-    },
-    {
-      label: "Accounting",
-      links: [
-        {
-          label: "Dashboard",
-          href: "/app/acc",
-          icon: LayoutDashboard,
-          activeMatch: "exact",
-        },
-        {
-          label: "Night Audit",
-          href: "/app/acc/night-audit",
-          icon: Moon,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Night Report",
-          href: "/app/acc/night-report",
-          icon: FileText,
-          activeMatch: "exact",
-          activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
-        },
-        {
-          label: "Accounting Export",
-          href: "/app/acc/accounting-export",
-          icon: Download,
-          activeMatch: "startsWith",
-        },
-      ],
-    },
+const opsNavGroup: NavGroup = {
+  label: "Operasional",
+  links: [
+    { label: "Operasional Hotel", href: "/app/ops", icon: ConciergeBell },
   ],
-  FO: [
-    {
-      label: "Front Office",
-      links: [
-        {
-          label: "Reservasi",
-          href: "/app/fo/reservasi",
-          icon: ClipboardList,
-          activeMatch: "startsWith",
-          activePaths: [
-            { href: "/app/fo/reservations", match: "startsWith" },
-            { href: "/app/fo/tape-chart", match: "startsWith" },
-            { href: "/app/fo/check-out", match: "startsWith" },
-          ],
-        },
-        {
-          label: "Blokir Kamar",
-          href: "/app/fo/room-blocks",
-          icon: Wrench,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Tamu",
-          href: "/app/fo/tamu",
-          icon: Users,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Kinerja",
-          href: "/app/fo/staff-performance",
-          icon: BarChart3,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Lost & Found",
-          href: "/app/hk/lost-found",
-          icon: Archive,
-          activeMatch: "exact",
-        },
-      ],
-    },
-  ],
-  HK: [hkNavGroup],
-  FB: [
-    {
-      label: "Food & Beverage",
-      links: [
-        {
-          label: "Meja",
-          href: "/app/fb",
-          icon: UtensilsCrossed,
-          activeMatch: "startsWith",
-        },
-      ],
-    },
-  ],
-  ACC: [
-    revenueNavGroup,
-    {
-      label: "Accounting",
-      links: [
-        {
-          label: "Dashboard",
-          href: "/app/acc",
-          icon: LayoutDashboard,
-          activeMatch: "exact",
-        },
-        {
-          label: "Night Audit",
-          href: "/app/acc/night-audit",
-          icon: Moon,
-          activeMatch: "startsWith",
-        },
-        {
-          label: "Night Report",
-          href: "/app/acc/night-report",
-          icon: FileText,
-          activeMatch: "exact",
-          activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
-        },
-        {
-          label: "Accounting Export",
-          href: "/app/acc/accounting-export",
-          icon: Download,
-          activeMatch: "startsWith",
-        },
-      ],
-    },
-  ],
-  ADMIN: [
-    revenueNavGroup,
-    {
-      label: "Admin",
-      links: [
-        { label: "Pengguna", href: "/app/admin/users", icon: Users },
-        { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+};
 
-        { label: "Artikel", href: "/app/admin/articles", icon: Tag },
-        { label: "Meja", href: "/app/admin/tables", icon: Table2 },
-        { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },
-        { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
-      ],
+const fbNavGroup: NavGroup = {
+  label: "Food & Beverage",
+  links: [
+    { label: "POS", href: "/app/fb", icon: UtensilsCrossed },
+    { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
+  ],
+};
+
+const accountingNavGroup: NavGroup = {
+  label: "Akuntansi",
+  links: [
+    { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
+    {
+      label: "Laporan Malam",
+      href: "/app/acc/night-report",
+      icon: FileText,
+      activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
+    },
+    {
+      label: "Ekspor Akuntansi",
+      href: "/app/acc/accounting-export",
+      icon: Download,
     },
   ],
+};
+
+const adminNavGroup: NavGroup = {
+  label: "Admin",
+  links: [
+    { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
+    { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+    {
+      label: "Tipe Kamar",
+      href: "/app/admin/rooms?tab=types",
+      icon: LayoutGrid,
+      activeMatch: "exact",
+    },
+    { label: "Pengguna", href: "/app/admin/users", icon: Users },
+  ],
+};
+
+const navGroupsByRole: Record<AppRole, NavGroup[]> = {
+  ADMIN: [
+    adminNavGroup,
+    frontDeskNavGroup,
+    hkNavGroup,
+    opsNavGroup,
+    fbNavGroup,
+    revenueNavGroup,
+    accountingNavGroup,
+  ],
+  GM: [
+    frontDeskNavGroup,
+    hkNavGroup,
+    opsNavGroup,
+    fbNavGroup,
+    revenueNavGroup,
+    accountingNavGroup,
+  ],
+  FO: [frontDeskNavGroup, hkNavGroup, opsNavGroup],
+  HK: [hkNavGroup],
+  FB: [fbNavGroup],
+  ACC: [accountingNavGroup],
 };
 
 const accountGroup: NavGroup = {
@@ -340,10 +243,20 @@ const accountGroup: NavGroup = {
 // bottom sheet with the overflow routes.
 const MAX_MOBILE_TABS = 5;
 
-function isActivePath(pathname: string, href: string, match: ActiveMatch) {
-  return match === "exact"
-    ? pathname === href
-    : pathname === href || pathname.startsWith(`${href}/`);
+function isActivePath(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, "get">,
+  href: string,
+  match: ActiveMatch,
+) {
+  const [targetPath, query] = href.split("?");
+  const matchesPath = match === "exact"
+    ? pathname === targetPath
+    : pathname === targetPath || pathname.startsWith(`${targetPath}/`);
+
+  return matchesPath && [...new URLSearchParams(query)].every(
+    ([key, value]) => searchParams.get(key) === value,
+  );
 }
 
 function getActivePaths(link: NavLink): ActivePath[] {
@@ -353,13 +266,17 @@ function getActivePaths(link: NavLink): ActivePath[] {
   ];
 }
 
-function getActiveSidebarHref(pathname: string, groups: NavGroup[]) {
+function getActiveSidebarHref(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, "get">,
+  groups: NavGroup[],
+) {
   return [...groups.flatMap((group) => group.links)]
     .flatMap((link) =>
       getActivePaths(link).map((activePath) => ({ link, activePath })),
     )
     .filter(({ activePath }) =>
-      isActivePath(pathname, activePath.href, activePath.match),
+      isActivePath(pathname, searchParams, activePath.href, activePath.match),
     )
     .sort((a, b) => b.activePath.href.length - a.activePath.href.length)[0]
     ?.link.href;
@@ -412,6 +329,7 @@ export function NavShell({
   userFullName,
 }: NavShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [navBadges, setNavBadges] = useState(initialNavBadges);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     initialSidebarCollapsed,
@@ -421,7 +339,7 @@ export function NavShell({
   const [, startTransition] = useTransition();
   const navGroups = getNavGroups(userRole);
   const desktopNavGroups = navGroups.filter((group) => group !== accountGroup);
-  const activeSidebarHref = getActiveSidebarHref(pathname, navGroups);
+  const activeSidebarHref = getActiveSidebarHref(pathname, searchParams, navGroups);
   const profileLink = accountGroup.links[0];
   const isProfileActive = activeSidebarHref === profileLink.href;
   const shellStyle = {
@@ -500,7 +418,7 @@ export function NavShell({
         {/* Brand header */}
         <div
           className={[
-            "mb-5 flex border-b border-slate-100 pb-4",
+            "mb-5 flex shrink-0 border-b border-slate-100 pb-4",
             sidebarCollapsed
               ? "justify-center"
               : "items-center justify-between gap-3",
@@ -516,7 +434,7 @@ export function NavShell({
                   ZADD
                 </div>
                 <div className="truncate text-[13px] font-semibold leading-tight text-slate-900">
-                  Hotel Management
+                  Manajemen Hotel
                 </div>
                 <div className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-wider text-slate-500">
                   {roleModuleNames[userRole]}
@@ -528,8 +446,8 @@ export function NavShell({
             type="button"
             variant="ghost"
             size={sidebarCollapsed ? "icon-xs" : "icon"}
-            aria-label={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
-            title={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+            aria-label={sidebarCollapsed ? "Perluas navigasi" : "Ciutkan navigasi"}
+            title={sidebarCollapsed ? "Perluas navigasi" : "Ciutkan navigasi"}
             className="shrink-0 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             onClick={toggleSidebarCollapsed}
           >
@@ -541,7 +459,7 @@ export function NavShell({
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-6">
+        <nav aria-label="Navigasi utama" className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
           {desktopNavGroups.map((group) => (
             <section key={group.label}>
               <h2
@@ -606,7 +524,7 @@ export function NavShell({
           ))}
         </nav>
 
-        <div className="border-t border-slate-100 pt-4">
+        <div className="shrink-0 border-t border-slate-100 pt-4">
           <Link
             href={profileLink.href}
             aria-label={sidebarCollapsed ? userFullName : undefined}
@@ -702,7 +620,7 @@ export function NavShell({
             aria-label="Tutup menu"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
+          <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Lainnya
@@ -731,7 +649,7 @@ export function NavShell({
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => setMoreOpen(false)}
                     className={[
-                      "flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors border-l-2",
+                      "flex min-h-11 items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors border-l-2",
                       isActive
                         ? "bg-slate-100 text-slate-900 border-slate-900 pl-2.5"
                         : "text-slate-600 border-transparent pl-2.5 hover:bg-slate-50 hover:text-slate-900",
@@ -751,7 +669,7 @@ export function NavShell({
       ) : null}
 
       <nav
-        aria-label="Navigasi mobile"
+        aria-label="Navigasi seluler"
         className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] desktop:hidden"
       >
         {tabLinks.map((link) => {

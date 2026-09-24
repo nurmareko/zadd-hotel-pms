@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/table";
 import { formatIDR } from "@/lib/format";
 import { deleteMenuItem } from "./actions";
+import { menuCategoryLabel } from "./category-labels";
 import { MenuForm } from "./menu-form";
 import { MenuItemActions } from "./menu-item-actions";
 
@@ -167,10 +168,10 @@ export function MenuTable({ items }: MenuTableProps) {
   return (
     <>
       <div className="mb-4">
-        <Breadcrumb className="mb-2">
+        <Breadcrumb className="mb-2" aria-label="Jejak navigasi">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+              <BreadcrumbLink href="/app/fb">F&amp;B</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -181,10 +182,10 @@ export function MenuTable({ items }: MenuTableProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              F&amp;B Menu
+              Menu F&amp;B
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Outlet: Hotel Restaurant (single outlet untuk MVP).
+              Restoran hotel (satu lokasi layanan untuk MVP).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -202,12 +203,12 @@ export function MenuTable({ items }: MenuTableProps) {
         <KpiCard
           label="Kategori"
           value={categories.length}
-          delta={categories.join(", ") || "-"}
+          delta={categories.map(menuCategoryLabel).join(", ") || "-"}
         />
         <KpiCard
-          label="Avg. Price"
+          label="Harga Rata-rata"
           value={formatIDR(Math.round(averagePrice).toString())}
-          delta="Per item"
+          delta="Per menu"
         />
       </div>
 
@@ -215,7 +216,7 @@ export function MenuTable({ items }: MenuTableProps) {
         <EmptyState
           icon={Utensils}
           title="Belum ada menu"
-          description="Tambahkan item menu agar F&B dapat membuat order."
+          description="Tambahkan menu agar F&B dapat membuat pesanan."
           action={<AddMenuItemButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -227,25 +228,28 @@ export function MenuTable({ items }: MenuTableProps) {
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
                 placeholder="Cari menu..."
+                                aria-label="Cari menu"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              value={categoryFilter}
+              aria-label="Filter kategori"
+                            value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
               <option value="">Semua Kategori</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {menuCategoryLabel(category)}
                 </option>
               ))}
             </select>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              value={statusFilter}
+              aria-label="Filter status"
+                            value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
               }
@@ -263,7 +267,7 @@ export function MenuTable({ items }: MenuTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Code
+                    Kode
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Nama Menu
@@ -295,7 +299,7 @@ export function MenuTable({ items }: MenuTableProps) {
                       {item.name}
                     </TableCell>
                     <TableCell className="border-b border-border/60 px-3 py-[9px]">
-                      {item.category}
+                      {menuCategoryLabel(item.category)}
                     </TableCell>
                     <TableCell className="num border-b border-border/60 px-3 py-[9px] text-right font-semibold">
                       {formatIDR(item.price)}
@@ -339,7 +343,7 @@ export function MenuTable({ items }: MenuTableProps) {
               {"Tambah Menu"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat menu untuk flow order F&amp;B.
+              Buat menu untuk alur pesanan F&amp;B.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -362,7 +366,7 @@ export function MenuTable({ items }: MenuTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Menu"}
+              {"Ubah Menu"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
               Perbarui detail menu yang tampil untuk pengguna F&amp;B.

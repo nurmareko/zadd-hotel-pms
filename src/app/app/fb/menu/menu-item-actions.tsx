@@ -50,7 +50,7 @@ export function MenuItemActions({
             variant="ghost"
             size="icon"
             className="rounded-none text-foreground hover:bg-slate-50"
-            aria-label={`Actions for ${item.name}`}
+            aria-label={`Aksi untuk ${item.name}`}
           />
         }
       >
@@ -59,7 +59,7 @@ export function MenuItemActions({
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={() => onEdit(item)}>
           <Pencil aria-hidden="true" />
-          Edit
+          Ubah
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={handleToggle}>
           <Power aria-hidden="true" />

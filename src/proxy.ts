@@ -12,6 +12,7 @@ const modulePrefixes: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/app/fb", module: "food_and_beverage" },
   { prefix: "/app/acc", module: "accounting" },
   { prefix: "/app/revenue", module: "revenue" },
+  { prefix: "/app/ops", module: "operations" },
   { prefix: "/app/admin", module: "admin" },
 ];
 
@@ -38,6 +39,9 @@ export function resolveAppRouteAccess(
     return { type: "next" };
   }
 
+  if (routeMatches(pathname, "/app/admin/menu")) {
+    return { type: "redirect", destination: "/app/fb/menu", status: 307 };
+  }
   if (routeMatches(pathname, "/app/hk/list")) {
     return { type: "redirect", destination: "/app/hk/rooms", status: 307 };
   }

@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
 import {
   Tabs,
   TabsContent,
@@ -23,6 +25,25 @@ type RoomsTabsProps = {
 };
 
 export function RoomsTabs({ roomTypes, rooms }: RoomsTabsProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedTab = searchParams.get("tab") === "types" ? "room-types" : "rooms";
+
+  function handleTabChange(value: string) {
+    if (value === selectedTab) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "room-types") {
+      params.set("tab", "types");
+    } else {
+      params.delete("tab");
+    }
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
   const roomTypeOptions = roomTypes.map((roomType) => ({
     id: roomType.id,
     code: roomType.code,
@@ -52,7 +73,7 @@ export function RoomsTabs({ roomTypes, rooms }: RoomsTabsProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="room-types">
+      <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <TabsList className="mb-4 h-auto rounded-none border-b border-border bg-transparent p-0">
           <TabsTrigger
             className="rounded-none border-b-2 border-transparent bg-transparent px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"

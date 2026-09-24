@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const MenuItemCreateSchema = z.object({
   code: z
-    .string()
+    .string("Kode wajib diisi")
     .trim()
     .min(1, "Kode wajib diisi")
     .max(20, "Kode maksimal 20 karakter")
@@ -12,12 +12,12 @@ export const MenuItemCreateSchema = z.object({
     )
     .transform((value) => value.toUpperCase()),
   name: z
-    .string()
+    .string("Nama wajib diisi")
     .trim()
     .min(1, "Nama wajib diisi")
     .max(100, "Nama maksimal 100 karakter"),
   category: z
-    .string()
+    .string("Kategori wajib diisi")
     .trim()
     .min(1, "Kategori wajib diisi")
     .max(50, "Kategori maksimal 50 karakter"),
@@ -28,11 +28,11 @@ export const MenuItemCreateSchema = z.object({
 });
 
 export const MenuItemUpdateSchema = MenuItemCreateSchema.extend({
-  id: z.coerce.number().int().positive("Item menu wajib dipilih"),
+  id: z.coerce.number("Menu wajib dipilih").int("ID menu harus bilangan bulat").positive("Menu wajib dipilih"),
 });
 
 export const MenuItemIdSchema = z.object({
-  id: z.coerce.number().int().positive("Item menu wajib dipilih"),
+  id: z.coerce.number("Menu wajib dipilih").int("ID menu harus bilangan bulat").positive("Menu wajib dipilih"),
 });
 
 export type MenuItemFormInput = z.input<typeof MenuItemCreateSchema>;

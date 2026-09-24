@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createMenuItem, updateMenuItem } from "./actions";
+import { menuCategoryLabel } from "./category-labels";
 import {
   MenuItemCreateSchema,
   type MenuItemFormInput,
@@ -110,10 +111,10 @@ export function MenuForm({
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Code</FormLabel>
+                <FormLabel className={labelClassName}>Kode</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="COFFEE"
+                    placeholder="KOPI"
                     {...field}
                     className={inputClassName}
                   />
@@ -158,7 +159,7 @@ export function MenuForm({
             <FormItem>
               <FormLabel className={labelClassName}>Nama Menu</FormLabel>
               <FormControl>
-                <Input placeholder="Coffee" {...field} className={inputClassName} />
+                <Input placeholder="Kopi" {...field} className={inputClassName} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -207,10 +208,10 @@ export function MenuForm({
                   <SelectContent align="start">
                     {COMMON_CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
-                        {category}
+                        {menuCategoryLabel(category)}
                       </SelectItem>
                     ))}
-                    <SelectItem value={OTHER_CATEGORY}>Other</SelectItem>
+                    <SelectItem value={OTHER_CATEGORY}>Lainnya</SelectItem>
                   </SelectContent>
                 </Select>
                 {usesCustomCategory ? (
@@ -218,6 +219,7 @@ export function MenuForm({
                     <Input
                       className={`${inputClassName} mt-2`}
                       placeholder="Kategori khusus"
+                                            aria-label="Kategori khusus"
                       value={field.value}
                       onBlur={field.onBlur}
                       onChange={field.onChange}

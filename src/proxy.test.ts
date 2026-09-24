@@ -9,17 +9,17 @@ vi.mock("next-auth", () => ({
 }));
 
 const roles: AppRole[] = ["ADMIN", "GM", "FO", "HK", "FB", "ACC"];
-const modulePaths = ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/admin", "/app/revenue"];
+const modulePaths = ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/admin", "/app/revenue", "/app/ops"];
 
 // Expected access is explicit so changes to the permission matrix cannot silently
 // change both the implementation and its test expectations.
 const allowedPaths: Record<AppRole, string[]> = {
   ADMIN: modulePaths,
-  GM: ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/revenue"],
-  FO: ["/app/fo", "/app/hk"],
+  GM: ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/revenue", "/app/ops"],
+  FO: ["/app/fo", "/app/hk", "/app/ops"],
   HK: ["/app/hk"],
   FB: ["/app/fb"],
-  ACC: ["/app/acc", "/app/revenue"],
+  ACC: ["/app/acc"],
 };
 
 describe("resolveAppRouteAccess", () => {
@@ -33,6 +33,10 @@ describe("resolveAppRouteAccess", () => {
     "/app/hk/rooms/export",
     "/app/unknown",
     "/app/revenue/seasons",
+    "/app/ops/tasks",
+    "/app/admin/menu",
+    "/app/admin/menu/legacy",
+    "/app/fb/menu",
   ])("redirects unauthenticated requests to login: %s", (pathname) => {
     expect(resolveAppRouteAccess(pathname)).toEqual({ type: "login_redirect" });
   });
@@ -46,9 +50,31 @@ describe("resolveAppRouteAccess", () => {
 
     it("enforces access to revenue seasons", () => {
       expect(resolveAppRouteAccess("/app/revenue/seasons", role)).toEqual({
-        type: ["ADMIN", "GM", "ACC"].includes(role) ? "next" : "forbidden_rewrite",
+        type: ["ADMIN", "GM"].includes(role) ? "next" : "forbidden_rewrite",
       });
     });
+
+    it.each(["/app/ops/", "/app/ops/tasks"])("enforces nested operations access for %s", (pathname) => {
+      expect(resolveAppRouteAccess(pathname, role)).toEqual({
+        type: ["ADMIN", "GM", "FO"].includes(role) ? "next" : "forbidden_rewrite",
+      });
+    });
+
+    it.each(["/app/admin/menu", "/app/admin/menu/", "/app/admin/menu/legacy"])(
+      "redirects legacy menu before admin gating and checks target access: %s",
+      (pathname) => {
+        const decision = resolveAppRouteAccess(pathname, role);
+        expect(decision).toEqual({
+          type: "redirect",
+          destination: "/app/fb/menu",
+          status: 307,
+        });
+        if (decision.type !== "redirect") throw new Error("Expected menu redirect");
+        expect(resolveAppRouteAccess(decision.destination, role)).toEqual({
+          type: ["ADMIN", "GM", "FB"].includes(role) ? "next" : "forbidden_rewrite",
+        });
+      },
+    );
 
     it.each(["/app", "/app/", "/app/forbidden"])("passes through %s", (pathname) => {
       expect(resolveAppRouteAccess(pathname, role)).toEqual({ type: "next" });
@@ -99,14 +125,14 @@ describe("resolveAppRouteAccess", () => {
     expect(resolveAppRouteAccess("/app/hk/lost-found", "FO")).toEqual({ type: "next" });
   });
 
-  it.each(["/app/foobar", "/app/admin-tools", "/app/revenue-tools", "/app/unknown"])(
+  it.each(["/app/foobar", "/app/admin-tools", "/app/revenue-tools", "/app/ops-tools", "/app/unknown"])(
     "does not treat a partial segment or unknown route as a module: %s",
     (pathname) => {
       expect(resolveAppRouteAccess(pathname, "HK")).toEqual({ type: "next" });
     },
   );
 
-  it.each(["/app/hk/listing", "/app/hk/supervisors"])(
+  it.each(["/app/hk/listing", "/app/hk/supervisors", "/app/admin/menus"])(
     "does not redirect a partial compatibility segment: %s",
     (pathname) => {
       expect(resolveAppRouteAccess(pathname, "FB")).toEqual({ type: "forbidden_rewrite" });
