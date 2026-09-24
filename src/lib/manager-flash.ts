@@ -13,7 +13,6 @@ import {
   isValidISODateOnly,
   parseISODateOnly,
 } from "@/lib/date-only";
-import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
 
@@ -54,9 +53,18 @@ function safeDivide(numerator: number, denominator: number) {
   return denominator > 0 ? numerator / denominator : 0;
 }
 
+function formatDateOnly(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function dayRange(date: string) {
   const start = hotelTimestampBoundaryForDate(date);
-  return { start, end: hotelTimestampBoundaryForDate(formatISODate(addDateOnlyDays(parseISODateOnly(date), 1))) };
+  return {
+    start,
+    end: hotelTimestampBoundaryForDate(
+      formatDateOnly(addDateOnlyDays(parseISODateOnly(date), 1)),
+    ),
+  };
 }
 
 const bookingSourceOrder: Array<ReservationType | "UNKNOWN"> = [
@@ -329,7 +337,7 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
   const selected = resolveManagerFlashDate(selectedDate);
   const selectedDateOnly = parseISODateOnly(selected);
   const historyDates = Array.from({ length: 14 }, (_, index) =>
-    formatISODate(addDateOnlyDays(selectedDateOnly, -index)),
+    formatDateOnly(addDateOnlyDays(selectedDateOnly, -index)),
   );
   const firstDate = parseISODateOnly(historyDates[historyDates.length - 1]);
   const audits = await prisma.nightAudit.findMany({
@@ -349,7 +357,7 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
   });
   const totalRooms = await prisma.room.count();
   const cutover = await getArrCutover();
-  const auditByDate = new Map(audits.map((audit) => [formatISODate(audit.businessDate), audit]));
+  const auditByDate = new Map(audits.map((audit) => [formatDateOnly(audit.businessDate), audit]));
   const history = await Promise.all(
     historyDates.map((date, index) =>
       calculateDay(

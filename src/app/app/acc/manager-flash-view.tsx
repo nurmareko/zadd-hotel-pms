@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import { KpiCard } from "./kpi-card";
 import { ManagerFlashActions } from "./manager-flash-actions";
+import { ManagerFlashDatePicker } from "./manager-flash-date-picker";
 
 function dateLabel(value: string) {
   return formatCompactDateID(new Date(`${value}T00:00:00.000Z`));
@@ -84,18 +85,7 @@ export function ManagerFlashView({
           <Link className={buttonVariants({ variant: "outline" })} href="/app/acc/night-audit">
             Night Audit
           </Link>
-          <form className="grid gap-1.5" method="get">
-            <label className="text-xs font-semibold text-muted-foreground" htmlFor="manager-flash-date">
-              Tanggal bisnis
-            </label>
-            <input
-              className="h-10 rounded-md border border-input bg-white px-3 text-sm"
-              defaultValue={report.selectedDate}
-              id="manager-flash-date"
-              name="date"
-              type="date"
-            />
-          </form>
+          <ManagerFlashDatePicker selectedDate={report.selectedDate} />
           <ManagerFlashActions />
         </div>
       </div>
