@@ -135,7 +135,7 @@ export function PricingRuleForm({
 
     if (result.ok) {
       toast.success(
-        isEditing ? "Aturan harga diperbarui" : "Aturan harga dibuat",
+        isEditing ? "Musim diperbarui" : "Musim dibuat",
       );
       form.reset(emptyValues);
       onSavedAction();
@@ -177,7 +177,7 @@ export function PricingRuleForm({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Nama aturan</FormLabel>
+                  <FormLabel className={labelClassName}>Nama musim</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -251,7 +251,7 @@ export function PricingRuleForm({
                     </select>
                   </FormControl>
                   <FormDescription>
-                    Rentang tanggal lebih diprioritaskan daripada aturan hari saat keduanya cocok.
+                    Rentang tanggal lebih diprioritaskan daripada musim hari saat keduanya cocok.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -378,7 +378,7 @@ export function PricingRuleForm({
             name="isActive"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Status aturan</FormLabel>
+                <FormLabel className={labelClassName}>Status musim</FormLabel>
                 <FormControl>
                   <button
                     ref={field.ref}
@@ -395,7 +395,7 @@ export function PricingRuleForm({
                         {field.value ? "Aktif" : "Nonaktif"}
                       </span>
                       <span className="block text-xs text-slate-500">
-                        Hanya aturan aktif yang digunakan oleh resolver pratinjau.
+                        Hanya musim aktif yang digunakan dalam perhitungan pratinjau.
                       </span>
                     </span>
                     <span
@@ -432,7 +432,7 @@ export function PricingRuleForm({
               ? "Menyimpan..."
               : isEditing
                 ? "Simpan perubahan"
-                : "Buat aturan"}
+                : "Buat musim"}
           </Button>
         </DialogFooter>
       </form>

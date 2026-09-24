@@ -16,7 +16,7 @@ import {
   BarChart3,
   ClipboardList,
   Archive,
-  CircleDollarSign,
+
   Download,
   LayoutGrid,
   Shirt,
@@ -30,6 +30,7 @@ import {
   Settings,
   Tag,
   Table2,
+  TrendingUp,
   User,
   Users,
   UtensilsCrossed,
@@ -106,8 +107,21 @@ const hkNavGroup: NavGroup = {
   ],
 };
 
+const revenueNavGroup: NavGroup = {
+  label: "Revenue",
+  links: [
+    {
+      label: "Musim & Tarif",
+      href: "/app/revenue/seasons",
+      icon: TrendingUp,
+      activeMatch: "startsWith",
+    },
+  ],
+};
+
 const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   GM: [
+    revenueNavGroup,
     {
       label: "Front Office",
       links: [
@@ -280,16 +294,13 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     },
   ],
   ADMIN: [
+    revenueNavGroup,
     {
       label: "Admin",
       links: [
         { label: "Pengguna", href: "/app/admin/users", icon: Users },
         { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
-        {
-          label: "Aturan Harga",
-          href: "/app/admin/pricing-rules",
-          icon: CircleDollarSign,
-        },
+
         { label: "Artikel", href: "/app/admin/articles", icon: Tag },
         { label: "Meja", href: "/app/admin/tables", icon: Table2 },
         { label: "Menu", href: "/app/admin/menu", icon: UtensilsCrossed },

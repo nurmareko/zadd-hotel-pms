@@ -95,7 +95,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
               Pratinjau bayangan tarif
             </h2>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Simulasikan hasil resolver untuk interval menginap [kedatangan,
+              Simulasikan tarif untuk interval menginap [kedatangan,
               keberangkatan).
             </p>
           </div>
@@ -103,7 +103,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
         <div className="mt-3 flex gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm leading-5 text-blue-800">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <p>
-            Ini hanya mode shadow/pratinjau dan tidak digunakan untuk membuat atau
+            Ini hanya mode pratinjau dan tidak digunakan untuk membuat atau
             mengubah reservasi.
           </p>
         </div>
@@ -189,11 +189,11 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
               <p className="num mt-1 text-lg font-bold">{formatIDR(result.baseRate)}</p>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">Total dasar flat</p>
+              <p className="text-xs font-semibold text-slate-500">Total tarif dasar</p>
               <p className="num mt-1 text-lg font-bold">{formatIDR(result.flatTotal)}</p>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">Total setelah aturan</p>
+              <p className="text-xs font-semibold text-slate-500">Total setelah musim</p>
               <p className="num mt-1 text-lg font-bold text-blue-700">
                 {formatIDR(result.resolvedTotal)}
               </p>
@@ -209,7 +209,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
                 <TableRow>
                   <TableHead className="px-4">Malam</TableHead>
                   <TableHead>Tanggal</TableHead>
-                  <TableHead>Aturan diterapkan</TableHead>
+                  <TableHead>Musim diterapkan</TableHead>
                   <TableHead className="px-4 text-right">Tarif</TableHead>
                 </TableRow>
               </TableHeader>
@@ -229,7 +229,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
                           </p>
                         </div>
                       ) : (
-                        <span className="text-slate-500">Tarif dasar (tanpa aturan)</span>
+                        <span className="text-slate-500">Tarif dasar (tanpa musim)</span>
                       )}
                     </TableCell>
                     <TableCell className="num px-4 text-right font-semibold">

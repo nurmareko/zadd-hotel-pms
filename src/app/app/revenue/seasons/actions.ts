@@ -25,7 +25,7 @@ import {
   PricingRuleUpdateSchema,
 } from "./schema";
 
-const PRICING_RULES_PATH = "/app/admin/pricing-rules";
+const PRICING_RULES_PATH = "/app/revenue/seasons";
 const SERIALIZABLE_OPTIONS = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   ...TRANSACTION_OPTIONS,
@@ -74,7 +74,7 @@ function validationFailure(error: {
 
   return {
     ok: false,
-    error: issue?.message ?? "Data aturan harga tidak valid",
+    error: issue?.message ?? "Data musim tidak valid",
     field,
   };
 }
@@ -141,7 +141,7 @@ async function validateRuleConstraints(
     data.adjustmentValue,
   );
 
-  if (!finalRate.isPositive()) {
+  if (!finalRate.greaterThan(0)) {
     return {
       ok: false,
       error: "Penyesuaian harus menghasilkan tarif malam lebih besar dari 0",
@@ -170,7 +170,7 @@ async function validateRuleConstraints(
     if (duplicate) {
       return {
         ok: false,
-        error: "Sudah ada aturan aktif untuk hari tersebut pada tipe kamar ini",
+        error: "Sudah ada musim aktif untuk hari tersebut pada tipe kamar ini",
         field: "dayOfWeek",
       };
     }
@@ -196,7 +196,7 @@ async function validateRuleConstraints(
     if (overlap) {
       return {
         ok: false,
-        error: "Rentang tanggal aktif tumpang tindih dengan aturan lain",
+        error: "Rentang tanggal aktif tumpang tindih dengan musim lain",
         field: "startsOn",
       };
     }
@@ -211,29 +211,29 @@ function prismaErrorResult(error: unknown): ActionResult {
       return {
         ok: false,
         error:
-          "Aturan hari untuk tipe kamar tersebut sudah ada, termasuk aturan nonaktif",
+          "Musim hari untuk tipe kamar tersebut sudah ada, termasuk musim nonaktif",
         field: "dayOfWeek",
       };
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Aturan harga tidak ditemukan" };
+      return { ok: false, error: "Musim tidak ditemukan" };
     }
 
     if (error.code === "P2034" || error.code === "P2028") {
       return {
         ok: false,
-        error: "Data aturan harga berubah bersamaan. Silakan coba lagi.",
+        error: "Data musim berubah bersamaan. Silakan coba lagi.",
       };
     }
   }
 
-  return { ok: false, error: "Terjadi kesalahan saat menyimpan aturan harga" };
+  return { ok: false, error: "Terjadi kesalahan saat menyimpan musim" };
 }
 
 export async function createPricingRule(input: unknown): Promise<ActionResult> {
   if (!(await canManagePricingRules())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola musim" };
   }
 
   const parsed = PricingRuleCreateSchema.safeParse(input);
@@ -257,7 +257,7 @@ export async function createPricingRule(input: unknown): Promise<ActionResult> {
 
 export async function updatePricingRule(input: unknown): Promise<ActionResult> {
   if (!(await canManagePricingRules())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola musim" };
   }
 
   const parsed = PricingRuleUpdateSchema.safeParse(input);
@@ -271,7 +271,7 @@ export async function updatePricingRule(input: unknown): Promise<ActionResult> {
         where: { id },
         select: { id: true },
       });
-      if (!existing) return { ok: false as const, error: "Aturan harga tidak ditemukan" };
+      if (!existing) return { ok: false as const, error: "Musim tidak ditemukan" };
 
       const validation = await validateRuleConstraints(tx, data, id);
       if (!validation.ok) return validation;
@@ -288,7 +288,7 @@ export async function updatePricingRule(input: unknown): Promise<ActionResult> {
 
 export async function togglePricingRule(input: unknown): Promise<ActionResult> {
   if (!(await canManagePricingRules())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola musim" };
   }
 
   const parsed = PricingRuleToggleSchema.safeParse(input);
@@ -299,11 +299,14 @@ export async function togglePricingRule(input: unknown): Promise<ActionResult> {
       const existing = await tx.pricingRule.findUnique({
         where: { id: parsed.data.id },
       });
-      if (!existing) return { ok: false as const, error: "Aturan harga tidak ditemukan" };
+      if (!existing) return { ok: false as const, error: "Musim tidak ditemukan" };
 
-      const data = { ...existing, isActive: parsed.data.isActive };
-      const validation = await validateRuleConstraints(tx, data, existing.id);
-      if (!validation.ok) return validation;
+      // Legacy rules with invalid rates must still be safe to deactivate.
+      if (parsed.data.isActive) {
+        const data = { ...existing, isActive: true };
+        const validation = await validateRuleConstraints(tx, data, existing.id);
+        if (!validation.ok) return validation;
+      }
       await tx.pricingRule.update({
         where: { id: existing.id },
         data: { isActive: parsed.data.isActive },
@@ -320,7 +323,7 @@ export async function togglePricingRule(input: unknown): Promise<ActionResult> {
 
 export async function deletePricingRule(id: string): Promise<ActionResult> {
   if (!(await canManagePricingRules())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola musim" };
   }
 
   const parsed = PricingRuleIdSchema.safeParse({ id });
@@ -339,7 +342,7 @@ export async function previewPricingSchedule(
   input: unknown,
 ): Promise<PricingPreviewResult> {
   if (!(await canManagePricingRules())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola musim" };
   }
 
   const parsed = PricingPreviewSchema.safeParse(input);

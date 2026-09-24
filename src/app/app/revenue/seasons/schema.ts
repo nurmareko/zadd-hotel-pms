@@ -48,11 +48,11 @@ const PricingRuleBaseSchema = z
     name: z
       .string()
       .trim()
-      .min(1, "Nama aturan wajib diisi")
-      .max(255, "Nama aturan maksimal 255 karakter"),
+      .min(1, "Nama musim wajib diisi")
+      .max(255, "Nama musim maksimal 255 karakter"),
     roomTypeId: z.coerce.number().int().positive("Pilih tipe kamar"),
     selectorKind: z.enum(pricingRuleSelectorKinds, {
-      error: "Pilih jenis selector",
+      error: "Pilih jenis periode berlaku",
     }),
     dayOfWeek: optionalText.pipe(
       z.enum(pricingRuleDays, { error: "Pilih hari yang valid" }).nullable().optional(),
@@ -94,7 +94,7 @@ const PricingRuleBaseSchema = z
           code: "custom",
           path: ["dayOfWeek"],
           message:
-            "Aturan hari harus memiliki satu hari tanpa rentang tanggal",
+            "Musim hari harus memiliki satu hari tanpa rentang tanggal",
         });
       }
       return;
@@ -105,7 +105,7 @@ const PricingRuleBaseSchema = z
         code: "custom",
         path: ["startsOn"],
         message:
-          "Aturan rentang harus memiliki tanggal mulai dan batas akhir tanpa hari",
+          "Musim rentang harus memiliki tanggal mulai dan batas akhir tanpa hari",
       });
       return;
     }
@@ -131,10 +131,10 @@ const PricingRuleBaseSchema = z
 
 export const PricingRuleCreateSchema = PricingRuleBaseSchema;
 export const PricingRuleUpdateSchema = PricingRuleBaseSchema.and(
-  z.object({ id: z.string().cuid("Aturan harga tidak valid") }),
+  z.object({ id: z.string().cuid("Musim tidak valid") }),
 );
 export const PricingRuleIdSchema = z.object({
-  id: z.string().cuid("Aturan harga tidak valid"),
+  id: z.string().cuid("Musim tidak valid"),
 });
 export const PricingRuleToggleSchema = PricingRuleIdSchema.extend({
   isActive: booleanInput,

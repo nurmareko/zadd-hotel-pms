@@ -90,6 +90,7 @@ export type PricingRuleRow = {
 type PricingRuleTableProps = {
   rules: PricingRuleRow[];
   roomTypes: PricingRoomTypeOption[];
+  canManage: boolean;
 };
 
 const dayLabels: Record<PricingRuleDayOfWeek, string> = {
@@ -123,7 +124,7 @@ function selectorDescription(rule: PricingRuleRow) {
     return `${formatRuleDate(rule.startsOn)} – sebelum ${formatRuleDate(rule.endsBefore)}`;
   }
 
-  return "Selector tidak lengkap";
+  return "Periode berlaku tidak lengkap";
 }
 
 function adjustmentDescription(rule: PricingRuleRow) {
@@ -141,7 +142,7 @@ function AddRuleButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus aria-hidden="true" />
-      Tambah aturan
+      Tambah Aturan Musim
     </Button>
   );
 }
@@ -176,7 +177,7 @@ function RuleActions({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem onClick={() => onEdit(rule)}>
           <Pencil aria-hidden="true" />
-          Edit aturan
+          Ubah musim
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isToggling} onClick={() => onToggle(rule)}>
           <Power aria-hidden="true" />
@@ -185,14 +186,14 @@ function RuleActions({
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(rule)}>
           <Trash2 aria-hidden="true" />
-          Hapus aturan
+          Hapus musim
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
+export function PricingRuleTable({ rules, roomTypes, canManage }: PricingRuleTableProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PricingRuleRow | null>(null);
   const [deletingRule, setDeletingRule] = useState<PricingRuleRow | null>(null);
@@ -230,7 +231,7 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
       setPendingToggleId(null);
 
       if (result.ok) {
-        toast.success(rule.isActive ? "Aturan dinonaktifkan" : "Aturan diaktifkan");
+        toast.success(rule.isActive ? "Musim dinonaktifkan" : "Musim diaktifkan");
       } else {
         toast.error(result.error);
       }
@@ -243,7 +244,7 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
     startDeleteTransition(async () => {
       const result = await deletePricingRule(deletingRule.id);
       if (result.ok) {
-        toast.success("Aturan harga dihapus");
+        toast.success("Musim dihapus");
         setDeletingRule(null);
       } else {
         toast.error(result.error);
@@ -257,26 +258,26 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
         <Breadcrumb className="mb-2">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+              <BreadcrumbLink href="/app/revenue">Pendapatan</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Aturan harga</BreadcrumbPage>
+              <BreadcrumbPage>Musim &amp; Tarif</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Aturan harga
+              Musim &amp; Tarif
             </h1>
             <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-500">
-              Kelola penyesuaian tarif per tipe kamar untuk hari tertentu atau
-              rentang tanggal. Rentang tanggal aktif diprioritaskan saat resolver
+              Aturan penyesuaian harga musiman dan hari tertentu untuk tipe kamar.
+              Rentang tanggal aktif diprioritaskan saat perhitungan tarif
               menemukan lebih dari satu kecocokan.
             </p>
           </div>
-          <AddRuleButton onClick={() => setCreateOpen(true)} />
+          {canManage ? <AddRuleButton onClick={() => setCreateOpen(true)} /> : null}
         </div>
       </header>
 
@@ -285,19 +286,19 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
           <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-white px-3 shadow-sm desktop:h-10">
             <Search className="size-4 text-slate-500" aria-hidden="true" />
             <label htmlFor="pricing-rule-search" className="sr-only">
-              Cari aturan harga
+              Cari musim
             </label>
             <input
               id="pricing-rule-search"
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari aturan atau tipe kamar..."
+              placeholder="Cari musim atau tipe kamar..."
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
           </div>
           <label htmlFor="pricing-rule-status" className="sr-only">
-            Filter status aturan
+            Saring status musim
           </label>
           <select
             id="pricing-rule-status"
@@ -314,16 +315,18 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
             <option value="inactive">Nonaktif</option>
           </select>
           <p className="text-sm font-medium text-slate-500" aria-live="polite">
-            <span className="num">{filteredRules.length}</span> aturan
+            <span className="num">{filteredRules.length}</span> musim
           </p>
         </div>
 
         {rules.length === 0 ? (
           <EmptyState
             icon={CalendarSync}
-            title="Belum ada aturan harga"
-            description="Tambahkan aturan untuk mensimulasikan penyesuaian tarif di luar tarif dasar."
-            action={<AddRuleButton onClick={() => setCreateOpen(true)} />}
+            title="Belum ada musim"
+            description={canManage
+              ? "Tambahkan musim untuk mensimulasikan penyesuaian tarif di luar tarif dasar."
+              : "Belum ada musim yang tersedia untuk ditampilkan."}
+            action={canManage ? <AddRuleButton onClick={() => setCreateOpen(true)} /> : undefined}
             className="m-4 min-h-56"
           />
         ) : (
@@ -331,12 +334,12 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
             <Table className="min-w-235">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4">Nama aturan</TableHead>
+                  <TableHead className="px-4">Nama musim</TableHead>
                   <TableHead>Tipe kamar</TableHead>
-                  <TableHead>Selector</TableHead>
+                  <TableHead>Periode berlaku</TableHead>
                   <TableHead>Penyesuaian</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-20 px-4 text-right">Aksi</TableHead>
+                  {canManage ? <TableHead className="w-20 px-4 text-right">Aksi</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -375,24 +378,26 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
                         }
                       />
                     </TableCell>
-                    <TableCell className="px-4 text-right">
-                      <RuleActions
-                        rule={rule}
-                        isToggling={isToggling && pendingToggleId === rule.id}
-                        onDelete={setDeletingRule}
-                        onEdit={setEditingRule}
-                        onToggle={handleToggle}
-                      />
-                    </TableCell>
+                    {canManage ? (
+                      <TableCell className="px-4 text-right">
+                        <RuleActions
+                          rule={rule}
+                          isToggling={isToggling && pendingToggleId === rule.id}
+                          onDelete={setDeletingRule}
+                          onEdit={setEditingRule}
+                          onToggle={handleToggle}
+                        />
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))}
                 {filteredRules.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="p-4">
+                    <TableCell colSpan={canManage ? 6 : 5} className="p-4">
                       <EmptyState
                         icon={SearchX}
-                        title="Aturan tidak ditemukan"
-                        description="Ubah kata kunci atau filter status untuk melihat aturan lain."
+                        title="Musim tidak ditemukan"
+                        description="Ubah kata kunci atau penyaring status untuk melihat musim lain."
                       />
                     </TableCell>
                   </TableRow>
@@ -403,84 +408,88 @@ export function PricingRuleTable({ rules, roomTypes }: PricingRuleTableProps) {
         )}
       </section>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="gap-0 overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-2xl">
-          <DialogHeader className="border-b border-border bg-slate-50 px-4 py-4 sm:px-5">
-            <DialogTitle>Tambah aturan harga</DialogTitle>
-            <DialogDescription>
-              Buat satu aturan hari atau rentang tanggal untuk tipe kamar.
-            </DialogDescription>
-          </DialogHeader>
-          <PricingRuleForm
-            roomTypes={roomTypes}
-            onCancelAction={() => setCreateOpen(false)}
-            onSavedAction={() => setCreateOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {canManage ? (
+        <>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogContent className="gap-0 overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-2xl">
+              <DialogHeader className="border-b border-border bg-slate-50 px-4 py-4 sm:px-5">
+                <DialogTitle>Tambah Aturan Musim</DialogTitle>
+                <DialogDescription>
+                  Buat satu musim hari atau rentang tanggal untuk tipe kamar.
+                </DialogDescription>
+              </DialogHeader>
+              <PricingRuleForm
+                roomTypes={roomTypes}
+                onCancelAction={() => setCreateOpen(false)}
+                onSavedAction={() => setCreateOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
 
-      <Dialog
-        open={Boolean(editingRule)}
-        onOpenChange={(open) => {
-          if (!open) setEditingRule(null);
-        }}
-      >
-        <DialogContent className="gap-0 overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-2xl">
-          <DialogHeader className="border-b border-border bg-slate-50 px-4 py-4 sm:px-5">
-            <DialogTitle>Edit aturan harga</DialogTitle>
-            <DialogDescription>
-              Perbarui selector, penyesuaian, atau status aturan.
-            </DialogDescription>
-          </DialogHeader>
-          {editingRule ? (
-            <PricingRuleForm
-              roomTypes={roomTypes}
-              defaultValues={{
-                id: editingRule.id,
-                name: editingRule.name,
-                roomTypeId: editingRule.roomTypeId,
-                selectorKind: editingRule.selectorKind,
-                dayOfWeek: editingRule.dayOfWeek,
-                startsOn: editingRule.startsOn,
-                endsBefore: editingRule.endsBefore,
-                adjustmentKind: editingRule.adjustmentKind,
-                adjustmentValue: editingRule.adjustmentValue,
-                isActive: editingRule.isActive,
-              }}
-              onCancelAction={() => setEditingRule(null)}
-              onSavedAction={() => setEditingRule(null)}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+          <Dialog
+            open={Boolean(editingRule)}
+            onOpenChange={(open) => {
+              if (!open) setEditingRule(null);
+            }}
+          >
+            <DialogContent className="gap-0 overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-2xl">
+              <DialogHeader className="border-b border-border bg-slate-50 px-4 py-4 sm:px-5">
+                <DialogTitle>Ubah musim</DialogTitle>
+                <DialogDescription>
+                  Perbarui periode berlaku, penyesuaian, atau status musim.
+                </DialogDescription>
+              </DialogHeader>
+              {editingRule ? (
+                <PricingRuleForm
+                  roomTypes={roomTypes}
+                  defaultValues={{
+                    id: editingRule.id,
+                    name: editingRule.name,
+                    roomTypeId: editingRule.roomTypeId,
+                    selectorKind: editingRule.selectorKind,
+                    dayOfWeek: editingRule.dayOfWeek,
+                    startsOn: editingRule.startsOn,
+                    endsBefore: editingRule.endsBefore,
+                    adjustmentKind: editingRule.adjustmentKind,
+                    adjustmentValue: editingRule.adjustmentValue,
+                    isActive: editingRule.isActive,
+                  }}
+                  onCancelAction={() => setEditingRule(null)}
+                  onSavedAction={() => setEditingRule(null)}
+                />
+              ) : null}
+            </DialogContent>
+          </Dialog>
 
-      <AlertDialog
-        open={Boolean(deletingRule)}
-        onOpenChange={(open) => {
-          if (!open) setDeletingRule(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus aturan harga?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Aturan “{deletingRule?.name ?? ""}” akan dihapus permanen. Tindakan
-              ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              type="button"
-              variant="destructive"
-              disabled={isDeleting}
-              onClick={handleDelete}
-            >
-              {isDeleting ? "Menghapus..." : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <AlertDialog
+            open={Boolean(deletingRule)}
+            onOpenChange={(open) => {
+              if (!open) setDeletingRule(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Hapus musim?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Musim “{deletingRule?.name ?? ""}” akan dihapus permanen. Tindakan
+                  ini tidak dapat dibatalkan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+                <AlertDialogAction
+                  type="button"
+                  variant="destructive"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? "Menghapus..." : "Hapus"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      ) : null}
     </>
   );
 }

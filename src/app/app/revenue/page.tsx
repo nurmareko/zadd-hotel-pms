@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function PricingRulesPage() {
+export default function RevenuePage() {
   redirect("/app/revenue/seasons");
 }
