@@ -37,18 +37,18 @@ export default async function LoginPage() {
 
           <div className="mt-16 max-w-md">
             <h1 className="text-[32px] font-bold leading-tight text-white">
-              Hotel Management
+              Manajemen Hotel
             </h1>
             <p className="mt-4 text-[15px] leading-relaxed text-white/80">
-              A modern operational workspace designed specifically for
-              hospitality professionals. Empowering Front Office, Housekeeping,
-              F&B, and Accounting teams.
+              Ruang kerja operasional modern yang dirancang khusus untuk praktikum
+              dan profesional perhotelan. Mendukung tim Front Office, Housekeeping,
+              Food & Beverage, Accounting, dan General Manager.
             </p>
           </div>
 
           <div className="flex items-center justify-between border-t border-white/20 pt-6 text-[12px] font-medium text-white/75">
-            <span>Secure Access</span>
-            <span>Role-Based Workspace</span>
+            <span>Akses Aman</span>
+            <span>Ruang Kerja Berbasis Peran</span>
           </div>
         </section>
 
@@ -60,10 +60,10 @@ export default async function LoginPage() {
 
             <div className="mb-8 text-center">
               <h2 className="text-[28px] font-bold text-emerald-950">
-                Welcome back
+                Selamat Datang
               </h2>
               <p className="mt-2 text-[15px] text-emerald-950/65">
-                Sign in to your account to continue
+                Masuk ke akun Anda untuk melanjutkan
               </p>
             </div>
 
@@ -116,7 +116,7 @@ function BrandBlock({
               : "text-[16px] font-semibold leading-tight text-slate-900"
           }
         >
-          Hotel Management
+          Manajemen Hotel
         </div>
       </div>
     </div>

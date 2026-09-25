@@ -28,6 +28,7 @@ const demoAccounts = [
   { username: "hk1", password: "hk123", role: "Housekeeping" },
   { username: "fb1", password: "fb123", role: "Food & Beverage" },
   { username: "acc1", password: "acc123", role: "Accounting" },
+  { username: "gm1", password: "password123", role: "General Manager" },
   { username: "admin", password: "admin123", role: "Administrator" },
 ];
 
