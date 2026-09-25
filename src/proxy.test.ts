@@ -9,14 +9,14 @@ vi.mock("next-auth", () => ({
 }));
 
 const roles: AppRole[] = ["ADMIN", "GM", "FO", "HK", "FB", "ACC"];
-const modulePaths = ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/admin", "/app/revenue", "/app/ops"];
+const modulePaths = ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/admin", "/app/revenue"];
 
 // Expected access is explicit so changes to the permission matrix cannot silently
 // change both the implementation and its test expectations.
 const allowedPaths: Record<AppRole, string[]> = {
   ADMIN: modulePaths,
-  GM: ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/revenue", "/app/ops"],
-  FO: ["/app/fo", "/app/hk", "/app/ops"],
+  GM: ["/app/fo", "/app/hk", "/app/fb", "/app/acc", "/app/revenue"],
+  FO: ["/app/fo", "/app/hk"],
   HK: ["/app/hk"],
   FB: ["/app/fb"],
   ACC: ["/app/acc"],
@@ -33,7 +33,7 @@ describe("resolveAppRouteAccess", () => {
     "/app/hk/rooms/export",
     "/app/unknown",
     "/app/revenue/seasons",
-    "/app/ops/tasks",
+    "/app/admin/activity-log",
     "/app/admin/menu",
     "/app/admin/menu/legacy",
     "/app/fb/menu",
@@ -54,11 +54,14 @@ describe("resolveAppRouteAccess", () => {
       });
     });
 
-    it.each(["/app/ops/", "/app/ops/tasks"])("enforces nested operations access for %s", (pathname) => {
-      expect(resolveAppRouteAccess(pathname, role)).toEqual({
-        type: ["ADMIN", "GM", "FO"].includes(role) ? "next" : "forbidden_rewrite",
-      });
-    });
+    it.each(["/app/admin/activity-log", "/app/admin/activity-log/", "/app/admin/activity-log/details"])(
+      "restricts activity log to ADMIN: %s",
+      (pathname) => {
+        expect(resolveAppRouteAccess(pathname, role)).toEqual({
+          type: role === "ADMIN" ? "next" : "forbidden_rewrite",
+        });
+      },
+    );
 
     it.each(["/app/admin/menu", "/app/admin/menu/", "/app/admin/menu/legacy"])(
       "redirects legacy menu before admin gating and checks target access: %s",
@@ -125,7 +128,7 @@ describe("resolveAppRouteAccess", () => {
     expect(resolveAppRouteAccess("/app/hk/lost-found", "FO")).toEqual({ type: "next" });
   });
 
-  it.each(["/app/foobar", "/app/admin-tools", "/app/revenue-tools", "/app/ops-tools", "/app/unknown"])(
+  it.each(["/app/foobar", "/app/admin-tools", "/app/revenue-tools", "/app/unknown"])(
     "does not treat a partial segment or unknown route as a module: %s",
     (pathname) => {
       expect(resolveAppRouteAccess(pathname, "HK")).toEqual({ type: "next" });

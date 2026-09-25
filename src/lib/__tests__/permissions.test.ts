@@ -10,7 +10,7 @@ import {
 } from "@/lib/permissions";
 
 const modules: AppModule[] = [
-  "front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "operations", "admin",
+  "front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "admin",
 ];
 
 // Independent expectations: adding a capability requires an explicit policy decision.
@@ -35,8 +35,7 @@ const capabilityRoles = {
   "accounting:export": ["ADMIN", "GM", "ACC"],
   "folios:audit": ["ADMIN", "GM", "ACC"],
   "revenue:read": ["ADMIN", "GM"],
-  "operations:read": ["ADMIN", "GM", "FO"],
-  "operations:manage": ["ADMIN", "GM", "FO"],
+  "activity_log:read": ["ADMIN"],
   "food_and_beverage:manage_menu": ["ADMIN", "GM", "FB"],
   "pricing_rules:manage": ["ADMIN", "GM"],
   "users:manage": ["ADMIN"],
@@ -45,8 +44,8 @@ const capabilityRoles = {
 
 const roleModules = {
   ADMIN: modules,
-  GM: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "operations"],
-  FO: ["front_office", "housekeeping", "operations"],
+  GM: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue"],
+  FO: ["front_office", "housekeeping"],
   HK: ["housekeeping"],
   FB: ["food_and_beverage"],
   ACC: ["accounting"],

@@ -12,7 +12,6 @@ const modulePrefixes: Array<{ prefix: string; module: AppModule }> = [
   { prefix: "/app/fb", module: "food_and_beverage" },
   { prefix: "/app/acc", module: "accounting" },
   { prefix: "/app/revenue", module: "revenue" },
-  { prefix: "/app/ops", module: "operations" },
   { prefix: "/app/admin", module: "admin" },
 ];
 

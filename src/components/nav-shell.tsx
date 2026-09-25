@@ -17,7 +17,7 @@ import {
   ClipboardList,
   Archive,
   CalendarDays,
-  ConciergeBell,
+  History,
   Download,
   LayoutGrid,
   Shirt,
@@ -154,13 +154,6 @@ const revenueNavGroup: NavGroup = {
   ],
 };
 
-const opsNavGroup: NavGroup = {
-  label: "Operasional",
-  links: [
-    { label: "Operasional Hotel", href: "/app/ops", icon: ConciergeBell },
-  ],
-};
-
 const fbNavGroup: NavGroup = {
   label: "Food & Beverage",
   links: [
@@ -199,6 +192,7 @@ const adminNavGroup: NavGroup = {
       activeMatch: "exact",
     },
     { label: "Pengguna", href: "/app/admin/users", icon: Users },
+    { label: "Log Aktivitas", href: "/app/admin/activity-log", icon: History },
   ],
 };
 
@@ -207,7 +201,6 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
     adminNavGroup,
     frontDeskNavGroup,
     hkNavGroup,
-    opsNavGroup,
     fbNavGroup,
     revenueNavGroup,
     accountingNavGroup,
@@ -215,12 +208,11 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   GM: [
     frontDeskNavGroup,
     hkNavGroup,
-    opsNavGroup,
     fbNavGroup,
     revenueNavGroup,
     accountingNavGroup,
   ],
-  FO: [frontDeskNavGroup, hkNavGroup, opsNavGroup],
+  FO: [frontDeskNavGroup, hkNavGroup],
   HK: [hkNavGroup],
   FB: [fbNavGroup],
   ACC: [accountingNavGroup],

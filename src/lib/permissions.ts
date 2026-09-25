@@ -6,13 +6,12 @@ export type AppModule =
   | "food_and_beverage"
   | "accounting"
   | "revenue"
-  | "operations"
   | "admin";
 
 const moduleAccess: Record<AppRole, readonly AppModule[]> = {
-  ADMIN: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "operations", "admin"],
-  GM: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "operations"],
-  FO: ["front_office", "housekeeping", "operations"],
+  ADMIN: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue", "admin"],
+  GM: ["front_office", "housekeeping", "food_and_beverage", "accounting", "revenue"],
+  FO: ["front_office", "housekeeping"],
   HK: ["housekeeping"],
   FB: ["food_and_beverage"],
   ACC: ["accounting"],
@@ -39,8 +38,7 @@ const capabilityAccess = {
   "accounting:export": ["ADMIN", "GM", "ACC"],
   "folios:audit": ["ADMIN", "GM", "ACC"],
   "revenue:read": ["ADMIN", "GM"],
-  "operations:read": ["ADMIN", "GM", "FO"],
-  "operations:manage": ["ADMIN", "GM", "FO"],
+  "activity_log:read": ["ADMIN"],
   "food_and_beverage:manage_menu": ["ADMIN", "GM", "FB"],
   // Commercial pricing belongs to management, not accounting or system configuration.
   "pricing_rules:manage": ["ADMIN", "GM"],
