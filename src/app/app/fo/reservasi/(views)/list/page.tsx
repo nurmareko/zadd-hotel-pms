@@ -6,9 +6,12 @@ import { prisma } from "@/lib/prisma";
 
 import { buildReservationListWhere, parseReservationListParams } from "./query";
 import { ReservationFilters } from "./reservation-filters";
+import { ReservationPagination } from "./reservation-pagination";
 import { ReservationTable, type ReservationGroup } from "./reservation-table";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 50;
 
 export default async function ReservationListPage({
   searchParams,
@@ -18,10 +21,14 @@ export default async function ReservationListPage({
   const filters = parseReservationListParams(await searchParams);
   const where = buildReservationListWhere(filters);
 
-  // MVP: no pagination. Add when result sets exceed ~500.
+  const totalCount = await prisma.reservation.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, filters.page), totalPages);
   const [reservations, settings] = await Promise.all([
     prisma.reservation.findMany({
       where,
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       include: {
         guest: { select: { fullName: true } },
         room: { select: { number: true } },
@@ -32,8 +39,8 @@ export default async function ReservationListPage({
           },
         },
       },
-      // Within the list arrival is primary; guest name breaks ties inside a day.
-      orderBy: [{ arrivalDate: "asc" }, { guest: { fullName: "asc" } }],
+      // The unique ID stabilizes page boundaries for matching dates and guest names.
+      orderBy: [{ arrivalDate: "asc" }, { guest: { fullName: "asc" } }, { id: "asc" }],
     }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
@@ -140,9 +147,17 @@ export default async function ReservationListPage({
     <section className="animate-in fade-in overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm duration-300">
       <ReservationFilters
         filters={filters}
-        resultCount={reservations.length}
+        resultCount={totalCount}
       />
       <ReservationTable groups={groups} />
+      <ReservationPagination
+        filters={filters}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        fromRow={(currentPage - 1) * PAGE_SIZE + 1}
+        toRow={Math.min(currentPage * PAGE_SIZE, totalCount)}
+      />
     </section>
   );
 }

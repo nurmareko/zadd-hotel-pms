@@ -5,6 +5,7 @@ import { hotelTodayDateOnly, isValidISODateOnly, parseISODateOnly } from "@/lib/
 export type ReservationListPreset = "today_arrivals" | "today_departures";
 
 export type ReservationListFilters = {
+  page: number;
   q?: string;
   status?: ReservationStatus | "ALL" | "";
   checkIn?: string;
@@ -19,6 +20,7 @@ const ACTIVE_STATUSES: ReservationStatus[] = [
 ];
 
 export function buildExportQuery(filters: ReservationListFilters): string {
+  // Export includes all matching reservations, regardless of the list page.
   const query = new URLSearchParams();
   if (filters.q) query.set("q", filters.q);
   if (filters.status) query.set("status", filters.status);
@@ -28,6 +30,12 @@ export function buildExportQuery(filters: ReservationListFilters): string {
   return query.toString();
 }
 
+export function buildPageHref(filters: ReservationListFilters, targetPage: number): string {
+  const query = new URLSearchParams(buildExportQuery(filters));
+  query.set("page", targetPage.toString());
+  return `/app/fo/reservasi/list?${query.toString()}`;
+}
+
 export function parseReservationListParams(
   searchParams: Record<string, string | string[] | undefined>,
 ): ReservationListFilters {
@@ -35,8 +43,10 @@ export function parseReservationListParams(
     Array.isArray(value) ? value[0] : value;
   const status = first(searchParams.status)?.toUpperCase();
   const preset = first(searchParams.preset);
+  const page = parseInt(first(searchParams.page) ?? "", 10);
 
   return {
+    page: Number.isFinite(page) && page >= 1 ? page : 1,
     q: first(searchParams.q)?.trim() ?? "",
     status: status === "ALL"
       ? "ALL"

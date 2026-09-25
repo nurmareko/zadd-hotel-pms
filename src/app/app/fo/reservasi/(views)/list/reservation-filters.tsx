@@ -51,7 +51,7 @@ export function ReservationFilters({
     >
       <nav aria-label="Filter cepat reservasi" className="flex w-full flex-wrap gap-2">
         {presetOptions.map((option) => {
-          const query = buildExportQuery({ q: filters.q, preset: option.value });
+          const query = buildExportQuery({ page: 1, q: filters.q, preset: option.value });
           const active = filters.preset === option.value;
           return (
             <Link
@@ -153,7 +153,7 @@ export function ReservationFilters({
         </div>
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <span className="whitespace-nowrap text-sm font-medium text-slate-500">
-            {resultCount} hasil
+            {resultCount} reservasi
           </span>
           <Link
             href={exportHref}
