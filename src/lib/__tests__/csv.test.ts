@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   createCsvResponse,
+  createStreamingCsvResponse,
+  formatCsvRow,
+  formatCsvChunk,
   escapeCsvValue,
   generateCsv,
   type CsvColumn,
@@ -68,6 +71,86 @@ describe("generateCsv", () => {
     ).toBe(
       '\uFEFFNama Tamu,Total (Rp),Aktif\r\n"Siti, Ayu",-250000,true',
     );
+  });
+});
+
+describe("streaming CSV", () => {
+  const columns: CsvColumn<string>[] = [
+    { header: "Nama", accessor: (row) => row },
+  ];
+
+  it("formats escaped rows and chunks without adding a trailing newline", () => {
+    expect(formatCsvRow(columns, "Siti, Ayu")).toBe('"Siti, Ayu"');
+    expect(formatCsvChunk(columns, ["=SUM(A1)", "Siti, Ayu"])).toBe(
+      '\r\n\'=SUM(A1)\r\n"Siti, Ayu"',
+    );
+    expect(formatCsvChunk(columns, [])).toBe("");
+  });
+
+  it("emits the BOM and header before rows are ready", async () => {
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => { release = resolve; });
+    const response = createStreamingCsvResponse({
+      filename: 'test"\r\n.csv',
+      columns,
+      streamRows: async (enqueue) => {
+        await ready;
+        enqueue(formatCsvChunk(columns, ["Siti"]));
+        enqueue(formatCsvChunk(columns, ["Ayu"]));
+      },
+    });
+    expect(response.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
+    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="test___.csv"');
+    expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
+    const reader = response.body!.getReader();
+    const first = await reader.read();
+    expect(first.value).toEqual(new TextEncoder().encode("\uFEFFNama"));
+    release();
+    expect((await reader.read()).value).toEqual(new TextEncoder().encode("\r\nSiti"));
+    expect((await reader.read()).value).toEqual(new TextEncoder().encode("\r\nAyu"));
+    expect((await reader.read()).done).toBe(true);
+  });
+
+  it.each([[], ["Siti, Ayu", 'Kamar "Deluxe"', "=SUM(A1)", "Éka\r\nPutri"]])(
+    "matches generateCsv byte for byte for %j",
+    async (...rows: string[]) => {
+      const response = createStreamingCsvResponse({
+        filename: "test.csv",
+        columns,
+        streamRows: async (enqueue) => {
+          for (const row of rows) enqueue(formatCsvChunk(columns, [row]));
+        },
+      });
+      expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+        new TextEncoder().encode(generateCsv(columns, rows)),
+      );
+    },
+  );
+
+  it("propagates producer errors to the reader", async () => {
+    const error = new Error("Query failed");
+    const response = createStreamingCsvResponse({
+      filename: "test.csv", columns,
+      streamRows: async () => { throw error; },
+    });
+    await expect(response.arrayBuffer()).rejects.toThrow(error);
+  });
+
+  it("handles cancellation while the producer is pending", async () => {
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => { release = resolve; });
+    const response = createStreamingCsvResponse({
+      filename: "test.csv", columns,
+      streamRows: async (enqueue) => {
+        await ready;
+        enqueue(formatCsvChunk(columns, ["Siti"]));
+      },
+    });
+    const reader = response.body!.getReader();
+    await reader.read();
+    await reader.cancel();
+    release();
+    expect((await reader.read()).done).toBe(true);
   });
 });
 

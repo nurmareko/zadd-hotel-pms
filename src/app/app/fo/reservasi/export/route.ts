@@ -3,7 +3,7 @@ import type { ReservationStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import type { AppRole } from "@/auth.config";
 import { can } from "@/lib/permissions";
-import { createCsvResponse, generateCsv, type CsvColumn } from "@/lib/csv";
+import { createStreamingCsvResponse, formatCsvChunk, type CsvColumn } from "@/lib/csv";
 import { hotelTodayISO } from "@/lib/date-only";
 import { flatReservationNightSummaryTotal } from "@/lib/flat-reservation-night-total";
 import { roundedFolioBalance } from "@/lib/folio-balance-display";
@@ -14,6 +14,8 @@ import { prisma } from "@/lib/prisma";
 import { buildReservationListWhere, parseReservationListParams } from "../(views)/list/query";
 
 export const dynamic = "force-dynamic";
+
+const BATCH_SIZE = 100;
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
   CONFIRMED: "Terkonfirmasi",
@@ -82,111 +84,123 @@ export async function GET(req: Request) {
   );
   const where = buildReservationListWhere(filters);
 
-  const [reservations, settings] = await Promise.all([
-    prisma.reservation.findMany({
-      where,
-      include: {
-        guest: { select: { fullName: true, phone: true, email: true } },
-        room: { select: { number: true } },
-        roomType: { select: { name: true } },
-        folio: {
+  return createStreamingCsvResponse({
+    filename: `reservasi-${hotelTodayISO()}.csv`,
+    columns: CSV_COLUMNS,
+    streamRows: async (enqueue) => {
+      const settings = await prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } });
+      let cursorId: number | undefined;
+
+      while (true) {
+        const reservations = await prisma.reservation.findMany({
+          where,
+          take: BATCH_SIZE,
+          ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
           include: {
-            lineItems: { include: { article: true } },
-            payments: true,
+            guest: { select: { fullName: true, phone: true, email: true } },
+            room: { select: { number: true } },
+            roomType: { select: { name: true } },
+            folio: {
+              include: {
+                lineItems: { include: { article: true } },
+                payments: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: [{ arrivalDate: "asc" }, { guest: { fullName: "asc" } }],
-    }),
-    prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
-  ]);
+          orderBy: [{ arrivalDate: "asc" }, { id: "asc" }],
+        });
+        if (reservations.length === 0) break;
 
-  const reservationIds = reservations.map((reservation) => reservation.id);
-  const groupBookingIds = Array.from(
-    new Set(
-      reservations.flatMap((reservation) =>
-        reservation.groupBookingId ? [reservation.groupBookingId] : [],
-      ),
-    ),
-  );
-  const [nightlyTotals, groupCounts] = await Promise.all([
-    reservationIds.length
-      ? prisma.reservationNight.groupBy({
-          by: ["reservationId"],
-          where: { reservationId: { in: reservationIds } },
-          _count: { _all: true },
-          _sum: { rateAmount: true },
-          _min: { date: true },
-          _max: { date: true },
-        })
-      : [],
-    groupBookingIds.length
-      ? prisma.reservation.groupBy({
-          by: ["groupBookingId"],
-          where: { groupBookingId: { in: groupBookingIds } },
-          _count: { _all: true },
-        })
-      : [],
-  ]);
-  const nightlyTotalByReservationId = new Map(
-    nightlyTotals.map((total) => [total.reservationId, total]),
-  );
-  const groupCountById = new Map(
-    groupCounts.flatMap((group) =>
-      group.groupBookingId
-        ? [[group.groupBookingId, group._count._all] as const]
-        : [],
-    ),
-  );
+        const reservationIds = reservations.map((reservation) => reservation.id);
+        const groupBookingIds = Array.from(
+          new Set(
+            reservations.flatMap((reservation) =>
+              reservation.groupBookingId ? [reservation.groupBookingId] : [],
+            ),
+          ),
+        );
+        const [nightlyTotals, groupCounts] = await Promise.all([
+          reservationIds.length
+            ? prisma.reservationNight.groupBy({
+                by: ["reservationId"],
+                where: { reservationId: { in: reservationIds } },
+                _count: { _all: true },
+                _sum: { rateAmount: true },
+                _min: { date: true },
+                _max: { date: true },
+              })
+            : [],
+          groupBookingIds.length
+            ? prisma.reservation.groupBy({
+                by: ["groupBookingId"],
+                where: { groupBookingId: { in: groupBookingIds } },
+                _count: { _all: true },
+              })
+            : [],
+        ]);
+        const nightlyTotalByReservationId = new Map(
+          nightlyTotals.map((total) => [total.reservationId, total]),
+        );
+        const groupCountById = new Map(
+          groupCounts.flatMap((group) =>
+            group.groupBookingId
+              ? [[group.groupBookingId, group._count._all] as const]
+              : [],
+          ),
+        );
 
-  const rows: ReservationCsvRow[] = reservations.map((reservation) => {
-    const nightlySummary = nightlyTotalByReservationId.get(reservation.id);
-    const total = Number(
-      flatReservationNightSummaryTotal({
-        arrivalDate: reservation.arrivalDate,
-        departureDate: reservation.departureDate,
-        rateAmount: reservation.rateAmount,
-        summary: nightlySummary
-          ? {
-              count: nightlySummary._count._all,
-              total: nightlySummary._sum.rateAmount,
-              firstDate: nightlySummary._min.date,
-              lastDate: nightlySummary._max.date,
-            }
-          : undefined,
-      }).toString(),
-    );
-    const outstanding = reservation.folio
-      ? roundedFolioBalance(
-          computeFolioTotals(
-            reservation.folio.lineItems,
-            reservation.folio.payments,
-            settings,
-          ).balance,
-        )
-      : null;
-    const groupLabel = reservation.groupBookingId
-      ? `${reservation.groupBookingId} (${groupCountById.get(reservation.groupBookingId) ?? 1} kamar)`
-      : null;
+        const rows: ReservationCsvRow[] = reservations.map((reservation) => {
+          const nightlySummary = nightlyTotalByReservationId.get(reservation.id);
+          const total = Number(
+            flatReservationNightSummaryTotal({
+              arrivalDate: reservation.arrivalDate,
+              departureDate: reservation.departureDate,
+              rateAmount: reservation.rateAmount,
+              summary: nightlySummary
+                ? {
+                    count: nightlySummary._count._all,
+                    total: nightlySummary._sum.rateAmount,
+                    firstDate: nightlySummary._min.date,
+                    lastDate: nightlySummary._max.date,
+                  }
+                : undefined,
+            }).toString(),
+          );
+          const outstanding = reservation.folio
+            ? roundedFolioBalance(
+                computeFolioTotals(
+                  reservation.folio.lineItems,
+                  reservation.folio.payments,
+                  settings,
+                ).balance,
+              )
+            : null;
+          const groupLabel = reservation.groupBookingId
+            ? `${reservation.groupBookingId} (${groupCountById.get(reservation.groupBookingId) ?? 1} kamar)`
+            : null;
 
-    return {
-      reservationNo: reservation.reservationNo,
-      guestName: reservation.guest.fullName,
-      phone: reservation.guest.phone,
-      email: reservation.guest.email,
-      status: reservation.status,
-      roomNumber: reservation.room?.number ?? null,
-      roomTypeName: reservation.roomType.name,
-      guests: guestCountLabel(reservation.adults, reservation.children),
-      arrivalDate: reservation.arrivalDate,
-      departureDate: reservation.departureDate,
-      createdAt: reservation.createdAt,
-      total,
-      outstanding,
-      groupLabel,
-    };
+          return {
+            reservationNo: reservation.reservationNo,
+            guestName: reservation.guest.fullName,
+            phone: reservation.guest.phone,
+            email: reservation.guest.email,
+            status: reservation.status,
+            roomNumber: reservation.room?.number ?? null,
+            roomTypeName: reservation.roomType.name,
+            guests: guestCountLabel(reservation.adults, reservation.children),
+            arrivalDate: reservation.arrivalDate,
+            departureDate: reservation.departureDate,
+            createdAt: reservation.createdAt,
+            total,
+            outstanding,
+            groupLabel,
+          };
+        });
+
+        enqueue(formatCsvChunk(CSV_COLUMNS, rows));
+        if (reservations.length < BATCH_SIZE) break;
+        cursorId = reservations[reservations.length - 1].id;
+      }
+    },
   });
-
-  const csv = generateCsv(CSV_COLUMNS, rows);
-  return createCsvResponse(csv, `reservasi-${hotelTodayISO()}.csv`);
 }
