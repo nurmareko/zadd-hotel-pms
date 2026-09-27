@@ -51,7 +51,7 @@ function prismaErrorResult(error: unknown): ActionResult {
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Meja tidak ditemukan" };
+      return { ok: false, error: "Meja tidak ditemukan." };
     }
   }
 
@@ -67,7 +67,7 @@ export async function createRestaurantTable(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RestaurantTableCreateSchema.safeParse(input);
@@ -113,7 +113,7 @@ export async function updateRestaurantTable(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RestaurantTableUpdateSchema.safeParse(input);
@@ -145,7 +145,7 @@ export async function updateRestaurantTable(
     if (openOrderCount > 0 && data.status !== TableStatus.OCCUPIED) {
       return {
         ok: false,
-        error: "Meja memiliki order terbuka. Status harus tetap OCCUPIED.",
+        error: "Meja memiliki pesanan terbuka. Status harus tetap Terisi.",
         field: "status",
       };
     }
@@ -167,7 +167,7 @@ export async function deleteRestaurantTable(
   id: number,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RestaurantTableIdSchema.safeParse({ id });
@@ -184,7 +184,7 @@ export async function deleteRestaurantTable(
     if (orderCount > 0) {
       return {
         ok: false,
-        error: "Meja memiliki riwayat order. Ubah status ke OUT_OF_SERVICE.",
+        error: "Meja memiliki riwayat pesanan. Ubah status ke Tidak Beroperasi.",
       };
     }
 
@@ -204,7 +204,7 @@ export async function updateRestaurantTablePosition(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RestaurantTablePositionSchema.safeParse(input);
@@ -233,7 +233,7 @@ export async function autoArrangeRestaurantTables(
   input: unknown,
 ): Promise<LayoutActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RestaurantTableLocationSchema.safeParse(input);

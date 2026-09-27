@@ -116,7 +116,7 @@ export async function changeReservationMealPlan(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role, "reservations:write")) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = MealPlanChangeSchema.safeParse(input);

@@ -59,7 +59,7 @@ function prismaErrorResult(error: unknown): ActionResult {
 
 export async function createArticle(input: unknown): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = ArticleCreateSchema.safeParse(input);
@@ -92,7 +92,7 @@ export async function createArticle(input: unknown): Promise<ActionResult> {
 
 export async function updateArticle(input: unknown): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = ArticleUpdateSchema.safeParse(input);
@@ -141,7 +141,7 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
 
 export async function deleteArticle(id: number): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = ArticleIdSchema.safeParse({ id });

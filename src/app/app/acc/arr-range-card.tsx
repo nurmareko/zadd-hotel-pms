@@ -20,7 +20,7 @@ function statusLabel(result: ArrDisplayData): string {
     return "N/A";
   }
   if (result.status === "INTEGRITY_ERROR") {
-    return "Integrity error";
+    return "Kesalahan integritas data";
   }
   return "Tidak tersedia";
 }
@@ -86,7 +86,7 @@ export function ArrRangeCard({
             {statusLabel(result)}
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Requested coverage</dt>
+            <dt className="text-muted-foreground">Rentang yang diminta</dt>
             <dd className="text-right font-medium">
               {formatCompactDateID(new Date(`${result.fromInclusive}T00:00:00.000Z`))}
               {" – "}
@@ -94,9 +94,9 @@ export function ArrRangeCard({
             </dd>
             <dt className="text-muted-foreground">Cutover</dt>
             <dd className="text-right font-medium">{formatCompactDateID(cutover)}</dd>
-            <dt className="text-muted-foreground">Numerator</dt>
+            <dt className="text-muted-foreground">Total pendapatan kamar</dt>
             <dd className="num text-right font-medium">{formatIDR(result.numerator)}</dd>
-            <dt className="text-muted-foreground">Paid room nights</dt>
+            <dt className="text-muted-foreground">Malam kamar terjual</dt>
             <dd className="num text-right font-medium">{result.paidRoomNights}</dd>
           </dl>
           {result.reason ? (
@@ -105,7 +105,7 @@ export function ArrRangeCard({
             </p>
           ) : (
             <p className="mt-3 border-t border-border pt-3 text-xs leading-5 text-muted-foreground">
-              Weighted aggregate: total posted paid room-charge amount divided by total recognized paid room nights. Daily ARRs are never averaged.
+              Agregat berbobot: total tagihan kamar berbayar dibagi total malam kamar berbayar. ARR harian tidak pernah dirata-ratakan.
             </p>
           )}
         </div>

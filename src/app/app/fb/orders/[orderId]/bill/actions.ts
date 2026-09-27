@@ -14,7 +14,7 @@ import { BillOrderIdSchema } from "./schema";
 export type BillActionResult = { ok: true } | { ok: false; error: string };
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid bill data";
+  return error.issues[0]?.message ?? "Data tagihan tidak valid.";
 }
 
 async function canManageFbOrders() {
@@ -48,7 +48,7 @@ export async function confirmBill(input: unknown): Promise<BillActionResult> {
   const canManage = await canManageFbOrders();
 
   if (!canManage) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = BillOrderIdSchema.safeParse(input);
@@ -61,11 +61,11 @@ export async function confirmBill(input: unknown): Promise<BillActionResult> {
     const order = await lockOrder(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be billed" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat ditagihkan." };
     }
 
     const [items, settings] = await Promise.all([
@@ -79,12 +79,12 @@ export async function confirmBill(input: unknown): Promise<BillActionResult> {
     if (items.length === 0) {
       return {
         ok: false as const,
-        error: "Order kosong, tidak bisa ditagih",
+        error: "Pesanan kosong, tidak bisa ditagih.",
       };
     }
 
     if (!settings) {
-      return { ok: false as const, error: "Hotel settings not found" };
+      return { ok: false as const, error: "Pengaturan hotel tidak ditemukan." };
     }
 
     const totals = computeFBOrderTotals(items, settings);
@@ -114,7 +114,7 @@ export async function reopenOrder(input: unknown): Promise<BillActionResult> {
   const canManage = await canManageFbOrders();
 
   if (!canManage) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = BillOrderIdSchema.safeParse(input);
@@ -127,11 +127,11 @@ export async function reopenOrder(input: unknown): Promise<BillActionResult> {
     const order = await lockOrder(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.BILLED) {
-      return { ok: false as const, error: "Only billed orders can be reopened" };
+      return { ok: false as const, error: "Hanya pesanan yang sudah ditagihkan yang dapat dibuka kembali." };
     }
 
     await tx.fBOrder.update({

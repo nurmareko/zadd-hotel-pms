@@ -71,7 +71,7 @@ type PaymentSelectionItem = {
 class PaymentActionError extends Error { }
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid order data";
+  return error.issues[0]?.message ?? "Data pesanan tidak valid.";
 }
 
 async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "pos:settle" = "orders:write") {
@@ -105,7 +105,7 @@ async function recalculateOrderTotals(
   ]);
 
   if (!settings) {
-    return { ok: false, error: "Hotel settings not found" };
+    return { ok: false, error: "Pengaturan hotel tidak ditemukan." };
   }
 
   const totals = computeFBOrderTotals(items, settings);
@@ -147,7 +147,7 @@ async function computeOrderTotalForPayment(db: OrderTotalDb, orderId: number) {
   ]);
 
   if (!settings) {
-    return { ok: false as const, error: "Hotel settings not found" };
+    return { ok: false as const, error: "Pengaturan hotel tidak ditemukan." };
   }
 
   const totals = computeFBOrderTotals(items, settings);
@@ -199,7 +199,7 @@ async function applyPaymentSelection(
   const settings = await tx.hotelSettings.findUnique({ where: { id: 1 } });
 
   if (!settings) {
-    throw new PaymentActionError("Hotel settings not found");
+    throw new PaymentActionError("Pengaturan hotel tidak ditemukan.");
   }
 
   const selectedQuantities = aggregatePaymentSelection(selectedItems);
@@ -209,7 +209,7 @@ async function applyPaymentSelection(
   });
 
   if (currentItems.length === 0) {
-    throw new PaymentActionError("Order kosong, tidak bisa dibayar");
+    throw new PaymentActionError("Pesanan kosong, tidak bisa dibayar.");
   }
 
   const selectedLines = currentItems.flatMap((item) => {
@@ -221,7 +221,7 @@ async function applyPaymentSelection(
 
     if (selectedQuantity > item.quantity) {
       throw new PaymentActionError(
-        "Quantity pembayaran melebihi quantity order",
+        "Jumlah item yang dibayar melebihi jumlah item pesanan.",
       );
     }
 
@@ -514,7 +514,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = AddItemToOrderSchema.safeParse(input);
@@ -527,17 +527,17 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
     const order = await ensureOpenOrderLocked(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be edited" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
     }
 
     if (parsed.data.guestNumber > order.guestCount) {
       return {
         ok: false as const,
-        error: "Guest number is outside this order's guest count",
+        error: "Nomor tamu melebihi jumlah tamu dalam pesanan ini.",
       };
     }
 
@@ -547,7 +547,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
     });
 
     if (!menuItem || !menuItem.isActive) {
-      return { ok: false as const, error: "Menu item is not available" };
+      return { ok: false as const, error: "Item menu tidak tersedia." };
     }
 
     const notes = formatFBOrderItemNotes(
@@ -601,7 +601,7 @@ export async function removeItemFromOrder(input: unknown): Promise<ActionResult>
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = OrderItemIdSchema.safeParse(input);
@@ -617,17 +617,17 @@ export async function removeItemFromOrder(input: unknown): Promise<ActionResult>
     });
 
     if (!item) {
-      return { ok: false as const, error: "Order item not found" };
+      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be edited" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
     }
 
     await tx.fBOrderItem.delete({ where: { id: item.id } });
@@ -648,7 +648,7 @@ export async function updateItemQuantity(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UpdateItemQuantitySchema.safeParse(input);
@@ -664,17 +664,17 @@ export async function updateItemQuantity(
     });
 
     if (!item) {
-      return { ok: false as const, error: "Order item not found" };
+      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be edited" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
     }
 
     if (parsed.data.quantity === 0) {
@@ -703,7 +703,7 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UpdateItemNotesSchema.safeParse(input);
@@ -719,17 +719,17 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
     });
 
     if (!item) {
-      return { ok: false as const, error: "Order item not found" };
+      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be edited" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
     }
 
     const parsedNotes = parseFBOrderItemNotes(item.notes);
@@ -758,7 +758,7 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = VoidOrderSchema.safeParse(input);
@@ -771,11 +771,11 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
     const order = await ensureOpenOrderLocked(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Order not found" };
+      return { ok: false as const, error: "Pesanan tidak ditemukan." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Only open orders can be voided" };
+      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat dibatalkan." };
     }
 
     await tx.fBOrder.update({
@@ -820,7 +820,7 @@ export async function payOrderDirect(
   const userId = await canManageFbOrders("pos:settle");
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = PayOrderDirectSchema.safeParse(input);
@@ -842,7 +842,7 @@ export async function payOrderDirect(
   });
 
   if (!order) {
-    return { ok: false, error: "Order not found" };
+    return { ok: false, error: "Pesanan tidak ditemukan." };
   }
 
   if (order.status === FBOrderStatus.CLOSED) {
@@ -861,8 +861,8 @@ export async function payOrderDirect(
       ok: false,
       error:
         order.status === FBOrderStatus.OPEN
-          ? "Order harus dibuat bill dahulu sebelum pembayaran"
-          : "Order voided tidak dapat dibayar",
+          ? "Tagihan pesanan harus dibuat terlebih dahulu sebelum pembayaran."
+          : "Pesanan yang dibatalkan tidak dapat dibayar.",
     };
   }
 
@@ -907,7 +907,7 @@ export async function payOrderDirect(
 
         if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
-            "Status order berubah. Muat ulang halaman.",
+            "Status pesanan berubah. Muat ulang halaman.",
           );
         }
 
@@ -1002,7 +1002,7 @@ export async function chargeOrderToRoom(
   const userId = await canManageFbOrders("orders:bill");
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = ChargeOrderToRoomSchema.safeParse(input);
@@ -1023,7 +1023,7 @@ export async function chargeOrderToRoom(
   });
 
   if (!order) {
-    return { ok: false, error: "Order not found" };
+    return { ok: false, error: "Pesanan tidak ditemukan." };
   }
 
   if (order.status === FBOrderStatus.CLOSED) {
@@ -1043,8 +1043,8 @@ export async function chargeOrderToRoom(
       ok: false,
       error:
         order.status === FBOrderStatus.OPEN
-          ? "Order harus dibuat bill dahulu sebelum charge ke kamar"
-          : "Order voided tidak dapat dibebankan ke kamar",
+          ? "Tagihan pesanan harus dibuat terlebih dahulu sebelum dibebankan ke kamar."
+          : "Pesanan yang dibatalkan tidak dapat dibebankan ke kamar.",
     };
   }
 
@@ -1054,7 +1054,7 @@ export async function chargeOrderToRoom(
     if (!order.chargedFolioId) {
       return {
         ok: false,
-        error: "Order room service belum terhubung ke folio kamar",
+        error: "Pesanan layanan kamar belum terhubung ke folio kamar.",
       };
     }
 
@@ -1088,7 +1088,7 @@ export async function chargeOrderToRoom(
   if (!article) {
     return {
       ok: false,
-      error: "Artikel F&B belum tersedia untuk posting folio",
+      error: "Artikel F&B belum tersedia untuk pencatatan ke folio.",
     };
   }
 
@@ -1140,7 +1140,7 @@ export async function chargeOrderToRoom(
 
         if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
-            "Status order berubah. Muat ulang halaman.",
+            "Status pesanan berubah. Muat ulang halaman.",
           );
         }
 

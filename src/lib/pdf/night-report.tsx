@@ -183,35 +183,35 @@ export function NightReport({ audit, settings }: NightReportProps) {
         <View style={styles.block}>
           <Text style={styles.blockHeader}>{"AUDIT"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Audit ID" value={`#${audit.id}`} />
-            <Field label="Business Date" value={dateLabel(audit.businessDate)} />
+            <Field label="ID Audit" value={`#${audit.id}`} />
+            <Field label="Tanggal operasional" value={dateLabel(audit.businessDate)} />
             <Field label="Dijalankan" value={dateTimeLabel(audit.runAt)} />
-            <Field label="Run By" value={audit.runBy.fullName} />
+            <Field label="Dijalankan Oleh" value={audit.runBy.fullName} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"OCCUPANCY"}</Text>
+          <Text style={styles.blockHeader}>{"OKUPANSI"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Occupancy Rate" value={percentLabel(audit.occupancyRate)} />
+            <Field label="Tingkat Okupansi" value={percentLabel(audit.occupancyRate)} />
             <Field
-              label="Rooms Occupied / Total"
+              label="Kamar Terisi / Total Kamar"
               value={`${audit.roomsOccupied} / ${audit.totalRooms}`}
             />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"MOVEMENT"}</Text>
+          <Text style={styles.blockHeader}>{"PERGERAKAN TAMU"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Check-in" value={String(audit.checkInCount)} />
             <Field label="Check-out" value={String(audit.checkOutCount)} />
-            <Field label="In-house" value={String(audit.inHouseCount)} />
+            <Field label="Tamu Menginap" value={String(audit.inHouseCount)} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"REVENUE BREAKDOWN"}</Text>
+          <Text style={styles.blockHeader}>{"RINCIAN PENDAPATAN"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <TableRow
@@ -237,8 +237,8 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.muted}>Frozen NightAudit snapshot</Text>
-          <Text style={styles.muted}>Generated {dateTimeLabel(new Date())}</Text>
+          <Text style={styles.muted}>Rekaman Night Audit yang dibekukan</Text>
+          <Text style={styles.muted}>Dibuat {dateTimeLabel(new Date())}</Text>
         </View>
       </Page>
     </Document>

@@ -40,7 +40,7 @@ export async function requestRoomCleaning(
   const session = await auth();
 
   if (session?.user.role !== "FO" && session?.user.role !== "ADMIN") {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {

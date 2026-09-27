@@ -50,11 +50,25 @@ const statusClassNames: Record<FolioStatus, string> = {
 };
 
 const reservationTypeLabels: Record<ReservationType, string> = {
-  [ReservationType.INDIVIDUAL]: "Individual",
-  [ReservationType.COMPANY]: "Company",
-  [ReservationType.GOVERNMENT]: "Government",
-  [ReservationType.OTA]: "Online Travel Agent",
+  [ReservationType.INDIVIDUAL]: "Individu",
+  [ReservationType.COMPANY]: "Perusahaan",
+  [ReservationType.GOVERNMENT]: "Pemerintah",
+  [ReservationType.OTA]: "Agen Perjalanan Online (OTA)",
   [ReservationType.WALK_IN]: "Walk-in",
+};
+
+const folioStatusLabels: Record<FolioStatus, string> = {
+  OPEN: "Terbuka",
+  CLOSED: "Ditutup",
+  VOIDED: "Dibatalkan",
+};
+
+const reservationStatusLabels: Record<ReservationStatus, string> = {
+  CONFIRMED: "Terkonfirmasi",
+  CHECKED_IN: "Sudah check-in",
+  CHECKED_OUT: "Sudah check-out",
+  CANCELLED: "Dibatalkan",
+  NO_SHOW: "No-show",
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
@@ -79,7 +93,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 function FolioStatusBadge({ status }: { status: FolioStatus }) {
   return (
-    <StatusBadge label={status} className={statusClassNames[status]} />
+    <StatusBadge label={folioStatusLabels[status]} className={statusClassNames[status]} />
   );
 }
 
@@ -87,7 +101,7 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
   if (hasSharedReservationStatusColor(status)) {
     return (
       <StatusBadge
-        label={status.replaceAll("_", " ")}
+        label={reservationStatusLabels[status]}
         reservationStatus={status}
       />
     );
@@ -95,7 +109,7 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
 
   return (
     <StatusBadge
-      label={status.replaceAll("_", " ")}
+      label={reservationStatusLabels[status]}
       className="bg-status-vd-bg text-status-vd-fg border-status-vd-pip"
     />
   );

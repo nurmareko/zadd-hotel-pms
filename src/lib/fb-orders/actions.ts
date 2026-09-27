@@ -40,7 +40,7 @@ type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
 };
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid order data";
+  return error.issues[0]?.message ?? "Data pesanan tidak valid.";
 }
 
 function isRetryableOrderNoError(error: unknown) {
@@ -164,7 +164,7 @@ async function runCreateOrderTransaction(
       });
 
       if (!table) {
-        return { ok: false as const, error: "Table not found" };
+        return { ok: false as const, error: "Meja tidak ditemukan." };
       }
 
       if (
@@ -173,7 +173,7 @@ async function runCreateOrderTransaction(
       ) {
         return {
           ok: false as const,
-          error: `Meja ${table.number} tidak tersedia untuk order baru.`,
+          error: `Meja ${table.number} tidak tersedia untuk pesanan baru.`,
         };
       }
 
@@ -192,7 +192,7 @@ async function runCreateOrderTransaction(
       if (existingOpenOrder) {
         return {
           ok: false as const,
-          error: `Meja ${table.number} sudah memiliki order terbuka.`,
+          error: `Meja ${table.number} sudah memiliki pesanan terbuka.`,
         };
       }
 
@@ -233,7 +233,7 @@ export async function createOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = CreateOrderSchema.safeParse(input);
@@ -255,15 +255,15 @@ export async function createOrder(input: unknown): Promise<ActionResult> {
       }
 
       if (isSerializationConflict(error)) {
-        return { ok: false, error: "Table was updated by another cashier." };
+        return { ok: false, error: "Status meja telah diperbarui oleh kasir lain." };
       }
 
-      return { ok: false, error: "Something went wrong creating order" };
+      return { ok: false, error: "Terjadi kesalahan saat membuat pesanan." };
     }
   }
 
   if (!result) {
-    return { ok: false, error: "Something went wrong creating order" };
+    return { ok: false, error: "Terjadi kesalahan saat membuat pesanan." };
   }
 
   if (!result.ok) {
@@ -324,7 +324,7 @@ export async function createRoomServiceOrder(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = CreateRoomServiceOrderSchema.safeParse(input);
@@ -355,7 +355,7 @@ export async function createRoomServiceOrder(
 
       return {
         ok: false,
-        error: "Something went wrong creating room service order",
+        error: "Terjadi kesalahan saat membuat pesanan layanan kamar.",
       };
     }
   }
@@ -363,7 +363,7 @@ export async function createRoomServiceOrder(
   if (!result) {
     return {
       ok: false,
-      error: "Something went wrong creating room service order",
+      error: "Terjadi kesalahan saat membuat pesanan layanan kamar.",
     };
   }
 
@@ -381,7 +381,7 @@ export async function lookupRoomForCharge(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = LookupRoomForChargeSchema.safeParse(input);

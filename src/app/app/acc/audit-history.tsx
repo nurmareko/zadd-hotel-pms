@@ -37,7 +37,7 @@ function StatusBadge({ status }: { status: NightAuditStatus }) {
   };
   return (
     <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", statusConfig[status as keyof typeof statusConfig] || "bg-slate-100 text-slate-800")}>
-      {status}
+      {status === NightAuditStatus.COMPLETED ? "Selesai" : status}
     </span>
   );
 }
@@ -75,7 +75,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
               <thead>
                 <tr>
                   <th className={headerCellClass}>
-                    Business Date
+                    Tanggal Operasional
                   </th>
                   <th className={headerCellClass}>
                     Status
@@ -128,11 +128,11 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                     {row.arrAvailability === "AUTHORITATIVE" && row.arr !== null
                       ? formatIDR(row.arr)
                       : row.arrAvailability === "NO_RECOGNIZED_NIGHTS"
-                        ? "N/A"
+                        ? "Tidak tersedia"
                         : row.arrAvailability === "INTEGRITY_ERROR"
                           ? (
                               <span className="font-semibold text-red-700" title={row.arrReason}>
-                                Integrity error
+                                Kesalahan integritas data
                               </span>
                             )
                           : "—"}

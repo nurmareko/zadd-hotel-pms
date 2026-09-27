@@ -69,7 +69,7 @@ export function FolioSummary({
           <>
             <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
             <SummaryRow
-              label="Service charge"
+              label="Biaya layanan"
               value={formatIDR(totals.serviceCharge)}
             />
             <SummaryRow label="Pajak" value={formatIDR(totals.tax)} />
@@ -77,12 +77,12 @@ export function FolioSummary({
         ) : null}
         {!isPayment ? (
           <SummaryRow
-            label={isStandard ? "Total charges" : "Total tagihan"}
+            label="Total tagihan"
             value={formatIDR(totals.totalCharges)}
           />
         ) : null}
         <SummaryRow
-          label={isStandard ? "Total payments" : "Total pembayaran"}
+          label="Total pembayaran"
           value={
             isPayment
               ? formatIDR(totals.totalPaid)

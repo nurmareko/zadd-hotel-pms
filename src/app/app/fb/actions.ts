@@ -34,13 +34,13 @@ async function setTableAvailableFromStatus(
   expectedStatus: ReleasableTableStatus,
 ): Promise<ActionResult> {
   if (!(await canManageFbFloor())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = TableIdSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Invalid table" };
+    return { ok: false, error: "Data meja tidak valid." };
   }
 
   try {
@@ -56,7 +56,7 @@ async function setTableAvailableFromStatus(
         });
 
         if (!table) {
-          return { ok: false as const, error: "Table not found" };
+          return { ok: false as const, error: "Meja tidak ditemukan." };
         }
 
         if (table.status !== expectedStatus) {
@@ -74,7 +74,7 @@ async function setTableAvailableFromStatus(
         if (openOrder) {
           return {
             ok: false as const,
-            error: `Meja ${table.number} masih memiliki order terbuka.`,
+            error: `Meja ${table.number} masih memiliki pesanan terbuka.`,
           };
         }
 

@@ -140,11 +140,11 @@ export function ReportView({ audit, settings }: ReportViewProps) {
           </div>
           <div className="space-y-1 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Audit ID</span>
+              <span className="text-muted-foreground">ID Audit</span>
               <span className="num font-semibold">#{audit.id}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Business date</span>
+              <span className="text-muted-foreground">Tanggal operasional</span>
               <span className="num font-semibold">
                 {dateLabel(audit.businessDate)}
               </span>
@@ -170,7 +170,7 @@ export function ReportView({ audit, settings }: ReportViewProps) {
             <MetricCard
               label="Okupansi"
               value={percentLabel(audit.occupancyRate)}
-              sub="Snapshot occupancy rate"
+              sub="Tingkat okupansi saat audit"
               className="bg-blue-50/50 border-blue-100"
               labelClassName="text-blue-600"
               valueClassName="text-blue-900"
@@ -179,7 +179,7 @@ export function ReportView({ audit, settings }: ReportViewProps) {
             <MetricCard
               label="Kamar Terisi"
               value={`${audit.roomsOccupied} / ${audit.totalRooms}`}
-              sub="Rooms occupied / total rooms"
+              sub="Kamar terisi / total kamar"
               className="bg-indigo-50/50 border-indigo-100"
               labelClassName="text-indigo-600"
               valueClassName="text-indigo-900"
@@ -190,13 +190,13 @@ export function ReportView({ audit, settings }: ReportViewProps) {
 
         <div>
           <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
-            {"MOVEMENT"}
+            {"PERGERAKAN TAMU"}
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <MetricCard
               label="Check-in"
               value={audit.checkInCount}
-              sub="Arrival pada business date"
+              sub="Kedatangan pada tanggal operasional"
               className="bg-emerald-50/50 border-emerald-100"
               labelClassName="text-emerald-600"
               valueClassName="text-emerald-900"
@@ -205,14 +205,14 @@ export function ReportView({ audit, settings }: ReportViewProps) {
             <MetricCard
               label="Check-out"
               value={audit.checkOutCount}
-              sub="Departure pada business date"
+              sub="Keberangkatan pada tanggal operasional"
               className="bg-orange-50/50 border-orange-100"
               labelClassName="text-orange-600"
               valueClassName="text-orange-900"
               subClassName="text-orange-700/80"
             />
             <MetricCard
-              label="In-house"
+              label="Tamu Menginap"
               value={audit.inHouseCount}
               sub="Tamu menginap saat audit"
               className="bg-purple-50/50 border-purple-100"
@@ -225,7 +225,7 @@ export function ReportView({ audit, settings }: ReportViewProps) {
 
         <div>
           <div className="mb-3 text-sm font-semibold tracking-tight text-foreground">
-            Revenue Breakdown
+            Rincian Pendapatan
           </div>
           <div className="border border-border rounded-lg bg-card text-sm overflow-hidden">
             <SnapshotRow

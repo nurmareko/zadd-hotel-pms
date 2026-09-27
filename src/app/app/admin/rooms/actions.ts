@@ -86,7 +86,7 @@ function prismaErrorResult(
 
 export async function createRoomType(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomTypeCreateSchema.safeParse(input);
@@ -119,7 +119,7 @@ export async function createRoomType(input: unknown): Promise<ActionResult> {
 
 export async function updateRoomType(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomTypeUpdateSchema.safeParse(input);
@@ -163,7 +163,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
           return {
             ok: false as const,
             error:
-              "Base rate ini membuat aturan harga aktif menghasilkan tarif malam 0 atau negatif",
+              "Tarif dasar ini membuat aturan harga aktif menghasilkan tarif malam 0 atau negatif.",
             field: "baseRate",
           };
         }
@@ -193,7 +193,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
 
 export async function deleteRoomType(id: number): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomTypeIdSchema.safeParse({ id });
@@ -228,7 +228,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
 
 export async function createRoom(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomCreateSchema.safeParse(input);
@@ -265,7 +265,7 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
 
 export async function updateRoom(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomUpdateSchema.safeParse(input);
@@ -305,7 +305,7 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
 
 export async function deleteRoom(id: number): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = RoomIdSchema.safeParse({ id });

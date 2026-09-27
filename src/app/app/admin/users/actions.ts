@@ -58,7 +58,7 @@ function prismaErrorResult(error: unknown): ActionResult {
       if (uniqueTargetIncludes(error, "username")) {
         return {
           ok: false,
-          error: "Username sudah digunakan",
+          error: "Nama pengguna sudah digunakan",
           field: "username",
         };
       }
@@ -78,7 +78,7 @@ function prismaErrorResult(error: unknown): ActionResult {
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Pengguna tidak ditemukan" };
+      return { ok: false, error: "Pengguna tidak ditemukan." };
     }
   }
 
@@ -87,7 +87,7 @@ function prismaErrorResult(error: unknown): ActionResult {
 
 export async function createUser(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UserCreateSchema.safeParse(input);
@@ -106,7 +106,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
   if (existingUsername) {
     return {
       ok: false,
-      error: "Username sudah digunakan",
+      error: "Nama pengguna sudah digunakan",
       field: "username",
     };
   }
@@ -159,7 +159,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
 
 export async function updateUser(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UserUpdateSchema.safeParse(input);
@@ -178,7 +178,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
   if (existingUsername) {
     return {
       ok: false,
-      error: "Username sudah digunakan",
+      error: "Nama pengguna sudah digunakan",
       field: "username",
     };
   }
@@ -244,7 +244,7 @@ export async function deleteUser(id: number): Promise<ActionResult> {
   const session = await getAdminSession();
 
   if (!session) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UserIdSchema.safeParse({ id });
@@ -274,7 +274,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
   const session = await getAdminSession();
 
   if (!session) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UserIdSchema.safeParse({ id });
@@ -308,7 +308,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
 
 export async function resetUserPassword(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Unauthorized" };
+    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 
   const parsed = UserPasswordResetSchema.safeParse(input);

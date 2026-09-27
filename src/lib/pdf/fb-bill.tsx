@@ -180,7 +180,7 @@ function paymentMethodLabel(method: PaymentMethod | null) {
   }
 
   if (method === PaymentMethod.CHARGE_TO_ROOM) {
-    return "Charge to Room";
+    return "Dibebankan ke kamar";
   }
 
   return "-";
@@ -293,34 +293,34 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"ORDER"}</Text>
+          <Text style={styles.blockHeader}>{"PESANAN"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Order #" value={order.orderNo} />
+            <Field label="Nomor Pesanan" value={order.orderNo} />
             <Field label="Meja" value={tableNo} />
-            <Field label="Jumlah Tamu" value={`${order.guestCount} pax`} />
+            <Field label="Jumlah Tamu" value={`${order.guestCount} orang`} />
             <Field label="Tanggal/Waktu" value={dateTimeLabel(order.openedAt)} />
             <Field label="Kasir" value={order.waitedBy.fullName} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"ITEMIZED BILL"}</Text>
+          <Text style={styles.blockHeader}>{"RINCIAN BIAYA"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.cell, { width: 258 }]}>Item</Text>
-                <Text style={[styles.cell, styles.right, { width: 42 }]}>Qty</Text>
+                <Text style={[styles.cell, styles.right, { width: 42 }]}>Jumlah</Text>
                 <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                  Unit
+                  Tarif
                 </Text>
                 <Text style={[styles.cell, styles.right, { width: 86 }]}>
-                  Amount
+                  Total
                 </Text>
               </View>
               {order.items.length === 0 ? (
                 <View style={styles.tableRow}>
                   <Text style={[styles.cell, styles.muted, { width: 472 }]}>
-                    Order kosong, tidak bisa ditagih.
+                    Pesanan kosong, tidak bisa ditagih.
                   </Text>
                 </View>
               ) : (
@@ -332,13 +332,13 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
               <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal.toString())} />
               {hasPercent(settings.serviceChargePercent) ? (
                 <SummaryRow
-                  label={`SC ${percentLabel(settings.serviceChargePercent)}%`}
+                  label={`Biaya layanan ${percentLabel(settings.serviceChargePercent)}%`}
                   value={formatIDR(totals.serviceCharge.toString())}
                 />
               ) : null}
               {hasPercent(settings.taxPercent) ? (
                 <SummaryRow
-                  label={`Tax ${percentLabel(settings.taxPercent)}%`}
+                  label={`Pajak ${percentLabel(settings.taxPercent)}%`}
                   value={formatIDR(totals.tax.toString())}
                 />
               ) : null}
@@ -353,7 +353,7 @@ export function FBBill({ order, settings, totals, receipt }: FBBillProps) {
 
         {receipt ? (
           <View style={styles.block}>
-            <Text style={styles.blockHeader}>{"PAYMENT"}</Text>
+            <Text style={styles.blockHeader}>{"PEMBAYARAN"}</Text>
             <View style={styles.blockBody}>
               <SummaryRow
                 label="Metode"

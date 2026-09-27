@@ -97,10 +97,10 @@ type GrcDocumentData = {
 };
 
 const reservationTypeLabels: Record<string, string> = {
-  INDIVIDUAL: "Individual",
-  COMPANY: "Company",
-  GOVERNMENT: "Government",
-  OTA: "Online Travel Agent",
+  INDIVIDUAL: "Individu",
+  COMPANY: "Perusahaan",
+  GOVERNMENT: "Pemerintah",
+  OTA: "Agen Perjalanan Online (OTA)",
   WALK_IN: "Walk-in",
 };
 
@@ -286,53 +286,53 @@ export function Grc({ source }: GrcProps) {
         <View style={styles.header}>
           <Text style={styles.hotelName}>{data.brandName}</Text>
           <Text style={styles.muted}>{data.hotelAddress}</Text>
-          <Text style={styles.title}>Guest Registration Card</Text>
+          <Text style={styles.title}>Kartu Registrasi Tamu (GRC)</Text>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"RESERVATION"}</Text>
+          <Text style={styles.blockHeader}>{"RESERVASI"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Reservation No" value={data.reservationNo} />
-            <Field label="Folio No" value={data.folioNo} />
-            <Field label="Arrival" value={dateLabel(data.arrivalDate)} />
-            <Field label="Departure" value={dateLabel(data.departureDate)} />
-            <Field label="Nights" value={String(data.nights)} />
+            <Field label="Nomor Reservasi" value={data.reservationNo} />
+            <Field label="Nomor Folio" value={data.folioNo} />
+            <Field label="Kedatangan" value={dateLabel(data.arrivalDate)} />
+            <Field label="Keberangkatan" value={dateLabel(data.departureDate)} />
+            <Field label="Jumlah Malam" value={String(data.nights)} />
             <Field label="Inklusi" value={data.arrangementLabel} />
-            <Field label="Reservation Type" value={data.reservationTypeLabel} />
+            <Field label="Jenis Reservasi" value={data.reservationTypeLabel} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"GUEST"}</Text>
+          <Text style={styles.blockHeader}>{"TAMU"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Full Name" value={data.guest.fullName} />
+            <Field label="Nama Lengkap" value={data.guest.fullName} />
             <Field
-              label="Identity"
+              label="Identitas"
               value={formatGuestIdentity(
                 data.guest.idType,
                 data.guest.idNumber,
                 "-",
               )}
             />
-            <Field label="Phone" value={data.guest.phone ?? "-"} />
+            <Field label="Telepon" value={data.guest.phone ?? "-"} />
             <Field label="Email" value={data.guest.email ?? "-"} />
-            <Field label="Nationality" value={data.guest.nationality ?? "-"} />
+            <Field label="Kewarganegaraan" value={data.guest.nationality ?? "-"} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"STAY DETAILS"}</Text>
+          <Text style={styles.blockHeader}>{"DETAIL MENGINAP"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Room" value={data.roomNumber} />
-            <Field label="Room Type" value={data.roomTypeName} />
-            <Field label="Stay Total" value={formatIDR(data.stayTotal)} />
-            <Field label="Adults" value={String(data.adults)} />
-            <Field label="Children" value={String(data.children)} />
+            <Field label="Kamar" value={data.roomNumber} />
+            <Field label="Tipe Kamar" value={data.roomTypeName} />
+            <Field label="Total Biaya Menginap" value={formatIDR(data.stayTotal)} />
+            <Field label="Dewasa" value={String(data.adults)} />
+            <Field label="Anak-anak" value={String(data.children)} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"NIGHTLY SCHEDULE"}</Text>
+          <Text style={styles.blockHeader}>{"JADWAL TARIF PER MALAM"}</Text>
           <View style={styles.blockBody}>
             {data.nightlySchedule.length > 0 ? (
               data.nightlySchedule.map((night) => (
@@ -345,25 +345,25 @@ export function Grc({ source }: GrcProps) {
               ))
             ) : (
               <Text style={styles.muted}>
-                Snapshot malam tidak tersedia; total menggunakan tarif flat.
+                Rekaman tarif per malam tidak tersedia; total menggunakan tarif tetap.
               </Text>
             )}
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"GRC METADATA"}</Text>
+          <Text style={styles.blockHeader}>{"METADATA GRC"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field
-              label="Purpose of Visit"
+              label="Tujuan Kunjungan"
               value={purposeOfVisit}
             />
             <Field
-              label="Filled At"
+              label="Waktu Pengisian"
               value={dateTimeLabel(data.grcFilledAt)}
             />
-            <Field label="Filled By" value={data.filledByName} />
-            <Field label="Signed At" value={dateTimeLabel(data.signedAt)} />
+            <Field label="Diisi Oleh" value={data.filledByName} />
+            <Field label="Waktu Penandatanganan" value={dateTimeLabel(data.signedAt)} />
           </View>
         </View>
 

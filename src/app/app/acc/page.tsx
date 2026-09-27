@@ -170,9 +170,9 @@ export default async function AccountingDashboardPage({
     latestArr?.status === "AUTHORITATIVE" && latestArr.arr
       ? formatIDR(latestArr.arr.toString())
       : latestArr?.status === "NO_RECOGNIZED_NIGHTS"
-        ? "N/A"
+        ? "Tidak tersedia"
         : latestArr?.status === "INTEGRITY_ERROR"
-          ? "Error"
+          ? "Kesalahan"
           : "—";
   const snapshot: TodaySnapshotData = {
     occupancyPercent: totalRooms === 0 ? 0 : Math.round((roomsOccupied / totalRooms) * 100),
@@ -183,7 +183,7 @@ export default async function AccountingDashboardPage({
     checkOutCount,
     runningRevenue,
     latestCompletedArr: latestArrValue,
-    latestCompletedArrCoverage: `${formatCompactDateID(latestBusinessDate)} · ${latestArr?.paidRoomNights ?? 0} paid room nights`,
+    latestCompletedArrCoverage: `${formatCompactDateID(latestBusinessDate)} · ${latestArr?.paidRoomNights ?? 0} malam kamar terjual`,
   };
   const historyRows: AuditHistoryRow[] = auditHistory.map((audit, index) => ({
     id: audit.id,
@@ -195,7 +195,7 @@ export default async function AccountingDashboardPage({
     arr: dailyArrResults[index]?.arr?.toString() ?? null,
     arrAvailability: dailyArrResults[index]?.status ?? "INTEGRITY_ERROR",
     arrReason:
-      dailyArrResults[index]?.reason ?? "Daily ARR result was not returned.",
+      dailyArrResults[index]?.reason ?? "Data ARR harian tidak tersedia.",
     fbRevenue: audit.fbRevenue.toString(),
     totalRevenue: audit.totalRevenue.toString(),
   }));
@@ -204,8 +204,8 @@ export default async function AccountingDashboardPage({
   const coverageLabel = hasExplicitRange
     ? `ARR rentang ${formatCompactDateID(rangeBoundaries.fromInclusive)}–${formatCompactDateID(addDateOnlyDays(rangeBoundaries.toExclusive, -1))}`
     : defaultFrom > monthStart
-      ? `ARR sejak cutover, ${formatCompactDateID(defaultFrom)}–${formatCompactDateID(latestBusinessDate)}`
-      : `ARR MTD, ${formatCompactDateID(defaultFrom)}–${formatCompactDateID(latestBusinessDate)}`;
+      ? `ARR sejak peralihan, ${formatCompactDateID(defaultFrom)}–${formatCompactDateID(latestBusinessDate)}`
+      : `ARR bulan berjalan, ${formatCompactDateID(defaultFrom)}–${formatCompactDateID(latestBusinessDate)}`;
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
@@ -214,13 +214,13 @@ export default async function AccountingDashboardPage({
           <Breadcrumb className="mb-2">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Accounting</BreadcrumbPage>
+                <BreadcrumbPage>Akuntansi</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dasbor</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Business date: {dateLabel} · {auditStatusLabel}
+            Tanggal operasional: {dateLabel} · {auditStatusLabel}
           </p>
         </div>
         <Link className={buttonVariants()} href="/app/acc/night-audit">
@@ -259,7 +259,7 @@ export default async function AccountingDashboardPage({
           </CardHeader>
           <CardContent className="space-y-3 p-5 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Business date</span>
+              <span className="text-muted-foreground">Tanggal operasional</span>
               <span className="num font-semibold text-foreground">{dateLabel}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -273,7 +273,7 @@ export default async function AccountingDashboardPage({
               </span>
             </div>
             <div className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-              Snapshot hari ini dihitung dari data operasional live. ARR hanya membaca posted per-night room-charge lines; riwayat audit tetap menampilkan snapshot tersimpan untuk metrik non-ARR.
+              Ringkasan hari ini dihitung dari data operasional terkini. ARR hanya membaca rincian biaya kamar per malam yang sudah dibukukan; riwayat audit tetap menampilkan ringkasan tersimpan untuk metrik selain ARR.
             </div>
           </CardContent>
         </Card>

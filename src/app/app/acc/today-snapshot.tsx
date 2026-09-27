@@ -22,37 +22,37 @@ export function TodaySnapshot({ snapshot }: TodaySnapshotProps) {
   return (
     <section className="space-y-4">
       <h3 className="text-xl font-semibold tracking-tight text-foreground">
-        Snapshot Hari Ini
+        Ringkasan Hari Ini
       </h3>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <KpiCard
           label="OKUPANSI"
           value={formatFixedPercent(snapshot.occupancyPercent)}
-          sub="Berdasarkan physical rooms"
+          sub="Berdasarkan kamar fisik"
           className="bg-blue-50/50 border-blue-100 [&_div:first-child]:text-blue-600 [&_div:nth-child(2)]:text-blue-900"
         />
         <KpiCard
           label="KAMAR TERISI"
           value={`${snapshot.roomsOccupied} / ${snapshot.totalRooms}`}
-          sub="Occupied / total rooms"
+          sub="Kamar terisi / total kamar"
           className="bg-indigo-50/50 border-indigo-100 [&_div:first-child]:text-indigo-600 [&_div:nth-child(2)]:text-indigo-900"
         />
         <KpiCard
           label="CHECK-IN HARI INI"
           value={snapshot.checkInCount}
-          sub="Arrival pada business date"
+          sub="Kedatangan pada tanggal operasional"
           className="bg-emerald-50/50 border-emerald-100 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
         />
         <KpiCard
           label="CHECK-OUT HARI INI"
           value={snapshot.checkOutCount}
-          sub="Departure pada business date"
+          sub="Keberangkatan pada tanggal operasional"
           className="bg-orange-50/50 border-orange-100 [&_div:first-child]:text-orange-600 [&_div:nth-child(2)]:text-orange-900"
         />
         <KpiCard
           label="PENDAPATAN BERJALAN"
           value={formatIDR(snapshot.runningRevenue)}
-          sub="Room + F&B belum diaudit"
+          sub="Kamar + F&B belum diaudit"
           className="bg-emerald-50/50 border-emerald-100 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
         />
         <KpiCard
