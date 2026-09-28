@@ -962,7 +962,13 @@ Indexes and constraints:
 | total | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Total payable |
 | waited_by_id | INT | NOT NULL, FOREIGN KEY → user(id) | Serving waiter |
 | opened_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Order opened time |
+| kitchen_started_at | TIMESTAMP | — | Time when a chef starts preparing the order; a non-null value marks it as being cooked. |
+| kitchen_ready_at | TIMESTAMP | — | Time when a chef marks the complete order as finished cooking; a non-null value removes the ticket from the active Kitchen Display queue without changing its billing/payment lifecycle. |
 | closed_at | TIMESTAMP | — | Order closed time |
+
+Kitchen preparation advances in order from unstarted to cooking (`kitchen_started_at` set) to ready (`kitchen_ready_at` set). OPEN and BILLED orders can advance; presenting a bill does not remove unfinished preparation from the queue. CLOSED and VOIDED orders remain excluded. Finishing preparation does not close or bill the order. ADMIN, GM, and FB use the canonical `orders:write` capability to advance preparation.
+
+Adding an item or increasing its quantity resets both kitchen timestamps within the existing order-locked transaction. The full order-level ticket reappears for review; the schema does not track per-item preparation or isolate only the added quantities. Decreases, removals, and quantity no-ops preserve preparation state. Kitchen transitions acquire the same order lock and re-read current state; completion also compares the displayed `kitchen_started_at` token to reject requests from an earlier preparation cycle. The display derives its cooking state from refreshed server props rather than retaining a local copy.
 
 ### `fb_order_item`
 

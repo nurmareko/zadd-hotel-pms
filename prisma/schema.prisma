@@ -575,6 +575,8 @@ model FBOrder {
   total          Decimal            @default(0) @db.Decimal(12, 2)
   waitedById     Int                @map("waited_by_id")
   openedAt       DateTime           @default(now()) @map("opened_at")
+  kitchenStartedAt DateTime?        @map("kitchen_started_at")
+  kitchenReadyAt DateTime?          @map("kitchen_ready_at")
   closedAt       DateTime?          @map("closed_at")
 
   chargedFolio   Folio?           @relation("ChargedFolio", fields: [chargedFolioId], references: [id])

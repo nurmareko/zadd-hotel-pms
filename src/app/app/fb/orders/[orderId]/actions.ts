@@ -86,6 +86,7 @@ async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "p
 
 function revalidateOrderPaths(orderId?: number) {
   revalidatePath("/app/fb");
+  revalidatePath("/app/fb/kitchen");
 
   if (orderId) {
     revalidatePath(`/app/fb/orders/${orderId}`);
@@ -587,6 +588,11 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
       });
     }
 
+    await tx.fBOrder.update({
+      where: { id: order.id },
+      data: { kitchenStartedAt: null, kitchenReadyAt: null },
+    });
+
     return recalculateOrderTotals(tx, order.id);
   }, TRANSACTION_OPTIONS);
 
@@ -660,7 +666,7 @@ export async function updateItemQuantity(
   const result = await prisma.$transaction(async (tx) => {
     const item = await tx.fBOrderItem.findUnique({
       where: { id: parsed.data.orderItemId },
-      select: { id: true, fbOrderId: true, unitPrice: true },
+      select: { id: true, fbOrderId: true },
     });
 
     if (!item) {
@@ -677,15 +683,32 @@ export async function updateItemQuantity(
       return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
     }
 
+    // The item may have changed while waiting for the order lock.
+    const currentItem = await tx.fBOrderItem.findUnique({
+      where: { id: item.id },
+      select: { id: true, fbOrderId: true, quantity: true, unitPrice: true },
+    });
+
+    if (!currentItem || currentItem.fbOrderId !== order.id) {
+      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
+    }
+
     if (parsed.data.quantity === 0) {
-      await tx.fBOrderItem.delete({ where: { id: item.id } });
+      await tx.fBOrderItem.delete({ where: { id: currentItem.id } });
     } else {
       await tx.fBOrderItem.update({
-        where: { id: item.id },
+        where: { id: currentItem.id },
         data: {
           quantity: parsed.data.quantity,
-          amount: item.unitPrice.mul(parsed.data.quantity),
+          amount: currentItem.unitPrice.mul(parsed.data.quantity),
         },
+      });
+    }
+
+    if (parsed.data.quantity > currentItem.quantity) {
+      await tx.fBOrder.update({
+        where: { id: order.id },
+        data: { kitchenStartedAt: null, kitchenReadyAt: null },
       });
     }
 

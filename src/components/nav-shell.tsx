@@ -15,6 +15,7 @@ import {
   BedDouble,
   BarChart3,
   ClipboardList,
+  ChefHat,
   Archive,
   CalendarDays,
   History,
@@ -159,6 +160,12 @@ const fbNavGroup: NavGroup = {
   links: [
     { label: "POS", href: "/app/fb", icon: UtensilsCrossed },
     { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
+    {
+      label: "Layar Dapur",
+      href: "/app/fb/kitchen",
+      icon: ChefHat,
+      activeMatch: "startsWith",
+    },
   ],
 };
 
