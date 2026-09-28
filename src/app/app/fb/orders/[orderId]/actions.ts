@@ -104,6 +104,7 @@ async function canManageFbOrders() {
 
 function revalidateOrderPaths(orderId?: number) {
   revalidatePath("/app/fb");
+  revalidatePath("/app/fb/kitchen");
 
   if (orderId) {
     revalidatePath(`/app/fb/orders/${orderId}`);
