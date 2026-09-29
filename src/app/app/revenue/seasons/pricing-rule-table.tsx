@@ -8,6 +8,7 @@ import {
 import {
   CalendarRange,
   CalendarSync,
+  Download,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -38,7 +39,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -314,6 +315,13 @@ export function PricingRuleTable({ rules, roomTypes, canManage }: PricingRuleTab
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
           </select>
+          <a
+            href="/app/revenue/seasons/export"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <Download aria-hidden="true" />
+            Ekspor CSV
+          </a>
           <p className="text-sm font-medium text-slate-500" aria-live="polite">
             <span className="num">{filteredRules.length}</span> musim
           </p>

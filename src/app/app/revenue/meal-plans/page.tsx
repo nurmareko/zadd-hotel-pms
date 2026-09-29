@@ -1,6 +1,8 @@
+import { Download } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { buttonVariants } from "@/components/ui/button";
 import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
 import { can } from "@/lib/permissions";
 import { MealPlanForm } from "./meal-plan-form";
@@ -15,11 +17,17 @@ export default async function MealPlansPage() {
 
   return (
     <main className="min-h-screen space-y-6 bg-slate-50 px-4 py-4 text-foreground md:px-6 md:py-5">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Paket Makan</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Harga per tamu per malam. Perubahan harga tidak mengubah Inklusi yang sudah tersimpan.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Paket Makan</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Harga per tamu per malam. Perubahan harga tidak mengubah Inklusi yang sudah tersimpan.
+          </p>
+        </div>
+        <a href="/app/revenue/meal-plans/export" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Download className="h-4 w-4" aria-hidden="true" />
+          Ekspor CSV
+        </a>
       </header>
       <MealPlanForm key={JSON.stringify(prices)} prices={prices} canManage={can(session.user.role, "pricing_rules:manage")} />
     </main>
