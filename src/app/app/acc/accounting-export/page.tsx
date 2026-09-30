@@ -1,7 +1,8 @@
 import { Download, FileSpreadsheet } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { auth, type AppRole } from "@/auth";
+import { can } from "@/lib/permissions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateID, formatIDR } from "@/lib/format";
 import {
@@ -25,7 +26,7 @@ function numberLabel(value: number): string {
 
 export default async function AccountingExportPage({ searchParams }: PageProps) {
   const session = await auth();
-  if (session?.user.role !== "ACC") {
+  if (!session?.user || !can(session.user.role as AppRole, "accounting:export")) {
     redirect("/app/forbidden");
   }
 

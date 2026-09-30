@@ -54,7 +54,7 @@ describe("room board server actions", () => {
     expect(transaction).not.toHaveBeenCalled();
   });
 
-  it.each(["HK", "ADMIN"])("allows %s to assign active HK staff", async (role) => {
+  it.each(["HK", "ADMIN", "GM"])("allows %s to assign active HK staff", async (role) => {
     auth.mockResolvedValue({ user: { id: "9", role } });
     expect(await setRoomHousekeeper(1, "2026-09-17", 2)).toEqual({ ok: true });
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
@@ -70,6 +70,12 @@ describe("room board server actions", () => {
     for (const path of ["/app/hk/rooms", "/app/hk/clean", "/app/hk/rooms/1", "/app/fo/reservasi/kalender"]) {
       expect(revalidatePath).toHaveBeenCalledWith(path);
     }
+  });
+
+  it.each(["HK", "ADMIN", "GM"])("allows %s to write task notes with the authenticated actor", async (role) => {
+    auth.mockResolvedValue({ user: { id: "9", role } });
+    expect(await createHousekeepingTaskNote(form())).toEqual({ ok: true });
+    expect(tx.housekeepingLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({ updatedById: 9 }) });
   });
 
   it.each([0, -1, 1.5, NaN, Infinity, 2147483648, "1", true, null])("rejects invalid numeric room ID %s", async (value) => {

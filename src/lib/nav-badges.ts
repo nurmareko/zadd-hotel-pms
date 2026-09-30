@@ -2,11 +2,12 @@ import type { AppRole } from "@/auth";
 import { todayDateOnly } from "@/lib/date-only";
 import type { NavBadgeMap } from "@/lib/nav-badge-types";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/permissions";
 
 export async function getRoleNavBadges(role: AppRole): Promise<NavBadgeMap> {
   // The only nav badge is the ACC night-audit pending indicator: a binary
   // marker shown when today's night audit has not run yet. No live counts.
-  if (role !== "ACC") {
+  if (!can(role, "night_audit:run")) {
     return {};
   }
 

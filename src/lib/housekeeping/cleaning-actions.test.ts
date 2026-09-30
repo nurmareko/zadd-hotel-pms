@@ -43,7 +43,14 @@ const mobileCalls = [
 ];
 
 describe("mobile action boundaries", () => {
-  it.each([null, { user: { id: "7", role: "FO" } }, { user: { id: "7", role: "FB" } }])("denies unauthenticated or unrelated roles on every action", async (session) => {
+  it.each(["HK", "ADMIN", "GM"])("delegates every mobile action with authenticated %s identity", async (role) => {
+    mocks.auth.mockResolvedValue({ user: { id: "7", role } });
+    for (const call of mobileCalls) expect(await call()).toEqual({ ok: true });
+    for (const operation of [mocks.start, mocks.finish, mocks.inspect, mocks.claim, mocks.report]) {
+      expect(operation).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, role }));
+    }
+  });
+  it.each([null, { user: { id: "7", role: "FO" } }, { user: { id: "7", role: "FB" } }, { user: { id: "7", role: "ACC" } }])("denies unauthenticated or unrelated roles on every action", async (session) => {
     mocks.auth.mockResolvedValue(session);
     for (const call of mobileCalls) expect(await call()).toEqual({ ok: false, error: "Tidak berwenang" });
     for (const operation of [mocks.start, mocks.finish, mocks.inspect, mocks.claim, mocks.report]) expect(operation).not.toHaveBeenCalled();
@@ -64,7 +71,7 @@ describe("mobile action boundaries", () => {
     expect(mocks.claim).not.toHaveBeenCalled();
   });
 
-  it.each(["HK", "ADMIN"])("passes authenticated %s identity, not operator fields from the form", async (role) => {
+  it.each(["HK", "ADMIN", "GM"])("passes authenticated %s identity, not operator fields from the form", async (role) => {
     mocks.auth.mockResolvedValue({ user: { id: "7", role } });
     await finishMobileCleaning(form({ roomId: "10", linenChanged: "on", towelChanged: "true", note: "  Bersih  ", userId: "99", role: "FO" }));
     expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, note: "Bersih" });
@@ -121,16 +128,25 @@ describe("mobile action boundaries", () => {
 });
 
 describe("desktop delegation", () => {
-  it("uses the same complete operations, never a second route-owned transaction", async () => {
+  it.each([null, "FO", "FB", "ACC"])("denies %s before desktop operations or database access", async (role) => {
+    mocks.auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
+    for (const call of [startCleaning, finishCleaning, inspectRoom, logFoundItem]) {
+      expect(await call(form({ roomId: "10", passed: "true", description: "Dompet" }))).toEqual({ ok: false, error: "Tidak berwenang" });
+    }
+    for (const operation of [mocks.start, mocks.finish, mocks.inspect, mocks.transaction]) expect(operation).not.toHaveBeenCalled();
+  });
+  it.each(["HK", "ADMIN", "GM"])("delegates %s to the same complete operations, never a second route-owned transaction", async (role) => {
+    mocks.auth.mockResolvedValue({ user: { id: "7", role } });
     await startCleaning(form({ roomId: "10" }));
     await finishCleaning(form({ roomId: "10", linenChanged: "on", towelChanged: "on" }));
     await inspectRoom(form({ roomId: "10", passed: "true" }));
-    expect(mocks.start).toHaveBeenCalledWith({ roomId: 10, userId: 7, role: "HK" });
-    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role: "HK", linenChanged: true, towelChanged: true, note: null });
-    expect(mocks.inspect).toHaveBeenCalledWith({ roomId: 10, userId: 7, role: "HK", passed: true, notes: null });
+    expect(mocks.start).toHaveBeenCalledWith({ roomId: 10, userId: 7, role });
+    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, note: null });
+    expect(mocks.inspect).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, passed: true, notes: null });
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
-  it("retains assignment-bound desktop lost-and-found behavior", async () => {
+  it.each(["HK", "ADMIN", "GM"])("retains assignment-bound desktop lost-and-found behavior for %s", async (role) => {
+    mocks.auth.mockResolvedValue({ user: { id: "7", role } });
     const tx = {
       $queryRaw: vi.fn().mockResolvedValue([{ id: 10 }]),
       housekeepingAssignment: { findFirst: vi.fn().mockResolvedValue(null) },

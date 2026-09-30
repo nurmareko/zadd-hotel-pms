@@ -81,7 +81,7 @@ function revalidateAssignmentViews() {
 async function authorizeHousekeeping() {
   const session = await auth();
 
-  return session?.user.role === "HK" || session?.user.role === "ADMIN";
+  return session?.user.role === "HK" || session?.user.role === "ADMIN" || session?.user.role === "GM";
 }
 
 export async function assignHousekeepingRooms(

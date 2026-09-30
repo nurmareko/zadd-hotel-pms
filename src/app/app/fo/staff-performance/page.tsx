@@ -330,7 +330,11 @@ export default async function StaffPerformancePage({
 }: StaffPerformancePageProps) {
   const session = await auth();
 
-  if (session?.user.role !== "FO" && session?.user.role !== "ADMIN") {
+  if (
+    session?.user.role !== "FO" &&
+    session?.user.role !== "ADMIN" &&
+    session?.user.role !== "GM"
+  ) {
     redirect("/app/forbidden");
   }
 

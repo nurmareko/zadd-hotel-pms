@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/permissions";
 import { buildLaundryWhere, reconcileLinenBatch, type LaundryFilters } from "./logic";
 
 export type { LaundryFilters } from "./logic";
@@ -25,7 +26,7 @@ export interface LaundrySummaryData {
 
 async function requireLaundryAccess() {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "HK" && session.user.role !== "ADMIN")) {
+  if (!session?.user || !can(session.user.role, "laundry:manage")) {
     throw new Error("Tidak berwenang mengakses data laundry.");
   }
 }

@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { auth, type AppRole } from "@/auth";
+import { can } from "@/lib/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { computeArr } from "@/lib/arr";
 import { addDateOnlyDays } from "@/lib/date-only";
@@ -26,7 +27,7 @@ export const dynamic = "force-dynamic";
 export default async function NightAuditPage() {
   const session = await auth();
 
-  if (session?.user.role !== "ACC") {
+  if (!session?.user || !can(session.user.role as AppRole, "night_audit:run")) {
     redirect("/app/forbidden");
   }
 

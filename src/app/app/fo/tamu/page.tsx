@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { can } from "@/lib/permissions";
 import { normalizeGuestQuery } from "@/lib/guests/filters";
 import { findGuests } from "@/lib/guests/queries";
 import { GuestFilters } from "./guest-filters";
@@ -15,7 +16,7 @@ export default async function GuestDirectoryPage({
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!["FO", "ADMIN"].includes(session.user.role)) redirect("/app/forbidden");
+  if (!can(session.user.role, "reservations:read")) redirect("/app/forbidden");
 
   const q = normalizeGuestQuery((await searchParams).q);
   const guests = await findGuests(q);

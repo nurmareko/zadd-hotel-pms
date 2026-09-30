@@ -55,6 +55,23 @@ function conflict(code = "P2034") {
 }
 
 describe("complete cleaning operations", () => {
+  it.each(["ADMIN", "GM"] as const)("keeps assignment and session ownership mandatory for %s", async (role) => {
+    tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
+    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    tx.housekeepingAssignment.findFirst.mockResolvedValue({ id: 20 });
+    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "Tidak ada sesi pembersihan aktif" });
+    expect(tx.cleaningSession.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { roomId: 10, housekeeperId: 7, startedAt: { not: null }, finishedAt: null } }));
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+    expect(tx.cleaningSession.create).not.toHaveBeenCalled();
+  });
+
+  it.each(["ADMIN", "GM"] as const)("allows %s to start and finish their own assigned cleaning", async (role) => {
+    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: true });
+    tx.cleaningSession.findFirst.mockResolvedValue({ id: 30 });
+    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: true });
+    expect(tx.cleaningSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 30, roomId: 10, housekeeperId: 7, startedAt: { not: null }, finishedAt: null } }));
+  });
   it("locks first, samples WIB today after the lock, starts and notifies in one serializable transaction", async () => {
     tx.$queryRaw.mockImplementation(async () => { vi.setSystemTime(now); return [{ id: 10 }]; });
     vi.setSystemTime(new Date("2026-09-17T16:59:59Z"));
@@ -119,10 +136,10 @@ describe("complete cleaning operations", () => {
     if (failure !== "notification") expect(tx.housekeepingLog.create).not.toHaveBeenCalled();
   });
 
-  it("rejects inactive or role-revoked operators in the transaction", async () => {
+  it.each(["HK", "ADMIN", "GM"] as const)("rejects inactive or role-revoked %s operators in the transaction", async (role) => {
     tx.user.findFirst.mockResolvedValue(null);
-    expect(await startCleaningOperation(input)).toEqual({ ok: false, error: "Tidak berwenang" });
-    expect(tx.user.findFirst).toHaveBeenCalledWith({ where: { id: 7, isActive: true, roles: { some: { role: { code: "HK" } } } }, select: { id: true } });
+    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(tx.user.findFirst).toHaveBeenCalledWith({ where: { id: 7, isActive: true, roles: { some: { role: { code: role } } } }, select: { id: true } });
     expect(tx.cleaningSession.create).not.toHaveBeenCalled();
   });
 
@@ -167,8 +184,9 @@ describe("inspection", () => {
     expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VCU" }, data: { status: passed ? "VC" : "VD" } });
     expect(tx.housekeepingLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ newStatus: passed ? "VC" : "VD", note: "Periksa ulang" }) }));
   });
-  it("keeps manually overridden VCU rooms inspectable without inventing a session", async () => {
-    expect(await inspectRoomOperation({ ...input, passed: true })).toEqual({ ok: true });
+  it.each(["HK", "ADMIN", "GM"] as const)("lets %s inspect VCU without assignment or inventing a session", async (role) => {
+    tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
+    expect(await inspectRoomOperation({ ...input, role, passed: true })).toEqual({ ok: true });
     expect(tx.cleaningSession.updateMany).not.toHaveBeenCalled();
   });
   it("throws on a stale inspected session", async () => {
@@ -181,9 +199,9 @@ describe("inspection", () => {
 });
 
 describe("mobile self-claim", () => {
-  it("never steals another operator's assignment", async () => {
+  it.each(["HK", "ADMIN", "GM"] as const)("never lets %s steal another operator's assignment", async (role) => {
     tx.housekeepingAssignment.findUnique.mockResolvedValue({ id: 20, housekeeperId: 8 });
-    expect((await claimAvailableRoomOperation(input)).ok).toBe(false);
+    expect(await claimAvailableRoomOperation({ ...input, role })).toEqual({ ok: false, error: "Kamar sudah ditugaskan ke petugas lain. Daftar diperbarui." });
     expect(tx.housekeepingAssignment.create).not.toHaveBeenCalled();
     expect(tx.housekeepingNotification.upsert).not.toHaveBeenCalled();
   });
@@ -205,7 +223,7 @@ describe("mobile self-claim", () => {
     expect((await claimAvailableRoomOperation(input)).ok).toBe(false);
     expect(tx.housekeepingAssignment.create).not.toHaveBeenCalled();
   });
-  it.each(["HK", "ADMIN"] as const)("allows active %s self-claim with the relevant DB role", async (role) => {
+  it.each(["HK", "ADMIN", "GM"] as const)("allows active %s self-claim with the relevant DB role", async (role) => {
     expect(await claimAvailableRoomOperation({ ...input, role })).toEqual({ ok: true });
     expect(tx.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 7, isActive: true, roles: { some: { role: { code: role } } } } }));
     expect(tx.housekeepingAssignment.create).toHaveBeenCalledWith({ data: { roomId: 10, date: today, housekeeperId: 7 }, select: { id: true } });

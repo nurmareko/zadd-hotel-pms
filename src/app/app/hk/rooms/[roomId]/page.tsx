@@ -65,7 +65,7 @@ export default async function HKRoomDetailPage({
   const session = await auth();
   const currentUserId = Number(session?.user.id);
   const canInspect =
-    session?.user.role === "HK" || session?.user.role === "ADMIN";
+    session?.user.role === "HK" || session?.user.role === "ADMIN" || session?.user.role === "GM";
   const [room, activeCleaningSession, latestCompletedCleaningSession, assignment, latestStatusLog] =
     await Promise.all([
       prisma.room.findUnique({

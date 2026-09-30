@@ -4,6 +4,7 @@ import { Download, Wrench } from "lucide-react";
 import { auth } from "@/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/permissions";
 import { addDateOnlyDays, hotelTodayISO, parseISODateOnly } from "@/lib/date-only";
 import { ROOM_BLOCK_REASON_LABELS } from "@/lib/room-blocks/overlap";
 import { CreateBlockDialog, ReleaseBlockDialog } from "./block-dialogs";
@@ -18,7 +19,7 @@ const cellClass = "px-4 py-3 align-top";
 export default async function RoomBlocksPage({ searchParams }: { searchParams: Promise<FilterParams> }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!["FO", "ADMIN"].includes(session.user.role)) redirect("/app/forbidden");
+  if (!can(session.user.role, "room_blocks:manage")) redirect("/app/forbidden");
   const params = await searchParams;
   const parsed = parseBlockFilters(params);
   const [rows, rooms] = await Promise.all([

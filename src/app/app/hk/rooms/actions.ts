@@ -19,7 +19,7 @@ type RoomMutation = {
 
 async function authorizedOperator() {
   const session = await auth();
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") {
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN" && session?.user.role !== "GM") {
     return null;
   }
 

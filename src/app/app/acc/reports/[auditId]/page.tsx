@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { notFound, redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { auth, type AppRole } from "@/auth";
+import { can } from "@/lib/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCompactDateTimeID, formatLongDateID } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +47,11 @@ export default async function NightAuditReportPage({
 }: NightAuditReportPageProps) {
   const session = await auth();
 
-  if (session?.user.role !== "ACC") {
+  if (
+      !session?.user ||
+      (!can(session.user.role as AppRole, "revenue:read") &&
+        !can(session.user.role as AppRole, "accounting:export"))
+    ) {
     redirect("/app/forbidden");
   }
 

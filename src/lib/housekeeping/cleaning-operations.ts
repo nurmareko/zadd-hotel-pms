@@ -7,7 +7,7 @@ import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { allocateLostFoundReference, isLostFoundReferenceConflict } from "@/lib/lost-found/reference-allocation";
 
 export type CleaningResult = { ok: true } | { ok: false; error: string };
-export type CleaningOperator = { userId: number; role: "HK" | "ADMIN" };
+export type CleaningOperator = { userId: number; role: "HK" | "ADMIN" | "GM" };
 type RoomInput = CleaningOperator & { roomId: number };
 export type FinishCleaningInput = RoomInput & {
   linenChanged: boolean;
@@ -55,7 +55,7 @@ async function runTransaction(
 
 async function requireOperator(tx: Prisma.TransactionClient, operator: CleaningOperator) {
   if (!Number.isSafeInteger(operator.userId) || operator.userId <= 0 || operator.userId > 2147483647 ||
-      (operator.role !== "HK" && operator.role !== "ADMIN")) {
+      (operator.role !== "HK" && operator.role !== "ADMIN" && operator.role !== "GM")) {
     throw new CleaningError("Tidak berwenang");
   }
   const user = await tx.user.findFirst({

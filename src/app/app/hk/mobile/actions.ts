@@ -16,7 +16,7 @@ import { FloorLostFoundSchema, MobileFinishSchema, MobileInspectSchema, MobileRo
 
 async function requireOperator(): Promise<CleaningOperator | null> {
   const session = await auth();
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") return null;
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN" && session?.user.role !== "GM") return null;
   const userId = Number(session.user.id);
   if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2147483647) return null;
   return { userId, role: session.user.role };

@@ -39,7 +39,11 @@ export async function requestRoomCleaning(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (session?.user.role !== "FO" && session?.user.role !== "ADMIN") {
+  if (
+    session?.user.role !== "FO" &&
+    session?.user.role !== "ADMIN" &&
+    session?.user.role !== "GM"
+  ) {
     return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
   }
 

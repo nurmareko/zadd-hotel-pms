@@ -10,7 +10,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { auth } from "@/auth";
+import { auth, type AppRole } from "@/auth";
+import { can } from "@/lib/permissions";
 import { StatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -170,7 +171,7 @@ function PaymentsTable({ payments }: { payments: ReadOnlyPayment[] }) {
 export default async function AccFolioPage({ params }: AccFolioPageProps) {
   const session = await auth();
 
-  if (!session?.user || !["ACC", "ADMIN"].includes(session.user.role)) {
+  if (!session?.user || !can(session.user.role as AppRole, "folios:audit")) {
     redirect("/app/forbidden");
   }
 

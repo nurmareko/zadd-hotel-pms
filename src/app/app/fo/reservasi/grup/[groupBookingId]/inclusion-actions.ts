@@ -117,7 +117,11 @@ export type GroupMealPlanPreviewResult =
 
 async function canManageGroupInclusions() {
   const session = await auth();
-  return session?.user.role === "FO";
+  return (
+    session?.user.role === "FO" ||
+    session?.user.role === "ADMIN" ||
+    session?.user.role === "GM"
+  );
 }
 
 function uniqueReservationIds(ids: number[]) {

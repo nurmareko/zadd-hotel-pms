@@ -15,7 +15,7 @@ describe("searchGuestsAction", () => {
     expect(findGuests).not.toHaveBeenCalled();
   });
 
-  it.each(["FO", "ADMIN"])("allows %s and returns only the agreed lookup fields", async (role) => {
+  it.each(["FO", "ADMIN", "GM"])("allows %s and returns only the agreed lookup fields", async (role) => {
     auth.mockResolvedValue({ user: { role } });
     const guest = {
       id: 1, fullName: "Siti", idType: null, idNumber: null,

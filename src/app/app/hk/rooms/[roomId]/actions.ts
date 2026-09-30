@@ -34,10 +34,10 @@ function revalidateRoomPaths(roomId: number) {
 }
 
 // Work actions require today's assignment inside the canonical transaction;
-// inspection remains available to HK and ADMIN regardless of assignment.
+// inspection remains available to HK, ADMIN and GM regardless of assignment.
 async function requireHousekeeperMember(): Promise<CleaningOperator | null> {
   const session = await auth();
-  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN") return null;
+  if (session?.user.role !== "HK" && session?.user.role !== "ADMIN" && session?.user.role !== "GM") return null;
   const userId = Number(session.user.id);
   if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2147483647) return null;
   return { userId, role: session.user.role };
