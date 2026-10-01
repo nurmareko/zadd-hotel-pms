@@ -1,4 +1,4 @@
-import { FBOrderStatus, TableStatus } from "@prisma/client";
+import { FBOrderStatus, ReservationStatus, TableStatus } from "@prisma/client";
 import { ArrowLeft, BedDouble, Table2, Utensils } from "lucide-react";
 import Link from "next/link";
 
@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
 import { ConfirmForm } from "./confirm-form";
-import { RoomServiceForm } from "./room-service-form";
+import { RoomServiceForm, type InHouseRoomItem } from "./room-service-form";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
   const params = (await searchParams) ?? {};
   const isRoomService = firstParam(params.service) === "room-service";
   const tableId = Number(firstParam(params.tableId) ?? 0);
-  const [table, availableTables] = await Promise.all([
+  const [table, availableTables, inHouseReservations] = await Promise.all([
     tableId > 0 && !isRoomService
       ? prisma.restaurantTable.findUnique({
           where: { id: tableId },
@@ -44,7 +44,48 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           orderBy: [{ location: "asc" }, { number: "asc" }],
           select: { id: true, number: true, capacity: true },
       }),
+    isRoomService
+      ? prisma.reservation.findMany({
+          where: {
+            status: ReservationStatus.CHECKED_IN,
+            roomId: { not: null },
+          },
+          select: {
+            id: true,
+            room: {
+              select: {
+                number: true,
+                status: true,
+              },
+            },
+            guest: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+          orderBy: {
+            id: "desc",
+          },
+        })
+      : Promise.resolve([]),
   ]);
+
+  const inHouseRoomMap = new Map<string, InHouseRoomItem>();
+  for (const item of inHouseReservations) {
+    if (item.room && !inHouseRoomMap.has(item.room.number)) {
+      inHouseRoomMap.set(item.room.number, {
+        reservationId: item.id,
+        roomNumber: item.room.number,
+        guestName: item.guest.fullName,
+        status: item.room.status,
+      });
+    }
+  }
+
+  const inHouseRooms: InHouseRoomItem[] = Array.from(inHouseRoomMap.values()).sort(
+    (a, b) => a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }),
+  );
   const canCreateOrder =
     table?.status === TableStatus.AVAILABLE ||
     table?.status === TableStatus.RESERVED;
@@ -95,7 +136,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
             Room Service
           </div>
-          <RoomServiceForm />
+          <RoomServiceForm inHouseRooms={inHouseRooms} />
         </section>
       ) : table ? (
         <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
