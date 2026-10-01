@@ -218,9 +218,9 @@ export default async function AccountingDashboardPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dasbor Akuntansi</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Business date: {dateLabel} · {auditStatusLabel}
+            Tanggal operasional: {dateLabel} · {auditStatusLabel}
           </p>
         </div>
         <Link className={buttonVariants()} href="/app/acc/night-audit">
@@ -259,7 +259,7 @@ export default async function AccountingDashboardPage({
           </CardHeader>
           <CardContent className="space-y-3 p-5 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Business date</span>
+              <span className="text-muted-foreground">Tanggal operasional</span>
               <span className="num font-semibold text-foreground">{dateLabel}</span>
             </div>
             <div className="flex items-center justify-between gap-3">

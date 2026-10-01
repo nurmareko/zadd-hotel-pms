@@ -1,7 +1,15 @@
 "use client";
 
 import { ArticleType } from "@prisma/client";
-import { Newspaper, Plus, Search, SearchX } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Newspaper,
+  Plus,
+  Search,
+  SearchX,
+} from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -69,11 +77,14 @@ const typeClassNames: Record<ArticleType, string> = {
 };
 
 
+type SortField = "code" | "name" | "type" | "defaultPrice" | null;
+type SortDirection = "asc" | "desc" | null;
+
 function AddArticleButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Article
+      Tambah Artikel
     </Button>
   );
 }
@@ -95,7 +106,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
     useState<ArticleRow | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ArticleType | "">("");
+  const [sortField, setSortField] = useState<SortField>("code");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [isDeleting, startDeleteTransition] = useTransition();
+
   const filteredArticles = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -109,6 +123,42 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       return matchesQuery && matchesType;
     });
   }, [articles, query, typeFilter]);
+
+  const displayedArticles = useMemo(() => {
+    if (!sortField || !sortDirection) {
+      return filteredArticles;
+    }
+
+    return [...filteredArticles].sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "code") {
+        comparison = a.code.localeCompare(b.code, "id", { sensitivity: "base" });
+      } else if (sortField === "name") {
+        comparison = a.name.localeCompare(b.name, "id", { sensitivity: "base" });
+      } else if (sortField === "type") {
+        comparison = a.type.localeCompare(b.type, "id", { sensitivity: "base" });
+      } else if (sortField === "defaultPrice") {
+        const priceA = a.defaultPrice ? Number(a.defaultPrice) : 0;
+        const priceB = b.defaultPrice ? Number(b.defaultPrice) : 0;
+        comparison = priceA - priceB;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredArticles, sortField, sortDirection]);
+
+  function toggleSort(field: NonNullable<SortField>) {
+    if (sortField === field) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortField(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  }
 
   function handleDelete() {
     if (!deletingArticle) {
@@ -138,7 +188,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Articles</BreadcrumbPage>
+              <BreadcrumbPage>Artikel</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -190,32 +240,88 @@ export function ArticleTable({ articles }: ArticleTableProps) {
               ))}
             </select>
             <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
-              <span className="num">{filteredArticles.length}</span> articles
+              <span className="num">{filteredArticles.length}</span> artikel
             </span>
           </div>
           <div className="overflow-auto">
             <Table className="min-w-[760px] border-collapse text-sm">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Code
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("code")}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      aria-label="Urutkan berdasarkan kode"
+                    >
+                      Kode
+                      {sortField === "code" && sortDirection === "asc" ? (
+                        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                      ) : sortField === "code" && sortDirection === "desc" ? (
+                        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+                      )}
+                    </button>
                   </TableHead>
-                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Nama
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("name")}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      aria-label="Urutkan berdasarkan nama"
+                    >
+                      Nama
+                      {sortField === "name" && sortDirection === "asc" ? (
+                        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                      ) : sortField === "name" && sortDirection === "desc" ? (
+                        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+                      )}
+                    </button>
                   </TableHead>
-                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Tipe
+                  <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("type")}
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      aria-label="Urutkan berdasarkan tipe"
+                    >
+                      Tipe
+                      {sortField === "type" && sortDirection === "asc" ? (
+                        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                      ) : sortField === "type" && sortDirection === "desc" ? (
+                        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+                      )}
+                    </button>
                   </TableHead>
-                  <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Default Price
+                  <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-primary">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("defaultPrice")}
+                      className="ml-auto inline-flex items-center gap-1 hover:text-foreground"
+                      aria-label="Urutkan berdasarkan harga"
+                    >
+                      Harga Standar
+                      {sortField === "defaultPrice" && sortDirection === "asc" ? (
+                        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                      ) : sortField === "defaultPrice" && sortDirection === "desc" ? (
+                        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+                      )}
+                    </button>
                   </TableHead>
-                  <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
+                  <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-primary">
                     Aksi
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredArticles.map((article) => (
+                {displayedArticles.map((article) => (
                   <TableRow
                     key={article.id}
                     className="odd:bg-card even:bg-slate-50 hover:bg-status-vc-bg"
@@ -243,7 +349,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredArticles.length === 0 ? (
+                {displayedArticles.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={5}
@@ -251,8 +357,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada article"
-                        description="Tidak ada article yang cocok dengan filter."
+                        title="Tidak ada artikel"
+                        description="Tidak ada artikel yang cocok dengan filter pencarian."
                       />
                     </TableCell>
                   </TableRow>

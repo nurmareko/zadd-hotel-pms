@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { StatusBadge } from "@/components/status-badge";
+import { RoleBadge } from "@/components/role-badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,27 +72,12 @@ type UserTableProps = {
 
 type SortDirection = "asc" | "desc" | null;
 
-
-const roleClassNames: Record<RoleCode, string> = {
-  FO: "border-blue-500 bg-status-oc-bg text-status-oc-fg",
-  HK: "border-amber-500 bg-status-vd-bg text-status-vd-fg",
-  FB: "border-emerald-500 bg-status-vc-bg text-status-vc-fg",
-  ACC: "border-slate-500 bg-status-ooo-bg text-status-ooo-fg",
-  ADMIN: "border-red-500 bg-status-od-bg text-status-od-fg",
-};
-
 function AddUserButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
       Tambah Pengguna
     </Button>
-  );
-}
-
-function RoleBadge({ role }: { role: RoleCode }) {
-  return (
-    <StatusBadge label={role} className={roleClassNames[role]} showPip={false} />
   );
 }
 
