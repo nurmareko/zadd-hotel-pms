@@ -87,6 +87,14 @@ export default async function ReservationListPage({
           },
         },
       },
+      {
+        room: {
+          number: {
+            contains: q,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+      },
     ];
   }
 

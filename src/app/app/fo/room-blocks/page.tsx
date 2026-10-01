@@ -23,7 +23,15 @@ export default async function RoomBlocksPage({ searchParams }: { searchParams: P
   const parsed = parseBlockFilters(params);
   const [rows, rooms] = await Promise.all([
     parsed.ok ? findRoomBlocks(parsed.filters) : Promise.resolve([]),
-    prisma.room.findMany({ select: { id: true, number: true, roomType: { select: { name: true } } }, orderBy: { number: "asc" } }),
+    prisma.room.findMany({
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        roomType: { select: { name: true } },
+      },
+      orderBy: { number: "asc" },
+    }),
   ]);
   const today = hotelTodayISO();
   const tomorrow = addDateOnlyDays(parseISODateOnly(today), 1).toISOString().slice(0, 10);
@@ -41,7 +49,7 @@ export default async function RoomBlocksPage({ searchParams }: { searchParams: P
       <section aria-label="Daftar blokir kamar" className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <form key={JSON.stringify(params)} action="/app/fo/room-blocks" className="space-y-3 border-b border-slate-200 p-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <div className="space-y-1.5"><label htmlFor="filter-room" className="text-sm font-medium">Cari Kamar</label><input id="filter-room" name="q" type="search" maxLength={100} defaultValue={filters.q} placeholder="Nomor kamar" className={controlClass} /></div>
+            <div className="space-y-1.5"><label htmlFor="filter-room" className="text-sm font-medium">Cari Kamar</label><input id="filter-room" name="q" type="search" maxLength={100} defaultValue={filters.q} placeholder="Nomor kamar (contoh: 101, 204)" className={controlClass} /></div>
             <div className="space-y-1.5"><label htmlFor="filter-start" className="text-sm font-medium">Dari Tanggal</label><input id="filter-start" name="startDate" type="date" defaultValue={filters.startDate} className={controlClass} /></div>
             <div className="space-y-1.5"><label htmlFor="filter-end" className="text-sm font-medium">Sebelum Tanggal</label><input id="filter-end" name="endDate" type="date" defaultValue={filters.endDate} className={controlClass} /></div>
             <div className="space-y-1.5"><label htmlFor="filter-reason" className="text-sm font-medium">Alasan</label><select id="filter-reason" name="reason" defaultValue={filters.reason} className={controlClass}><option value="ALL">Semua alasan</option>{Object.entries(ROOM_BLOCK_REASON_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>

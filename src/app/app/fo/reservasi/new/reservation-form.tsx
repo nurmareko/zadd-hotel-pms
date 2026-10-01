@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { CountryCombobox } from "@/components/country-combobox";
 import { PinnedActionFooter } from "@/components/pinned-action-footer";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -142,6 +143,15 @@ const arrangementTypeLabels = {
   HB: "HB — Sarapan + satu kali makan utama",
   FB: "FB — Sarapan, makan siang, dan makan malam",
 } as const;
+
+const roomOperationalStatusLabels: Record<string, string> = {
+  VC: "VC - Kosong Bersih",
+  VD: "VD - Kosong Kotor",
+  OC: "OC - Terisi Bersih",
+  OD: "OD - Terisi Kotor",
+  VCU: "VCU - Menunggu Inspeksi",
+  OOO: "OOO - Rusak",
+};
 
 const arrangementTypeOptions = [
   { value: "RO", label: arrangementTypeLabels.RO, price: 0 },
@@ -1408,31 +1418,75 @@ export function ReservationForm({
                         <FormField
                           control={form.control}
                           name={`rooms.${index}.roomId`}
-                          render={({ field }) => (
-                            <FormItem className="desktop:min-[1400px]:col-span-3">
-                              <FormLabel>Kamar</FormLabel>
-                              <FormControl>
-                                <select
-                                  className={selectClassName}
-                                  disabled={isViewMode || !rowRoomTypeId}
-                                  {...field}
-                                >
-                                  <option value="">Belum dialokasikan</option>
-                                  {rowRoomOptions.map((room) => (
-                                    <option
-                                      key={room.id}
-                                      value={String(room.id)}
-                                      disabled={!room.isAvailable}
+                          render={({ field }) => {
+                            const selectedRoomOption = rowRoomOptions.find(
+                              (opt) => String(opt.id) === String(field.value),
+                            );
+
+                            return (
+                              <FormItem className="desktop:min-[1400px]:col-span-3">
+                                <FormLabel>Kamar</FormLabel>
+                                <FormControl>
+                                  <select
+                                    className={selectClassName}
+                                    disabled={isViewMode || !rowRoomTypeId}
+                                    {...field}
+                                  >
+                                    <option value="">Belum dialokasikan</option>
+                                    {rowRoomOptions.map((room) => {
+                                      const reason = room.block
+                                        ? ` / 🚫 ${roomBlockedMessage(room.block)}`
+                                        : !room.isAvailable
+                                        ? " / ⚠️ Terisi reservasi lain"
+                                        : room.status === "VC"
+                                        ? " / Siap Pakai"
+                                        : room.status === "VD"
+                                        ? " / Perlu Dibersihkan"
+                                        : "";
+
+                                      return (
+                                        <option
+                                          key={room.id}
+                                          value={String(room.id)}
+                                          disabled={!room.isAvailable}
+                                        >
+                                          Kamar {room.number} · Lt {room.floor} · [{room.status}]{reason}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </FormControl>
+                                {selectedRoomOption?.status ? (
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                                    <span className="text-slate-500">Status fisik:</span>
+                                    <span
+                                      className={cn(
+                                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border",
+                                        selectedRoomOption.status === "VC" &&
+                                          "border-emerald-200 bg-emerald-50 text-emerald-700",
+                                        selectedRoomOption.status === "VD" &&
+                                          "border-amber-200 bg-amber-50 text-amber-700",
+                                        (selectedRoomOption.status === "OC" ||
+                                          selectedRoomOption.status === "OD") &&
+                                          "border-blue-200 bg-blue-50 text-blue-700",
+                                        selectedRoomOption.status === "OOO" &&
+                                          "border-red-200 bg-red-50 text-red-700",
+                                      )}
                                     >
-                                      {room.number} / Lantai {room.floor}
-                                      {room.block ? ` / ${roomBlockedMessage(room.block)}` : !room.isAvailable ? " / tidak tersedia" : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                                      {roomOperationalStatusLabels[selectedRoomOption.status] ??
+                                        selectedRoomOption.status}
+                                    </span>
+                                    {selectedRoomOption.status === "VD" && (
+                                      <span className="text-[11px] text-amber-700">
+                                        (Perlu dibersihkan HK)
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : null}
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
 
                         <FormField
