@@ -12,6 +12,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { auth } from "@/auth";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusi
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
+import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 import { findOverlappingRoomBlock } from "@/lib/room-blocks/overlap";
@@ -30,6 +32,7 @@ import {
   CheckInDetailAffordance,
   CheckInDetailPanel,
 } from "./check-in-detail-panel";
+import { ExtendStayDialog } from "./extend-stay-dialog";
 import { InclusionPanel } from "./inclusion-panel";
 import { RequestCleaningButton } from "./request-cleaning-button";
 
@@ -228,7 +231,7 @@ export default async function ReservationDetailPage({
   params,
   searchParams,
 }: ReservationDetailPageProps) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const [{ id }, query, session] = await Promise.all([params, searchParams, auth()]);
   const reservationId = Number(id);
   const mealPlanPrices = await getMealPlanPrices();
 
@@ -356,6 +359,11 @@ export default async function ReservationDetailPage({
   const canRequestCleaning =
     formMode === "view" &&
     reservation.status === ReservationStatus.CHECKED_IN;
+  const canExtendStay =
+    formMode === "view" &&
+    reservation.status === ReservationStatus.CHECKED_IN &&
+    session?.user &&
+    can(session.user.role, "reservations:write");
   const defaultValues: CreateReservationInput = {
     fullName: reservation.guest.fullName,
     idType: reservation.guest.idType ?? "",
@@ -524,6 +532,14 @@ export default async function ReservationDetailPage({
                   reservationNo={reservation.reservationNo}
                 />
               </div>
+            ) : null}
+            {canExtendStay ? (
+              <ExtendStayDialog
+                reservationId={reservation.id}
+                guestName={reservation.guest.fullName}
+                roomNumber={reservation.room?.number ?? null}
+                departureDate={reservation.departureDate.toISOString().slice(0, 10)}
+              />
             ) : null}
             {canRequestCleaning ? (
               <RequestCleaningButton
