@@ -16,6 +16,7 @@ import {
   BarChart3,
   ClipboardList,
   ChefHat,
+  ChevronDown,
   Archive,
   CalendarDays,
   History,
@@ -43,6 +44,12 @@ import { setNavSidebarCollapsed } from "@/app/app/nav-actions";
 import { Button } from "@/components/ui/button";
 import { HousekeepingNotificationBell } from "@/components/housekeeping-notification-bell";
 import type { NavBadge, NavBadgeMap } from "@/lib/nav-badge-types";
+import {
+  getOpenNavGroupLabels,
+  isNavGroupActive,
+  isNavGroupOpen,
+  toggleNavGroup,
+} from "@/lib/nav-group-state";
 
 type ActiveMatch = "exact" | "startsWith";
 
@@ -337,8 +344,24 @@ export function NavShell({
   const lastPathnameRef = useRef(pathname);
   const [, startTransition] = useTransition();
   const navGroups = getNavGroups(userRole);
-  const desktopNavGroups = navGroups.filter((group) => group !== accountGroup);
+  const desktopNavGroups = navGroupsByRole[userRole];
   const activeSidebarHref = getActiveSidebarHref(pathname, searchParams, navGroups);
+  const [openGroupLabels, setOpenGroupLabels] = useState<Set<string>>(() =>
+    getOpenNavGroupLabels(desktopNavGroups, activeSidebarHref),
+  );
+  const isMultiGroup = desktopNavGroups.length > 1;
+
+  useEffect(() => {
+    startTransition(() => {
+      setOpenGroupLabels((previous) =>
+        getOpenNavGroupLabels(desktopNavGroups, activeSidebarHref, previous),
+      );
+    });
+  }, [activeSidebarHref, desktopNavGroups, startTransition]);
+
+  function toggleGroup(label: string) {
+    setOpenGroupLabels((previous) => toggleNavGroup(previous, label));
+  }
   const profileLink = accountGroup.links[0];
   const isProfileActive = activeSidebarHref === profileLink.href;
   const shellStyle = {
@@ -459,68 +482,103 @@ export function NavShell({
         </div>
 
         <nav aria-label="Navigasi utama" className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
-          {desktopNavGroups.map((group) => (
-            <section key={group.label}>
-              <h2
-                className={[
-                  "mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400",
-                  sidebarCollapsed ? "sr-only" : "",
-                ].join(" ")}
-              >
-                {group.label}
-              </h2>
-              <div className="space-y-0.5">
-                {group.links.map((link) => {
-                  const isActive = activeSidebarHref === link.href;
-                  const Icon = link.icon;
-                  const badge = navBadges[link.href];
+          {desktopNavGroups.map((group) => {
+            const isOpen = isNavGroupOpen(group.label, desktopNavGroups.length, sidebarCollapsed, openGroupLabels);
+            const isGroupActive = isNavGroupActive(group, activeSidebarHref);
+            const groupSlug = group.label.toLowerCase().replace(/\s+/g, "-");
 
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      aria-label={sidebarCollapsed ? link.label : undefined}
-                      aria-current={isActive ? "page" : undefined}
-                      title={sidebarCollapsed ? link.label : undefined}
-                      className={[
-                        "group relative flex items-center border-l-2 text-sm font-medium transition-colors",
-                        sidebarCollapsed
-                          ? "h-10 justify-center px-0"
-                          : "gap-2 py-2",
-                        isActive
-                          ? [
-                              "bg-slate-100 text-slate-900 border-slate-900",
-                              sidebarCollapsed ? "" : "pl-2.5",
-                            ].join(" ")
-                          : [
-                              "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900",
-                              sidebarCollapsed ? "" : "pl-2.5",
-                            ].join(" "),
-                      ].join(" ")}
+            return (
+              <section key={group.label}>
+                {isMultiGroup && !sidebarCollapsed ? (
+                  <h2>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.label)}
+                      aria-expanded={isOpen}
+                      aria-controls={`nav-group-${groupSlug}`}
+                      className="mb-1 flex w-full items-center justify-between rounded px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-100/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
                     >
-                      <span
-                        className={[
-                          "flex min-w-0 items-center",
-                          sidebarCollapsed ? "relative" : "gap-2",
-                        ].join(" ")}
-                      >
-                        <Icon size={18} aria-hidden="true" />
-                        {!sidebarCollapsed ? (
-                          <span className="truncate">{link.label}</span>
-                        ) : null}
-                        {sidebarCollapsed && badge ? (
-                          <TabBadgeDot badge={badge} />
-                        ) : null}
+                      <span className={isGroupActive ? "font-extrabold text-slate-900" : ""}>
+                        {group.label}
                       </span>
-                      {!sidebarCollapsed && badge ? (
-                        <NavBadgePill badge={badge} />
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                      <ChevronDown
+                        className={`size-3.5 text-slate-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </h2>
+                ) : (
+                  <h2
+                    className={[
+                      "mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400",
+                      sidebarCollapsed ? "sr-only" : "",
+                    ].join(" ")}
+                  >
+                    {group.label}
+                  </h2>
+                )}
+                <div
+                  id={`nav-group-${groupSlug}`}
+                  inert={!isOpen}
+                  aria-hidden={!isOpen}
+                  className={sidebarCollapsed
+                    ? "block"
+                    : `grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                >
+                  <div className={`min-h-0 space-y-0.5 ${sidebarCollapsed ? "" : "overflow-hidden"}`}>
+                    {group.links.map((link) => {
+                      const isActive = activeSidebarHref === link.href;
+                      const Icon = link.icon;
+                      const badge = navBadges[link.href];
+
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          aria-label={sidebarCollapsed ? link.label : undefined}
+                          aria-current={isActive ? "page" : undefined}
+                          title={sidebarCollapsed ? link.label : undefined}
+                          className={[
+                            "group relative flex items-center border-l-2 text-sm font-medium transition-colors",
+                            sidebarCollapsed
+                              ? "h-10 justify-center px-0"
+                              : "gap-2 py-2",
+                            isActive
+                              ? [
+                                  "bg-slate-100 text-slate-900 border-slate-900",
+                                  sidebarCollapsed ? "" : "pl-2.5",
+                                ].join(" ")
+                              : [
+                                  "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900",
+                                  sidebarCollapsed ? "" : "pl-2.5",
+                                ].join(" "),
+                          ].join(" ")}
+                        >
+                          <span
+                            className={[
+                              "flex min-w-0 items-center",
+                              sidebarCollapsed ? "relative" : "gap-2",
+                            ].join(" ")}
+                          >
+                            <Icon size={18} aria-hidden="true" />
+                            {!sidebarCollapsed ? (
+                              <span className="truncate">{link.label}</span>
+                            ) : null}
+                            {sidebarCollapsed && badge ? (
+                              <TabBadgeDot badge={badge} />
+                            ) : null}
+                          </span>
+                          {!sidebarCollapsed && badge ? (
+                            <NavBadgePill badge={badge} />
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </nav>
 
         <div className="shrink-0 border-t border-slate-100 pt-4">
