@@ -11,7 +11,7 @@ import { randomUUID } from "crypto";
 import { formatISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect, unstable_rethrow } from "next/navigation";
+import { unstable_rethrow } from "next/navigation";
 import type { Session } from "next-auth";
 import { z } from "zod";
 
@@ -53,7 +53,6 @@ import {
   reservationFailure,
   unexpectedReservationFailure,
   type ReservationActionField,
-  type ReservationActionResult,
   type ReservationFailure,
 } from "./reservation-errors";
 import {
@@ -598,7 +597,13 @@ async function runCreateReservationTransaction(
         reservationIds.push(reservation.id);
       }
 
-      return { ok: true as const, reservationIds, groupBookingId };
+      return {
+        ok: true as const,
+        reservationIds,
+        reservationNumbers,
+        guestName: input.fullName,
+        groupBookingId,
+      };
     },
     {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -981,7 +986,19 @@ export async function getReservationQuote(
 export async function createReservation(
   input: unknown,
   originView: unknown = "list",
-): Promise<ReservationActionResult> {
+): Promise<
+  | {
+      ok: true;
+      data: {
+        reservationIds: number[];
+        reservationNumbers: string[];
+        guestName: string;
+        groupBookingId: string | null;
+        redirectUrl: string;
+      };
+    }
+  | ReservationFailure
+> {
   let session: Session | null;
 
   try {
@@ -1094,13 +1111,25 @@ export async function createReservation(
     "revalidate-calendar",
     () => revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
   );
-  redirect(reservationCreateRedirectPath(origin, arrival));
+  return {
+    ok: true,
+    data: {
+      reservationIds: result.reservationIds,
+      reservationNumbers: result.reservationNumbers,
+      guestName: parsed.data.fullName,
+      groupBookingId: result.groupBookingId,
+      redirectUrl: reservationCreateRedirectPath(origin, arrival),
+    },
+  };
 }
 
 export async function updateReservation(
   reservationId: number,
   input: unknown,
-): Promise<ReservationActionResult> {
+): Promise<
+  | { ok: true; data: { reservationId: number; redirectUrl: string } }
+  | ReservationFailure
+> {
   let session: Session | null;
 
   try {
@@ -1184,5 +1213,11 @@ export async function updateReservation(
     "revalidate-calendar",
     () => revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
   );
-  redirect(`/app/fo/reservasi/${reservationId}?mode=view`);
+  return {
+    ok: true,
+    data: {
+      reservationId,
+      redirectUrl: `/app/fo/reservasi/${reservationId}?mode=view`,
+    },
+  };
 }

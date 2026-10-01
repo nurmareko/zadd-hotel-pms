@@ -199,7 +199,18 @@ describe("reservation stay fee creation", () => {
     };
     if (fees === "omitted") Reflect.deleteProperty(input, "stayFeeKinds");
 
-    await expect(createReservation(input)).rejects.toBe(redirectError);
+    const result = await createReservation(input);
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        reservationIds: Array.from({ length: roomCount }, (_, index) => 77 + index),
+        reservationNumbers: tx.reservation.create.mock.calls.map(([args]) => args.data.reservationNo),
+        guestName: input.fullName,
+        groupBookingId: roomCount > 1 ? expect.any(String) : null,
+        redirectUrl: "/app/fo/reservasi/list?from=2026-10-01&to=2026-10-01",
+      },
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
 
     expect(tx.reservation.create).toHaveBeenCalledTimes(roomCount);
     expect(tx.reservationNight.createMany).toHaveBeenCalledTimes(roomCount);
@@ -274,7 +285,10 @@ describe("reservation guest linking", () => {
       phone: "08123456789", email: "tamu@example.com", address: "Bandung", nationality: "Indonesia",
     };
 
-    await expect(createReservation({ ...validCreateInput, ...fields, guestId })).rejects.toBe(redirectError);
+    await expect(createReservation({ ...validCreateInput, ...fields, guestId })).resolves.toEqual({
+      ok: true,
+      data: expect.objectContaining({ guestName: fields.fullName, redirectUrl: "/app/fo/reservasi/list?from=2026-10-01&to=2026-10-01" }),
+    });
 
     if (guestId != null) {
       expect(tx.guest.findUnique).toHaveBeenCalledWith({ where: { id: 42 }, select: { id: true } });
@@ -567,12 +581,14 @@ describe("reservation action failure boundary", () => {
     expect(unknownResult).not.toEqual(expect.objectContaining({ error: internalMessage }));
   });
 
-  it("continues a committed create to its success redirect when activity logging fails", async () => {
+  it("returns committed create success data when activity logging fails", async () => {
     const redirectError = genuineRedirectError();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.transaction.mockResolvedValueOnce({
       ok: true,
       reservationIds: [77],
+      reservationNumbers: ["RES-20261001-001"],
+      guestName: validCreateInput.fullName,
       groupBookingId: null,
     });
     mocks.logActivity.mockRejectedValueOnce(new Error("activity service unavailable"));
@@ -580,8 +596,17 @@ describe("reservation action failure boundary", () => {
       throw redirectError;
     });
 
-    await expect(createReservation(validCreateInput)).rejects.toBe(redirectError);
-    expect(mocks.redirect).toHaveBeenCalledOnce();
+    await expect(createReservation(validCreateInput, "kalender")).resolves.toEqual({
+      ok: true,
+      data: {
+        reservationIds: [77],
+        reservationNumbers: ["RES-20261001-001"],
+        guestName: validCreateInput.fullName,
+        groupBookingId: null,
+        redirectUrl: "/app/fo/reservasi/kalender",
+      },
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledTimes(2);
     expect(consoleError).toHaveBeenCalledWith(
       "Reservation post-commit side effect failed",
@@ -590,7 +615,7 @@ describe("reservation action failure boundary", () => {
     );
   });
 
-  it("continues a committed edit to its success redirect when activity logging fails", async () => {
+  it("returns committed edit success data when activity logging fails", async () => {
     const redirectError = genuineRedirectError();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.transaction.mockResolvedValueOnce({ ok: true });
@@ -599,8 +624,11 @@ describe("reservation action failure boundary", () => {
       throw redirectError;
     });
 
-    await expect(updateReservation(77, validEditInput)).rejects.toBe(redirectError);
-    expect(mocks.redirect).toHaveBeenCalledOnce();
+    await expect(updateReservation(77, validEditInput)).resolves.toEqual({
+      ok: true,
+      data: { reservationId: 77, redirectUrl: "/app/fo/reservasi/77?mode=view" },
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledTimes(3);
     expect(consoleError).toHaveBeenCalledWith(
       "Reservation post-commit side effect failed",

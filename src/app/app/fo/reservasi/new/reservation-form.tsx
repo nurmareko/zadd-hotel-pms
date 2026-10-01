@@ -5,6 +5,7 @@ import type { ArrangementType } from "@prisma/client";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -308,6 +309,7 @@ export function ReservationForm({
   readOnlyDeposit,
   readOnlyNightlySchedule = [],
 }: ReservationFormProps) {
+  const router = useRouter();
   const arrangementTypeOptions = (["RO", "BB", "HB", "FB"] as const).map((value) => ({
     value, label: arrangementTypeLabels[value], price: mealPlanPrices[value],
   }));
@@ -588,13 +590,30 @@ export function ReservationForm({
 
     const values = form.getValues();
     const operation = mode === "edit" ? "edit" : "create";
-    const result = await safelyRunReservationAction(
+    const result = await safelyRunReservationAction<
+      Awaited<ReturnType<typeof createReservation | typeof updateReservation>>
+    >(
       () =>
         mode === "edit" && reservationId
           ? updateReservation(reservationId, firstRoomReservationValues(values))
           : createReservation(values, createOrigin),
       operation,
     );
+
+    if (result.ok) {
+      if ("reservationNumbers" in result.data) {
+        const { reservationNumbers, guestName } = result.data;
+        const resLabel =
+          reservationNumbers.length > 1
+            ? `${reservationNumbers.length} reservasi (${reservationNumbers.join(", ")})`
+            : `Reservasi ${reservationNumbers[0]}`;
+        toast.success(`${resLabel} berhasil dibuat untuk ${guestName}`);
+      } else {
+        toast.success("Perubahan reservasi berhasil disimpan");
+      }
+      router.push(result.data.redirectUrl);
+      return;
+    }
 
     if (!result.ok) {
       const message = result.error;
