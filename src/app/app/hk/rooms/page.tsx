@@ -284,6 +284,14 @@ export default async function HkRoomsPage({
               defaultQ={q}
               defaultStatus={status ?? ""}
               defaultPriority={priority ?? ""}
+              statusCounts={forecast.rooms.reduce<Record<string, number>>(
+                (acc, { room }) => {
+                  acc[room.status] = (acc[room.status] ?? 0) + 1;
+                  return acc;
+                },
+                {},
+              )}
+              totalRoomsCount={forecast.rooms.length}
             />
           </section>
 

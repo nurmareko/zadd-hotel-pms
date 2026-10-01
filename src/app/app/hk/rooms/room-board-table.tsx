@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, SearchX } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HousekeepingListRow } from "@/lib/housekeeping-list-data";
 import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
 import { StatusPill } from "../status-pill";
@@ -88,7 +89,25 @@ export function RoomBoardTable({ rows, dateIso, query, sortBy, sortOrder, rooms,
             </details>
           </td></tr>
         </Fragment>)}
-        {rows.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Tidak ada kamar yang sesuai. Ubah atau reset filter untuk melihat kamar lainnya.</td></tr>}
+        {rows.length === 0 && (
+          <tr>
+            <td colSpan={8} className="p-8">
+              <EmptyState
+                icon={SearchX}
+                title="Tidak ada kamar yang sesuai"
+                description="Tidak ada data kamar untuk filter yang dipilih. Silakan ubah kata kunci atau reset filter."
+                action={
+                  <Link
+                    href={`/app/hk/rooms?date=${dateIso}`}
+                    className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
+                  >
+                    Reset Filter
+                  </Link>
+                }
+              />
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   </div>;

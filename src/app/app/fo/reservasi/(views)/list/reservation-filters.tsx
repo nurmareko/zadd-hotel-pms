@@ -75,9 +75,9 @@ export function ReservationFilters({
           <input
             type="search"
             name="q"
-            aria-label="Cari nomor reservasi atau nama tamu"
+            aria-label="Cari nomor reservasi, nama tamu, atau kamar"
             defaultValue={filters.q}
-            placeholder="Cari nomor reservasi atau nama tamu..."
+            placeholder="Cari nomor reservasi, nama tamu, atau kamar..."
             className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
           />
         </div>

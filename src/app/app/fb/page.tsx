@@ -153,7 +153,7 @@ export default async function FBLandingPage({
             className={buttonVariants({ variant: "outline" })}
             href="/app/fb/orders/new?service=room-service"
           >
-            New Room Service Order
+            Order Room Service Baru
           </Link>
           <Link
             className={buttonVariants()}
@@ -168,7 +168,7 @@ export default async function FBLandingPage({
         <KpiCard
           label="Aktif"
           value={activeTableCount}
-          sub={`${activeTableCount} meja occupied`}
+          sub={`${activeTableCount} meja terisi`}
         />
         <KpiCard
           label="Tersedia"
@@ -178,12 +178,12 @@ export default async function FBLandingPage({
         <KpiCard
           label="Order Berjalan"
           value={openOrderCount}
-          sub={`${activeGuestCount} tamu dalam order open`}
+          sub={`${activeGuestCount} tamu dalam order aktif`}
         />
         <KpiCard
           label="Pendapatan Hari Ini"
           value={formatIDR(todayRevenue)}
-          sub="Order closed hari ini"
+          sub="Order selesai hari ini"
         />
       </div>
 
@@ -197,7 +197,7 @@ export default async function FBLandingPage({
             }`}
             href="/app/fb"
           >
-            Floor Plan
+            Denah Meja
           </Link>
           <Link
             className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${

@@ -218,7 +218,7 @@ export default async function AccountingDashboardPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dasbor</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dasbor Akuntansi</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Tanggal operasional: {dateLabel} · {auditStatusLabel}
           </p>
