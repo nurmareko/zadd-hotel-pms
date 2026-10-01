@@ -2,6 +2,7 @@ import {
   ArrangementType,
   ArticleType,
   DepositStatus,
+  FBOrderServiceType,
   FBOrderStatus,
   FolioStatus,
   PaymentMethod,
@@ -10,6 +11,8 @@ import {
   ReservationNightRevenueClass,
   ReservationStatus,
   RoomStatus,
+  TableLocation,
+  TableStatus,
 } from "@prisma/client";
 
 import { parseISODateOnly } from "@/lib/date-only";
@@ -284,6 +287,62 @@ export async function createFolioPayment({
   });
 }
 
+export async function createRestaurantTable({
+  tableNumber = nextKey("T"),
+  capacity = 2,
+  location = TableLocation.INDOOR,
+  status = TableStatus.AVAILABLE,
+}: {
+  tableNumber?: string;
+  capacity?: number;
+  location?: TableLocation;
+  status?: TableStatus;
+} = {}) {
+  return prisma.restaurantTable.create({
+    data: { number: tableNumber, capacity, location, status },
+  });
+}
+
+export async function createMenuItem({
+  name = "Test Menu",
+  price = 10_000,
+  category = "Makanan",
+  isAvailable = true,
+}: {
+  name?: string;
+  price?: Prisma.Decimal.Value;
+  category?: string;
+  isAvailable?: boolean;
+} = {}) {
+  return prisma.menuItem.create({
+    data: { code: nextKey("MENU"), name, price, category, isActive: isAvailable },
+  });
+}
+
+export async function createFBOrderItem({
+  fbOrderId,
+  menuItemId,
+  quantity = 1,
+  unitPrice,
+  amount = new Prisma.Decimal(unitPrice).mul(quantity),
+  notes = null,
+}: {
+  fbOrderId: number;
+  menuItemId: number;
+  quantity?: number;
+  unitPrice: Prisma.Decimal.Value;
+  amount?: Prisma.Decimal.Value;
+  notes?: string | null;
+}) {
+  return prisma.fBOrderItem.create({
+    data: { fbOrderId, menuItemId, quantity, unitPrice, amount, notes },
+  });
+}
+
+export async function createFBArticle() {
+  return createArticle({ code: "DINNER", type: ArticleType.FB });
+}
+
 export async function createFBOrder({
   waitedById,
   total = 100_000,
@@ -293,6 +352,9 @@ export async function createFBOrder({
   status = FBOrderStatus.CLOSED,
   closedAt = new Date(),
   tableNo = "T1",
+  tableId = null,
+  serviceType = FBOrderServiceType.DINE_IN,
+  chargedFolioId = null,
   guestCount = 1,
 }: {
   waitedById: number;
@@ -302,7 +364,10 @@ export async function createFBOrder({
   tax?: Prisma.Decimal.Value;
   status?: FBOrderStatus;
   closedAt?: Date | null;
-  tableNo?: string;
+  tableNo?: string | null;
+  tableId?: number | null;
+  serviceType?: FBOrderServiceType;
+  chargedFolioId?: number | null;
   guestCount?: number;
 }) {
   const orderNo = nextKey("FBO");
@@ -310,6 +375,9 @@ export async function createFBOrder({
     data: {
       orderNo,
       tableNo,
+      tableId,
+      serviceType,
+      chargedFolioId,
       status,
       guestCount,
       subtotal,
