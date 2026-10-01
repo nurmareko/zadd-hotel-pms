@@ -12,7 +12,11 @@ import {
   type ChargeLookupResult,
 } from "@/lib/fb-orders/actions";
 
-export function RoomServiceForm() {
+type RoomServiceFormProps = {
+  rooms: { roomNumber: string; guestName: string }[];
+};
+
+export function RoomServiceForm({ rooms }: RoomServiceFormProps) {
   const [roomNumber, setRoomNumber] = useState("");
   const [guestCount, setGuestCount] = useState("1");
   const [lookupResult, setLookupResult] = useState<ChargeLookupResult | null>(
@@ -77,17 +81,23 @@ export function RoomServiceForm() {
         >
           Nomor Kamar
         </label>
-        <Input
-          className="h-10 rounded-md border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus-visible:border-blue-500 focus-visible:ring-blue-100"
+        <select
+          className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
+          disabled={rooms.length === 0}
           id="room-number"
-          maxLength={10}
           onChange={(event) => {
             setRoomNumber(event.target.value);
             setLookupResult(null);
           }}
-          placeholder="204"
           value={roomNumber}
-        />
+        >
+          <option value="">Pilih kamar in-house</option>
+          {rooms.map((room) => (
+            <option key={room.roomNumber} value={room.roomNumber}>
+              Kamar {room.roomNumber} · {room.guestName}
+            </option>
+          ))}
+        </select>
       </div>
 
       {isLookupPending ? (
@@ -108,7 +118,9 @@ export function RoomServiceForm() {
         </div>
       ) : (
         <div className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
-          Masukkan nomor kamar in-house untuk membuka order room service.
+          {rooms.length === 0
+            ? "Tidak ada kamar dengan tamu in-house dan folio terbuka."
+            : "Pilih kamar in-house untuk membuka order room service."}
         </div>
       )}
 

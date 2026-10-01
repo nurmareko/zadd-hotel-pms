@@ -1,4 +1,9 @@
-import { FBOrderStatus, TableStatus } from "@prisma/client";
+import {
+  FBOrderStatus,
+  FolioStatus,
+  ReservationStatus,
+  TableStatus,
+} from "@prisma/client";
 import { ArrowLeft, BedDouble, Table2, Utensils } from "lucide-react";
 import Link from "next/link";
 
@@ -23,27 +28,52 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
   const params = (await searchParams) ?? {};
   const isRoomService = firstParam(params.service) === "room-service";
   const tableId = Number(firstParam(params.tableId) ?? 0);
-  const [table, availableTables] = await Promise.all([
+  const [table, availableTables, inHouseRooms] = await Promise.all([
     tableId > 0 && !isRoomService
       ? prisma.restaurantTable.findUnique({
-          where: { id: tableId },
-          include: {
-            orders: {
-              where: { status: FBOrderStatus.OPEN },
-              select: { id: true, orderNo: true },
-              orderBy: { openedAt: "desc" },
-              take: 1,
-            },
+        where: { id: tableId },
+        include: {
+          orders: {
+            where: { status: FBOrderStatus.OPEN },
+            select: { id: true, orderNo: true },
+            orderBy: { openedAt: "desc" },
+            take: 1,
           },
-        })
+        },
+      })
       : null,
     tableId > 0 || isRoomService
       ? Promise.resolve([])
       : prisma.restaurantTable.findMany({
-          where: { status: TableStatus.AVAILABLE },
-          orderBy: [{ location: "asc" }, { number: "asc" }],
-          select: { id: true, number: true, capacity: true },
+        where: { status: TableStatus.AVAILABLE },
+        orderBy: [{ location: "asc" }, { number: "asc" }],
+        select: { id: true, number: true, capacity: true },
       }),
+    isRoomService
+      ? prisma.room.findMany({
+        where: {
+          reservations: {
+            some: {
+              status: ReservationStatus.CHECKED_IN,
+              folio: { is: { status: FolioStatus.OPEN } },
+            },
+          },
+        },
+        orderBy: { number: "asc" },
+        select: {
+          number: true,
+          reservations: {
+            where: {
+              status: ReservationStatus.CHECKED_IN,
+              folio: { is: { status: FolioStatus.OPEN } },
+            },
+            orderBy: { id: "desc" },
+            take: 1,
+            select: { guest: { select: { fullName: true } } },
+          },
+        },
+      })
+      : Promise.resolve([]),
   ]);
   const canCreateOrder =
     table?.status === TableStatus.AVAILABLE ||
@@ -95,7 +125,16 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
             Room Service
           </div>
-          <RoomServiceForm />
+          <RoomServiceForm
+            rooms={inHouseRooms.flatMap((room) =>
+              room.reservations[0]
+                ? [{
+                  roomNumber: room.number,
+                  guestName: room.reservations[0].guest.fullName,
+                }]
+                : [],
+            )}
+          />
         </section>
       ) : table ? (
         <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
