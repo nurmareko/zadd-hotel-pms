@@ -1,7 +1,5 @@
 import type { ReservationActionField } from "./reservation-errors";
 
-export type ReservationFormTab = "detail" | "inclusions";
-
 const DETAIL_FIELDS = [
   "reservationType",
   "arrivalDate",
@@ -16,7 +14,7 @@ const DETAIL_FIELDS = [
   "notes",
 ] as const;
 
-const INCLUSION_FIELDS = ["arrangementType", "stayFeeKinds"] as const;
+const INCLUSION_FIELDS = ["arrangementType"] as const;
 const ROOM_FIELDS = ["roomTypeId", "roomId", "adults", "children"] as const;
 const DIRECT_FIELDS = new Set<string>([
   ...DETAIL_FIELDS,
@@ -39,20 +37,6 @@ export function normalizeReservationFieldPath(
   return /^rooms\.\d+\.(roomTypeId|roomId|adults|children)$/.test(field)
     ? (field as ReservationActionField)
     : null;
-}
-
-export function reservationFieldTab(field: string): ReservationFormTab | null {
-  const normalizedField = normalizeReservationFieldPath(field);
-
-  if (!normalizedField) {
-    return null;
-  }
-
-  return INCLUSION_FIELDS.includes(
-    normalizedField as (typeof INCLUSION_FIELDS)[number],
-  )
-    ? "inclusions"
-    : "detail";
 }
 
 function hasErrorAtPath(errors: unknown, path: string) {
@@ -101,12 +85,4 @@ export function firstReservationErrorField(
   const field = orderedFields.find((candidate) => hasErrorAtPath(errors, candidate));
 
   return field ? normalizeReservationFieldPath(field) : null;
-}
-
-export function firstReservationErrorTab(
-  errors: unknown,
-): ReservationFormTab | null {
-  const field = firstReservationErrorField(errors);
-
-  return field ? reservationFieldTab(field) : null;
 }

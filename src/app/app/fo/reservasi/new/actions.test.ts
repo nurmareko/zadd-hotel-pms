@@ -43,6 +43,7 @@ vi.mock("next/navigation", async (importOriginal) => {
 
 import { PricingResolutionError } from "@/lib/pricing-resolver";
 import { ReservationStayFeeError } from "@/lib/reservation-stay-fees";
+import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import {
   cancelReservation,
   createReservation,
@@ -151,6 +152,70 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("reservation stay fee creation", () => {
+  it.each([
+    { roomCount: 1, fees: "omitted" },
+    { roomCount: 1, fees: "empty" },
+    { roomCount: 2, fees: "omitted" },
+    { roomCount: 2, fees: "empty" },
+    { roomCount: 1, fees: "selected" },
+    { roomCount: 2, fees: "selected" },
+  ])("creates $roomCount rooms with $fees fees", async ({ roomCount, fees }) => {
+    const base = transactionClient();
+    const kind = "EARLY_CHECK_IN" as const;
+    const definition = STAY_FEE_DEFINITIONS[kind];
+    const tx = {
+      ...base,
+      article: {
+        ...base.article,
+        findUnique: vi.fn().mockResolvedValue({
+          id: 9, code: definition.articleCode, type: "MISC",
+          defaultPrice: new Prisma.Decimal(definition.unitPrice),
+        }),
+      },
+      roomType: { findUnique: vi.fn().mockResolvedValue({ id: 1, name: "Standar", capacity: 2, baseRate: 500_000, _count: { rooms: 5 } }) },
+      guest: { create: vi.fn().mockResolvedValue({ id: 88 }) },
+      reservation: {
+        ...base.reservation,
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValueOnce({ id: 77 }).mockResolvedValueOnce({ id: 78 }),
+      },
+      reservationNight: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      reservationStayFee: { ...base.reservationStayFee, create: vi.fn() },
+    };
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([
+      { date: new Date("2026-10-01T00:00:00Z"), rate: new Prisma.Decimal(500_000), sourceRule: null },
+    ]);
+    runTransactionWith(tx);
+    const redirectError = genuineRedirectError();
+    mocks.redirect.mockImplementationOnce(() => { throw redirectError; });
+    const input = {
+      ...validCreateInput,
+      rooms: Array.from({ length: roomCount }, () => ({ ...validCreateInput.rooms[0], roomId: null })),
+      ...(fees === "selected" ? { stayFeeKinds: [kind] } : {}),
+    };
+    if (fees === "omitted") Reflect.deleteProperty(input, "stayFeeKinds");
+
+    await expect(createReservation(input)).rejects.toBe(redirectError);
+
+    expect(tx.reservation.create).toHaveBeenCalledTimes(roomCount);
+    expect(tx.reservationNight.createMany).toHaveBeenCalledTimes(roomCount);
+    expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+    if (fees === "selected") {
+      expect(tx.reservationStayFee.create).toHaveBeenCalledTimes(roomCount);
+      for (let index = 0; index < roomCount; index += 1) {
+        expect(tx.reservationStayFee.create).toHaveBeenNthCalledWith(index + 1, {
+          data: { reservationId: 77 + index, kind, unitPrice: new Prisma.Decimal(definition.unitPrice), status: "PENDING", selectedById: 1 },
+        });
+      }
+    } else {
+      expect(tx.article.findUnique).not.toHaveBeenCalled();
+      expect(tx.reservationStayFee.create).not.toHaveBeenCalled();
+    }
+  });
 });
 
 describe("reservation guest linking", () => {

@@ -373,7 +373,6 @@ export default async function ReservationDetailPage({
     reservationType: reservation.reservationType,
     arrangementType: reservation.arrangementType,
     notes: reservation.notes ?? "",
-    stayFeeKinds: [],
   };
   const stayTotal = flatReservationNightStayTotal({
     arrivalDate: reservation.arrivalDate,

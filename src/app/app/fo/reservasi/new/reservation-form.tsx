@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ArrangementType, ReservationStayFeeKind } from "@prisma/client";
+import type { ArrangementType } from "@prisma/client";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -35,17 +35,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 import { countries, findCountryByName } from "@/lib/countries";
 import { formatDateID, formatIDR } from "@/lib/format";
-import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import { findOverlappingRoomBlock, roomBlockedMessage, type RoomBlockSummary } from "@/lib/room-blocks/overlap";
 import {
   guestIdTypeLabel,
@@ -65,7 +58,6 @@ import { safelyRunReservationAction } from "./reservation-errors";
 import {
   firstReservationErrorField,
   normalizeReservationFieldPath,
-  reservationFieldTab,
 } from "./reservation-form-fields";
 import {
   createUnifiedEditReservationSchema,
@@ -144,22 +136,6 @@ const arrangementTypeLabels = {
   FB: "FB — Sarapan, makan siang, dan makan malam",
 } as const;
 
-
-
-const stayFeeOptions = (
-  ["EARLY_CHECK_IN", "LATE_CHECK_OUT"] as ReservationStayFeeKind[]
-).map((kind) => ({ value: kind, ...STAY_FEE_DEFINITIONS[kind] }));
-
-const reservationTabs = [
-  { value: "detail", label: "Detail" },
-  { value: "inclusions", label: "Inklusi" },
-  { value: "extras", label: "Extras" },
-  { value: "payments", label: "Pembayaran" },
-  { value: "billing", label: "Tagihan" },
-] as const;
-
-type ReservationTab = (typeof reservationTabs)[number]["value"];
-
 function dayAfter(dateValue: string) {
   const parsed = parseISO(dateValue);
 
@@ -196,8 +172,6 @@ function nightsBetween(arrivalDate: string, departureDate: string) {
     Math.round((departure.getTime() - arrival.getTime()) / 86_400_000),
   );
 }
-
-
 
 function RequiredMark() {
   return (
@@ -257,7 +231,6 @@ function overlapsStay(
   );
 }
 
-
 function unifiedDefaultValues(
   defaultValues: CreateReservationInput,
 ): UnifiedReservationInput {
@@ -275,7 +248,6 @@ function unifiedDefaultValues(
     reservationType: defaultValues.reservationType,
     arrangementType: defaultValues.arrangementType,
     notes: defaultValues.notes,
-    stayFeeKinds: defaultValues.stayFeeKinds,
     rooms: [
       {
         roomTypeId: defaultValues.roomTypeId,
@@ -315,7 +287,6 @@ function firstRoomReservationValues(
     reservationType: values.reservationType,
     arrangementType: values.arrangementType,
     notes: values.notes,
-    stayFeeKinds: values.stayFeeKinds,
   };
 }
 
@@ -341,14 +312,12 @@ export function ReservationForm({
     value, label: arrangementTypeLabels[value], price: mealPlanPrices[value],
   }));
   const hasMountedRoomValidation = useRef(false);
-  const [activeTab, setActiveTab] = useState<ReservationTab>("detail");
-  const [pendingFocusField, setPendingFocusField] =
-    useState<FieldPath<UnifiedReservationInput> | null>(null);
+
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
-  // Create aligns below its tabs; edit and view do not render that tab offset.
+
   const reservationAsideStyle = {
-    "--reservation-aside-top-offset": isCreateMode ? "3.5625rem" : "1.25rem",
+    "--reservation-aside-top-offset": "1.25rem",
     "--reservation-aside-bottom-clearance": "1.25rem",
     "--reservation-aside-max-height":
       "calc(100dvh - var(--reservation-aside-top-offset) - var(--reservation-aside-bottom-clearance))",
@@ -368,20 +337,6 @@ export function ReservationForm({
     shouldFocusError: false,
     defaultValues: unifiedDefaultValues(defaultValues),
   });
-  useEffect(() => {
-    if (!pendingFocusField || reservationFieldTab(pendingFocusField) !== activeTab) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      form.setFocus(pendingFocusField);
-      setPendingFocusField((currentField) =>
-        currentField === pendingFocusField ? null : currentField,
-      );
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [activeTab, form, pendingFocusField]);
 
   const guestId = useWatch({ control: form.control, name: "guestId" });
   const roomsFieldArray = useFieldArray({
@@ -393,7 +348,6 @@ export function ReservationForm({
     departureDate,
     arrangementType,
     roomRows,
-    stayFeeKinds,
   ] = useWatch({
     control: form.control,
     name: [
@@ -401,7 +355,6 @@ export function ReservationForm({
       "departureDate",
       "arrangementType",
       "rooms",
-      "stayFeeKinds",
     ],
   });
   const watchedRoomRows = useMemo(() => roomRows ?? [], [roomRows]);
@@ -551,22 +504,14 @@ export function ReservationForm({
     isViewMode || (mode === "edit" && !pricingChanged)
       ? Number(readOnlyInclusionTotal ?? 0)
       : resolvedInclusionTotal;
-  const stayFeeTotal = isCreateMode
-    ? (stayFeeKinds ?? []).reduce(
-        (total, kind) => total + STAY_FEE_DEFINITIONS[kind].unitPrice,
-        0,
-      )
-    : 0;
-  const inclusionSummaryTotal = inclusionTotal + stayFeeTotal;
+
   const totalReceived = 0;
   const reservationTotal =
     isViewMode || (mode === "edit" && !pricingChanged)
       ? roomSubtotal === null
         ? null
-        : roomSubtotal + inclusionTotal + stayFeeTotal
-      : resolvedReservationTotal === null
-        ? null
-        : resolvedReservationTotal + stayFeeTotal;
+        : roomSubtotal + inclusionTotal
+      : resolvedReservationTotal;
   const totalOutstanding =
     reservationTotal === null ? null : reservationTotal - totalReceived;
   const summaryAmountDisplay = (amount: number | null) =>
@@ -624,15 +569,6 @@ export function ReservationForm({
   ]);
 
   useEffect(() => {
-    if (isCreateMode && watchedRoomRows.length > 1 && stayFeeKinds.length > 0) {
-      form.setValue("stayFeeKinds", [], {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-  }, [form, isCreateMode, stayFeeKinds, watchedRoomRows.length]);
-
-  useEffect(() => {
     if (isViewMode) {
       return;
     }
@@ -665,16 +601,11 @@ export function ReservationForm({
 
       if (result.field) {
         const normalizedField = normalizeReservationFieldPath(result.field);
-        const fieldTab = normalizedField
-          ? reservationFieldTab(normalizedField)
-          : null;
-
-        if (normalizedField && fieldTab) {
+        if (normalizedField) {
           const field = normalizedField as FieldPath<UnifiedReservationInput>;
 
           form.setError(field, { type: "server", message });
-          setActiveTab(fieldTab);
-          setPendingFocusField(field);
+          form.setFocus(field);
         } else {
           toast.error(message);
         }
@@ -686,18 +617,9 @@ export function ReservationForm({
 
   function onInvalidSubmit(errors: FieldErrors<UnifiedReservationInput>) {
     const firstErrorField = firstReservationErrorField(errors);
-    const fieldTab = firstErrorField
-      ? reservationFieldTab(firstErrorField)
-      : null;
-
-    if (!firstErrorField || !fieldTab) {
-      return;
+    if (firstErrorField) {
+      form.setFocus(firstErrorField as FieldPath<UnifiedReservationInput>);
     }
-
-    setActiveTab(fieldTab);
-    setPendingFocusField(
-      firstErrorField as FieldPath<UnifiedReservationInput>,
-    );
   }
 
   const reservationActionHint = hasBlockingErrors ? (
@@ -895,7 +817,7 @@ export function ReservationForm({
             <div className="flex items-baseline justify-between gap-4">
               <dt className="text-slate-600">Inklusi</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {formatIDR(inclusionSummaryTotal)}
+                {formatIDR(inclusionTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
@@ -953,32 +875,8 @@ export function ReservationForm({
         onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
         className="flex flex-col gap-4"
       >
-        <Tabs
-          value={isCreateMode ? activeTab : "detail"}
-          onValueChange={(value) => setActiveTab(value as ReservationTab)}
-          className="gap-4"
-        >
-          {isCreateMode ? (
-            <TabsList className="-mx-5 -mt-4 sticky top-(--app-mobile-header-height) z-30 flex h-auto w-[calc(100%+2.5rem)] max-w-none flex-wrap items-stretch justify-start overflow-clip rounded-none border-x-0 border-t-0 border-b border-slate-200 bg-white px-5 py-0 shadow-none md:-mx-6 md:-mt-5 md:w-[calc(100%+3rem)] md:px-6 desktop:top-0">
-              {reservationTabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="h-13 min-w-24 flex-none rounded-none border-b-4 border-transparent bg-transparent px-4 text-sm font-medium text-slate-600 shadow-none hover:bg-transparent hover:text-slate-900 data-active:border-black data-active:bg-transparent data-active:font-semibold data-active:text-slate-950 data-active:shadow-none sm:min-w-28"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          ) : null}
-
           <div className="grid gap-4 desktop:lg:grid-cols-[minmax(0,1fr)_360px] desktop:lg:items-start">
-            <div className="min-w-0 desktop:lg:pt-px">
-              <TabsContent
-                value="detail"
-                keepMounted
-                className="flex flex-col gap-4"
-              >
+            <div className="flex min-w-0 flex-col gap-4 desktop:lg:pt-px">
                 <section className={cardClassName} aria-labelledby="stay-details-title">
               <div className={cardHeaderClassName}>
                 <h2 id="stay-details-title" className={sectionTitleClassName}>
@@ -1504,18 +1402,16 @@ export function ReservationForm({
                 ) : null}
               </div>
                 </section>
-              </TabsContent>
 
               {isCreateMode ? (
-                <TabsContent value="inclusions" keepMounted className="flex flex-col gap-4">
-                  <section className={cardClassName} aria-labelledby="meal-plan-title">
+                  <section className={cardClassName} aria-labelledby="meal-inclusion-title">
                     <div className={cardHeaderClassName}>
                       <div>
-                        <h2 id="meal-plan-title" className={sectionTitleClassName}>
+                        <h2 id="meal-inclusion-title" className={sectionTitleClassName}>
                           Inklusi Makanan
                         </h2>
                         <p className="mt-1 text-xs font-medium text-slate-500">
-                          Satu plan berlaku untuk semua kamar dalam booking ini.
+                          Satu paket makan berlaku untuk semua kamar dalam reservasi ini.
                         </p>
                       </div>
                     </div>
@@ -1568,111 +1464,11 @@ export function ReservationForm({
                         )}
                       />
                     </div>
-                  </section>
-
-                  <section
-                    className={cardClassName}
-                    aria-labelledby="stay-flexibility-title"
-                  >
                     <div className={cardHeaderClassName}>
                       <div>
-                        <h2
-                          id="stay-flexibility-title"
-                          className={sectionTitleClassName}
-                        >
-                          Fleksibilitas Menginap
-                        </h2>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Biaya flat per reservasi, bukan per pax atau per malam.
-                          Diposting satu kali saat check-in.
-                        </p>
-                      </div>
-                      <span className="num text-sm font-bold text-slate-900">
-                        {formatIDR(stayFeeTotal)}
-                      </span>
-                    </div>
-                    <div className={cardContentClassName}>
-                      <FormField
-                        control={form.control}
-                        name="stayFeeKinds"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="sr-only">
-                              Pilihan fleksibilitas menginap
-                            </FormLabel>
-                            <FormControl>
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                {stayFeeOptions.map((option, index) => {
-                                  const selected = field.value.includes(option.value);
-                                  const disabled = watchedRoomRows.length > 1;
-
-                                  return (
-                                    <label
-                                      key={option.value}
-                                      className={`rounded-lg border p-4 transition-colors ${
-                                        disabled
-                                          ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-70"
-                                          : selected
-                                            ? "cursor-pointer border-emerald-500 bg-emerald-50"
-                                            : "cursor-pointer border-slate-200 bg-white hover:border-slate-300"
-                                      }`}
-                                    >
-                                      <span className="flex items-start gap-3">
-                                        <input
-                                          type="checkbox"
-                                          className="mt-0.5 size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                          name={field.name}
-                                          checked={selected}
-                                          ref={index === 0 ? field.ref : undefined}
-                                          disabled={disabled}
-                                          onBlur={field.onBlur}
-                                          onChange={(event) => {
-                                            field.onChange(
-                                              event.target.checked
-                                                ? [...field.value, option.value]
-                                                : field.value.filter(
-                                                    (kind) => kind !== option.value,
-                                                  ),
-                                            );
-                                          }}
-                                        />
-                                        <span>
-                                          <span className="block text-sm font-semibold text-slate-900">
-                                            {option.label}
-                                          </span>
-                                          <span className="num mt-1 block text-sm text-slate-600">
-                                            {formatIDR(option.unitPrice)} · flat per reservasi
-                                          </span>
-                                          <span className="mt-1 block text-xs font-medium text-slate-500">
-                                            {selected
-                                              ? "Menunggu posting · belum diposting"
-                                              : "Belum dipilih"}
-                                          </span>
-                                        </span>
-                                      </span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </FormControl>
-                            {watchedRoomRows.length > 1 ? (
-                              <p className="text-xs font-medium text-amber-700">
-                                Fleksibilitas menginap belum mendukung booking multi-kamar.
-                              </p>
-                            ) : null}
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </section>
-
-                  <section className={cardClassName} aria-labelledby="meal-preview-title">
-                    <div className={cardHeaderClassName}>
-                      <div>
-                        <h2 id="meal-preview-title" className={sectionTitleClassName}>
-                          Estimasi Inklusi
-                        </h2>
+                        <h3 id="meal-preview-title" className={sectionTitleClassName}>
+                          Estimasi Biaya
+                        </h3>
                         <p className="mt-1 text-xs text-slate-500">
                           Pax berasal dari jumlah dewasa + anak pada setiap kamar.
                         </p>
@@ -1714,31 +1510,7 @@ export function ReservationForm({
                       )}
                     </div>
                   </section>
-                </TabsContent>
               ) : null}
-
-              {isCreateMode
-                ? reservationTabs.slice(2).map((tab) => (
-                    <TabsContent key={tab.value} value={tab.value} keepMounted>
-                      <section
-                        className={`${cardClassName} flex min-h-64 items-center justify-center p-6 text-center`}
-                        aria-labelledby={`${tab.value}-placeholder-title`}
-                      >
-                        <div className="max-w-sm">
-                          <h2
-                            id={`${tab.value}-placeholder-title`}
-                            className={sectionTitleClassName}
-                          >
-                            {tab.label}
-                          </h2>
-                          <p className="mt-2 text-sm text-slate-500">
-                            Fitur ini akan tersedia setelah reservasi dibuat.
-                          </p>
-                        </div>
-                      </section>
-                    </TabsContent>
-                  ))
-                : null}
             </div>
 
             <aside
@@ -1761,7 +1533,6 @@ export function ReservationForm({
               ) : null}
             </aside>
           </div>
-        </Tabs>
       </form>
     </Form>
   );

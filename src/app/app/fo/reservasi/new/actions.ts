@@ -428,6 +428,7 @@ async function runCreateReservationTransaction(
   return prisma.$transaction(
     async (tx) => {
       const mealPlanPrices = await getMealPlanPrices(tx);
+      const stayFeeKinds = input.stayFeeKinds ?? [];
       const assignments: ReservationRoomAssignment[] = [];
       // Lock multi-room allocations in a stable order before validating any row.
       const roomIds = [...new Set(input.rooms.flatMap((room) => room.roomId === null ? [] : [room.roomId]))].sort((a, b) => a - b);
@@ -586,10 +587,10 @@ async function runCreateReservationTransaction(
           }),
         });
 
-        if (input.stayFeeKinds.length > 0) {
+        if (stayFeeKinds.length > 0) {
           await createPendingReservationStayFees(tx, {
             reservationId: reservation.id,
-            kinds: input.stayFeeKinds,
+            kinds: stayFeeKinds,
             selectedById: userId,
           });
         }

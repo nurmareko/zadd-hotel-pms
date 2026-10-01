@@ -13,6 +13,41 @@ const validInput = {
   rooms: [{ roomTypeId: 1, roomId: null, adults: 1, children: 0 }],
 };
 
+describe("reservation stay fee schema", () => {
+  it.each([1, 2])("defaults omitted fees to [] for %i rooms", (roomCount) => {
+    const input = { ...validInput, rooms: Array.from({ length: roomCount }, () => validInput.rooms[0]) };
+    Reflect.deleteProperty(input, "stayFeeKinds");
+    expect(UnifiedReservationSchema.parse(input).stayFeeKinds).toEqual([]);
+  });
+
+  it.each([1, 2])("accepts empty fees for %i rooms", (roomCount) => {
+    expect(UnifiedReservationSchema.parse({
+      ...validInput,
+      rooms: Array.from({ length: roomCount }, () => validInput.rooms[0]),
+    }).stayFeeKinds).toEqual([]);
+  });
+
+  it.each([1, 2])("accepts explicit fees for %i rooms", (roomCount) => {
+    const stayFeeKinds = ["EARLY_CHECK_IN", "LATE_CHECK_OUT"];
+    expect(UnifiedReservationSchema.parse({
+      ...validInput,
+      rooms: Array.from({ length: roomCount }, () => validInput.rooms[0]),
+      stayFeeKinds,
+    }).stayFeeKinds).toEqual(stayFeeKinds);
+  });
+
+  it.each([
+    null,
+    ["INVALID"],
+    ["EARLY_CHECK_IN", "EARLY_CHECK_IN"],
+    ["EARLY_CHECK_IN", "LATE_CHECK_OUT", "EARLY_CHECK_IN"],
+  ])("rejects invalid fees %j", (stayFeeKinds) => {
+    const result = UnifiedReservationSchema.safeParse({ ...validInput, stayFeeKinds });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0].path[0]).toBe("stayFeeKinds");
+  });
+});
+
 describe("reservation guest link schema", () => {
   it.each([undefined, null, 42, "42"])("accepts optional guestId %s", (guestId) => {
     const parsed = UnifiedReservationSchema.parse({ ...validInput, guestId });
