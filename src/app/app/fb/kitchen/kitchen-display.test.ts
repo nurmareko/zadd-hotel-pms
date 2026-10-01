@@ -20,9 +20,10 @@ function renderTicket(kitchenStartedAt: string | null) {
       destination: "Meja 3",
       serviceLabel: "Makan di tempat",
       waiterName: "Sari",
+      guestCount: 2,
       openedAt: startedAt,
       kitchenStartedAt,
-      items: [{ id: 1, name: "Nasi goreng", quantity: 2, notes: null }],
+      items: [{ id: 1, name: "Nasi goreng", category: "Mains", quantity: 2, notes: null }],
     }],
   }));
 }
@@ -40,6 +41,26 @@ describe("KitchenDisplay server-owned cooking state", () => {
     expect(html).toContain("Sedang dimasak");
     expect(html).toContain("Tandai selesai");
     expect(html).not.toContain("Mulai memasak");
+  });
+
+  it("renders station filters, local readiness, and display controls", () => {
+    const html = renderTicket(null);
+    for (const label of ["Semua", "Dapur", "Bar", "Panggangan", "Gorengan", "Tandai Siap", "0 dari 1 siap", "2 tamu", "Suara hening", "Layar penuh", "Hidangan utama"]) {
+      expect(html).toContain(label);
+    }
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain("hanya di layar ini");
+  });
+
+  it("highlights late tickets at the existing one-hour threshold", () => {
+    const html = renderToStaticMarkup(createElement(KitchenDisplay, {
+      initialNow: "2026-09-28T04:00:00.000Z",
+      tickets: [{ id: 8, orderNo: "FB-008", destination: "Meja 4", serviceLabel: "Makan di tempat", waiterName: "Sari", openedAt: startedAt, kitchenStartedAt: null, items: [] }],
+    }));
+    expect(html).toContain("TERLAMBAT");
+    expect(html).toContain("border-red-500");
+    expect(html).toContain("motion-safe:animate-pulse");
+    expect(renderTicket(null)).not.toContain("TERLAMBAT");
   });
 
   // Server rendering cannot exercise a mounted router refresh. These source
