@@ -5,7 +5,7 @@ export function getRoleHome(role: AppRole) {
     case "GM":
       return "/app/fo/reservasi";
     case "FO":
-      return "/app/fo/reservasi";
+      return "/app/fo";
     case "HK":
       return "/app/hk";
     case "FB":

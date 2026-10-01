@@ -22,6 +22,7 @@ import {
   History,
   Download,
   LayoutGrid,
+  LayoutDashboard,
   Shirt,
   FileText,
   LogOut,
@@ -92,6 +93,12 @@ const roleModuleNames: Record<AppRole, string> = {
 const frontDeskNavGroup: NavGroup = {
   label: "Front Office",
   links: [
+    {
+      label: "Dashboard",
+      href: "/app/fo",
+      icon: LayoutDashboard,
+      activeMatch: "exact",
+    },
     {
       label: "Kalender",
       href: "/app/fo/reservasi/kalender",

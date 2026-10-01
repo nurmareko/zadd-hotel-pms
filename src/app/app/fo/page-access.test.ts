@@ -6,6 +6,8 @@ vi.mock("next/navigation", () => ({ redirect: mocks.redirect, notFound: vi.fn() 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     room: { findMany: mocks.query },
+    hotelSettings: { findUniqueOrThrow: mocks.query },
+    reservation: { findMany: mocks.query },
     user: { findMany: mocks.query, findFirst: mocks.query },
     activityLog: { findMany: mocks.query },
   },
@@ -16,6 +18,8 @@ vi.mock("./room-blocks/block-dialogs", () => ({ CreateBlockDialog: vi.fn(), Rele
 vi.mock("./tamu/guest-filters", () => ({ GuestFilters: vi.fn() }));
 vi.mock("./tamu/guest-table", () => ({ GuestTable: vi.fn() }));
 
+import FOIndexPage from "./page";
+import { getRoleHome } from "@/lib/role-routes";
 import GuestDirectoryPage from "./tamu/page";
 import RoomBlocksPage from "./room-blocks/page";
 import StaffPerformancePage from "./staff-performance/page";
@@ -29,7 +33,14 @@ beforeEach(() => {
   mocks.redirect.mockImplementation((path: string) => { throw new Error(`redirect:${path}`); });
 });
 
+it("lands FO on the dashboard while preserving other role homes", () => {
+  expect(getRoleHome("FO")).toBe("/app/fo");
+  expect(getRoleHome("GM")).toBe("/app/fo/reservasi");
+  expect(getRoleHome("ADMIN")).toBe("/app/admin/users");
+});
+
 const pages = [
+  { name: "Front Office dashboard", render: () => FOIndexPage(), anonymousRedirect: "/login" },
   { name: "guest directory", render: () => GuestDirectoryPage({ searchParams: Promise.resolve({}) }), anonymousRedirect: "/login" },
   { name: "room blocks", render: () => RoomBlocksPage({ searchParams: Promise.resolve({}) }), anonymousRedirect: "/login" },
   { name: "staff performance", render: () => StaffPerformancePage({ searchParams: Promise.resolve({}) }), anonymousRedirect: "/app/forbidden" },

@@ -1,8 +1,8 @@
 # ZADD Hotel Management — MVP Screen Inventory
 
-Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **31 logical screens** across four operational modules, Admin, and shared/global access.
+Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **32 logical screens** across four operational modules, Admin, and shared/global access.
 
-**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` shared landing, the preserved `/app/hk/supervisor` and `/app/hk/list` compatibility redirects to the canonical Room Board, the retired FO summary route → Reservasi, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The HK compatibility shims are retained, not slated for removal; new links use `/app/hk/rooms` as the worksheet destination. Under this rule, **31 is the authoritative total**.
+**What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` shared landing, the preserved `/app/hk/supervisor` and `/app/hk/list` compatibility redirects to the canonical Room Board, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The HK compatibility shims are retained, not slated for removal; new links use `/app/hk/rooms` as the worksheet destination. Under this rule, **32 is the authoritative total**.
 
 ---
 
@@ -45,7 +45,7 @@ The application is built as a **single Next.js app** with four operational areas
 
 ## 3. Module Screens
 
-### 3.1 Front Office (8 screens)
+### 3.1 Front Office (9 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
@@ -57,8 +57,9 @@ The application is built as a **single Next.js app** with four operational areas
 | FO-06 | Check-out | Page | `/app/fo/check-out/[folioId]`: rounded whole-IDR balance gate—positive blocks; zero or credit proceeds; credit shows a warning and excess-return instruction. Includes final payment and PDF bill download. |
 | FO-07 | Group Booking Summary / Actions | Page | `/app/fo/reservasi/grup/[groupBookingId]`: group-room roll-up with per-room pax, current meal plan and stay total, stay-flexibility fee state, deposit state, reservation/folio status, action eligibility, and folio balance. Bulk deposit collection invokes the canonical serializable writer independently for each eligible sibling. Batch check-in does not collect deposits: it skips `PENDING` siblings and processes only eligible `COLLECTED` siblings that satisfy the individual check-in prerequisites, with per-room signatures. Also supports server-previewed all/selected meal-plan application, all/selected stay-flexibility fees, per-folio settlement, and eligible checkout. Every bulk mutation reports partial outcomes and delegates to independent canonical per-room transactions; aggregate amounts are display-only and there is no master/shared folio. |
 | FO-08 | Kinerja Petugas | Page | `/app/fo/staff-performance` and `/app/fo/staff-performance/[userId]`: ActivityLog-based FO comparison, preset/custom date ranges, sorting, per-user metrics, and paginated activity history. Accessible to FO and ADMIN. |
+| FO-09 | Operational Dashboard (#264) | Page | `/app/fo`: FO landing with today's `CONFIRMED` arrivals, today's `CHECKED_IN` departures with posted folio balances and canonical `/app/fo/check-out/[folioId]` links, in-house room/guest counts, occupancy (`(OC + OD) / non-OOO rooms`), room statuses, and quick shortcuts. Dynamic on request, with no polling; today uses WIB. |
 
-The retired FO summary route is a compatibility redirect to Reservasi, not a screen. Its departures-due-today queue and occupancy KPI are deferred to a future FO Reports page.
+GM home remains `/app/fo/reservasi`; ADMIN home is unchanged. `/app/fo/dashboard` remains retired and has no route; it is not a compatibility redirect.
 
 #### Recently Completed Front Office Enhancements (#204–#211)
 
@@ -70,7 +71,7 @@ The retired FO summary route is a compatibility redirect to Reservasi, not a scr
 | **Expanded Status Options & "No-show" (#208, #209)** | FO-02 (`/app/fo/reservasi/list`) | Status dropdown with default "Aktif" (`CONFIRMED`, `CHECKED_IN`, `CHECKED_OUT`), "Semua Status" (`ALL`), and specific status filters including "No-show" (`NO_SHOW`) and "Dibatalkan" (`CANCELLED`), accompanied by a one-click "Atur Ulang" reset button and live result counter. |
 | **Reservation List CSV Export & Shared CSV Utility (#210, #211)** | FO-02 (`/app/fo/reservasi/export`) | Role-gated `/app/fo/reservasi/export` endpoint (FO, ADMIN) generating downloadable CSVs respecting all active filters (`q`, `status`, `checkIn`, `checkOut`). Powered by the shared library `src/lib/csv.ts` providing UTF-8 BOM, spreadsheet formula-injection protection (`=`, `+`, `-`, `@`), and sanitized filename handling. |
 
-**Still cut/deferred from original**: retired FO summary screen (future reports will replace its useful queue/KPI), separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
+**Still cut/deferred from original**: separate Reservation Detail (merged into FO-03), In-House Guest List (use Kalender), Master Bill, and Guest Database.
 
 ### 3.2 Housekeeping (5 destinations)
 
@@ -206,12 +207,12 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 | Module | Pages | Cut from original |
 |---|---:|---:|
 | Global | 3 | 1 (Module Switcher) |
-| Front Office | 8 | 5 |
+| Front Office | 9 | 4 |
 | Housekeeping | 5 | 1 |
 | Food & Beverage | 5 | 3 |
 | Accounting | 3 | 7 |
 | Admin | 7 | 4 |
-| **Total** | **31** | **21 cut** |
+| **Total** | **32** | **20 cut** |
 
 Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-04, not a separate modal.
 
