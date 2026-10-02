@@ -172,7 +172,8 @@ const revenueNavGroup: NavGroup = {
 const fbNavGroup: NavGroup = {
   label: "Food & Beverage",
   links: [
-    { label: "POS", href: "/app/fb", icon: UtensilsCrossed },
+    { label: "Dasbor F&B", href: "/app/fb", icon: LayoutDashboard, activeMatch: "exact" },
+    { label: "POS Restoran", href: "/app/fb/pos", icon: UtensilsCrossed },
     { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
     {
       label: "Layar Dapur",

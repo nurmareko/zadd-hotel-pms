@@ -15,6 +15,8 @@ import { buttonVariants } from "@/components/ui/button";
 
 import { KpiCard } from "./kpi-card";
 import { OrderList } from "./order-list";
+import { getFBDashboardMetrics } from "@/lib/fb/dashboard-metrics";
+import { FBDashboardView } from "./dashboard/fb-dashboard-view";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,35 @@ export default async function FBLandingPage({
   searchParams,
 }: FBLandingPageProps) {
   const params = (await searchParams) ?? {};
-  const activeTab = firstParam(params.tab) === "orders" ? "orders" : "floor";
+  const tab = firstParam(params.tab);
+  const activeTab = tab === "floor" || tab === "orders" ? tab : "dashboard";
+  const tabs = (
+    <nav className="flex gap-5 border-b border-gray-200" aria-label="Tampilan F&B">
+      {[
+        { value: "dashboard", label: "Dasbor F&B" },
+        { value: "floor", label: "Denah Meja" },
+        { value: "orders", label: "Daftar Pesanan" },
+      ].map(({ value, label }) => (
+        <Link
+          key={value}
+          href={`/app/fb?tab=${value}`}
+          aria-current={activeTab === value ? "page" : undefined}
+          className={`border-b-2 pb-2 text-sm font-semibold transition-colors ${
+            activeTab === value
+              ? "border-slate-900 text-slate-900"
+              : "border-transparent text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+
+  if (activeTab === "dashboard") {
+    const metrics = await getFBDashboardMetrics(firstParam(params.date));
+    return <FBDashboardView metrics={metrics}>{tabs}</FBDashboardView>;
+  }
   const selectedStatusParam = firstParam(params.status);
   const selectedStatus = isOrderStatus(selectedStatusParam)
     ? selectedStatusParam
@@ -190,30 +220,7 @@ export default async function FBLandingPage({
         />
       </div>
 
-      <div className="mt-4 border-b border-gray-200">
-        <nav className="flex gap-5" aria-label="Tampilan F&B">
-          <Link
-            className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
-              activeTab === "floor"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-900"
-            }`}
-            href="/app/fb"
-          >
-            Denah Meja
-          </Link>
-          <Link
-            className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
-              activeTab === "orders"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-900"
-            }`}
-            href="/app/fb?tab=orders"
-          >
-            Daftar Pesanan
-          </Link>
-        </nav>
-      </div>
+      <div className="mt-4">{tabs}</div>
 
       <div className="mt-4">
         {activeTab === "orders" ? (

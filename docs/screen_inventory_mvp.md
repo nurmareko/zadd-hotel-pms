@@ -164,14 +164,16 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
-| FB-01 | Table Picker + Daily Summary | Page | Per-location table-only spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers; order list includes dine-in and room-service orders |
+| FB-01 | F&B Dashboard + Floor Plan + Orders | Page with tabs | `/app/fb` defaults to the operational/managerial dashboard (`tab=dashboard`); `tab=floor` preserves the per-location spatial floor plan, status actions and summary; `tab=orders` preserves the daily dine-in/room-service list. |
 | FB-POS | Restaurant POS | Page | `/app/fb/pos`: active-bill strip, location-filtered running tables and room-service queue, touch catalog, editable cart, canonical bill/payment and split-payment dialogs, receipt links, fullscreen, and F2/F4/F6 shortcuts. Saved items are automatically visible to the kitchen; holding a bill leaves it persisted and open. |
 | FB-01A | New Order | Page | `/app/fb/orders/new`: dine-in mode selects available/reserved table + guest count; `/app/fb/orders/new?service=room-service` validates room → in-house guest → OPEN folio and creates a tableless folio-attached order |
 | FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes; header labels room-service orders with room and guest instead of table |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
 | FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. Dine-in CTR picks the in-house guest by room number; room-service CTR uses the attached folio by default while direct payment methods remain available. |
 
-**Cut from original**: Dashboard (merged into FB-01), Order History (tab inside FB-01), Print Bill modal (PDF button on FB-03).
+**FB-01 dashboard (#268):** Header with Dasbor F&B, date picker (`date=YYYY-MM-DD`) and Buka POS. Six KPIs: gross sales, average settled bill, covers, open bills, complimentary placeholder, and average kitchen turnaround. A responsive 2×2 grid contains service/tender breakdowns, active bills (location, guests, stored amount, elapsed time), and menu items ranked by quantity then revenue. Three loss-prevention cards show complimentary/deleted-item zero placeholders with explicit unsupported-history explanations and actual voided orders (number, location, closing time in WIB, amount). Amounts use whole-IDR formatting. All reporting windows are `[00:00 WIB, next 00:00 WIB)`: closed/voided bills use `closedAt`, active OPEN/BILLED bills use `openedAt`, and non-voided kitchen completions use `kitchenReadyAt` with valid start/ready timestamps. Historical date selection does not reconstruct historical active status. Missing kitchen samples show an em dash. No schema changes, synthetic discounts, or cancellation reasons. Navigation separates Dasbor F&B (`/app/fb`) from POS Restoran (`/app/fb/pos`).
+
+**Cut from original**: Standalone Dashboard (now the default tab inside FB-01), Order History (tab inside FB-01), Print Bill modal (PDF button on FB-03).
 
 ### 3.4 Accounting (3 screens)
 

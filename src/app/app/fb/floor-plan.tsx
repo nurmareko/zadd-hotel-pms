@@ -57,8 +57,8 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
               }`}
               href={
                 location === locationTabs[0]
-                  ? "/app/fb"
-                  : `/app/fb?location=${location}`
+                  ? "/app/fb?tab=floor"
+                  : `/app/fb?tab=floor&location=${location}`
               }
             >
               {locationLabel(location)}
