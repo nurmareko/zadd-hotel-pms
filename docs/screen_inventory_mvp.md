@@ -1,6 +1,6 @@
 # ZADD Hotel Management — MVP Screen Inventory
 
-Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **32 logical screens** across four operational modules, Admin, and shared/global access.
+Authoritative inventory for shipped screen counts and IDs, and a reference for interface design and prototyping. The current MVP has **34 logical screens** across four operational modules, Admin, and shared/global access.
 
 **What counts as a "screen":** a logical screen/workspace, not a route. One screen may span several routes or modes: FO-03 covers reservation create, edit, read-only detail, and embedded folio modes; FO-08 spans staff comparison and per-user history routes. Pure redirect routes (`/app/hk` shared landing, the preserved `/app/hk/supervisor` and `/app/hk/list` compatibility redirects to the canonical Room Board, `/app/acc/night-report` → latest report) and role-redirect targets are infrastructure, not separate screens. The HK compatibility shims are retained, not slated for removal; new links use `/app/hk/rooms` as the worksheet destination. Under this rule, **32 is the authoritative total**.
 
@@ -160,16 +160,19 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 
-### 3.3 Food & Beverage (6 screens)
+### 3.3 Food & Beverage (7 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | FB-01 | F&B Dashboard + Floor Plan + Orders | Page with tabs | `/app/fb` defaults to the operational/managerial dashboard (`tab=dashboard`); `tab=floor` preserves the per-location spatial floor plan, status actions and summary; `tab=orders` preserves the daily dine-in/room-service list. |
+| FB-INV | Inventaris Dapur | Page and dialogs | `/app/fb/inventory`: ingredient balances, location/status filters, stock receipt, physical stock take, wastage, ledger history, and linked-menu 86 action for FB/ADMIN. |
 | FB-POS | Restaurant POS | Page | `/app/fb/pos`: active-bill strip, location-filtered running tables and room-service queue, touch catalog, editable cart, canonical bill/payment and split-payment dialogs, receipt links, fullscreen, and F2/F4/F6 shortcuts. Saved items are automatically visible to the kitchen; holding a bill leaves it persisted and open. |
 | FB-01A | New Order | Page | `/app/fb/orders/new`: dine-in mode selects available/reserved table + guest count; `/app/fb/orders/new?service=room-service` validates room → in-house guest → OPEN folio and creates a tableless folio-attached order |
 | FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes; header labels room-service orders with room and guest instead of table |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |
 | FB-04 | Payment | Page | Select method: cash, card, transfer, or charge-to-room. Dine-in CTR picks the in-house guest by room number; room-service CTR uses the attached folio by default while direct payment methods remain available. |
+
+**FB-INV kitchen inventory (#269, Phase 5):** Header with Boxes icon, location filter, Terima Barang, Stok Opname, Catat Kerusakan, and refresh. Tabs show Semua, Negatif, Habis, Rendah, and Aman with counts. An amber Perlu Perhatian panel highlights negative ingredients linked to menu items and offers a confirmed, idempotent 86 disable action. The register shows Bahan Baku, Kategori, Stok Fisik with unit, Par, Status, Terakhir Dihitung, and Aksi. Status rules are `< 0` NEGATIVE, `= 0` OUT, `0 < onHand <= parLevel` LOW, and `onHand > parLevel` OK. All quantities support three decimal places; negative balances are preserved. Receive/wastage use positive quantities; physical counts accept zero or positive quantities. Dialogs select an ingredient, quantity, and optional note (255 characters). Stock takes update the last-counted timestamp; all movements atomically record the signed delta, resulting balance, and operator. Riwayat Stok displays the latest 100 movements newest-first, including timestamps in WIB and operator names, with loading/error/empty states. Category and location are ingredient fields, not inferred from a menu. Receiving stock does not reactivate an 86 menu. Automatic POS consumption, recipes, procurement, and ingredient master-data CRUD are outside this phase. F&B owner review is required.
 
 **FB-01 dashboard (#268):** Header with Dasbor F&B, date picker (`date=YYYY-MM-DD`) and Buka POS. Six KPIs: gross sales, average settled bill, covers, open bills, complimentary placeholder, and average kitchen turnaround. A responsive 2×2 grid contains service/tender breakdowns, active bills (location, guests, stored amount, elapsed time), and menu items ranked by quantity then revenue. Three loss-prevention cards show complimentary/deleted-item zero placeholders with explicit unsupported-history explanations and actual voided orders (number, location, closing time in WIB, amount). Amounts use whole-IDR formatting. All reporting windows are `[00:00 WIB, next 00:00 WIB)`: closed/voided bills use `closedAt`, active OPEN/BILLED bills use `openedAt`, and non-voided kitchen completions use `kitchenReadyAt` with valid start/ready timestamps. Historical date selection does not reconstruct historical active status. Missing kitchen samples show an em dash. No schema changes, synthetic discounts, or cancellation reasons. Navigation separates Dasbor F&B (`/app/fb`) from POS Restoran (`/app/fb/pos`).
 
@@ -212,10 +215,10 @@ AC-03's canonical route is `/app/acc/reports/[auditId]`. `/app/acc/night-report`
 | Global | 3 | 1 (Module Switcher) |
 | Front Office | 9 | 4 |
 | Housekeeping | 5 | 1 |
-| Food & Beverage | 5 | 3 |
+| Food & Beverage | 7 | 3 |
 | Accounting | 3 | 7 |
 | Admin | 7 | 4 |
-| **Total** | **32** | **20 cut** |
+| **Total** | **34** | **20 cut** |
 
 Modal dialogs stay focused: cancellation uses a confirmation dialog; destructive Admin deletes and compact CRUD forms also use dialogs where appropriate. There is no shipped void-folio confirmation UI. Print previews are replaced by PDF downloads. Room picker during check-in is inline in FO-04, not a separate modal.
 

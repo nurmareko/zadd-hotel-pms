@@ -101,6 +101,13 @@ enum FolioStatus {
   VOIDED
 }
 
+enum FBStockMovementType {
+  RECEIVE
+  STOCK_TAKE
+  WASTAGE
+  CONSUMPTION
+}
+
 enum FBOrderStatus {
   OPEN // captain order stage (being taken / in kitchen)
   BILLED // customer has been presented the bill
@@ -235,6 +242,7 @@ model User {
   createdRoomBlocks       RoomBlock[]              @relation("RoomBlockCreator")
   folioLineItemsPosted    FolioLineItem[]
   fbOrdersWaited          FBOrder[]
+  stockMovementsRecorded  FBStockLedger[]          @relation("FBStockLedgerRecordedBy")
   housekeepingLogs        HousekeepingLog[]
   housekeepingAssignments HousekeepingAssignment[] @relation("HousekeepingAssignmentHousekeeper")
   cleaningSessions        CleaningSession[]        @relation("CleaningSessionHousekeeper")
@@ -538,8 +546,45 @@ model MenuItem {
   isActive Boolean @default(true) @map("is_active")
 
   orderItems FBOrderItem[]
+  ingredients FBIngredient[]
 
   @@map("menu_item")
+}
+
+model FBIngredient {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(100)
+  category      String    @db.VarChar(50)
+  unit          String    @db.VarChar(20)
+  onHand        Decimal   @default(0) @map("on_hand") @db.Decimal(10, 3)
+  parLevel      Decimal   @default(0) @map("par_level") @db.Decimal(10, 3)
+  menuItemId    Int?      @map("menu_item_id")
+  location      String?   @db.VarChar(50)
+  lastCountedAt DateTime? @map("last_counted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  menuItem  MenuItem?      @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  movements FBStockLedger[]
+
+  @@map("fb_ingredient")
+}
+
+model FBStockLedger {
+  id            Int                 @id @default(autoincrement())
+  ingredientId  Int                 @map("ingredient_id")
+  type          FBStockMovementType
+  quantityDelta Decimal             @map("quantity_delta") @db.Decimal(10, 3)
+  balanceAfter  Decimal             @map("balance_after") @db.Decimal(10, 3)
+  notes         String?             @db.VarChar(255)
+  recordedById  Int                 @map("recorded_by_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  ingredient FBIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  recordedBy User         @relation("FBStockLedgerRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([ingredientId, createdAt])
+  @@map("fb_stock_ledger")
 }
 
 model RestaurantTable {

@@ -13,6 +13,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   BedDouble,
+  Boxes,
   BarChart3,
   ClipboardList,
   ChefHat,
@@ -175,6 +176,7 @@ const fbNavGroup: NavGroup = {
     { label: "Dasbor F&B", href: "/app/fb", icon: LayoutDashboard, activeMatch: "exact" },
     { label: "POS Restoran", href: "/app/fb/pos", icon: UtensilsCrossed },
     { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
+    { label: "Inventaris Dapur", href: "/app/fb/inventory", icon: Boxes },
     {
       label: "Layar Dapur",
       href: "/app/fb/kitchen",
@@ -230,7 +232,10 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
   GM: [
     frontDeskNavGroup,
     hkNavGroup,
-    fbNavGroup,
+    {
+      ...fbNavGroup,
+      links: fbNavGroup.links.filter((link) => link.href !== "/app/fb/inventory"),
+    },
     revenueNavGroup,
     accountingNavGroup,
   ],

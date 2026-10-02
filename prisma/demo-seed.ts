@@ -3,6 +3,7 @@ import {
   ActivityAction,
   ArticleType,
   FBOrderStatus,
+  FBStockMovementType,
   FolioStatus,
   GuestIdType,
   LostFoundStatus,
@@ -238,6 +239,16 @@ const menuItems = [
   { code: "FRIES", name: "French Fries", category: "Snacks", price: 42000 },
   { code: "PISANG-GORENG", name: "Pisang Goreng", category: "Dessert", price: 30000 },
   { code: "ES-CAMPUR", name: "Es Campur", category: "Dessert", price: 36000 },
+] as const;
+
+const ingredients = [
+  { name: "Kopi bubuk", category: "Minuman", unit: "kg", onHand: "5.250", parLevel: "2.000", menuCode: "COFFEE", location: "Gudang kering" },
+  { name: "Daun teh", category: "Minuman", unit: "kg", onHand: "0.750", parLevel: "1.000", menuCode: "TEA", location: "Gudang kering" },
+  { name: "Beras", category: "Bahan pokok", unit: "kg", onHand: "25.000", parLevel: "10.000", menuCode: "NASI-GORENG", location: "Gudang kering" },
+  { name: "Daging ayam", category: "Daging", unit: "kg", onHand: "8.500", parLevel: "5.000", menuCode: "SATE-AYAM", location: "Lemari pendingin" },
+  { name: "Telur", category: "Protein", unit: "buah", onHand: "60.000", parLevel: "30.000", menuCode: "OMELETTE", location: "Lemari pendingin" },
+  { name: "Kentang", category: "Sayuran", unit: "kg", onHand: "0.000", parLevel: "5.000", menuCode: "FRIES", location: "Gudang kering" },
+  { name: "Jeruk manis", category: "Buah", unit: "buah", onHand: "-23.000", parLevel: "30.000", menuCode: "ORANGE-JUICE", location: "Lemari pendingin" },
 ] as const;
 
 const restaurantTables = [
@@ -1558,6 +1569,48 @@ async function main() {
     }
 
     console.log(`✓ seeded ${menuItems.length} menu items`);
+
+    await prisma.$transaction(async (tx) => {
+      const demoIngredientFilter = { name: { in: ingredients.map((ingredient) => ingredient.name) } };
+      // Reset only demo inventory, with children removed before their parents.
+      await tx.fBStockLedger.deleteMany({ where: { ingredient: demoIngredientFilter } });
+      await tx.fBIngredient.deleteMany({ where: demoIngredientFilter });
+
+      for (const { menuCode, onHand, parLevel, ...ingredient } of ingredients) {
+        const menuItem = await tx.menuItem.findUniqueOrThrow({
+          where: { code: menuCode },
+          select: { id: true },
+        });
+        const openingBalance = new Prisma.Decimal(onHand);
+        const openingType = openingBalance.isZero()
+          ? FBStockMovementType.STOCK_TAKE
+          : openingBalance.isNegative()
+            ? FBStockMovementType.CONSUMPTION
+            : FBStockMovementType.RECEIVE;
+        const openingAt = new Date();
+        await tx.fBIngredient.create({
+          data: {
+            ...ingredient,
+            onHand: openingBalance,
+            parLevel: new Prisma.Decimal(parLevel),
+            menuItemId: menuItem.id,
+            lastCountedAt: openingType === FBStockMovementType.STOCK_TAKE ? openingAt : null,
+            movements: {
+              create: {
+                type: openingType,
+                quantityDelta: openingBalance,
+                balanceAfter: openingBalance,
+                notes: "Saldo awal sintetis untuk demonstrasi stok",
+                recordedById: fbUser.id,
+                createdAt: openingAt,
+              },
+            },
+          },
+        });
+      }
+    }, { timeout: 15000 });
+
+    console.log(`✓ seeded ${ingredients.length} ingredients with opening stock ledger entries`);
 
     for (const [index, table] of restaurantTables.entries()) {
       const layoutPosition = getRestaurantTableGridPosition(index);

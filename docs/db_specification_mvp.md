@@ -1,6 +1,6 @@
 # Database Specification (MVP)
 
-Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 27 numbered tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
+Database design for the ZADD Hotel Management MVP. Implemented in PostgreSQL with Prisma ORM. 29 numbered tables organized across eight logical domains: authentication, master data, front office, food & beverage, housekeeping, accounting, payment, and activity logging.
 
 The source of truth for the schema itself is `prisma/schema.prisma`. This document describes the intent, relationships, and design decisions behind it.
 
@@ -8,7 +8,7 @@ The source of truth for the schema itself is `prisma/schema.prisma`. This docume
 
 ## Entity Relationship Diagram
 
-The ERD below shows the 27 numbered entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
+The ERD below shows the 29 numbered entities and their relationships in crow's-foot notation. Render through [mermaid.live](https://mermaid.live) or any Mermaid-compatible viewer.
 
 ```mermaid
 erDiagram
@@ -56,11 +56,37 @@ erDiagram
   ARTICLE ||--o{ FOLIO_LINE_ITEM : "charged_as"
 
   MENU_ITEM ||--o{ FB_ORDER_ITEM : "ordered_as"
+  MENU_ITEM |o--o{ FB_INGREDIENT : "linked_to"
+  FB_INGREDIENT ||--o{ FB_STOCK_LEDGER : "tracks"
+  USER ||--o{ FB_STOCK_LEDGER : "records"
   RESTAURANT_TABLE ||--o{ FB_ORDER : "hosts"
   FB_ORDER ||--o{ FB_ORDER_ITEM : "contains"
   FB_ORDER ||--o{ PAYMENT : "settled_by"
   FB_ORDER ||--o{ FOLIO_LINE_ITEM : "charged_to_room"
 
+  FB_INGREDIENT {
+    int id PK
+    varchar name
+    varchar category
+    varchar unit
+    decimal on_hand
+    decimal par_level
+    int menu_item_id FK "nullable"
+    varchar location "nullable"
+    timestamp last_counted_at "nullable"
+    timestamp created_at
+    timestamp updated_at
+  }
+  FB_STOCK_LEDGER {
+    int id PK
+    int ingredient_id FK
+    FBStockMovementType type
+    decimal quantity_delta
+    decimal balance_after
+    varchar notes
+    int recorded_by_id FK
+    timestamp created_at
+  }
   LINEN_BATCH {
     text id PK
     text batch_code UK
@@ -433,6 +459,11 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 27. LinenBatch(*id*, batch_code, item_type, sent_quantity, received_quantity nullable, damaged_quantity, status, vendor nullable, notes nullable, sent_at, completed_at nullable, *recorded_by_id\#*, received_by_id\# nullable, created_at, updated_at)
 
+**Food & Beverage inventory (data foundation)**
+
+28. FBIngredient(*id*, name, category, unit, on_hand, par_level, menu_item_id\# nullable, location nullable, last_counted_at nullable, created_at, updated_at)
+29. FBStockLedger(*id*, *ingredient_id\#*, type, quantity_delta, balance_after, notes nullable, *recorded_by_id\#*, created_at)
+
 ## Enum specifications
 
 | Enum | Values |
@@ -450,6 +481,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | FolioStatus | OPEN, CLOSED, VOIDED |
 | FBOrderServiceType | DINE_IN, ROOM_SERVICE |
 | FBOrderStatus | OPEN, BILLED, CLOSED, VOIDED |
+| FBStockMovementType | RECEIVE, STOCK_TAKE, WASTAGE, CONSUMPTION |
 | TableLocation | INDOOR, OUTDOOR, PRIVATE |
 | TableStatus | AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE |
 | PaymentMethod | CASH, TRANSFER, CARD, CHARGE_TO_ROOM |
@@ -927,6 +959,47 @@ Indexes and constraints:
 | category | VARCHAR(50) | NOT NULL | Category (Main, Beverage, Dessert, etc.) |
 | price | DECIMAL(12,2) | NOT NULL | Selling price |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Active status |
+
+### `fb_ingredient`
+
+Prisma model: `FBIngredient`. Phase 5 exposes inventory actions at `/app/fb/inventory`; recipe ratios and automatic order consumption remain out of scope.
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique ingredient identifier |
+| name | VARCHAR(100) | NOT NULL | Ingredient name |
+| category | VARCHAR(50) | NOT NULL | Ingredient category |
+| unit | VARCHAR(20) | NOT NULL | Stock unit, for example kg, liter, or buah |
+| on_hand | DECIMAL(10,3) | NOT NULL, DEFAULT 0 | Signed current stock quantity; negative stock is representable |
+| par_level | DECIMAL(10,3) | NOT NULL, DEFAULT 0 | Signed storage for the replenishment target; no nonnegative database constraint |
+| menu_item_id | INT | FOREIGN KEY → menu_item(id), ON DELETE SET NULL | Optional menu link; deleting a menu item preserves ingredient and stock history |
+| location | VARCHAR(50) | — | Optional storage location |
+| last_counted_at | TIMESTAMP | — | Most recent physical stock count; Prisma `lastCountedAt` |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Prisma-managed last update time |
+
+A menu item may link to multiple ingredients; this is not a recipe or unit-conversion model. Ingredient names are not unique; there is no ingredient code or active flag.
+
+### `fb_stock_ledger`
+
+Prisma model: `FBStockLedger`. Each row records a signed change and the resulting balance in the ingredient's stock unit.
+
+| Attribute | Type | Constraint | Notes |
+|---|---|---|---|
+| id | SERIAL | PRIMARY KEY | Unique movement identifier |
+| ingredient_id | INT | NOT NULL, FOREIGN KEY → fb_ingredient(id), ON DELETE CASCADE | Ingredient whose stock changed |
+| type | FBStockMovementType | NOT NULL | RECEIVE, STOCK_TAKE, WASTAGE, CONSUMPTION |
+| quantity_delta | DECIMAL(10,3) | NOT NULL | Signed adjustment, not the absolute stock-take count; Prisma `quantityDelta` |
+| balance_after | DECIMAL(10,3) | NOT NULL | Signed balance after this movement; Prisma `balanceAfter` |
+| notes | VARCHAR(255) | — | Optional operational explanation |
+| recorded_by_id | INT | NOT NULL, FOREIGN KEY → user(id), ON DELETE RESTRICT | Operator; Prisma relation `recordedBy`, named `FBStockLedgerRecordedBy` |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Recording time |
+
+Index: (`ingredient_id`, `created_at`). All foreign keys use ON UPDATE CASCADE. Inverse relations are `MenuItem.ingredients`, `FBIngredient.movements`, and `User.stockMovementsRecorded` (named `FBStockLedgerRecordedBy`). Deleting an ingredient cascades to its movements.
+
+Stock writers update `on_hand` and append the ledger row atomically, deriving `balanceAfter = previous balance + quantityDelta` from transaction-local stock. RECEIVE adds stock, STOCK_TAKE records the difference from a physical count, and WASTAGE/CONSUMPTION subtract stock. No unsigned or nonnegative checks are added to these decimal columns. Phase 5 provides receipt, physical-count, and wastage writers with serializable retries; no database triggers or automatic consumption writer are added.
+
+The demo seed identifies its fixtures by ingredient name, deleting their ledger rows before ingredients, and recreates each ingredient with a synthetic opening entry from zero whose `quantityDelta` and `balanceAfter` equal `on_hand`. The opening type follows the balance sign: positive uses RECEIVE, zero uses STOCK_TAKE and sets `lastCountedAt` to the movement's `createdAt`, and negative uses CONSUMPTION (never a negative RECEIVE). These synthetic fixtures demonstrate normal, low, zero, and negative stock: Daun teh remains below par, Kentang is zero, and Jeruk manis has -23 buah linked to the existing ORANGE-JUICE menu item. Matching names are reserved for demo fixtures during reset. Creation and cleanup share one transaction, preventing doubled opening balances on reruns. Opening movements are explicitly labeled synthetic demo data, not actual historical receipts, counts, or order consumption.
 
 ### `restaurant_table`
 
