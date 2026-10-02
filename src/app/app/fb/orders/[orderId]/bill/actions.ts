@@ -29,6 +29,7 @@ async function canManageFbOrders() {
 
 function revalidateBillPaths(orderId: number) {
   revalidatePath("/app/fb");
+  revalidatePath("/app/fb/pos");
   revalidatePath(`/app/fb/orders/${orderId}`);
   revalidatePath(`/app/fb/orders/${orderId}/bill`);
 }

@@ -160,11 +160,12 @@ Phase 2 retains all #240 Phase 1 destinations, access rules, cleaning/inspection
 
 **Cut from original**: separate Activity Log screen (room-level history is available from room detail; `housekeeping_log` remains the audit table).
 
-### 3.3 Food & Beverage (5 screens)
+### 3.3 Food & Beverage (6 screens)
 
 | # | Screen | Layout | Primary function |
 |---|---|---|---|
 | FB-01 | Table Picker + Daily Summary | Page | Per-location table-only spatial floor plan with status-colored table tiles + today's revenue snapshot; RESERVED/OOS tables open status-action popovers; order list includes dine-in and room-service orders |
+| FB-POS | Restaurant POS | Page | `/app/fb/pos`: active-bill strip, location-filtered running tables and room-service queue, touch catalog, editable cart, canonical bill/payment and split-payment dialogs, receipt links, fullscreen, and F2/F4/F6 shortcuts. Saved items are automatically visible to the kitchen; holding a bill leaves it persisted and open. |
 | FB-01A | New Order | Page | `/app/fb/orders/new`: dine-in mode selects available/reserved table + guest count; `/app/fb/orders/new?service=room-service` validates room → in-house guest → OPEN folio and creates a tableless folio-attached order |
 | FB-02 | Captain Order | Page | Fast menu entry: pick item, quantity, notes; header labels room-service orders with room and guest instead of table |
 | FB-03 | Order / Bill Detail | Page | Line items, subtotal, auto-computed service charge + tax, "add item" button, "Pay" button |

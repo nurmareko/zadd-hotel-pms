@@ -69,6 +69,7 @@ async function canManageFbOrders() {
 
 function revalidateOrderPaths(orderId?: number) {
   revalidatePath("/app/fb");
+  revalidatePath("/app/fb/pos");
 
   if (orderId) {
     revalidatePath(`/app/fb/orders/${orderId}`);
@@ -229,7 +230,10 @@ async function runCreateOrderTransaction(
   );
 }
 
-export async function createOrder(input: unknown): Promise<ActionResult> {
+export async function createOrder(
+  input: unknown,
+  destination?: "pos",
+): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
@@ -271,7 +275,11 @@ export async function createOrder(input: unknown): Promise<ActionResult> {
   }
 
   revalidateOrderPaths(result.orderId);
-  redirect(`/app/fb/orders/${result.orderId}`);
+  redirect(
+    destination === "pos"
+      ? `/app/fb/pos?orderId=${result.orderId}`
+      : `/app/fb/orders/${result.orderId}`,
+  );
 }
 
 async function runCreateRoomServiceOrderTransaction(
@@ -320,6 +328,7 @@ async function runCreateRoomServiceOrderTransaction(
 
 export async function createRoomServiceOrder(
   input: unknown,
+  destination?: "pos",
 ): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
@@ -372,7 +381,11 @@ export async function createRoomServiceOrder(
   }
 
   revalidateOrderPaths(result.orderId);
-  redirect(`/app/fb/orders/${result.orderId}`);
+  redirect(
+    destination === "pos"
+      ? `/app/fb/pos?orderId=${result.orderId}`
+      : `/app/fb/orders/${result.orderId}`,
+  );
 }
 
 export async function lookupRoomForCharge(

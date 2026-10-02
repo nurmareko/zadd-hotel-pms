@@ -149,17 +149,20 @@ export default async function FBLandingPage({
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <Link className={buttonVariants()} href="/app/fb/pos">
+            Buka POS Restoran
+          </Link>
           <Link
             className={buttonVariants({ variant: "outline" })}
             href="/app/fb/orders/new?service=room-service"
           >
-            Order Room Service Baru
+            Pesanan Layanan Kamar Baru
           </Link>
           <Link
-            className={buttonVariants()}
+            className={buttonVariants({ variant: "outline" })}
             href="/app/fb/orders/new"
           >
-            Mulai Order Baru
+            Mulai Pesanan Baru
           </Link>
         </div>
       </div>
@@ -176,19 +179,19 @@ export default async function FBLandingPage({
           sub={`${availableTableCount} meja siap pakai`}
         />
         <KpiCard
-          label="Order Berjalan"
+          label="Pesanan Berjalan"
           value={openOrderCount}
-          sub={`${activeGuestCount} tamu dalam order aktif`}
+          sub={`${activeGuestCount} tamu dalam pesanan aktif`}
         />
         <KpiCard
           label="Pendapatan Hari Ini"
           value={formatIDR(todayRevenue)}
-          sub="Order selesai hari ini"
+          sub="Pesanan selesai hari ini"
         />
       </div>
 
       <div className="mt-4 border-b border-gray-200">
-        <nav className="flex gap-5" aria-label="F&B tabs">
+        <nav className="flex gap-5" aria-label="Tampilan F&B">
           <Link
             className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
               activeTab === "floor"
@@ -207,7 +210,7 @@ export default async function FBLandingPage({
             }`}
             href="/app/fb?tab=orders"
           >
-            Daftar Order
+            Daftar Pesanan
           </Link>
         </nav>
       </div>

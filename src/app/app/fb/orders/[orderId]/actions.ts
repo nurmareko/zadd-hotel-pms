@@ -86,6 +86,7 @@ async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "p
 
 function revalidateOrderPaths(orderId?: number) {
   revalidatePath("/app/fb");
+  revalidatePath("/app/fb/pos");
   revalidatePath("/app/fb/kitchen");
 
   if (orderId) {
