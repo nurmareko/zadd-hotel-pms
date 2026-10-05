@@ -341,10 +341,15 @@ function isRetryablePostingConflict(error: unknown) {
 export function stayNightsThroughCheckout(
   arrivalDate: Date,
   now: Date = new Date(),
+  departureDate?: Date,
 ): number {
+  const throughDate = departureDate
+    ? dateOnlyBoundary(departureDate)
+    : hotelTodayDateOnly(now);
+
   return Math.max(
     1,
-    differenceInCalendarDays(hotelTodayDateOnly(now), arrivalDate),
+    differenceInCalendarDays(throughDate, arrivalDate),
   );
 }
 
@@ -359,8 +364,20 @@ export function stayNightsThroughCheckout(
 export function stayNightsThroughAuditDate(
   arrivalDate: Date,
   businessDate: Date,
+  departureDate?: Date,
 ): number {
-  return Math.max(1, differenceInCalendarDays(businessDate, arrivalDate) + 1);
+  const scheduledLastNight = departureDate
+    ? addDays(dateOnlyBoundary(departureDate), -1)
+    : businessDate;
+  const lastIncludedDate =
+    scheduledLastNight.getTime() < businessDate.getTime()
+      ? scheduledLastNight
+      : businessDate;
+
+  return Math.max(
+    1,
+    differenceInCalendarDays(lastIncludedDate, arrivalDate) + 1,
+  );
 }
 
 /**
@@ -527,7 +544,7 @@ export function buildPendingStayChargeLines({
     reservationNo,
     arrivalDate,
     departureDate,
-    expectedNights: stayNightsThroughCheckout(arrivalDate, now),
+    expectedNights: stayNightsThroughCheckout(arrivalDate, now, departureDate),
     reservationNights,
     lineItems,
     articles,

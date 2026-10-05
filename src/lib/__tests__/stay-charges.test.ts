@@ -27,6 +27,23 @@ describe("stay charge night counts", () => {
       stayNightsThroughAuditDate(date("2026-08-01"), date("2026-08-02")),
     ).toBe(2);
   });
+
+  it("does not require nights after the scheduled departure", () => {
+    expect(
+      stayNightsThroughCheckout(
+        date("2026-09-18"),
+        new Date("2026-10-05T01:00:00.000Z"),
+        date("2026-09-22"),
+      ),
+    ).toBe(4);
+    expect(
+      stayNightsThroughAuditDate(
+        date("2026-09-18"),
+        date("2026-10-05"),
+        date("2026-09-22"),
+      ),
+    ).toBe(4);
+  });
 });
 
 describe("stayChargeShortfallLines", () => {

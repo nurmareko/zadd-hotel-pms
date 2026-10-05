@@ -61,7 +61,10 @@ export const proxy = auth((request) => {
     return NextResponse.next();
   }
 
-  if (pathname === "/app/fb" && session.user.role === "ACC") {
+  if (
+    (pathname === "/app/fb" || routeMatches(pathname, "/app/fb/orders")) &&
+    session.user.role === "ACC"
+  ) {
     return NextResponse.next();
   }
 

@@ -25,6 +25,7 @@ type BillActionsProps = {
   orderNo: string;
   status: "OPEN" | "BILLED" | "CLOSED" | "VOIDED";
   hasItems: boolean;
+  canReopen?: boolean;
 };
 
 function downloadBillPdf(orderId: number, orderNo: string) {
@@ -41,6 +42,7 @@ export function BillActions({
   orderNo,
   status,
   hasItems,
+  canReopen = true,
 }: BillActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -124,7 +126,7 @@ export function BillActions({
             <Button variant="outline" onClick={handleReprint} type="button">
               Cetak Ulang Bill
             </Button>
-            <AlertDialog>
+            {canReopen ? <AlertDialog>
               <AlertDialogTrigger
                 className={buttonVariants({ variant: "outline" })}
                 disabled={isPending}
@@ -154,7 +156,7 @@ export function BillActions({
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialog> : null}
           </>
         ) : null}
 

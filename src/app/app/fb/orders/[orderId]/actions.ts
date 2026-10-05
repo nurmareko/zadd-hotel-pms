@@ -94,7 +94,17 @@ function isSerializationConflict(error: unknown) {
 async function canManageFbOrders() {
   const session = await auth();
 
-  if (session?.user.role !== "FB") {
+  if (!session || session.user.role !== "FB") {
+    return null;
+  }
+
+  return Number(session.user.id);
+}
+
+async function canSettleFbOrders() {
+  const session = await auth();
+
+  if (!session || !["FB", "ACC"].includes(session.user.role)) {
     return null;
   }
 
@@ -1061,7 +1071,7 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
 export async function lookupRoomForCharge(
   input: unknown,
 ): Promise<ChargeLookupResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canSettleFbOrders();
 
   if (!userId) {
     return { ok: false, error: "Unauthorized" };
@@ -1082,7 +1092,7 @@ export async function lookupRoomForCharge(
 export async function payOrderDirect(
   input: unknown,
 ): Promise<PaymentActionResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canSettleFbOrders();
 
   if (!userId) {
     return { ok: false, error: "Unauthorized" };
@@ -1253,7 +1263,7 @@ export async function payOrderDirect(
 export async function chargeOrderToRoom(
   input: unknown,
 ): Promise<PaymentActionResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canSettleFbOrders();
 
   if (!userId) {
     return { ok: false, error: "Unauthorized" };

@@ -28,14 +28,15 @@ type OrderCartProps = {
     serviceChargePercent: string;
     taxPercent: string;
   };
+  readOnly?: boolean;
 };
 
 function shouldShowAmount(amount: string) {
   return Number(amount) > 0;
 }
 
-export function OrderCart({ order, settings }: OrderCartProps) {
-  const canEdit = order.status === "OPEN";
+export function OrderCart({ order, settings, readOnly = false }: OrderCartProps) {
+  const canEdit = order.status === "OPEN" && !readOnly;
   const itemsByGuest = Array.from(
     order.items.reduce((groups, item) => {
       const guestNumber = item.guestNumber || 1;

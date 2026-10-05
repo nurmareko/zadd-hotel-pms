@@ -1,6 +1,7 @@
 import { FBOrderServiceType, FBOrderStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
 
+import { auth } from "@/auth";
 import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatDateTimeID } from "@/lib/format";
@@ -54,6 +55,7 @@ export default async function BillPage({ params }: BillPageProps) {
   if (!Number.isInteger(id) || id <= 0) {
     notFound();
   }
+  const session = await auth();
 
   const [order, settings] = await Promise.all([
     prisma.fBOrder.findUnique({
@@ -156,6 +158,7 @@ export default async function BillPage({ params }: BillPageProps) {
           orderId={order.id}
           orderNo={order.orderNo}
           status={order.status}
+          canReopen={session?.user.role !== "ACC"}
         />
       </div>
     </main>

@@ -25,6 +25,16 @@ async function canManageFbOrders() {
   return true;
 }
 
+async function canConfirmFbBill() {
+  const session = await auth();
+
+  if (!["FB", "ACC"].includes(session?.user.role ?? "")) {
+    return false;
+  }
+
+  return true;
+}
+
 function revalidateBillPaths(orderId: number) {
   revalidatePath("/app/fb");
   revalidatePath(`/app/fb/orders/${orderId}`);
@@ -43,7 +53,7 @@ async function lockOrder(tx: Prisma.TransactionClient, orderId: number) {
 }
 
 export async function confirmBill(input: unknown): Promise<BillActionResult> {
-  const canManage = await canManageFbOrders();
+  const canManage = await canConfirmFbBill();
 
   if (!canManage) {
     return { ok: false, error: "Unauthorized" };

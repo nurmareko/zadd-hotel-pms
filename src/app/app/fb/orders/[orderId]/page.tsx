@@ -1,6 +1,7 @@
 import { FBOrderServiceType } from "@prisma/client";
 import { notFound } from "next/navigation";
 
+import { auth } from "@/auth";
 import { parseFBOrderItemNotes } from "@/lib/fb-order-guest";
 import { computeFBOrderTotals } from "@/lib/fb-order-totals";
 import { formatIDR } from "@/lib/format";
@@ -19,6 +20,8 @@ type OrderDetailPageProps = {
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orderId } = await params;
   const id = Number(orderId) || -1;
+  const session = await auth();
+  const readOnly = session?.user.role === "ACC";
 
   const [order, menuItems, settings] = await Promise.all([
     prisma.fBOrder.findUnique({
@@ -113,6 +116,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           orderId={order.id}
           orderStatus={order.status}
           guestCount={order.guestCount}
+          readOnly={readOnly}
         />
         <OrderCart
           order={{
@@ -147,6 +151,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             serviceChargePercent: settings.serviceChargePercent.toString(),
             taxPercent: settings.taxPercent.toString(),
           }}
+          readOnly={readOnly}
         />
       </div>
     </main>
