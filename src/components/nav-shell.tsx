@@ -196,12 +196,6 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           icon: Download,
           activeMatch: "startsWith",
         },
-        {
-          label: "F&B",
-          href: "/app/fb",
-          icon: UtensilsCrossed,
-          activeMatch: "exact",
-        },
       ],
     },
   ],
