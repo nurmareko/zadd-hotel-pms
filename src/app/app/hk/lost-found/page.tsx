@@ -38,7 +38,7 @@ const statusClassNames: Record<
   UNCLAIMED: {
     badge: "border-status-vd-pip bg-status-vd-bg text-status-vd-fg",
     pip: "bg-status-vd-pip",
-    label: "Belum diambil",
+    label: "Belum diklaim",
   },
   RETURNED: {
     badge: "border-status-vc-pip bg-status-vc-bg text-status-vc-fg",
@@ -145,7 +145,7 @@ function LostFoundCard({ item }: { item: LostFoundRow }) {
           )}
         </dd>
         <dt className="text-[11px] font-medium tracking-tight text-slate-500">
-          Ditemukan Oleh
+          Ditemukan oleh
         </dt>
         <dd>{item.foundBy.fullName}</dd>
         <dt className="text-[11px] font-medium tracking-tight text-slate-500">
@@ -225,7 +225,7 @@ export default async function LostFoundPage({
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Lost &amp; Found
+            Barang Tertinggal &amp; Temuan
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {items.length} barang · terbaru dulu
@@ -265,7 +265,7 @@ export default async function LostFoundPage({
               className={`${fieldClass} sm:w-[150px]`}
             >
               <option value="">Semua Status</option>
-              <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diambil</option>
+              <option value={LOST_FOUND_STATUS_VALUES[0]}>Belum diklaim</option>
               <option value={LOST_FOUND_STATUS_VALUES[1]}>Dikembalikan</option>
             </select>
             <Button type="submit" variant="outline" size="default" className="rounded-md">
@@ -309,7 +309,7 @@ export default async function LostFoundPage({
       <section className="space-y-2 md:hidden">
         {items.length === 0 ? (
           <p className="rounded-lg border border-border bg-card px-3 py-8 text-center text-sm italic text-muted-foreground">
-            Tidak ada barang Lost &amp; Found yang cocok dengan filter.
+            Tidak ada barang tertinggal atau temuan yang cocok dengan filter.
           </p>
         ) : (
           items.map((item) => <LostFoundCard key={item.id} item={item} />)
@@ -323,10 +323,10 @@ export default async function LostFoundPage({
               <tr>
                 <th className={headerCellClass}>Barang</th>
                 <th className={headerCellClass}>Kamar</th>
-                <th className={headerCellClass}>Ditemukan Oleh</th>
+                <th className={headerCellClass}>Ditemukan oleh</th>
                 <th className={headerCellClass}>Waktu</th>
                 <th className={headerCellClass}>Status</th>
-                <th className={headerCellClass}>Penyelesaian</th>
+                <th className={headerCellClass}>Catatan pengembalian</th>
               </tr>
             </thead>
             <tbody>
@@ -336,7 +336,7 @@ export default async function LostFoundPage({
                     colSpan={6}
                     className="px-3 py-8 text-center text-[12px] italic text-slate-400"
                   >
-                    Tidak ada barang Lost & Found yang cocok dengan filter.
+                    Tidak ada barang tertinggal atau temuan yang cocok dengan filter.
                   </td>
                 </tr>
               ) : (

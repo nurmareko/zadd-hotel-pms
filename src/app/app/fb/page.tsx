@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import Link from "next/link";
 
+import { auth } from "@/auth";
 import { hotelTodayTimestampRange } from "@/lib/date-only";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -52,6 +53,8 @@ export default async function FBLandingPage({
   searchParams,
 }: FBLandingPageProps) {
   const params = (await searchParams) ?? {};
+  const session = await auth();
+  const isReadOnly = session?.user.role === "ACC";
   const activeTab = firstParam(params.tab) === "orders" ? "orders" : "floor";
   const selectedStatusParam = firstParam(params.status);
   const selectedStatus = isOrderStatus(selectedStatusParam)
@@ -148,27 +151,26 @@ export default async function FBLandingPage({
             tamu aktif
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Link
-            className={buttonVariants({ variant: "outline" })}
-            href="/app/fb/orders/new?service=room-service"
-          >
-            New Room Service Order
-          </Link>
-          <Link
-            className={buttonVariants()}
-            href="/app/fb/orders/new"
-          >
-            Mulai Order Baru
-          </Link>
-        </div>
+        {!isReadOnly ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/app/fb/orders/new?service=room-service"
+            >
+              Order Room Service Baru
+            </Link>
+            <Link className={buttonVariants()} href="/app/fb/orders/new">
+              Mulai Order Baru
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Aktif"
           value={activeTableCount}
-          sub={`${activeTableCount} meja occupied`}
+          sub={`${activeTableCount} meja terisi`}
         />
         <KpiCard
           label="Tersedia"
@@ -178,17 +180,17 @@ export default async function FBLandingPage({
         <KpiCard
           label="Order Berjalan"
           value={openOrderCount}
-          sub={`${activeGuestCount} tamu dalam order open`}
+          sub={`${activeGuestCount} tamu dalam order terbuka`}
         />
         <KpiCard
           label="Pendapatan Hari Ini"
           value={formatIDR(todayRevenue)}
-          sub="Order closed hari ini"
+          sub="Order selesai hari ini"
         />
       </div>
 
       <div className="mt-4 border-b border-gray-200">
-        <nav className="flex gap-5" aria-label="F&B tabs">
+        <nav className="flex gap-5" aria-label="Tab F&B">
           <Link
             className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${
               activeTab === "floor"
@@ -197,7 +199,7 @@ export default async function FBLandingPage({
             }`}
             href="/app/fb"
           >
-            Floor Plan
+            Papan Meja
           </Link>
           <Link
             className={`border-b-2 px-0 pb-2 text-sm font-semibold transition-colors ${

@@ -77,15 +77,9 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
           </label>
           <button className="inline-flex h-10 items-center justify-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800" type="submit">Terapkan</button>
           <div className="h-px bg-border lg:mx-2 lg:h-10 lg:w-px" />
-          <label className="grid gap-1.5 text-sm font-medium text-foreground">
-            Format
-            <select className="h-10 rounded-md border border-input bg-white px-3 text-sm" defaultValue="CSV" disabled>
-              <option value="CSV">CSV</option>
-            </select>
-          </label>
           <a className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800" href={exportHref} download>
             <Download aria-hidden="true" className="h-4 w-4" />
-            Download CSV
+            Ekspor CSV
           </a>
         </form>
         {rangeError ? <p className="mt-3 text-sm text-red-700">{rangeError}</p> : null}

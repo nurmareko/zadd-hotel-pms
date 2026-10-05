@@ -75,7 +75,7 @@ export function ManagerFlashView({
             Accounting
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-            Night Report
+            Laporan Malam
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Ringkasan kinerja hotel untuk {dateLabel(report.selectedDate)}.
@@ -92,15 +92,15 @@ export function ManagerFlashView({
 
       <section aria-label="Metrik kinerja" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard
-          className="border-blue-100 bg-blue-50/50 [&_div:first-child]:text-blue-600 [&_div:nth-child(2)]:text-blue-900"
+          className="border-slate-200 bg-slate-50 [&_div:first-child]:text-slate-600 [&_div:nth-child(2)]:text-slate-900"
           label="OKUPANSI"
           sub={`${day.roomsOccupied} dari ${day.totalRooms} kamar`}
           value={formatFixedPercent(day.occupancyRate, 1)}
         />
         <KpiCard
-          className="border-indigo-100 bg-indigo-50/50 [&_div:first-child]:text-indigo-600 [&_div:nth-child(2)]:text-indigo-900"
+          className="border-amber-100 bg-amber-50/50 [&_div:first-child]:text-amber-600 [&_div:nth-child(2)]:text-amber-900"
           label="ARR / ADR"
-          sub={`${day.soldRoomNights} sold room night`}
+          sub={`${day.soldRoomNights} room night terjual`}
           value={money(day.adr)}
         />
         <KpiCard

@@ -61,6 +61,10 @@ export const proxy = auth((request) => {
     return NextResponse.next();
   }
 
+  if (pathname === "/app/fb" && session.user.role === "ACC") {
+    return NextResponse.next();
+  }
+
   if (routeMatches(pathname, "/app/hk/lost-found")) {
     if (!["HK", "FO"].includes(session.user.role)) {
       return NextResponse.rewrite(new URL("/app/forbidden", request.url));

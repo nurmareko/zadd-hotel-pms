@@ -166,7 +166,16 @@ export async function recordFinalPayment(
       where: { folioId: folio.id },
       include: { article: true },
     });
-    const totals = computeFolioTotals(lineItems, folio.payments, settings);
+    const refreshedFolio = await prisma.folio.findUnique({
+      where: { id: folio.id },
+      select: { payments: true },
+    });
+    if (!refreshedFolio) return checkoutFailure("FOLIO_NOT_FOUND");
+    const totals = computeFolioTotals(
+      lineItems,
+      refreshedFolio.payments,
+      settings,
+    );
 
     if (totals.balance <= 0) {
       return checkoutFailure("BALANCE_ALREADY_SETTLED");
@@ -390,6 +399,12 @@ export async function completeCheckout(
             const currentFolio = await tx.folio.findUnique({
               where: { id: folio.id },
               include: {
+                reservation: {
+                  select: {
+                    status: true,
+                    roomId: true,
+                  },
+                },
                 lineItems: { include: { article: true } },
                 payments: true,
               },
@@ -403,6 +418,11 @@ export async function completeCheckout(
             }
             if (!currentSettings) {
               throw new CheckoutActionError("SETTINGS_UNAVAILABLE");
+            }
+            if (
+              currentFolio.reservation.status !== ReservationStatus.CHECKED_IN
+            ) {
+              throw new CheckoutActionError("RESERVATION_NOT_CHECKED_IN");
             }
 
             const currentTotals = computeFolioTotals(
@@ -437,9 +457,9 @@ export async function completeCheckout(
             }
 
             // Preserve the existing advisory room ID behavior for this batch.
-            if (folio.reservation.roomId) {
+            if (currentFolio.reservation.roomId) {
               await tx.room.update({
-                where: { id: folio.reservation.roomId },
+                where: { id: currentFolio.reservation.roomId },
                 data: { status: RoomStatus.VD },
               });
             }

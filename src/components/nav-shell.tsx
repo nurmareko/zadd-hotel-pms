@@ -90,7 +90,7 @@ const hkMemberNavGroup: NavGroup = {
       activePaths: [{ href: "/app/hk/rooms", match: "startsWith" }],
     },
     {
-      label: "Lost & Found",
+      label: "Barang Tertinggal & Temuan",
       href: "/app/hk/lost-found",
       icon: Archive,
       activeMatch: "exact",
@@ -114,7 +114,7 @@ const hkSupervisorNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Lost & Found",
+      label: "Barang Tertinggal & Temuan",
       href: "/app/hk/lost-found",
       icon: Archive,
       activeMatch: "exact",
@@ -145,7 +145,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "startsWith",
         },
         {
-          label: "Lost & Found",
+          label: "Barang Tertinggal & Temuan",
           href: "/app/hk/lost-found",
           icon: Archive,
           activeMatch: "exact",
@@ -184,7 +184,7 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           activeMatch: "startsWith",
         },
         {
-          label: "Night Report",
+          label: "Laporan Malam",
           href: "/app/acc/night-report",
           icon: FileText,
           activeMatch: "exact",
@@ -195,6 +195,12 @@ const navGroupsByRole: Record<AppRole, NavGroup[]> = {
           href: "/app/acc/accounting-export",
           icon: Download,
           activeMatch: "startsWith",
+        },
+        {
+          label: "F&B",
+          href: "/app/fb",
+          icon: UtensilsCrossed,
+          activeMatch: "exact",
         },
       ],
     },
