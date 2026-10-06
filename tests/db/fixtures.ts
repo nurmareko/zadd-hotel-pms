@@ -319,6 +319,24 @@ export async function createMenuItem({
   });
 }
 
+export async function createIngredient(
+  overrides: Partial<Prisma.FBIngredientCreateInput> & { menuItemId?: number } = {},
+) {
+  const { menuItemId, ...data } = overrides;
+  return prisma.fBIngredient.create({
+    data: {
+      name: nextKey("ing"),
+      category: "Bahan Basah",
+      unit: "kg",
+      onHand: "10.000",
+      parLevel: "5.000",
+      location: "Kitchen",
+      ...(menuItemId === undefined ? {} : { menuItem: { connect: { id: menuItemId } } }),
+      ...data,
+    },
+  });
+}
+
 export async function createFBOrderItem({
   fbOrderId,
   menuItemId,
