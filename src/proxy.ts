@@ -59,6 +59,13 @@ export function resolveAppRouteAccess(
     return { type: "next" };
   }
 
+  if (
+    (pathname === "/app/fb" || routeMatches(pathname, "/app/fb/orders")) &&
+    userRole === "ACC"
+  ) {
+    return { type: "next" };
+  }
+
   const matched = modulePrefixes.find(({ prefix }) => routeMatches(pathname, prefix));
   if (matched && !canAccessModule(userRole, matched.module)) {
     return { type: "forbidden_rewrite" };

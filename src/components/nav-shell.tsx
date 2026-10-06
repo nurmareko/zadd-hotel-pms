@@ -138,7 +138,7 @@ const hkNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Lost & Found",
+      label: "Barang Tertinggal & Temuan",
       href: "/app/hk/lost-found",
       icon: Archive,
       activeMatch: "startsWith",

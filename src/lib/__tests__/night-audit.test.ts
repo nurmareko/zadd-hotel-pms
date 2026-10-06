@@ -21,7 +21,7 @@ const { transaction, tx } = vi.hoisted(() => ({
     roomBlock: { findFirst: vi.fn() },
     cleaningSession: { findFirst: vi.fn() },
     housekeepingLog: { create: vi.fn() },
-    fBOrder: { aggregate: vi.fn(), count: vi.fn() },
+    fBOrder: { aggregate: vi.fn(), count: vi.fn(), findMany: vi.fn() },
     folioLineItem: { findMany: vi.fn(), createMany: vi.fn() },
   },
 }));
@@ -125,6 +125,7 @@ describe("executeNightAudit room-block reconciliation", () => {
     tx.cleaningSession.findFirst.mockResolvedValue(null);
     tx.fBOrder.aggregate.mockResolvedValue({ _sum: { total: null } });
     tx.fBOrder.count.mockResolvedValue(0);
+    tx.fBOrder.findMany.mockResolvedValue([]);
     tx.folioLineItem.findMany.mockResolvedValue([]);
   });
 

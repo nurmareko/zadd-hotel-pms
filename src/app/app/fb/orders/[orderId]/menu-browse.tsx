@@ -18,6 +18,7 @@ type MenuBrowseProps = {
   orderId: number;
   orderStatus: string;
   guestCount: number;
+  readOnly?: boolean;
 };
 
 const categoryTabs = ["Mains", "Beverage", "Desserts", "Breakfast", "All"];
@@ -27,11 +28,12 @@ export function MenuBrowse({
   orderId,
   orderStatus,
   guestCount,
+  readOnly = false,
 }: MenuBrowseProps) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeGuest, setActiveGuest] = useState(1);
   const [query, setQuery] = useState("");
-  const canEdit = orderStatus === "OPEN";
+  const canEdit = orderStatus === "OPEN" && !readOnly;
   const guestNumbers = useMemo(
     () => Array.from({ length: Math.max(guestCount, 1) }, (_, index) => index + 1),
     [guestCount],

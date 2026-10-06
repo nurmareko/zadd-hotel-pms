@@ -19,7 +19,7 @@ const allowedPaths: Record<AppRole, string[]> = {
   FO: ["/app/fo", "/app/hk"],
   HK: ["/app/hk"],
   FB: ["/app/fb"],
-  ACC: ["/app/acc"],
+  ACC: ["/app/acc", "/app/fb"],
 };
 
 describe("resolveAppRouteAccess", () => {
@@ -127,6 +127,20 @@ describe("resolveAppRouteAccess", () => {
   it("allows FO on housekeeping lost-found", () => {
     expect(resolveAppRouteAccess("/app/hk/lost-found", "FO")).toEqual({ type: "next" });
   });
+
+  it.each(["/app/fb", "/app/fb/orders", "/app/fb/orders/123"])(
+    "allows ACC on F&B blocker inspection and settlement routes: %s",
+    (pathname) => {
+      expect(resolveAppRouteAccess(pathname, "ACC")).toEqual({ type: "next" });
+    },
+  );
+
+  it.each(["/app/fb/kitchen", "/app/fb/inventory", "/app/fb/pos"])(
+    "blocks ACC on operational F&B routes: %s",
+    (pathname) => {
+      expect(resolveAppRouteAccess(pathname, "ACC")).toEqual({ type: "forbidden_rewrite" });
+    },
+  );
 
   it.each(["/app/foobar", "/app/admin-tools", "/app/revenue-tools", "/app/unknown"])(
     "does not treat a partial segment or unknown route as a module: %s",

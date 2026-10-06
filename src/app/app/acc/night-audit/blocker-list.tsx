@@ -81,6 +81,16 @@ export function NightAuditBlockerList({
                 </div>
               ) : null}
 
+              {blocker.fbOrder ? (
+                <Link
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-800 underline decoration-red-300 underline-offset-4 hover:text-red-950"
+                  href={`/app/fb/orders/${blocker.fbOrder.id}`}
+                >
+                  Buka order F&B {blocker.fbOrder.orderNo} · {blocker.fbOrder.status}
+                  <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
+
               <dl className="mt-3 grid gap-3 text-sm leading-6 md:grid-cols-2">
                 <div>
                   <dt className="text-xs font-bold uppercase tracking-[0.06em] text-red-800">

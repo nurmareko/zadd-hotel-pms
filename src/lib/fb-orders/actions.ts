@@ -57,14 +57,19 @@ function isSerializationConflict(error: unknown) {
   );
 }
 
-async function canManageFbOrders() {
+async function canManageFbOrders(capability: "orders:write" | "orders:bill" = "orders:write") {
   const session = await auth();
 
-  if (!session?.user || !can(session.user.role as AppRole, "orders:write")) {
+  if (!session?.user) {
     return null;
   }
 
-  return Number(session.user.id);
+  const role = session.user.role as AppRole;
+  if (can(role, capability) || (role === "ACC" && capability === "orders:bill")) {
+    return Number(session.user.id);
+  }
+
+  return null;
 }
 
 function revalidateOrderPaths(orderId?: number) {
@@ -391,7 +396,7 @@ export async function createRoomServiceOrder(
 export async function lookupRoomForCharge(
   input: unknown,
 ): Promise<ChargeLookupResult> {
-  const userId = await canManageFbOrders();
+  const userId = await canManageFbOrders("orders:bill");
 
   if (!userId) {
     return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };

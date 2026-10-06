@@ -149,6 +149,7 @@ export type NightAuditBlockerKind =
   | "MISSING_POSTING_ARTICLE"
   | "MISSING_FOLIO"
   | "FOLIO_NOT_OPEN"
+  | "OPEN_FB_ORDER"
   | StayChargePostingBlocker["kind"];
 
 export type NightAuditBlocker = {
@@ -166,6 +167,11 @@ export type NightAuditBlocker = {
     id: number;
     folioNo: string;
     status: FolioStatus;
+  } | null;
+  fbOrder?: {
+    id: number;
+    orderNo: string;
+    status: FBOrderStatus;
   } | null;
   affectedDate: Date | null;
   isFutureDate: boolean;
@@ -326,15 +332,18 @@ function futureDateContext(affectedDate: Date | null, businessDate: Date) {
 
 function blockerMessage({
   reservation,
+  fbOrder,
   affectedDate,
   explanation,
   resolution,
 }: Pick<
   NightAuditBlocker,
-  "reservation" | "affectedDate" | "explanation" | "resolution"
+  "reservation" | "fbOrder" | "affectedDate" | "explanation" | "resolution"
 >) {
   const heading = reservation
     ? `Reservasi ${reservation.reservationNo} — ${reservation.guestName}, Kamar ${reservation.roomNumber ?? "belum ditentukan"}`
+    : fbOrder
+      ? `Order F&B ${fbOrder.orderNo}`
     : "Konfigurasi Night Audit";
   const dateLine = affectedDate
     ? `Tanggal terdampak: ${businessDateLabel(affectedDate)}.`
@@ -377,6 +386,7 @@ function validatePostingArticles(
           kind: "MISSING_POSTING_ARTICLE",
           reservation: null,
           folio: null,
+          fbOrder: null,
           affectedDate: businessDate,
           isFutureDate: false,
           currentValues: { articleCode: code },
@@ -426,6 +436,7 @@ function validateReservations(
           kind: "MISSING_FOLIO",
           reservation: context,
           folio: null,
+          fbOrder: null,
           affectedDate: businessDate,
           isFutureDate: false,
           currentValues: { folioStatus: null },
@@ -448,6 +459,7 @@ function validateReservations(
             folioNo: reservation.folio.folioNo,
             status: reservation.folio.status,
           },
+          fbOrder: null,
           affectedDate: businessDate,
           isFutureDate: false,
           currentValues: {
@@ -459,9 +471,70 @@ function validateReservations(
         }),
       );
     }
+
   }
 
   return { blockingErrors, warnings };
+}
+
+type OpenFbOrder = {
+  id: number;
+  orderNo: string;
+  status: FBOrderStatus;
+  chargedFolio: {
+    id: number;
+    folioNo: string;
+    status: FolioStatus;
+    reservation: {
+      id: number;
+      reservationNo: string;
+      status: ReservationStatus;
+      arrivalDate: Date;
+      departureDate: Date;
+      guest: { fullName: string };
+      room: { number: string } | null;
+    };
+  } | null;
+};
+
+function validateOpenFbOrders(orders: OpenFbOrder[], businessDate: Date) {
+  return orders.map((order) => {
+    const reservation = order.chargedFolio?.reservation;
+    const context = reservation
+      ? {
+          id: reservation.id,
+          reservationNo: reservation.reservationNo,
+          guestName: reservation.guest.fullName,
+          roomNumber: reservation.room?.number ?? null,
+          status: reservation.status,
+          arrivalDate: reservation.arrivalDate,
+          departureDate: reservation.departureDate,
+        }
+      : null;
+    const folio = order.chargedFolio
+      ? {
+          id: order.chargedFolio.id,
+          folioNo: order.chargedFolio.folioNo,
+          status: order.chargedFolio.status,
+        }
+      : null;
+    const explanation = reservation
+      ? `Order F&B ${order.orderNo} masih berstatus OPEN dan belum dapat dihitung sebagai transaksi F&B selesai untuk Night Audit.`
+      : `Order F&B ${order.orderNo} masih berstatus OPEN sehingga transaksi tersebut belum selesai untuk Night Audit.`;
+    const resolution = `Buka order F&B ${order.orderNo}, konfirmasi bill, lalu selesaikan pembayaran atau Charge to Room sesuai transaksi.`;
+
+    return createBlocker({
+      kind: "OPEN_FB_ORDER",
+      reservation: context,
+      folio,
+      fbOrder: { id: order.id, orderNo: order.orderNo, status: order.status },
+      affectedDate: businessDate,
+      isFutureDate: false,
+      currentValues: { orderId: order.id, orderStatus: order.status },
+      explanation,
+      resolution,
+    });
+  });
 }
 
 /**
@@ -502,6 +575,7 @@ export function buildAuditStayChargeLines({
     expectedNights: stayNightsThroughAuditDate(
       reservation.arrivalDate,
       businessDate,
+      reservation.departureDate,
     ),
     reservationNights: reservation.reservationNights,
     lineItems: existingLineItems,
@@ -754,7 +828,7 @@ export async function buildNightAuditPlan({
     existingAudit,
     reservations,
     articles,
-    openFbOrderCount,
+    openFbOrders,
     totalRooms,
     roomsOccupied,
     checkInCount,
@@ -811,8 +885,32 @@ export async function buildNightAuditPlan({
       where: { code: { in: [...NIGHT_AUDIT_POSTING_ARTICLE_CODES] } },
       orderBy: { code: "asc" },
     }),
-    prisma.fBOrder.count({
+    prisma.fBOrder.findMany({
       where: { status: FBOrderStatus.OPEN },
+      orderBy: { orderNo: "asc" },
+      select: {
+        id: true,
+        orderNo: true,
+        status: true,
+        chargedFolio: {
+          select: {
+            id: true,
+            folioNo: true,
+            status: true,
+            reservation: {
+              select: {
+                id: true,
+                reservationNo: true,
+                status: true,
+                arrivalDate: true,
+                departureDate: true,
+                guest: { select: { fullName: true } },
+                room: { select: { number: true } },
+              },
+            },
+          },
+        },
+      },
     }),
     prisma.room.count(),
     prisma.room.count({
@@ -857,6 +955,7 @@ export async function buildNightAuditPlan({
     validatePostingArticles(articles, businessDate);
   const { blockingErrors: reservationErrors, warnings: reservationWarnings } =
     validateReservations(reservations, businessDate);
+  const fbOrderErrors = validateOpenFbOrders(openFbOrders, businessDate);
   const {
     lineItems,
     previews,
@@ -898,9 +997,9 @@ export async function buildNightAuditPlan({
 
   const warnings = [...reservationWarnings];
 
-  if (openFbOrderCount > 0) {
+  if (openFbOrders.length > 0) {
     warnings.push(
-      `${openFbOrderCount} order F&B masih terbuka - pertimbangkan untuk menyelesaikan dulu.`,
+      `${openFbOrders.length} order F&B masih terbuka dan harus diselesaikan sebelum Night Audit.`,
     );
   }
 
@@ -932,7 +1031,7 @@ export async function buildNightAuditPlan({
           inHouseCount: existingAudit.inHouseCount,
         }
       : null,
-    openFbOrderCount,
+    openFbOrderCount: openFbOrders.length,
     arrangementBreakdown,
     inHouseCount: reservations.length,
     lineItemCount: lineItems.length,
@@ -959,6 +1058,7 @@ export async function buildNightAuditPlan({
     blockingErrors: [
       ...articleErrors,
       ...reservationErrors,
+      ...fbOrderErrors,
       ...schedulePostingErrors,
     ],
     snapshot: {
@@ -1137,6 +1237,33 @@ export async function executeNightAudit({
               },
             },
           });
+          const openFbOrders = await tx.fBOrder.findMany({
+            where: { status: FBOrderStatus.OPEN },
+            orderBy: { orderNo: "asc" },
+            select: {
+              id: true,
+              orderNo: true,
+              status: true,
+              chargedFolio: {
+                select: {
+                  id: true,
+                  folioNo: true,
+                  status: true,
+                  reservation: {
+                    select: {
+                      id: true,
+                      reservationNo: true,
+                      status: true,
+                      arrivalDate: true,
+                      departureDate: true,
+                      guest: { select: { fullName: true } },
+                      room: { select: { number: true } },
+                    },
+                  },
+                },
+              },
+            },
+          });
 
           // Validate reservations and their folios (must be OPEN)
           const {
@@ -1144,9 +1271,11 @@ export async function executeNightAudit({
             warnings: reservationWarnings,
           } = validateReservations(reservations, businessDate);
 
-          if (reservationErrors.length > 0) {
+          const fbOrderErrors = validateOpenFbOrders(openFbOrders, businessDate);
+
+          if (reservationErrors.length > 0 || fbOrderErrors.length > 0) {
             throw new NightAuditBlockerError(
-              reservationErrors,
+              [...reservationErrors, ...fbOrderErrors],
               reservationWarnings,
             );
           }
@@ -1160,7 +1289,7 @@ export async function executeNightAudit({
             checkOutCount,
             closedFbRevenue,
             otherFolioRevenue,
-            openFbOrderCount,
+            openFbOrderRows,
           ] = await Promise.all([
             tx.room.count(),
             tx.room.count({
@@ -1205,9 +1334,7 @@ export async function executeNightAudit({
                 article: { select: { code: true, type: true } },
               },
             }),
-            tx.fBOrder.count({
-              where: { status: FBOrderStatus.OPEN },
-            }),
+            Promise.resolve(openFbOrders),
           ]);
 
           // 5. Build shortfall lines using buildAuditStayChargeLines
@@ -1396,9 +1523,9 @@ export async function executeNightAudit({
           transactionWriteCount += 1;
 
           const warnings = [...reservationWarnings, ...roomBlockWarnings];
-          if (openFbOrderCount > 0) {
+          if (openFbOrderRows.length > 0) {
             warnings.push(
-              `${openFbOrderCount} order F&B masih terbuka - pertimbangkan untuk menyelesaikan dulu.`,
+              `${openFbOrderRows.length} order F&B masih terbuka dan harus diselesaikan sebelum Night Audit.`,
             );
           }
 

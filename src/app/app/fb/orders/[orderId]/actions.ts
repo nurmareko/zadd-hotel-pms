@@ -77,11 +77,16 @@ function validationError(error: { issues: { message: string }[] }) {
 async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "pos:settle" = "orders:write") {
   const session = await auth();
 
-  if (!session?.user || !can(session.user.role as AppRole, capability)) {
+  if (!session?.user) {
     return null;
   }
 
-  return Number(session.user.id);
+  const role = session.user.role as AppRole;
+  if (can(role, capability) || (role === "ACC" && (capability === "orders:bill" || capability === "pos:settle"))) {
+    return Number(session.user.id);
+  }
+
+  return null;
 }
 
 function revalidateOrderPaths(orderId?: number) {

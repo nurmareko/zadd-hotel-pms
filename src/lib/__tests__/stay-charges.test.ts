@@ -27,6 +27,70 @@ describe("stay charge night counts", () => {
       stayNightsThroughAuditDate(date("2026-08-01"), date("2026-08-02")),
     ).toBe(2);
   });
+
+  it.each([
+    ["2026-09-18", "2026-09-22", 4],
+    ["2026-09-17", "2026-09-21", 4],
+    ["2026-09-06", "2026-09-07", 1],
+    ["2026-09-28", "2026-09-29", 1],
+  ])(
+    "uses [check-in, check-out) for %s to %s",
+    (arrival, departure, expectedNights) => {
+      expect(
+        stayNightsThroughCheckout(
+          date(arrival),
+          new Date("2026-10-05T01:00:00.000Z"),
+          date(departure),
+        ),
+      ).toBe(expectedNights);
+      expect(
+        stayNightsThroughAuditDate(
+          date(arrival),
+          date("2026-10-05"),
+          date(departure),
+        ),
+      ).toBe(expectedNights);
+    },
+  );
+
+  it("does not create a pending charge for the checkout date", () => {
+    const nights = [18, 19, 20, 21].map((day) => ({
+      id: `night-${day}`,
+      reservationId: 1,
+      date: date(`2026-09-${day}`),
+      rateAmount: decimal(1_250_000),
+      mealPlan: null,
+      mealPax: null,
+      mealUnitPrice: null,
+      mealAmount: null,
+    }));
+
+    const article = {
+      id: 1,
+      code: "ROOM-CHARGE",
+      name: "Room charge",
+      type: "ROOM",
+      defaultPrice: decimal(1_250_000),
+    } as StayChargeArticle;
+
+    const lines = stayChargeShortfallLines({
+      reservationId: 1,
+      reservationNo: "TEST-RESERVATION",
+      arrivalDate: date("2026-09-18"),
+      departureDate: date("2026-09-22"),
+      expectedNights: 4,
+      reservationNights: nights,
+      lineItems: [],
+      articles: [article],
+    });
+
+    expect(lines.map((line) => line.serviceDate.toISOString().slice(0, 10))).toEqual([
+      "2026-09-18",
+      "2026-09-19",
+      "2026-09-20",
+      "2026-09-21",
+    ]);
+  });
 });
 
 describe("stayChargeShortfallLines", () => {

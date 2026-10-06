@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import Link from "next/link";
 
+import { auth } from "@/auth";
 import { hotelTodayTimestampRange } from "@/lib/date-only";
 import { formatIDR } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -54,6 +55,8 @@ export default async function FBLandingPage({
   searchParams,
 }: FBLandingPageProps) {
   const params = (await searchParams) ?? {};
+  const session = await auth();
+  const isReadOnly = session?.user.role === "ACC";
   const tab = firstParam(params.tab);
   const activeTab = tab === "floor" || tab === "orders" ? tab : "dashboard";
   const tabs = (
@@ -178,23 +181,25 @@ export default async function FBLandingPage({
             tamu aktif
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Link className={buttonVariants()} href="/app/fb/pos">
-            Buka POS Restoran
-          </Link>
-          <Link
-            className={buttonVariants({ variant: "outline" })}
-            href="/app/fb/orders/new?service=room-service"
-          >
-            Pesanan Layanan Kamar Baru
-          </Link>
-          <Link
-            className={buttonVariants({ variant: "outline" })}
-            href="/app/fb/orders/new"
-          >
-            Mulai Pesanan Baru
-          </Link>
-        </div>
+        {!isReadOnly ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link className={buttonVariants()} href="/app/fb/pos">
+              Buka POS Restoran
+            </Link>
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/app/fb/orders/new?service=room-service"
+            >
+              Pesanan Layanan Kamar Baru
+            </Link>
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/app/fb/orders/new"
+            >
+              Mulai Pesanan Baru
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
