@@ -83,7 +83,7 @@ describe("HK page authorization", () => {
   it.each(["FO", "FB", "ACC"])("denies %s before loading mobile data", async (role) => {
     auth.mockResolvedValue({ user: { id: "7", role } });
     await expect(HKLandingPage()).rejects.toThrow("redirect:/app/forbidden");
-    await expect(HousekeepingMobilePage()).rejects.toThrow("notFound");
+    await expect(HousekeepingMobilePage()).rejects.toThrow("redirect:/app/forbidden");
     expect(getMobileData).not.toHaveBeenCalled();
   });
 

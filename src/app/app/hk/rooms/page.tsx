@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-
+import { auth } from "@/auth";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,7 +131,8 @@ export default async function HkRoomsPage({
       : "priority";
   const sortOrder = firstParam(params.sortOrder) === "desc" ? "desc" : "asc";
 
-  const [list, forecast, todayList, vcuRooms] = await Promise.all([
+  const [session, list, forecast, todayList, vcuRooms] = await Promise.all([
+    auth(),
     getHousekeepingListData({
       date: selectedDate,
       q,
@@ -164,6 +165,9 @@ export default async function HkRoomsPage({
       orderBy: { number: "asc" },
     }),
   ]);
+  const canAccessMyRooms = Boolean(
+    session?.user?.role && ["HK", "ADMIN", "GM"].includes(session.user.role),
+  );
   const { date, rows } = list;
   const dateIso = date.toISOString().slice(0, 10);
   const { housekeepers } = forecast;
@@ -231,13 +235,15 @@ export default async function HkRoomsPage({
             <Download className="h-4 w-4" aria-hidden="true" />
             Ekspor CSV
           </a>
-          <Link
-            href="/app/hk/mobile"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
-          >
-            <Smartphone className="h-4 w-4" aria-hidden="true" />
-            Mode Ponsel
-          </Link>
+          {canAccessMyRooms && (
+            <Link
+              href="/app/hk/mobile"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
+            >
+              <Smartphone className="h-4 w-4" aria-hidden="true" />
+              Tugas Saya
+            </Link>
+          )}
           <Link
             href={dateHref({ ...queryParams, date: addDateOnlyDays(date, -1) })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
