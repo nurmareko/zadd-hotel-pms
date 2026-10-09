@@ -232,7 +232,12 @@ export async function postCharge(
               userId: authResult.userId,
               action: "FOLIO_CHARGE_POSTED",
               folioId: folio.id,
-              metadata: { amount: amount.toNumber() },
+              metadata: {
+                              amount: amount.toNumber(),
+                              ...(parsed.data.unitPrice < 0
+                                ? { correction: true, articleId: article.id, reason: description }
+                                : {}),
+                            },
             }),
         },
         {

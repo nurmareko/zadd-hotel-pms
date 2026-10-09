@@ -201,6 +201,82 @@ describe("computeFolioTotals", () => {
     expect(totals.balance).toBe(expectedBalance);
   });
 
+  it("reduces service, tax, and payment balance proportionately after a partial correction", () => {
+    const payments = [payment(20_000)];
+    const original = computeFolioTotals([line(100_000, "ROOM")], payments, settings());
+    const corrected = computeFolioTotals(
+      [line(100_000, "ROOM"), line(-25_000, "MISC")],
+      payments,
+      settings(),
+    );
+
+    expect(corrected).toEqual({
+      subtotal: 75_000,
+      serviceCharge: 3_750,
+      tax: 7_875,
+      taxableExtras: 0,
+      inclusiveCharges: 0,
+      totalCharges: 86_625,
+      totalPaid: 20_000,
+      balance: 66_625,
+    });
+    expect(original.serviceCharge - corrected.serviceCharge).toBe(1_250);
+    expect(original.tax - corrected.tax).toBe(2_625);
+    expect(original.balance - corrected.balance).toBe(28_875);
+  });
+
+  it("fully reverses a charge including service and tax to zero", () => {
+    expect(computeFolioTotals(
+      [line(100_000, "ROOM"), line(-100_000, "MISC")],
+      [],
+      settings(),
+    )).toEqual({
+      subtotal: 0,
+      serviceCharge: 0,
+      tax: 0,
+      taxableExtras: 0,
+      inclusiveCharges: 0,
+      totalCharges: 0,
+      totalPaid: 0,
+      balance: 0,
+    });
+  });
+
+  it("preserves a credit balance when a correction follows payment", () => {
+    expect(computeFolioTotals(
+      [line(100_000, "MISC"), line(-25_000, "MISC")],
+      [payment(115_500)],
+      settings(),
+    )).toMatchObject({ totalCharges: 86_625, totalPaid: 115_500, balance: -28_875 });
+  });
+
+  it("keeps a net negative subtotal and its signed service and tax", () => {
+    expect(computeFolioTotals(
+      [line(25_000, "MISC"), line(-100_000, "MISC")],
+      [],
+      settings(),
+    )).toMatchObject({
+      subtotal: -75_000,
+      serviceCharge: -3_750,
+      tax: -7_875,
+      totalCharges: -86_625,
+      balance: -86_625,
+    });
+  });
+
+  it.each([
+    ["10.25", "-0.75", 10],
+    ["0.75", "-11.25", -10],
+  ])("sums signed Decimal amounts before existing whole-rupiah rounding (%s, %s)", (charge, correction, subtotal) => {
+    const totals = computeFolioTotals(
+      [line(charge, "MISC"), line(correction, "MISC")],
+      [],
+      settings(0, 0),
+    );
+    expect(totals).toMatchObject({ subtotal, totalCharges: subtotal, balance: subtotal });
+    expect(Object.values(totals).every(Number.isInteger)).toBe(true);
+  });
+
   it("returns all zeros for an empty folio", () => {
     expect(computeFolioTotals([], [], settings())).toEqual({
       subtotal: 0,

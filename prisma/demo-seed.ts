@@ -147,6 +147,12 @@ const additionalFrontOfficeUsers = [
 
 const articles = [
   {
+    code: "CORRECTION",
+    name: "Koreksi / Penyesuaian Tagihan",
+    type: ArticleType.MISC,
+    defaultPrice: 0,
+  },
+  {
     code: "ROOM-CHARGE",
     name: "Room Charge",
     type: ArticleType.ROOM,

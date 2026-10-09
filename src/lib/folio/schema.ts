@@ -21,13 +21,23 @@ export const PostChargeSchema = z.object({
   unitPrice: z.coerce
     .number("Harga satuan harus berupa angka")
     .int("Harga satuan harus dalam rupiah utuh")
-    .min(0, "Harga satuan minimal 0"),
+    .min(-100_000_000, "Harga satuan minimal -100.000.000")
+        .max(100_000_000, "Harga satuan maksimal 100.000.000")
+        .refine((value) => value !== 0, "Harga satuan tidak boleh 0"),
 }).superRefine((value, ctx) => {
+  if (value.unitPrice < 0 && (value.description?.length ?? 0) < 3) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["description"],
+      message: "Alasan koreksi wajib diisi minimal 3 karakter",
+    });
+  }
+
   if (!new Prisma.Decimal(value.quantity).mul(value.unitPrice).isInteger()) {
     ctx.addIssue({
       code: "custom",
       path: ["quantity"],
-      message: "Total charge harus dalam rupiah utuh",
+      message: "Total tagihan harus dalam rupiah utuh",
     });
   }
 });

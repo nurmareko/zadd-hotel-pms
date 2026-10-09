@@ -1,3 +1,4 @@
+import { ArticleType } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 
 import { getRestaurantTableGridPosition } from "../src/lib/restaurant-table-layout";
@@ -123,6 +124,20 @@ async function main() {
   });
 
   console.log("✓ seeded hotel settings");
+
+  const correctionArticle = {
+    code: "CORRECTION",
+    name: "Koreksi / Penyesuaian Tagihan",
+    type: ArticleType.MISC,
+    defaultPrice: 0,
+  };
+  await prisma.article.upsert({
+    where: { code: correctionArticle.code },
+    create: correctionArticle,
+    update: correctionArticle,
+  });
+
+  console.log("✓ seeded correction article");
 
   for (const userToSeed of users) {
     const passwordHash = await getPasswordHash(

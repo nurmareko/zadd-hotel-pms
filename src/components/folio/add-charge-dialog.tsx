@@ -17,6 +17,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -242,11 +243,16 @@ export function AddChargeDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Deskripsi</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">
+                                          {unitPrice < 0 ? "Alasan Koreksi (wajib)" : "Deskripsi"}
+                                        </FormLabel>
                     <FormControl>
                       <Input
                         disabled={isSubmitting}
-                        placeholder="Opsional"
+                        required={unitPrice < 0}
+                                                minLength={unitPrice < 0 ? 3 : undefined}
+                                                maxLength={255}
+                                                placeholder={unitPrice < 0 ? "Alasan koreksi minimal 3 karakter" : "Opsional"}
                         className={fieldClassName}
                         {...field}
                       />
@@ -287,7 +293,8 @@ export function AddChargeDialog({
                       <FormControl>
                         <Input
                           type="number"
-                          min={0}
+                          min={-100_000_000}
+                          max={100_000_000}
                           step={1}
                           disabled={isSubmitting}
                           placeholder="0"
@@ -295,6 +302,9 @@ export function AddChargeDialog({
                           {...field}
                         />
                       </FormControl>
+                      <FormDescription>
+                        Nilai negatif untuk koreksi atau pengurangan tagihan. Alasan wajib diisi.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

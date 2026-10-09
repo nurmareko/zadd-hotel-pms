@@ -24,6 +24,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { postCharge, recordPayment } from "./actions";
 import { FOLIO_FAILURE_MESSAGES } from "./errors";
+import { PostChargeSchema } from "./schema";
 
 function createChargeFormData(overrides: Record<string, string> = {}) {
   const data = new FormData();
@@ -62,6 +63,56 @@ function createPaymentFormData(overrides: Record<string, string> = {}) {
   return data;
 }
 
+describe("PostChargeSchema Issue285 boundaries", () => {
+  const input = {
+    folioId: "10",
+    articleId: "5",
+    description: "Koreksi tagihan",
+    quantity: "1",
+    unitPrice: "-25000",
+  };
+
+  it.each([-100000000, -1, 1, 100000000])(
+    "accepts bounded nonzero whole-rupiah price %s",
+    (unitPrice) => {
+      const result = PostChargeSchema.safeParse({ ...input, unitPrice: String(unitPrice) });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.unitPrice).toBe(unitPrice);
+    },
+  );
+
+  it.each([-100000001, 100000001, 0, -0.5, 0.5])(
+    "rejects out-of-range, zero, or fractional price %s",
+    (unitPrice) => {
+      expect(PostChargeSchema.safeParse({ ...input, unitPrice }).success).toBe(false);
+    },
+  );
+
+  it.each([3, 255])("accepts and trims a correction reason of length %i", (length) => {
+    const description = "a".repeat(length);
+    const result = PostChargeSchema.safeParse({ ...input, description: `  ${description}  ` });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.description).toBe(description);
+  });
+
+  it.each([undefined, "", "   ", "ab", "  ab  ", "a".repeat(256)])(
+    "rejects invalid trimmed correction reason %j",
+    (description) => {
+      expect(PostChargeSchema.safeParse({ ...input, description }).success).toBe(false);
+    },
+  );
+
+  it.each([-100, 100])("accepts minimum quantity with integral signed amount at price %s", (unitPrice) => {
+    expect(PostChargeSchema.safeParse({ ...input, quantity: "0.01", unitPrice }).success).toBe(true);
+  });
+
+  it.each([-100, 100])("keeps quantity and integral amount guards at price %s", (unitPrice) => {
+    for (const quantity of ["-1", "0", "0.001", "0.015"]) {
+      expect(PostChargeSchema.safeParse({ ...input, quantity, unitPrice }).success).toBe(false);
+    }
+  });
+});
+
 describe("folio server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,6 +126,168 @@ describe("folio server actions", () => {
   });
 
   describe("postCharge", () => {
+    describe("Issue285 signed corrections", () => {
+      beforeEach(() => {
+        vi.resetAllMocks();
+        mocks.auth.mockResolvedValue({ user: { id: "1", role: "FO" } });
+        mocks.folioFindUnique.mockResolvedValue({
+          id: 10,
+          reservationId: 1,
+          status: FolioStatus.OPEN,
+        });
+        mocks.articleFindUnique.mockResolvedValue({
+          id: 5,
+          code: "MINIBAR",
+          name: "Minibar",
+          type: ArticleType.MISC,
+        });
+      });
+
+      afterEach(() => {
+        vi.resetAllMocks();
+      });
+
+      function chargeTransaction(status: FolioStatus = FolioStatus.OPEN) {
+        const tx = {
+          folio: {
+            findUnique: vi.fn().mockResolvedValue({ id: 10, status }),
+          },
+          folioLineItem: { create: vi.fn().mockResolvedValue({ id: 1 }) },
+          nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
+        };
+        mocks.transaction.mockImplementation(async (callback) => callback(tx));
+        return tx;
+      }
+
+      it("posts a negative Decimal amount and logs the trimmed correction reason", async () => {
+        const tx = chargeTransaction();
+        const result = await postCharge(createChargeFormData({
+          quantity: "0.5",
+          unitPrice: "-25000",
+          description: "  Koreksi minibar ganda  ",
+        }));
+
+        expect(result).toEqual({ ok: true });
+        expect(tx.folioLineItem.create).toHaveBeenCalledExactlyOnceWith({
+          data: {
+            articleId: 5,
+            folioId: 10,
+            description: "Koreksi minibar ganda",
+            quantity: 0.5,
+            unitPrice: -25000,
+            amount: new Prisma.Decimal(-12500),
+            postedById: 1,
+            postedAt: expect.any(Date),
+          },
+        });
+        expect(tx.folioLineItem.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({ amount: expect.any(Prisma.Decimal) }),
+        });
+        expect(tx.nightAudit.findUnique).toHaveBeenCalledOnce();
+        expect(mocks.logActivity).toHaveBeenCalledExactlyOnceWith({
+          userId: 1,
+          action: "FOLIO_CHARGE_POSTED",
+          folioId: 10,
+          metadata: {
+            amount: -12500,
+            correction: true,
+            articleId: 5,
+            reason: "Koreksi minibar ganda",
+          },
+        });
+        expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/1");
+      });
+
+      it.each(["", "   ", "ab", "  ab  ", "a".repeat(256)])(
+        "rejects a negative charge with invalid reason %j before reading or writing",
+        async (description) => {
+          const result = await postCharge(createChargeFormData({
+            unitPrice: "-25000",
+            description,
+          }));
+          expect(result).toEqual({
+            ok: false,
+            code: "INVALID_INPUT",
+            error: FOLIO_FAILURE_MESSAGES.INVALID_INPUT,
+          });
+          expect(mocks.folioFindUnique).not.toHaveBeenCalled();
+          expect(mocks.transaction).not.toHaveBeenCalled();
+          expect(mocks.logActivity).not.toHaveBeenCalled();
+        },
+      );
+
+      it("rejects zero price before reading or writing", async () => {
+        expect(await postCharge(createChargeFormData({ unitPrice: "0" })))
+          .toMatchObject({ ok: false, code: "INVALID_INPUT" });
+        expect(mocks.folioFindUnique).not.toHaveBeenCalled();
+        expect(mocks.transaction).not.toHaveBeenCalled();
+        expect(mocks.logActivity).not.toHaveBeenCalled();
+      });
+
+      it.each(["", "   ", "ab", "  Minibar Water  "])(
+        "preserves positive charges and existing log metadata with description %j",
+        async (description) => {
+          const tx = chargeTransaction();
+          expect(await postCharge(createChargeFormData({ description })))
+            .toEqual({ ok: true });
+          expect(tx.folioLineItem.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+              description: description.trim() || "Minibar",
+              quantity: 2,
+              unitPrice: 25000,
+              amount: new Prisma.Decimal(50000),
+            }),
+          });
+          expect(mocks.logActivity).toHaveBeenCalledExactlyOnceWith({
+            userId: 1,
+            action: "FOLIO_CHARGE_POSTED",
+            folioId: 10,
+            metadata: { amount: 50000 },
+          });
+        },
+      );
+
+      it("rejects a negative charge on an already closed folio", async () => {
+        mocks.folioFindUnique.mockResolvedValue({
+          id: 10, reservationId: 1, status: FolioStatus.CLOSED,
+        });
+        expect(await postCharge(createChargeFormData({ unitPrice: "-25000" })))
+          .toMatchObject({ ok: false, code: "FOLIO_NOT_OPEN" });
+        expect(mocks.transaction).not.toHaveBeenCalled();
+        expect(mocks.logActivity).not.toHaveBeenCalled();
+      });
+
+      it("rechecks closed status inside the transaction for negative charges", async () => {
+        const tx = chargeTransaction(FolioStatus.CLOSED);
+        expect(await postCharge(createChargeFormData({ unitPrice: "-25000" })))
+          .toMatchObject({ ok: false, code: "FOLIO_NOT_OPEN" });
+        expect(tx.folio.findUnique).toHaveBeenCalledOnce();
+        expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+        expect(mocks.logActivity).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ["TAX-10", ArticleType.TAX, "PROTECTED_TAX_ARTICLE"],
+        ["ROOM-CHARGE", ArticleType.ROOM, "PROTECTED_STAY_ARTICLE"],
+      ])("keeps protected article %s blocked for corrections", async (code, type, failure) => {
+        mocks.articleFindUnique.mockResolvedValue({ id: 5, code, type, name: "Artikel" });
+        expect(await postCharge(createChargeFormData({ unitPrice: "-25000" })))
+          .toMatchObject({ ok: false, code: failure });
+        expect(mocks.transaction).not.toHaveBeenCalled();
+        expect(mocks.logActivity).not.toHaveBeenCalled();
+      });
+
+      it("blocks a negative charge when Night Audit has closed the business date", async () => {
+        const tx = chargeTransaction();
+        tx.nightAudit.findUnique.mockResolvedValue({ id: 99 });
+        expect(await postCharge(createChargeFormData({ unitPrice: "-25000" })))
+          .toMatchObject({ ok: false, code: "NIGHT_AUDIT_CLOSED" });
+        expect(tx.nightAudit.findUnique).toHaveBeenCalledOnce();
+        expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+        expect(mocks.logActivity).not.toHaveBeenCalled();
+      });
+    });
+
     it("returns SESSION_EXPIRED when session is missing", async () => {
       mocks.auth.mockResolvedValueOnce(null);
 
