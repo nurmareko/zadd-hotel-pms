@@ -13,6 +13,12 @@
       "skillPath": "skills/api-and-interface-design/SKILL.md",
       "computedHash": "3cf54553433e55875c664baf78f9c769820bdfac155f09bf2989d70e20e6e147"
     },
+    "apple-design": {
+      "source": "dickwu/apple-design-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "bd7ec2979b70d5e4ca6a86e2ad95dc5bc336986ce6b03e0d84dfabbe43611296"
+    },
     "brandkit": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
