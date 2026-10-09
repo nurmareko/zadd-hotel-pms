@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 describe("laundry data authorization", () => {
-  it.each(["HK", "ADMIN", "GM"])("allows %s through the laundry capability", async (role) => {
+  it.each(["HK", "ADMIN", "GM", "FO"])("allows %s through the laundry capability", async (role) => {
     auth.mockResolvedValue({ user: { id: "7", role } });
     expect(await getLaundrySummary()).toEqual({ cleanCount: 0, washingCount: 0, sentCount: 0, damagedCount: 0 });
     expect(await getLinenBatches()).toEqual([]);
@@ -23,7 +23,7 @@ describe("laundry data authorization", () => {
     expect(findMany).toHaveBeenCalledOnce();
   });
 
-  it.each([null, "FO", "FB", "ACC", "UNKNOWN"])("denies %s before querying laundry", async (role) => {
+  it.each([null, "FB", "ACC", "UNKNOWN"])("denies %s before querying laundry", async (role) => {
     auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
     await expect(getLaundrySummary()).rejects.toThrow("Tidak berwenang mengakses data laundry.");
     await expect(getLinenBatches()).rejects.toThrow("Tidak berwenang mengakses data laundry.");

@@ -57,7 +57,7 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
   const exportHref = `/app/acc/accounting-export/export?from=${range.from}&to=${range.to}`;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
+    <main className="min-h-screen min-w-0 max-w-full bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Accounting</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Accounting Export</h1>
@@ -95,8 +95,8 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
           <p className="mb-3 text-sm text-muted-foreground">
             {rows.length} invoice · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)} · Pendapatan Lain {numberLabel(otherRevenue)} · Pajak {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
           </p>
-          <section className="overflow-hidden rounded-lg border border-border bg-card">
-            <div className="overflow-x-auto">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-card">
+            <div className="relative w-full min-w-0 max-w-full overflow-x-auto">
               <table className="w-full min-w-[1100px] border-collapse text-sm">
                 <thead>
                   <tr>

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function HousekeepingMobilePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!["HK", "ADMIN", "GM"].includes(session.user.role)) notFound();
+  if (!["HK", "ADMIN", "GM"].includes(session.user.role)) redirect("/app/forbidden");
 
   const userId = Number(session.user.id);
   if (!Number.isSafeInteger(userId) || userId <= 0) notFound();
