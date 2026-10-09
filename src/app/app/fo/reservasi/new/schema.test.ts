@@ -48,6 +48,25 @@ describe("reservation stay fee schema", () => {
   });
 });
 
+describe("per-room occupant schema", () => {
+  it.each([undefined, "", "   ", "  Sari Putri  ", "A".repeat(100)])("accepts and trims occupant %j", (occupantName) => {
+    const parsed = UnifiedReservationSchema.parse({
+      ...validInput,
+      rooms: [{ ...validInput.rooms[0], occupantName }],
+    });
+    expect(parsed.rooms[0].occupantName).toBe(occupantName?.trim());
+  });
+
+  it.each(["A".repeat(101), null, 123])("rejects invalid occupant %j", (occupantName) => {
+    const result = UnifiedReservationSchema.safeParse({
+      ...validInput,
+      rooms: [{ ...validInput.rooms[0], occupantName }],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0].path).toEqual(["rooms", 0, "occupantName"]);
+  });
+});
+
 describe("reservation guest link schema", () => {
   it.each([undefined, null, 42, "42"])("accepts optional guestId %s", (guestId) => {
     const parsed = UnifiedReservationSchema.parse({ ...validInput, guestId });

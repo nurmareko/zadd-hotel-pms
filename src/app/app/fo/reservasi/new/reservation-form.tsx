@@ -597,7 +597,17 @@ export function ReservationForm({
       return;
     }
 
-    const values = form.getValues();
+    const formValues = form.getValues();
+    const values = {
+      ...formValues,
+      rooms: formValues.rooms.map((room) => ({
+        ...room,
+        occupantName:
+          isCreateMode && formValues.rooms.length > 1
+            ? room.occupantName
+            : undefined,
+      })),
+    };
     const operation = mode === "edit" ? "edit" : "create";
     const result = await safelyRunReservationAction<
       Awaited<ReturnType<typeof createReservation | typeof updateReservation>>
@@ -1274,12 +1284,43 @@ export function ReservationForm({
                             disabled={roomsFieldArray.fields.length <= 1}
                             aria-label={`Hapus kamar ${index + 1}`}
                             title={`Hapus kamar ${index + 1}`}
-                            onClick={() => roomsFieldArray.remove(index)}
+                            onClick={() => {
+                              if (roomsFieldArray.fields.length === 2) {
+                                const remainingIndex = index === 0 ? 1 : 0;
+                                form.setValue(`rooms.${remainingIndex}.occupantName`, "", {
+                                  shouldDirty: true,
+                                  shouldValidate: true,
+                                });
+                              }
+                              roomsFieldArray.remove(index);
+                            }}
                           >
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </button>
                         ) : null}
                       </div>
+
+                      {isCreateMode && roomsFieldArray.fields.length > 1 ? (
+                        <FormField
+                          control={form.control}
+                          name={`rooms.${index}.occupantName`}
+                          render={({ field }) => (
+                            <FormItem className="mb-4">
+                              <FormLabel>Nama Tamu / Penghuni Kamar</FormLabel>
+                              <FormControl>
+                                <Input
+                                  className={fieldClassName}
+                                  placeholder="Kosongkan jika sama dengan pemesan utama"
+                                  maxLength={100}
+                                  {...field}
+                                  value={field.value ?? ""}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : null}
 
                       <div className="grid items-start gap-3.5 md:grid-cols-2 desktop:min-[1400px]:grid-cols-12">
                         <FormField

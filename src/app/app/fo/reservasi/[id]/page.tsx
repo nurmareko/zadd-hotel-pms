@@ -507,48 +507,56 @@ export default async function ReservationDetailPage({
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
       <div className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
-        {activeTab === "details" ? (
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <Link
-              href="/app/fo/reservasi"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              Kembali
-            </Link>
-            {canPrintGrc ? (
-              <a
-                href={`/api/reservations/${reservation.id}/grc`}
-                download
+        <div className="flex min-w-0 flex-col gap-2 sm:ml-auto sm:items-end">
+          <p className="break-words text-right text-sm text-slate-500">
+            Kode Reservasi:{" "}
+            <span className="font-semibold text-slate-900">
+              {reservation.reservationNo}
+            </span>
+          </p>
+          {activeTab === "details" ? (
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <Link
+                href="/app/fo/reservasi"
                 className={buttonVariants({ variant: "outline" })}
               >
-                <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                Cetak GRC
-              </a>
-            ) : null}
-            {canCancel ? (
-              <div className="border-t border-slate-200 pt-2 sm:ml-1 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
-                <CancelReservationDialog
+                Kembali
+              </Link>
+              {canPrintGrc ? (
+                <a
+                  href={`/api/reservations/${reservation.id}/grc`}
+                  download
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                  Cetak GRC
+                </a>
+              ) : null}
+              {canCancel ? (
+                <div className="border-t border-slate-200 pt-2 sm:ml-1 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                  <CancelReservationDialog
+                    reservationId={reservation.id}
+                    reservationNo={reservation.reservationNo}
+                  />
+                </div>
+              ) : null}
+              {canExtendStay ? (
+                <ExtendStayDialog
                   reservationId={reservation.id}
-                  reservationNo={reservation.reservationNo}
+                  guestName={reservation.guest.fullName}
+                  roomNumber={reservation.room?.number ?? null}
+                  departureDate={reservation.departureDate.toISOString().slice(0, 10)}
                 />
-              </div>
-            ) : null}
-            {canExtendStay ? (
-              <ExtendStayDialog
-                reservationId={reservation.id}
-                guestName={reservation.guest.fullName}
-                roomNumber={reservation.room?.number ?? null}
-                departureDate={reservation.departureDate.toISOString().slice(0, 10)}
-              />
-            ) : null}
-            {canRequestCleaning ? (
-              <RequestCleaningButton
-                reservationId={reservation.id}
-                roomStatus={reservation.room?.status ?? null}
-              />
-            ) : null}
-          </div>
-        ) : null}
+              ) : null}
+              {canRequestCleaning ? (
+                <RequestCleaningButton
+                  reservationId={reservation.id}
+                  roomStatus={reservation.room?.status ?? null}
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {activeTab === "details" ? (

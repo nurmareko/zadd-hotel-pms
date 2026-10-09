@@ -398,17 +398,21 @@ async function createReservationNumbers(
   count: number,
 ) {
   const now = new Date();
-  const reservationDatePart = hotelTodayISO(now).replace(/-/g, "").slice(2);
-  const reservationPrefix = `RSV-${reservationDatePart}-`;
+  const reservationPrefix = hotelTodayISO(now).replace(/-/g, "");
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'reservation-no-' + reservationPrefix}))`;
   const reservationCount = await tx.reservation.count({
     where: { reservationNo: { startsWith: reservationPrefix } },
   });
+
+  if (reservationCount + count > 99_999) {
+    throw new Error("Batas nomor reservasi harian telah tercapai.");
+  }
 
   return Array.from(
     { length: count },
     (_, index) =>
       `${reservationPrefix}${String(reservationCount + index + 1).padStart(
-        4,
+        5,
         "0",
       )}`,
   );
@@ -551,13 +555,25 @@ async function runCreateReservationTransaction(
           throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
         }
 
+        // A name alone cannot safely identify an existing guest or their identity data.
+        const occupantGuest = room.occupantName && room.occupantName !== input.fullName
+          ? await tx.guest.create({
+              data: {
+                fullName: room.occupantName,
+                phone: input.phone,
+                email: input.email,
+              },
+              select: { id: true },
+            })
+          : guest;
+
         const reservation = await tx.reservation.create({
           data: {
             reservationNo: reservationNumbers[index],
             type: ReservationUsageType.REGULAR,
             arrangementType: input.arrangementType,
             reservationType: input.reservationType,
-            guestId: guest.id,
+            guestId: occupantGuest.id,
             roomTypeId: room.roomTypeId,
             roomId: selectedRoom?.id ?? null,
             groupBookingId,

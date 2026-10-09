@@ -107,6 +107,7 @@ function transactionClient(options: {
   return {
     article: { findMany: vi.fn().mockResolvedValue([]) },
     $queryRaw: vi.fn(async () => []),
+    $executeRaw: vi.fn().mockResolvedValue(1),
     roomBlock: { findMany: vi.fn(async () => options.blocked ? [{ id: 1, roomId: 10, startDate: new Date("2026-10-01"), endDate: new Date("2026-10-02"), status: "ACTIVE", reason: "MAINTENANCE" }] : []) },
     roomType: {
       findUnique: vi.fn(async () => options.roomType ?? null),
@@ -226,6 +227,70 @@ describe("reservation stay fee creation", () => {
       expect(tx.article.findUnique).not.toHaveBeenCalled();
       expect(tx.reservationStayFee.create).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe("numeric codes and room occupants", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ...[undefined, "", "   ", " Tamu Uji ", " Sari Putri "].map((occupantName) => ({ occupantName, existingCount: 9 })),
+    { occupantName: undefined, existingCount: 99_997 },
+    { occupantName: undefined, existingCount: 99_999 },
+  ])("assigns occupant $occupantName with $existingCount existing codes", async ({ occupantName, existingCount }) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-08T18:00:00Z"));
+    const base = transactionClient();
+    const tx = {
+      ...base,
+      roomType: { findUnique: vi.fn().mockResolvedValue({ id: 1, name: "Standar", capacity: 2, baseRate: 500_000, _count: { rooms: 5 } }) },
+      guest: { create: vi.fn().mockResolvedValueOnce({ id: 88 }).mockResolvedValueOnce({ id: 89 }) },
+      reservation: {
+        ...base.reservation,
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(existingCount),
+        create: vi.fn().mockResolvedValueOnce({ id: 77 }).mockResolvedValueOnce({ id: 78 }),
+      },
+      reservationNight: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    };
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([
+      { date: new Date("2026-10-01T00:00:00Z"), rate: new Prisma.Decimal(500_000), sourceRule: null },
+    ]);
+    runTransactionWith(tx);
+    const result = await createReservation({
+      ...validCreateInput,
+      phone: "08123456789",
+      email: "booker@example.com",
+      rooms: [
+        { ...validCreateInput.rooms[0], roomId: null },
+        { ...validCreateInput.rooms[0], roomId: null, occupantName },
+      ],
+    });
+    if (existingCount === 99_999) {
+      expect(result).toMatchObject({ ok: false });
+      expect(tx.reservation.create).not.toHaveBeenCalled();
+      expect(tx.reservationNight.createMany).not.toHaveBeenCalled();
+      return;
+    }
+    expect(result).toMatchObject({ ok: true, data: { reservationNumbers: existingCount === 9
+      ? ["2026100900010", "2026100900011"]
+      : ["2026100999998", "2026100999999"] } });
+    expect(tx.reservation.count).toHaveBeenCalledWith({ where: { reservationNo: { startsWith: "20261009" } } });
+    expect(tx.$executeRaw).toHaveBeenCalledWith(expect.any(Array), "reservation-no-20261009");
+    expect(tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(tx.reservation.count.mock.invocationCallOrder[0]);
+    const customOccupant = occupantName?.trim() === "Sari Putri";
+    expect(tx.guest.create).toHaveBeenCalledTimes(customOccupant ? 2 : 1);
+    if (customOccupant) {
+      expect(tx.guest.create).toHaveBeenLastCalledWith({
+        data: { fullName: "Sari Putri", phone: "08123456789", email: "booker@example.com" },
+        select: { id: true },
+      });
+    }
+    const reservations = tx.reservation.create.mock.calls.map(([args]) => args.data);
+    expect(reservations.map((room) => room.guestId)).toEqual([88, customOccupant ? 89 : 88]);
+    expect(reservations[0].groupBookingId).toEqual(expect.any(String));
+    expect(reservations[1].groupBookingId).toBe(reservations[0].groupBookingId);
+    reservations.forEach((room) => expect(room.reservationNo).toMatch(/^\d{13}$/));
   });
 });
 

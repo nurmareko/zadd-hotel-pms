@@ -155,6 +155,7 @@ const BaseEditReservationSchema = EditReservationObjectSchema.refine(
 );
 
 const ReservationRoomRowSchema = z.object({
+  occupantName: z.string().trim().max(100, "Nama tamu maksimal 100 karakter").optional(),
   roomTypeId: z.coerce
     .number("Tipe kamar wajib dipilih")
     .int("Tipe kamar wajib dipilih")
@@ -400,6 +401,7 @@ export type UnifiedReservationInput = Omit<
   "roomTypeId" | "roomId" | "adults" | "children"
 > & {
   rooms: Array<{
+    occupantName?: string;
     roomTypeId: string;
     roomId: string;
     adults: string;
