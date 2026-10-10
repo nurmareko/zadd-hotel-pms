@@ -39,8 +39,10 @@ export default async function ReservationListPage({
           },
         },
       },
-      // The unique ID stabilizes page boundaries for matching dates and guest names.
-      orderBy: [{ arrivalDate: "asc" }, { guest: { fullName: "asc" } }, { id: "asc" }],
+      // The unique ID stabilizes page boundaries for matching dates.
+      orderBy: filters.sort === "arrival"
+        ? [{ arrivalDate: "asc" }, { id: "asc" }]
+        : [{ createdAt: "desc" }, { id: "desc" }],
     }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
   ]);
@@ -80,8 +82,7 @@ export default async function ReservationListPage({
     ),
   );
 
-  // Group by arrival (check-in) date, ascending. Reservations already arrive
-  // sorted by arrival then guest name, so groups stay in order as we build them.
+  // Only arrival-sorted results have date groups; newest-first keeps one flat group.
   const groups: ReservationGroup[] = [];
   let currentGroup: ReservationGroup | undefined;
 
@@ -112,7 +113,7 @@ export default async function ReservationListPage({
         )
       : null;
 
-    const dateKey = formatISODate(reservation.arrivalDate);
+    const dateKey = filters.sort === "arrival" ? formatISODate(reservation.arrivalDate) : "all";
 
     if (!currentGroup || currentGroup.dateKey !== dateKey) {
       currentGroup = {
@@ -149,7 +150,7 @@ export default async function ReservationListPage({
         filters={filters}
         resultCount={totalCount}
       />
-      <ReservationTable groups={groups} />
+      <ReservationTable groups={groups} groupByArrival={filters.sort === "arrival"} />
       <ReservationPagination
         filters={filters}
         currentPage={currentPage}

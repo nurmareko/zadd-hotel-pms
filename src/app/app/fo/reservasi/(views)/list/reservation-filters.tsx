@@ -12,6 +12,7 @@ import {
 
 const presetOptions: Array<{ value?: ReservationListPreset; label: string }> = [
   { label: "Semua" },
+  { value: "in_house", label: "In-House" },
   { value: "today_arrivals", label: "Kedatangan Hari Ini" },
   { value: "today_departures", label: "Keberangkatan Hari Ini" },
 ];
@@ -38,7 +39,7 @@ export function ReservationFilters({
   resultCount,
 }: ReservationFiltersProps) {
   const hasActiveFilters =
-    filters.q || filters.status || filters.checkIn || filters.checkOut || filters.preset;
+    filters.q || filters.status || filters.checkIn || filters.checkOut || filters.preset || filters.sort === "arrival";
   const exportQuery = buildExportQuery(filters);
   const exportHref = `/app/fo/reservasi/export${exportQuery ? `?${exportQuery}` : ""}`;
 
@@ -46,7 +47,7 @@ export function ReservationFilters({
     <form
       action="/app/fo/reservasi/list"
       method="get"
-      key={exportQuery}
+      key={`${exportQuery}&sort=${filters.sort}`}
       className="desktop:sticky top-0 z-20 flex flex-col gap-3 border-b border-slate-200 bg-white p-4"
     >
       <nav aria-label="Filter cepat reservasi" className="flex w-full flex-wrap gap-2">
@@ -85,7 +86,8 @@ export function ReservationFilters({
         <select
           name="status"
           aria-label="Status reservasi"
-          defaultValue={filters.status ?? ""}
+          defaultValue={filters.preset === "in_house" ? "CHECKED_IN" : filters.status ?? ""}
+          disabled={filters.preset === "in_house"}
           className={`${fieldClass} sm:w-[160px]`}
         >
           <option value="">Aktif</option>
@@ -95,6 +97,16 @@ export function ReservationFilters({
               {option.label}
             </option>
           ))}
+        </select>
+
+        <select
+          name="sort"
+          aria-label="Urutkan reservasi"
+          defaultValue={filters.sort ?? "newest"}
+          className={`${fieldClass} sm:w-[180px]`}
+        >
+          <option value="newest">Terbaru dibuat</option>
+          <option value="arrival">Tanggal check-in</option>
         </select>
 
         <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto">

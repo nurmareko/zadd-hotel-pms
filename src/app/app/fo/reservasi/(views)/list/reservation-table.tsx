@@ -40,6 +40,7 @@ export type ReservationGroup = {
 
 type ReservationTableProps = {
   groups: ReservationGroup[];
+  groupByArrival?: boolean;
 };
 
 const COLUMN_COUNT = 10;
@@ -81,14 +82,16 @@ const headerCellClass =
 const numericHeaderCellClass =
   "bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600";
 
-export function ReservationTable({ groups }: ReservationTableProps) {
+export function ReservationTable({ groups, groupByArrival = true }: ReservationTableProps) {
   const hasRows = groups.length > 0;
 
   return (
     <div className="max-w-full overflow-auto">
       <table className="w-full min-w-[1100px] border-collapse text-sm">
         <caption className="sr-only">
-          Daftar reservasi hotel dikelompokkan menurut tanggal check-in
+          {groupByArrival
+            ? "Daftar reservasi hotel dikelompokkan menurut tanggal check-in"
+            : "Daftar reservasi hotel dari yang terbaru dibuat"}
         </caption>
         <thead>
           <tr>
@@ -127,7 +130,7 @@ export function ReservationTable({ groups }: ReservationTableProps) {
         <tbody>
           {hasRows ? (
             groups.map((group) => (
-              <GroupRows key={group.dateKey} group={group} />
+              <GroupRows key={group.dateKey} group={group} groupByArrival={groupByArrival} />
             ))
           ) : (
             <tr>
@@ -157,10 +160,10 @@ export function ReservationTable({ groups }: ReservationTableProps) {
   );
 }
 
-function GroupRows({ group }: { group: ReservationGroup }) {
+function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupByArrival: boolean }) {
   return (
     <>
-      <tr>
+      {groupByArrival ? <tr>
         <th
           colSpan={COLUMN_COUNT}
           scope="colgroup"
@@ -171,7 +174,7 @@ function GroupRows({ group }: { group: ReservationGroup }) {
             · {group.rows.length} reservasi
           </span>
         </th>
-      </tr>
+      </tr> : null}
       {group.rows.map((row) => {
         const href = `/app/fo/reservasi/${row.id}`;
 
@@ -220,9 +223,13 @@ function GroupRows({ group }: { group: ReservationGroup }) {
                   {row.roomNumber}
                 </span>
               ) : (
-                <span className="text-xs italic text-slate-400">
-                  Belum dialokasikan
-                </span>
+                <Link
+                  href={`${href}?mode=edit`}
+                  aria-label={`Alokasikan kamar untuk reservasi ${row.reservationNo}`}
+                  className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md text-sm font-medium text-emerald-700 hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                >
+                  + Alokasikan
+                </Link>
               )}
             </td>
             <td className="border-b border-slate-100 px-4 py-3 text-right font-medium tabular-nums text-slate-900">

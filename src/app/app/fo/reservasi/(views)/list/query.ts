@@ -2,7 +2,8 @@ import { Prisma, ReservationStatus } from "@prisma/client";
 
 import { hotelTodayDateOnly, isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 
-export type ReservationListPreset = "today_arrivals" | "today_departures";
+const VALID_PRESETS = ["today_arrivals", "today_departures", "in_house"] as const;
+export type ReservationListPreset = typeof VALID_PRESETS[number];
 
 export type ReservationListFilters = {
   page: number;
@@ -11,6 +12,7 @@ export type ReservationListFilters = {
   checkIn?: string;
   checkOut?: string;
   preset?: ReservationListPreset;
+  sort?: "newest" | "arrival";
 };
 
 const ACTIVE_STATUSES: ReservationStatus[] = [
@@ -32,6 +34,7 @@ export function buildExportQuery(filters: ReservationListFilters): string {
 
 export function buildPageHref(filters: ReservationListFilters, targetPage: number): string {
   const query = new URLSearchParams(buildExportQuery(filters));
+  if (filters.sort) query.set("sort", filters.sort);
   query.set("page", targetPage.toString());
   return `/app/fo/reservasi/list?${query.toString()}`;
 }
@@ -42,7 +45,11 @@ export function parseReservationListParams(
   const first = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
   const status = first(searchParams.status)?.toUpperCase();
-  const preset = first(searchParams.preset);
+  const rawPreset = first(searchParams.preset);
+  const preset = VALID_PRESETS.includes(rawPreset as ReservationListPreset)
+    ? rawPreset as ReservationListPreset
+    : undefined;
+  const sort = first(searchParams.sort);
   const page = parseInt(first(searchParams.page) ?? "", 10);
 
   return {
@@ -55,9 +62,12 @@ export function parseReservationListParams(
         : "",
     checkIn: first(searchParams.checkIn)?.trim(),
     checkOut: first(searchParams.checkOut)?.trim(),
-    preset: preset === "today_arrivals" || preset === "today_departures"
-      ? preset
-      : undefined,
+    preset,
+    sort: sort === "newest" || sort === "arrival"
+      ? sort
+      : preset === "today_arrivals" || preset === "today_departures"
+        ? "arrival"
+        : "newest",
   };
 }
 
@@ -72,6 +82,7 @@ export function buildReservationListWhere(
     where.OR = [
       { reservationNo: { contains: filters.q, mode: Prisma.QueryMode.insensitive } },
       { guest: { fullName: { contains: filters.q, mode: Prisma.QueryMode.insensitive } } },
+      { room: { number: { contains: filters.q, mode: Prisma.QueryMode.insensitive } } },
     ];
   }
 
@@ -81,7 +92,7 @@ export function buildReservationListWhere(
   } else if (filters.preset === "today_departures") {
     where.departureDate = hotelTodayDateOnly(now);
     defaultStatuses = [ReservationStatus.CHECKED_IN, ReservationStatus.CHECKED_OUT];
-  } else {
+  } else if (filters.preset !== "in_house") {
     if (filters.checkIn && isValidISODateOnly(filters.checkIn)) {
       where.arrivalDate = { gte: parseISODateOnly(filters.checkIn) };
     }
@@ -90,7 +101,9 @@ export function buildReservationListWhere(
     }
   }
 
-  if (filters.status !== "ALL") {
+  if (filters.preset === "in_house") {
+    where.status = ReservationStatus.CHECKED_IN;
+  } else if (filters.status !== "ALL") {
     where.status = filters.status || { in: defaultStatuses };
   }
 

@@ -6,6 +6,10 @@ const now = new Date("2026-09-23T06:00:00.000Z");
 const today = new Date("2026-09-23T00:00:00.000Z");
 
 describe("buildReservationListWhere", () => {
+  it.each([undefined, "ALL", "NO_SHOW"] as const)("keeps in-house strictly checked-in with status %s", (status) => {
+    expect(buildReservationListWhere({ page: 1, preset: "in_house", status, checkIn: "2026-09-01", checkOut: "2026-09-02" }, now)).toEqual({ status: "CHECKED_IN" });
+  });
+
   it("matches today's arrivals without constraining departure dates", () => {
     expect(buildReservationListWhere({ page: 1, preset: "today_arrivals" }, now)).toEqual({
       arrivalDate: today,
@@ -47,6 +51,7 @@ describe("buildReservationListWhere", () => {
     expect(buildReservationListWhere({ page: 1, q: "Sari", preset: "today_departures" }, now).OR).toEqual([
       { reservationNo: { contains: "Sari", mode: "insensitive" } },
       { guest: { fullName: { contains: "Sari", mode: "insensitive" } } },
+      { room: { number: { contains: "Sari", mode: "insensitive" } } },
     ]);
   });
 
@@ -61,6 +66,27 @@ describe("buildReservationListWhere", () => {
 });
 
 describe("reservation list query parameters", () => {
+  it.each([undefined, "in_house", "invalid"])("defaults %s to newest", (preset) => {
+    expect(parseReservationListParams({ preset }).sort).toBe("newest");
+  });
+
+  it.each(["today_arrivals", "today_departures"])("defaults %s to arrival order", (preset) => {
+    expect(parseReservationListParams({ preset }).sort).toBe("arrival");
+    expect(parseReservationListParams({ preset, sort: "invalid" }).sort).toBe("arrival");
+    expect(parseReservationListParams({ preset, sort: "newest" }).sort).toBe("newest");
+  });
+
+  it("parses valid sorts, repeated parameters, and invalid sorts safely", () => {
+    expect(parseReservationListParams({ sort: "arrival" }).sort).toBe("arrival");
+    expect(parseReservationListParams({ sort: ["newest", "arrival"] }).sort).toBe("newest");
+    expect(parseReservationListParams({ sort: "invalid" }).sort).toBe("newest");
+    expect(parseReservationListParams({ preset: "in_house" }).preset).toBe("in_house");
+  });
+
+  it("preserves explicit sort across pagination", () => {
+    const href = buildPageHref(parseReservationListParams({ sort: "arrival" }), 2);
+    expect(new URL(href, "http://localhost").searchParams.get("sort")).toBe("arrival");
+  });
   it.each([undefined, "", "0", "-2", "abc", "Infinity", "9".repeat(400)])("defaults invalid page %s to 1", (page) => {
     expect(parseReservationListParams({ page }).page).toBe(1);
   });
@@ -75,8 +101,8 @@ describe("reservation list query parameters", () => {
 
   it("preserves every active filter when linking to another page", () => {
     const filters = parseReservationListParams({ q: "Sari & Co", status: "ALL", checkIn: "2026-09-20", checkOut: "2026-09-25", preset: "today_arrivals", page: "2" });
-    expect(buildPageHref(filters, 3)).toBe("/app/fo/reservasi/list?q=Sari+%26+Co&status=ALL&checkIn=2026-09-20&checkOut=2026-09-25&preset=today_arrivals&page=3");
-    expect(buildPageHref(parseReservationListParams({}), 1)).toBe("/app/fo/reservasi/list?page=1");
+    expect(buildPageHref(filters, 3)).toBe("/app/fo/reservasi/list?q=Sari+%26+Co&status=ALL&checkIn=2026-09-20&checkOut=2026-09-25&preset=today_arrivals&sort=arrival&page=3");
+    expect(buildPageHref(parseReservationListParams({}), 1)).toBe("/app/fo/reservasi/list?sort=newest&page=1");
   });
 
   it("omits page from export and leaves the matching records unchanged", () => {
@@ -93,7 +119,7 @@ describe("reservation list query parameters", () => {
 
   it("normalizes status and search and takes the first repeated parameter", () => {
     expect(parseReservationListParams({ q: [" Sari ", "other"], status: "checked_in", preset: ["today_departures", "today_arrivals"], checkIn: " 2026-09-20 " })).toEqual({
-      page: 1, q: "Sari", status: "CHECKED_IN", preset: "today_departures", checkIn: "2026-09-20", checkOut: undefined,
+      page: 1, q: "Sari", status: "CHECKED_IN", preset: "today_departures", sort: "arrival", checkIn: "2026-09-20", checkOut: undefined,
     });
   });
 

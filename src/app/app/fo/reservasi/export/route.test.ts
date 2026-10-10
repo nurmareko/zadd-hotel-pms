@@ -234,6 +234,7 @@ describe("reservation CSV export", () => {
         OR: [
           { reservationNo: { contains: "Siti", mode: "insensitive" } },
           { guest: { fullName: { contains: "Siti", mode: "insensitive" } } },
+          { room: { number: { contains: "Siti", mode: "insensitive" } } },
         ],
         status: "CHECKED_IN",
         arrivalDate: { gte: new Date("2026-06-01T00:00:00.000Z") },
