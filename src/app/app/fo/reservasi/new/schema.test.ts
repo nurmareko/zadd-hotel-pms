@@ -67,6 +67,36 @@ describe("per-room occupant schema", () => {
   });
 });
 
+describe("per-room custom rate schema", () => {
+  it.each([undefined, "", "   "])("omits blank rate %j instead of coercing to zero", (customRate) => {
+    const parsed = UnifiedReservationSchema.parse({ ...validInput, rooms: [{ ...validInput.rooms[0], customRate }] });
+    expect(parsed.rooms[0].customRate).toBeUndefined();
+  });
+
+  it.each(["0", "100000000", " 450000 "])("accepts integer rate %j", (customRate) => {
+    const parsed = UnifiedReservationSchema.parse({ ...validInput, rooms: [{ ...validInput.rooms[0], customRate, customRateReason: "  Kesepakatan tamu  " }] });
+    expect(parsed.rooms[0].customRate).toBe(Number(customRate));
+    expect(parsed.rooms[0].customRateReason).toBe("Kesepakatan tamu");
+  });
+
+  it.each(["-1", "1.5", "100000001", "NaN", "Infinity", null, true, [], {}])("rejects invalid rate %j", (customRate) => {
+    const parsed = UnifiedReservationSchema.safeParse({ ...validInput, rooms: [{ ...validInput.rooms[0], customRate }] });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.issues[0].path).toEqual(["rooms", 0, "customRate"]);
+  });
+
+  it.each([undefined, "", "   ", "a".repeat(255)])("accepts optional trimmed reason %j", (customRateReason) => {
+    const parsed = UnifiedReservationSchema.parse({ ...validInput, rooms: [{ ...validInput.rooms[0], customRateReason }] });
+    expect(parsed.rooms[0].customRateReason).toBe(customRateReason?.trim() || undefined);
+  });
+
+  it("rejects reasons longer than 255 characters", () => {
+    const parsed = UnifiedReservationSchema.safeParse({ ...validInput, rooms: [{ ...validInput.rooms[0], customRateReason: "a".repeat(256) }] });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.issues[0].path).toEqual(["rooms", 0, "customRateReason"]);
+  });
+});
+
 describe("reservation guest link schema", () => {
   it.each([undefined, null, 42, "42"])("accepts optional guestId %s", (guestId) => {
     const parsed = UnifiedReservationSchema.parse({ ...validInput, guestId });

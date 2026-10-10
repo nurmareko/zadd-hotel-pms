@@ -160,10 +160,10 @@ function pricingKey(
   arrivalDate: string,
   departureDate: string,
   arrangementType: string,
-  rooms: Array<{ roomTypeId: string; adults: string; children: string }>,
+  rooms: Array<{ roomTypeId: string; adults: string; children: string; customRate?: string }>,
 ) {
   const roomKey = rooms
-    .map((room) => `${room.roomTypeId}:${room.adults}:${room.children}`)
+    .map((room) => `${room.roomTypeId}:${room.adults}:${room.children}:${room.customRate ?? ""}`)
     .join(",");
 
   return `${arrivalDate}|${departureDate}|${arrangementType}|${roomKey}`;
@@ -401,12 +401,19 @@ export function ReservationForm({
     ],
   );
   const pricingChanged = mode === "edit" && currentPricingKey !== initialPricingKey;
+  // Guest-count changes update inclusions, not the saved room-rate snapshot.
+  const roomPricingChanged = mode === "edit" && (
+    arrivalDate !== defaultValues.arrivalDate ||
+    departureDate !== defaultValues.departureDate ||
+    watchedRoomRows[0]?.roomTypeId !== defaultValues.roomTypeId
+  );
   const [resolvedQuote, setResolvedQuote] = useState<{
     key: string;
     roomTotal: number | null;
     inclusionTotal: number;
     reservationTotal: number | null;
     deposits: number[];
+    standardFirstNightRates: number[];
     inclusionRooms: Array<{
       pax: number;
       nights: number;
@@ -451,6 +458,7 @@ export function ReservationForm({
               inclusionTotal: Number(result.inclusionTotal),
               reservationTotal: Number(result.reservationTotal),
               deposits: result.deposits.map(Number),
+              standardFirstNightRates: result.standardFirstNightRates,
               inclusionRooms: result.inclusionRooms.map((room) => ({
                 ...room,
                 unitPrice: Number(room.unitPrice),
@@ -464,6 +472,7 @@ export function ReservationForm({
               inclusionTotal: 0,
               reservationTotal: null,
               deposits: [],
+              standardFirstNightRates: [],
               inclusionRooms: [],
               error: result.error,
             },
@@ -492,11 +501,11 @@ export function ReservationForm({
   const quoteError = activeQuote?.error ?? null;
   const resolvedRoomTotal = activeQuote?.roomTotal ?? null;
   const resolvedInclusionTotal = activeQuote?.inclusionTotal ?? 0;
-  const resolvedReservationTotal = activeQuote?.reservationTotal ?? null;
+
   const inclusionRooms = activeQuote?.inclusionRooms ?? [];
   const resolvedDeposits = activeQuote?.deposits ?? [];
   const displayedDeposits =
-    isViewMode || (mode === "edit" && !pricingChanged)
+    isViewMode || (mode === "edit" && !roomPricingChanged)
       ? [Number(readOnlyDeposit ?? 0)]
       : resolvedDeposits;
   const totalDeposit = displayedDeposits.reduce(
@@ -506,7 +515,7 @@ export function ReservationForm({
 
   const roomSubtotal = isViewMode
     ? Number(readOnlyStayTotal ?? 0)
-    : mode === "edit" && !pricingChanged
+    : mode === "edit" && !roomPricingChanged
       ? Number(readOnlyStayTotal ?? 0)
       : resolvedRoomTotal;
   const { errors, isSubmitting, submitCount } = form.formState;
@@ -517,12 +526,9 @@ export function ReservationForm({
       : resolvedInclusionTotal;
 
   const totalReceived = 0;
-  const reservationTotal =
-    isViewMode || (mode === "edit" && !pricingChanged)
-      ? roomSubtotal === null
-        ? null
-        : roomSubtotal + inclusionTotal
-      : resolvedReservationTotal;
+  const reservationTotal = roomSubtotal === null
+    ? null
+    : roomSubtotal + inclusionTotal;
   const totalOutstanding =
     reservationTotal === null ? null : reservationTotal - totalReceived;
   const summaryAmountDisplay = (amount: number | null) =>
@@ -833,7 +839,7 @@ export function ReservationForm({
       ? "Tidak tersedia"
       : isQuotePending
         ? "Menghitung…"
-        : displayedDeposits[index]
+        : displayedDeposits[index] !== undefined
           ? formatIDR(displayedDeposits[index])
           : "—";
   const reservationSummary = (
@@ -1480,6 +1486,62 @@ export function ReservationForm({
                           )}
                         />
 
+                        {isCreateMode ? (
+                          <>
+                            <FormField
+                              control={form.control}
+                              name={`rooms.${index}.customRate`}
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2 desktop:min-[1400px]:col-span-6">
+                                  <FormLabel>Kustomisasi Tarif Kamar (Rp / malam)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      value={field.value ?? ""}
+                                      type="number"
+                                      min={0}
+                                      max={100_000_000}
+                                      step={1}
+                                      placeholder="Otomatis sesuai tarif standar"
+                                      className={fieldClassName}
+                                      aria-describedby={`custom-rate-hint-${index}`}
+                                    />
+                                  </FormControl>
+                                  <p id={`custom-rate-hint-${index}`} className="text-xs text-slate-500" role="status">
+                                    {activeQuote?.standardFirstNightRates[index] !== undefined ? (
+                                      <>
+                                        Tarif standar malam pertama: {formatIDR(activeQuote.standardFirstNightRates[index])}.
+                                        {field.value?.trim() && Number.isFinite(Number(field.value)) ? (
+                                          <> Selisih: {formatIDR(Number(field.value) - activeQuote.standardFirstNightRates[index])} / malam dibanding malam pertama. Tarif khusus berlaku untuk seluruh malam.</>
+                                        ) : " Tarif standar dapat berbeda setiap malam."}
+                                      </>
+                                    ) : isQuotePending ? "Menghitung tarif standar…" : "Pilih tipe kamar dan tanggal untuk melihat tarif standar."}
+                                  </p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`rooms.${index}.customRateReason`}
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2 desktop:min-[1400px]:col-span-6">
+                                  <FormLabel>Alasan tarif khusus (opsional)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      value={field.value ?? ""}
+                                      maxLength={255}
+                                      placeholder="Contoh: tarif kerja sama"
+                                      className={fieldClassName}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        ) : null}
                         <div className="md:col-span-2 desktop:min-[1400px]:col-span-2">
                           <p className="text-sm font-medium text-slate-700">Tarif kamar</p>
                           <div

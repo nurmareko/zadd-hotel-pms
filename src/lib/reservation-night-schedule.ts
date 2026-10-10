@@ -9,6 +9,21 @@ import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { dateOnlyBoundary } from "@/lib/date-only";
 import type { ResolvedNightlyRate } from "@/lib/pricing-resolver";
 
+/** Apply a flat negotiated rate without mutating the shared standard schedule. */
+export function applyReservationNightRateOverride(
+  schedule: ResolvedNightlyRate[],
+  customRate?: number,
+): ResolvedNightlyRate[] {
+  if (customRate === undefined) return schedule;
+
+  const rate = new Prisma.Decimal(customRate);
+  return schedule.map((night) => ({
+    ...night,
+    rate,
+    sourceRule: night.rate.equals(rate) ? night.sourceRule : null,
+  }));
+}
+
 type MealSnapshotInput = {
   arrangementType: ArrangementType;
   mealPax: number;

@@ -155,6 +155,125 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("per-room custom rates", () => {
+  function standardSchedule(rates = [500_000, 600_000]) {
+    return rates.map((rate, index) => ({
+      date: new Date(`2026-10-0${index + 1}T00:00:00Z`),
+      rate: new Prisma.Decimal(rate),
+      baseRate: new Prisma.Decimal(400_000),
+      sourceRule: { id: `rule-${index}`, name: "Tarif", selectorKind: "DATE_RANGE" },
+    }));
+  }
+
+  function creationTransaction() {
+    const base = transactionClient();
+    const tx = {
+      ...base,
+      article: { findMany: vi.fn().mockResolvedValue([]) },
+      roomType: { findUnique: vi.fn().mockResolvedValue({ id: 1, name: "Standar", capacity: 2, baseRate: 400_000, _count: { rooms: 20 } }) },
+      guest: { create: vi.fn().mockResolvedValue({ id: 88 }) },
+      reservation: {
+        ...base.reservation,
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValueOnce({ id: 77 }).mockResolvedValueOnce({ id: 78 }).mockResolvedValueOnce({ id: 79 }),
+      },
+      reservationNight: { createMany: vi.fn().mockResolvedValue({ count: 2 }) },
+    };
+    runTransactionWith(tx);
+    return tx;
+  }
+
+  it.each([undefined, "", "   ", "0", "450000", "500000", "100000000"])("quotes and persists custom rate %j consistently across variable nights", async (customRate) => {
+    const schedule = standardSchedule();
+    mocks.resolveNightlySchedule.mockResolvedValue(schedule);
+    const input = {
+      ...validCreateInput,
+      departureDate: "2026-10-03",
+      rooms: [{ ...validCreateInput.rooms[0], roomId: null, customRate, customRateReason: "  Negosiasi  " }],
+    };
+    const effective = customRate?.trim() ? [Number(customRate), Number(customRate)] : [500_000, 600_000];
+    const quote = await getReservationQuote(input);
+    expect(quote).toMatchObject({ ok: true, roomTotal: String(effective[0] + effective[1]), deposits: [String(effective[0])], standardFirstNightRates: [500_000] });
+    const tx = creationTransaction();
+    expect(await createReservation(input)).toMatchObject({ ok: true });
+    expect(mocks.resolveNightlySchedule).toHaveBeenLastCalledWith({ roomTypeId: 1, arrivalDate: "2026-10-01", departureDate: "2026-10-03" }, tx);
+    expect(tx.reservation.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ rateAmount: new Prisma.Decimal(effective[0]), deposit: new Prisma.Decimal(effective[0]) }) }));
+    const nights = tx.reservationNight.createMany.mock.calls[0][0].data;
+    expect(nights.map((night: Prisma.ReservationNightCreateManyInput) => Number(night.rateAmount))).toEqual(effective);
+    expect(nights.map((night: Prisma.ReservationNightCreateManyInput) => night.revenueClass)).toEqual(["PAID", "PAID"]);
+    expect(nights.map((night: Prisma.ReservationNightCreateManyInput) => night.sourcePricingRuleId)).toEqual(effective.map((rate, index) => rate === Number(schedule[index].rate) ? `rule-${index}` : null));
+    const audit = mocks.logActivity.mock.calls[0][0];
+    expect(audit).toMatchObject({ action: "RESERVATION_CREATED", reservationId: 77 });
+    if (customRate?.trim()) {
+      expect(audit.metadata).toEqual({
+        rateOverride: true,
+        standardRate: 500_000, customRate: Number(customRate), variance: Number(customRate) - 500_000, reason: "Negosiasi",
+        nights: [500_000, 600_000].map((standardRate, index) => ({ date: `2026-10-0${index + 1}`, standardRate, customRate: Number(customRate), variance: Number(customRate) - standardRate })),
+      });
+    } else {
+      expect(audit).not.toHaveProperty("metadata");
+    }
+    expect(schedule.map((night) => night.rate.toNumber())).toEqual([500_000, 600_000]);
+  });
+
+  it("keeps mixed rooms independent and omits empty reasons from audit metadata", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    const input = { ...validCreateInput, departureDate: "2026-10-03", rooms: ["0", undefined, "700000"].map((customRate) => ({ ...validCreateInput.rooms[0], roomId: null, customRate, customRateReason: "   " })) };
+    expect(await getReservationQuote(input)).toMatchObject({ ok: true, roomTotal: "2500000", deposits: ["0", "500000", "700000"], standardFirstNightRates: [500_000, 500_000, 500_000] });
+    const tx = creationTransaction();
+    expect(await createReservation(input)).toMatchObject({ ok: true });
+    expect(tx.reservationNight.createMany.mock.calls.map(([args]) => args.data.map((night: Prisma.ReservationNightCreateManyInput) => Number(night.rateAmount)))).toEqual([[0, 0], [500_000, 600_000], [700_000, 700_000]]);
+    expect(mocks.logActivity.mock.calls.map(([args]) => args.metadata?.customRate)).toEqual([0, undefined, 700_000]);
+    for (const [audit] of mocks.logActivity.mock.calls) expect(audit.metadata ?? {}).not.toHaveProperty("reason");
+    expect(mocks.resolveNightlySchedule).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not log an override when every standard night matches", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule([500_000, 500_000]));
+    creationTransaction();
+    expect(await createReservation({ ...validCreateInput, departureDate: "2026-10-03", rooms: [{ ...validCreateInput.rooms[0], roomId: null, customRate: "500000" }] })).toMatchObject({ ok: true });
+    expect(mocks.logActivity.mock.calls[0][0]).not.toHaveProperty("metadata");
+  });
+
+  it.each(["-1", "1.5", "100000001", "invalid", null, true])("rejects invalid custom rate %j before quote or persistence", async (customRate) => {
+    const input = { ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], customRate }] };
+    expect(await getReservationQuote(input)).toMatchObject({ ok: false, code: "INVALID_RESERVATION_DATA" });
+    expect(await createReservation(input)).toMatchObject({ ok: false, code: "INVALID_RESERVATION_DATA", field: "rooms" });
+    expect(mocks.resolveNightlySchedule).not.toHaveBeenCalled();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("keeps inclusions additive with a zero room rate", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    mocks.articleFindMany.mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) }]);
+    const input = { ...validCreateInput, arrangementType: "BB", departureDate: "2026-10-03", rooms: [{ ...validCreateInput.rooms[0], roomId: null, adults: 2, customRate: "0" }] };
+    expect(await getReservationQuote(input)).toMatchObject({ ok: true, roomTotal: "0", inclusionTotal: "300000", reservationTotal: "300000", deposits: ["0"] });
+    const tx = creationTransaction();
+    tx.article.findMany.mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) }]);
+    expect(await createReservation(input)).toMatchObject({ ok: true });
+    expect(tx.reservationNight.createMany).toHaveBeenCalledWith({ data: expect.arrayContaining([expect.objectContaining({ rateAmount: new Prisma.Decimal(0), mealAmount: new Prisma.Decimal(150_000), mealPax: 2 })]) });
+  });
+
+  it("rejects oversized reasons with Indonesian action validation", async () => {
+    expect(await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], customRateReason: "a".repeat(256) }] })).toMatchObject({ ok: false, field: "rooms", error: "Alasan tarif khusus maksimal 255 karakter" });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("fails creation rather than bypassing missing standard pricing for zero", async () => {
+    mocks.resolveNightlySchedule.mockRejectedValueOnce(new PricingResolutionError("Missing pricing"));
+    const tx = creationTransaction();
+    expect(await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], roomId: null, customRate: "0" }] })).toMatchObject({ ok: false, code: "PRICING_QUOTE_FAILED" });
+    expect(tx.reservation.create).not.toHaveBeenCalled();
+    expect(mocks.logActivity).not.toHaveBeenCalled();
+  });
+
+  it("does not bypass standard pricing resolution for a zero override", async () => {
+    mocks.resolveNightlySchedule.mockRejectedValueOnce(new PricingResolutionError("Missing pricing"));
+    expect(await getReservationQuote({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], customRate: "0" }] })).toMatchObject({ ok: false, code: "PRICING_QUOTE_FAILED" });
+  });
+});
+
 describe("reservation stay fee creation", () => {
   it.each([
     { roomCount: 1, fees: "omitted" },

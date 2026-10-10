@@ -154,7 +154,23 @@ const BaseEditReservationSchema = EditReservationObjectSchema.refine(
   },
 );
 
+export const OptionalCustomRateSchema = z.preprocess(
+  (value) => typeof value === "string"
+    ? (value.trim() === "" ? undefined : Number(value))
+    : value,
+  z.number("Tarif khusus harus berupa angka")
+    .int("Tarif khusus harus berupa bilangan bulat")
+    .min(0, "Tarif khusus tidak boleh negatif")
+    .max(100_000_000, "Tarif khusus maksimal 100.000.000")
+    .optional(),
+);
+
 const ReservationRoomRowSchema = z.object({
+  customRate: OptionalCustomRateSchema,
+  customRateReason: z.string("Alasan tarif khusus tidak valid").trim()
+    .max(255, "Alasan tarif khusus maksimal 255 karakter")
+    .optional()
+    .transform((value) => value || undefined),
   occupantName: z.string().trim().max(100, "Nama tamu maksimal 100 karakter").optional(),
   roomTypeId: z.coerce
     .number("Tipe kamar wajib dipilih")
@@ -402,6 +418,8 @@ export type UnifiedReservationInput = Omit<
 > & {
   rooms: Array<{
     occupantName?: string;
+    customRate?: string;
+    customRateReason?: string;
     roomTypeId: string;
     roomId: string;
     adults: string;

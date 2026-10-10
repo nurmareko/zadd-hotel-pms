@@ -31,6 +31,7 @@ import {
   resolveNightlySchedule,
 } from "@/lib/pricing-resolver";
 import {
+  applyReservationNightRateOverride,
   createReservationNightMealSnapshot,
   createReservationNightSchedule,
 } from "@/lib/reservation-night-schedule";
@@ -56,6 +57,7 @@ import {
   type ReservationFailure,
 } from "./reservation-errors";
 import {
+  OptionalCustomRateSchema,
   createEditReservationSchema,
   createUnifiedReservationSchema,
   type EditReservationValues,
@@ -70,6 +72,7 @@ type ReservationQuoteResult =
       inclusionTotal: string;
       reservationTotal: string;
       deposits: string[];
+      standardFirstNightRates: number[];
       inclusionRooms: Array<{
         pax: number;
         nights: number;
@@ -84,6 +87,7 @@ const ReservationQuoteSchema = z
     rooms: z
       .array(
         z.object({
+          customRate: OptionalCustomRateSchema,
           roomTypeId: z.coerce.number().int().positive(),
           adults: z.coerce.number().int().min(1),
           children: z.coerce.number().int().min(0),
@@ -157,6 +161,8 @@ const RESERVATION_VALIDATION_FIELDS = new Set<ReservationActionField>([
 ]);
 
 const SAFE_VALIDATION_MESSAGE_PREFIXES = [
+  "Alasan tarif khusus",
+  "Tarif khusus",
   "Alamat maksimal",
   "Email maksimal",
   "Fleksibilitas menginap",
@@ -183,6 +189,8 @@ function reservationValidationField(path: PropertyKey[]) {
   if (RESERVATION_VALIDATION_FIELDS.has(fieldPath as ReservationActionField)) {
     return fieldPath as ReservationActionField;
   }
+
+  if (/^rooms\.\d+\.(customRate|customRateReason)$/.test(fieldPath)) return "rooms";
 
   return /^rooms\.\d+\.(roomTypeId|roomId|adults|children)$/.test(fieldPath)
     ? (fieldPath as ReservationActionField)
@@ -546,14 +554,17 @@ async function runCreateReservationTransaction(
       const groupBookingId =
         input.rooms.length > 1 ? createGroupBookingId() : null;
       const reservationIds: number[] = [];
+      const rateOverrideMetadata: Record<number, Prisma.InputJsonObject> = {};
 
       for (const [index, room] of input.rooms.entries()) {
         const { room: selectedRoom } = assignments[index];
-        const resolvedSchedule = resolvedSchedules.get(room.roomTypeId);
+        const standardSchedule = resolvedSchedules.get(room.roomTypeId);
 
-        if (!resolvedSchedule?.[0]) {
+        if (!standardSchedule?.[0]) {
           throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
         }
+
+        const resolvedSchedule = applyReservationNightRateOverride(standardSchedule, room.customRate);
 
         // A name alone cannot safely identify an existing guest or their identity data.
         const occupantGuest = room.occupantName && room.occupantName !== input.fullName
@@ -610,12 +621,30 @@ async function runCreateReservationTransaction(
           });
         }
 
+        const customRate = room.customRate;
+        if (customRate !== undefined && standardSchedule.some((night) => !night.rate.equals(customRate))) {
+          // Scalar comparison is first-night only; nightly detail captures variable standards.
+          rateOverrideMetadata[reservation.id] = {
+            rateOverride: true,
+            standardRate: standardSchedule[0].rate.toNumber(),
+            customRate,
+            variance: resolvedSchedule[0].rate.minus(standardSchedule[0].rate).toNumber(),
+            ...(room.customRateReason ? { reason: room.customRateReason } : {}),
+            nights: standardSchedule.map((night) => ({
+              date: night.date.toISOString().slice(0, 10),
+              standardRate: night.rate.toNumber(),
+              customRate,
+              variance: new Prisma.Decimal(customRate).minus(night.rate).toNumber(),
+            })),
+          };
+        }
         reservationIds.push(reservation.id);
       }
 
       return {
         ok: true as const,
         reservationIds,
+        rateOverrideMetadata,
         reservationNumbers,
         guestName: input.fullName,
         groupBookingId,
@@ -935,6 +964,7 @@ export async function getReservationQuote(
 
     const mealPlanPrices = await getMealPlanPrices();
     const deposits: string[] = [];
+    const standardFirstNightRates: number[] = [];
     const inclusionRooms: Array<{
       pax: number;
       nights: number;
@@ -945,14 +975,16 @@ export async function getReservationQuote(
     let inclusionTotal = new Prisma.Decimal(0);
 
     for (const room of parsed.data.rooms) {
-      const schedule = schedules.get(room.roomTypeId);
-      const firstNight = schedule?.[0];
+      const standardSchedule = schedules.get(room.roomTypeId);
+      const standardFirstNight = standardSchedule?.[0];
 
-      if (!schedule || !firstNight) {
+      if (!standardSchedule || !standardFirstNight) {
         throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
       }
 
-      deposits.push(firstNight.rate.toString());
+      const schedule = applyReservationNightRateOverride(standardSchedule, room.customRate);
+      standardFirstNightRates.push(standardFirstNight.rate.toNumber());
+      deposits.push(schedule[0].rate.toString());
       roomTotal = schedule.reduce(
         (total, night) => total.plus(night.rate),
         roomTotal,
@@ -987,6 +1019,7 @@ export async function getReservationQuote(
       inclusionTotal: inclusionTotal.toString(),
       reservationTotal: roomTotal.plus(inclusionTotal).toString(),
       deposits,
+      standardFirstNightRates,
       inclusionRooms,
     };
   } catch (error) {
@@ -1102,6 +1135,7 @@ export async function createReservation(
     "list";
 
   for (const reservationId of result.reservationIds) {
+    const metadata = result.rateOverrideMetadata?.[reservationId];
     await attemptReservationPostCommitSideEffect(
       "create",
       "activity-log",
@@ -1110,6 +1144,7 @@ export async function createReservation(
           userId,
           action: "RESERVATION_CREATED",
           reservationId,
+          ...(metadata ? { metadata } : {}),
         }),
     );
   }
