@@ -11,7 +11,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
+import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { NightAuditClosedError } from "@/lib/night-audit";
 import { can } from "@/lib/permissions";
@@ -76,6 +77,7 @@ const MealPlanChangeSchema = z
   .object({
     reservationId: z.number().int().positive(),
     arrangementType: z.nativeEnum(ArrangementType),
+    unitPriceOverride: z.number().int().nonnegative().optional(),
     expectedGroupBookingId: ExpectedGroupBookingSchema,
     expectedPreview: ExpectedMealPlanPreviewSchema.optional(),
     expectedIneligiblePreview: ExpectedIneligibleMealPlanPreviewSchema.optional(),
@@ -122,12 +124,13 @@ export async function changeReservationMealPlan(
   const parsed = MealPlanChangeSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Perubahan meal plan tidak valid." };
+    return { ok: false, error: "Perubahan Arrangement tidak valid." };
   }
 
   const {
     reservationId,
     arrangementType,
+    unitPriceOverride,
     expectedGroupBookingId,
     expectedPreview,
     expectedIneligiblePreview,
@@ -163,9 +166,10 @@ export async function changeReservationMealPlan(
               select: {
                 id: true,
                 date: true,
+                rateAmount: true,
                 folioLineItems: {
                   where: {
-                    article: { code: { in: [...MEAL_ARTICLE_CODES] } },
+                    article: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } },
                   },
                   take: 1,
                   select: { id: true },
@@ -191,13 +195,19 @@ export async function changeReservationMealPlan(
           status: reservation.status,
           currentPlan: reservation.arrangementType,
           targetPlan: arrangementType,
-          unitPriceOverride: new Prisma.Decimal(mealPlanPrices[arrangementType]),
+          allowSamePlanPriceChange: unitPriceOverride !== undefined,
+          unitPriceOverride: new Prisma.Decimal(
+            unitPriceOverride !== undefined
+              ? unitPriceOverride
+              : mealPlanPrices[arrangementType],
+          ),
           adults: reservation.adults,
           children: reservation.children,
           roomCapacity: reservation.roomType.capacity,
           nights: reservation.reservationNights.map((night) => ({
             id: night.id,
             date: night.date,
+            rateAmount: night.rateAmount,
             posted: night.folioLineItems.length > 0,
           })),
         });
@@ -218,7 +228,7 @@ export async function changeReservationMealPlan(
             return {
               ok: false as const,
               error:
-                "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan meal plan.",
+                "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan Arrangement.",
               disposition: "failed" as const,
             };
           }
@@ -245,7 +255,7 @@ export async function changeReservationMealPlan(
           return {
             ok: false as const,
             error:
-              "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan meal plan.",
+              "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan Arrangement.",
             disposition: "failed" as const,
           };
         }
@@ -257,7 +267,7 @@ export async function changeReservationMealPlan(
             reservationId,
             date: { gte: boundary },
             folioLineItems: {
-              none: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
+              none: { article: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } } },
             },
           },
           data: change.data,
@@ -296,13 +306,13 @@ export async function changeReservationMealPlan(
     ) {
       return {
         ok: false,
-        error: "Jadwal Inklusi berubah saat disimpan. Muat ulang lalu coba lagi.",
+        error: "Jadwal Arrangement berubah saat disimpan. Muat ulang lalu coba lagi.",
       };
     }
 
     return {
       ok: false,
-      error: "Gagal mengubah meal plan.",
+      error: "Gagal mengubah Arrangement.",
       disposition: "failed",
     };
   }

@@ -120,7 +120,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       Kamar
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Inklusi saat ini
+                      Arrangement saat ini
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Baris
@@ -187,7 +187,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
               value={formatIDR(plan.roomRevenue)}
             />
             <MetricRow
-              label="Inklusi F&B"
+              label="Arrangement F&B"
               value={formatIDR(plan.fbInclusionRevenue)}
             />
             <MetricRow
@@ -242,8 +242,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {article.amountSource === "room-rate-snapshot"
-                      ? "Tarif per malam reservasi"
-                      : "Data Inklusi per malam"}
+                      ? "Tarif paket dikurangi alokasi Arrangement"
+                      : "Data Arrangement per malam"}
                   </td>
                   <td className="num px-4 py-3 text-right text-muted-foreground">
                     {article.amount ? formatIDR(article.amount) : "-"}

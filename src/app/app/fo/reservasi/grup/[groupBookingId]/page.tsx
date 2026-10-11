@@ -18,6 +18,7 @@ import { roundedFolioBalance } from "@/lib/folio-balance-display";
 import { formatDateID, formatDecimalID, formatIDR, formatISODate } from "@/lib/format";
 import { formatGuestIdentity } from "@/lib/guest-id-type";
 import { prisma } from "@/lib/prisma";
+import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
 import { GroupInclusionActions } from "./group-inclusion-actions";
 import { GroupSettlementActions } from "./group-settlement-actions";
@@ -128,7 +129,7 @@ export default async function GroupBookingPage({
             rateAmount: true,
             mealAmount: true,
             folioLineItems: {
-              where: { article: { code: { in: ["MEAL-BB", "MEAL-HB", "MEAL-FB"] } } },
+              where: { article: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } } },
               take: 1,
               select: { id: true },
             },

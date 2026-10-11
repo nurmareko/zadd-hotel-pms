@@ -244,15 +244,76 @@ describe("per-room custom rates", () => {
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 
-  it("keeps inclusions additive with a zero room rate", async () => {
+  it("preserves arrangement allocation without adding it to a zero package rate", async () => {
     mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
     mocks.articleFindMany.mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) }]);
     const input = { ...validCreateInput, arrangementType: "BB", departureDate: "2026-10-03", rooms: [{ ...validCreateInput.rooms[0], roomId: null, adults: 2, customRate: "0" }] };
-    expect(await getReservationQuote(input)).toMatchObject({ ok: true, roomTotal: "0", inclusionTotal: "300000", reservationTotal: "300000", deposits: ["0"] });
+    expect(await getReservationQuote(input)).toMatchObject({ ok: true, roomTotal: "0", inclusionTotal: "300000", reservationTotal: "0", deposits: ["0"] });
     const tx = creationTransaction();
     tx.article.findMany.mockResolvedValue([{ code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) }]);
     expect(await createReservation(input)).toMatchObject({ ok: true });
     expect(tx.reservationNight.createMany).toHaveBeenCalledWith({ data: expect.arrayContaining([expect.objectContaining({ rateAmount: new Prisma.Decimal(0), mealAmount: new Prisma.Decimal(150_000), mealPax: 2 })]) });
+  });
+
+  it.each([
+    { arrangementType: "RO", allocation: "0", unitPrice: "0" },
+    { arrangementType: "BB", allocation: "300000", unitPrice: "75000" },
+    { arrangementType: "HB", allocation: "600000", unitPrice: "150000" },
+    { arrangementType: "FB", allocation: "1000000", unitPrice: "250000" },
+  ])("quotes $arrangementType as an allocation within the nightly package total", async ({ arrangementType, allocation, unitPrice }) => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    mocks.articleFindMany.mockResolvedValue([
+      { code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) },
+      { code: "MEAL-HB", defaultPrice: new Prisma.Decimal(150_000) },
+      { code: "MEAL-FB", defaultPrice: new Prisma.Decimal(250_000) },
+    ]);
+
+    const quote = await getReservationQuote({
+      ...validCreateInput,
+      arrangementType,
+      departureDate: "2026-10-03",
+      rooms: [{ ...validCreateInput.rooms[0], adults: 1, children: 1 }],
+    });
+
+    expect(quote).toMatchObject({
+      ok: true,
+      roomTotal: "1100000",
+      inclusionTotal: allocation,
+      reservationTotal: "1100000",
+      deposits: ["500000"],
+      standardFirstNightRates: [500_000],
+      inclusionRooms: [{ pax: 2, nights: 2, unitPrice, total: allocation }],
+    });
+  });
+
+  it("keeps multi-room custom package totals separate from arrangement allocations", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    mocks.articleFindMany.mockResolvedValue([
+      { code: "MEAL-BB", defaultPrice: new Prisma.Decimal(75_000) },
+    ]);
+
+    const quote = await getReservationQuote({
+      ...validCreateInput,
+      arrangementType: "BB",
+      departureDate: "2026-10-03",
+      rooms: [
+        { ...validCreateInput.rooms[0], adults: 1, children: 1, customRate: "450000" },
+        { ...validCreateInput.rooms[0], adults: 1, children: 0 },
+      ],
+    });
+
+    expect(quote).toMatchObject({
+      ok: true,
+      roomTotal: "2000000",
+      inclusionTotal: "450000",
+      reservationTotal: "2000000",
+      deposits: ["450000", "500000"],
+      standardFirstNightRates: [500_000, 500_000],
+      inclusionRooms: [
+        { pax: 2, nights: 2, unitPrice: "75000", total: "300000" },
+        { pax: 1, nights: 2, unitPrice: "75000", total: "150000" },
+      ],
+    });
   });
 
   it("rejects oversized reasons with Indonesian action validation", async () => {
@@ -586,7 +647,7 @@ describe("catalog-backed reservation snapshots", () => {
     ]);
     const result = await getReservationQuote({ ...validCreateInput, arrangementType: "BB" });
     expect(result).toMatchObject({
-      ok: true, inclusionTotal: "90000",
+      ok: true, roomTotal: "500000", inclusionTotal: "90000", reservationTotal: "500000",
       inclusionRooms: [{ pax: 1, nights: 1, unitPrice: "90000", total: "90000" }],
     });
   });

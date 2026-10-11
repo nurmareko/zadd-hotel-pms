@@ -16,7 +16,8 @@ import { auth } from "@/auth";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
-import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
+import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { formatDateID } from "@/lib/format";
@@ -68,6 +69,10 @@ function resolveReservationTab(
   requestedTab: string | undefined,
   status: ReservationStatus,
 ): ReservationTab {
+  if (requestedTab === "arrangement") {
+    return "inclusions";
+  }
+
   if (requestedTab === "folio") {
     return "tagihan";
   }
@@ -108,11 +113,11 @@ function ReservationTabs({
         Detail
       </Link>
       <Link
-        href={`/app/fo/reservasi/${reservationId}?tab=inclusions`}
+        href={`/app/fo/reservasi/${reservationId}?tab=arrangement`}
         aria-current={activeTab === "inclusions" ? "page" : undefined}
         className={`${tabClassName(activeTab === "inclusions")} shrink-0`}
       >
-        Inklusi
+        Arrangement
       </Link>
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=pembayaran`}
@@ -272,7 +277,7 @@ export default async function ReservationDetailPage({
             mealUnitPrice: true,
             mealAmount: true,
             folioLineItems: {
-              where: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
+              where: { article: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } } },
               take: 1,
               select: { id: true },
             },
@@ -473,6 +478,7 @@ export default async function ReservationDetailPage({
     return {
       id: night.id,
       dateLabel: formatDateID(night.date),
+      rateAmount: night.rateAmount.toString(),
       plan: night.mealPlan ?? ArrangementType.RO,
       pax: night.mealPax ?? reservation.adults + reservation.children,
       unitPrice: night.mealUnitPrice?.toString() ?? "0",

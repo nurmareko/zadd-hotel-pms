@@ -6,6 +6,7 @@ import { createReservationNightMealSnapshot } from "@/lib/reservation-night-sche
 type MealPlanChangeNight = {
   id: string;
   date: Date;
+  rateAmount: Prisma.Decimal;
   posted: boolean;
 };
 
@@ -51,6 +52,8 @@ export function buildReservationMealPlanChange(input: {
   currentPlan: ArrangementType;
   targetPlan: ArrangementType;
   unitPriceOverride?: Prisma.Decimal | null;
+  // Catalog-priced callers also pass an override; only operator price edits opt in.
+  allowSamePlanPriceChange?: boolean;
   adults: number;
   children: number;
   roomCapacity: number;
@@ -74,7 +77,7 @@ export function buildReservationMealPlanChange(input: {
   ) {
     return {
       ok: false,
-      error: "Riwayat Inklusi reservasi terminal bersifat final dan tidak dapat diubah.",
+      error: "Riwayat Arrangement reservasi final tidak dapat diubah.",
       disposition: "skipped",
     };
   }
@@ -83,7 +86,7 @@ export function buildReservationMealPlanChange(input: {
   if (!Number.isInteger(pax) || pax < 1) {
     return {
       ok: false,
-      error: "Pax reservasi tidak valid; meal plan tidak diterapkan.",
+      error: "Pax reservasi tidak valid; Arrangement tidak diterapkan.",
       disposition: "failed",
     };
   }
@@ -91,15 +94,19 @@ export function buildReservationMealPlanChange(input: {
   if (!Number.isInteger(input.roomCapacity) || pax > input.roomCapacity) {
     return {
       ok: false,
-      error: `Pax ${pax} melebihi kapasitas kamar ${input.roomCapacity}; meal plan tidak diterapkan.`,
+      error: `Pax ${pax} melebihi kapasitas kamar ${input.roomCapacity}; Arrangement tidak diterapkan.`,
       disposition: "failed",
     };
   }
 
-  if (input.currentPlan === input.targetPlan) {
+  const priceOnlyChange =
+    input.allowSamePlanPriceChange === true &&
+    input.unitPriceOverride != null &&
+    input.targetPlan !== ArrangementType.RO;
+  if (input.currentPlan === input.targetPlan && !priceOnlyChange) {
     return {
       ok: false,
-      error: "Meal plan kamar ini sudah menggunakan paket yang dipilih.",
+      error: "Arrangement kamar ini sudah menggunakan paket yang dipilih.",
       disposition: "skipped",
     };
   }
@@ -116,6 +123,17 @@ export function buildReservationMealPlanChange(input: {
 
   const data = createReservationNightMealSnapshot(input.targetPlan, pax, input.unitPriceOverride);
   const nightlyAmount = data.mealAmount ?? new Prisma.Decimal(0);
+  const overAllocatedNight = eligibleNights.find((night) =>
+    nightlyAmount.greaterThan(night.rateAmount),
+  );
+  if (overAllocatedNight) {
+    const date = formatISO(overAllocatedNight.date, { representation: "date" });
+    return {
+      ok: false,
+      error: `Alokasi Arrangement untuk malam ${date} sebesar IDR ${nightlyAmount.toString()} (${pax} pax) melebihi tarif paket IDR ${overAllocatedNight.rateAmount.toString()}. Kurangi harga satuan Arrangement; net kamar tidak boleh negatif.`,
+      disposition: "failed",
+    };
+  }
 
   return {
     ok: true,

@@ -41,7 +41,7 @@ must update both files in the same change.
   working vocabulary: check-in, check-out, folio, deposit, extras, no-show, GRC,
   ARR, and room-status codes such as VD, OC, and OOO.
 - Do not re-translate an already-established term. If the codebase already uses
-  an Indonesian form (for example, "Inklusi"), use it; if it already uses English
+  an Indonesian form (for example, "Kamar"), use it; if it already uses English
   (for example, "check-in" or "deposit"), keep it. Consistency with existing UI
   copy takes priority over a fresh translation choice.
 - Code is not copy. Identifiers, function and variable names, database columns,
@@ -56,8 +56,8 @@ must update both files in the same change.
 ### UI Copy Glossary
 
 - English kept: check-in, check-out, folio, deposit, extras, no-show, GRC, ARR,
-  VD, OC, OOO.
-- Indonesian established: Kamar, Tamu, Reservasi, Inklusi, Tarif, Kedatangan,
+  VD, OC, OOO, Arrangement (room meal-plan packages; replaces "Inklusi").
+- Indonesian established: Kamar, Tamu, Reservasi, Tarif, Kedatangan,
   Keberangkatan, Ringkasan, Sisa Tagihan, Simpan, Batal, Kumpulkan.
 
 ## Layout System

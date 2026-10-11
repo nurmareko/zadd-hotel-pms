@@ -648,7 +648,7 @@ export function CheckInDetailPanel({
                   <ReadOnlyItem label="No. reservasi" value={review.reservationNo} />
                   <ReadOnlyItem label="Tipe" value={review.reservationType} />
                   <ReadOnlyItem
-                    label="Inklusi"
+                    label="Arrangement"
                     value={mealPlanLabels[review.arrangementType]}
                   />
                   <ReadOnlyItem label="Nama tamu" value={review.guest.fullName} />

@@ -526,9 +526,10 @@ export function ReservationForm({
       : resolvedInclusionTotal;
 
   const totalReceived = 0;
-  const reservationTotal = roomSubtotal === null
+  const reservationTotal = roomSubtotal;
+  const netRoomTotal = roomSubtotal === null
     ? null
-    : roomSubtotal + inclusionTotal;
+    : roomSubtotal - inclusionTotal;
   const totalOutstanding =
     reservationTotal === null ? null : reservationTotal - totalReceived;
   const summaryAmountDisplay = (amount: number | null) =>
@@ -744,7 +745,7 @@ export function ReservationForm({
               label="Tipe Reservasi"
               value={reservationTypeLabel}
             />
-            <ReadOnlyField label="Inklusi" value={arrangementTypeLabel} />
+            <ReadOnlyField label="Arrangement" value={arrangementTypeLabel} />
             <ReadOnlyField
               label="Check-in"
               value={defaultValues.arrivalDate}
@@ -853,15 +854,15 @@ export function ReservationForm({
         <dl aria-label="Rincian biaya reservasi" className="text-sm">
           <div className="space-y-3">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Total Kamar</dt>
+              <dt className="text-slate-600">Total Kamar (Net)</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {summaryAmountDisplay(roomSubtotal)}
+                {summaryAmountDisplay(netRoomTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Inklusi</dt>
+              <dt className="text-slate-600">Alokasi Arrangement</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {formatIDR(inclusionTotal)}
+                {summaryAmountDisplay(inclusionTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
@@ -874,7 +875,7 @@ export function ReservationForm({
 
           <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="font-semibold text-slate-900">Total</dt>
+              <dt className="font-semibold text-slate-900">Total Paket</dt>
               <dd className="num text-right font-semibold text-slate-900">
                 {summaryAmountDisplay(reservationTotal)}
               </dd>
@@ -1583,10 +1584,10 @@ export function ReservationForm({
                     <div className={cardHeaderClassName}>
                       <div>
                         <h2 id="meal-inclusion-title" className={sectionTitleClassName}>
-                          Inklusi Makanan
+                          Arrangement
                         </h2>
                         <p className="mt-1 text-xs font-medium text-slate-500">
-                          Satu paket makan berlaku untuk semua kamar dalam reservasi ini.
+                          Satu arrangement berlaku untuk semua kamar dalam reservasi ini. Alokasi arrangement sudah termasuk dalam tarif paket kamar.
                         </p>
                       </div>
                     </div>
@@ -1597,7 +1598,7 @@ export function ReservationForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Paket makan <RequiredMark />
+                              Arrangement (Paket Kamar) <RequiredMark />
                             </FormLabel>
                             <FormControl>
                               <div className="grid gap-3 sm:grid-cols-2">
@@ -1627,7 +1628,7 @@ export function ReservationForm({
                                         {option.label}
                                       </span>
                                       <span className="num mt-1 block text-sm text-slate-600">
-                                        {formatIDR(option.price)} per tamu per malam
+                                        Alokasi {formatIDR(option.price)} per tamu per malam
                                       </span>
                                     </label>
                                   );
@@ -1642,7 +1643,7 @@ export function ReservationForm({
                     <div className={cardHeaderClassName}>
                       <div>
                         <h3 id="meal-preview-title" className={sectionTitleClassName}>
-                          Estimasi Biaya
+                          Estimasi Alokasi Arrangement
                         </h3>
                         <p className="mt-1 text-xs text-slate-500">
                           Pax berasal dari jumlah dewasa + anak pada setiap kamar.

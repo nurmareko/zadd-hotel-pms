@@ -30,6 +30,7 @@ export const CHECKOUT_FAILURE_CODES = [
   "STAY_SCHEDULE_OUT_OF_ORDER",
   "STAY_NIGHT_OWNERSHIP_INVALID",
   "ROOM_RATE_INVALID",
+  "INVALID_STAY_CHARGE_AMOUNT",
   "MEAL_VALUES_INCOMPLETE",
   "MEAL_VALUES_INVALID",
   "STAY_NIGHT_COUNT_INVALID",
@@ -97,6 +98,8 @@ export const CHECKOUT_FAILURE_MESSAGES: Record<
     "Salah satu Tarif malam terhubung ke reservasi yang tidak sesuai. Hentikan check-out dan minta pemeriksaan data.",
   ROOM_RATE_INVALID:
     "Tarif Kamar untuk salah satu malam tidak valid. Perbaiki Tarif sebelum melanjutkan check-out.",
+  INVALID_STAY_CHARGE_AMOUNT:
+    "Alokasi Arrangement untuk salah satu malam melebihi tarif paket sehingga nilai Kamar menjadi negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan check-out.",
   MEAL_VALUES_INCOMPLETE:
     "Data Inklusi makan untuk salah satu malam belum lengkap. Lengkapi atau hapus Inklusi tersebut sebelum check-out.",
   MEAL_VALUES_INVALID:
@@ -182,6 +185,7 @@ const STAY_BLOCKER_CODES: Record<
   OUT_OF_ORDER_STAY_SCHEDULE: "STAY_SCHEDULE_OUT_OF_ORDER",
   NIGHT_OWNERSHIP_MISMATCH: "STAY_NIGHT_OWNERSHIP_INVALID",
   INVALID_ROOM_RATE: "ROOM_RATE_INVALID",
+  INVALID_STAY_CHARGE_AMOUNT: "INVALID_STAY_CHARGE_AMOUNT",
   INCOMPLETE_MEAL_VALUES: "MEAL_VALUES_INCOMPLETE",
   INVALID_MEAL_VALUES: "MEAL_VALUES_INVALID",
   INVALID_EXPECTED_NIGHT_COUNT: "STAY_NIGHT_COUNT_INVALID",

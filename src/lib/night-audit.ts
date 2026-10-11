@@ -677,6 +677,15 @@ function blockerFromStayChargeError({
       resolution = "Perbaiki Tarif Kamar malam tersebut ke nilai rupiah bulat yang tidak negatif, lalu muat ulang Night Audit.";
       currentValues = { nightId: reason.nightId, rateAmount: reason.rateAmount };
       break;
+    case "INVALID_STAY_CHARGE_AMOUNT":
+      explanation = `Alokasi Arrangement untuk malam ${businessDateLabel(reason.affectedDate)} sebesar ${reason.mealAmount} melebihi tarif paket ${reason.rateAmount}, sehingga nilai Kamar menjadi negatif. Night Audit berhenti agar pendapatan Kamar tidak dicatat dengan nilai negatif.${futureExplanation}`;
+      resolution = "Perbaiki tarif paket atau alokasi Arrangement malam tersebut agar nilai Kamar tidak negatif, lalu muat ulang Night Audit.";
+      currentValues = {
+        nightId: reason.nightId,
+        rateAmount: reason.rateAmount,
+        mealAmount: reason.mealAmount,
+      };
+      break;
     case "INCOMPLETE_MEAL_VALUES":
       explanation = `Data Inklusi makan untuk malam ${businessDateLabel(reason.affectedDate)} belum lengkap. Night Audit berhenti agar charge Inklusi tidak kurang, berlebih, atau masuk dengan harga yang salah.${futureExplanation}`;
       resolution = "Lengkapi paket makan, jumlah tamu, harga per tamu, dan totalnya; atau hapus seluruh data Inklusi bila malam tersebut tidak memiliki paket makan. Setelah itu, muat ulang Night Audit.";

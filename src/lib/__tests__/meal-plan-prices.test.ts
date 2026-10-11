@@ -23,6 +23,137 @@ describe("active meal-plan catalog", () => {
   });
 });
 
+describe("Arrangement package-rate limits", () => {
+  const input = {
+    reservationId: 1, groupBookingId: null, status: "CONFIRMED" as const,
+    currentPlan: "RO" as const, targetPlan: "BB" as const,
+    adults: 2, children: 1, roomCapacity: 3,
+    unitPriceOverride: new Prisma.Decimal(50000),
+    nights: [
+      { id: "room-posted", date: new Date("2026-10-01"), posted: true, rateAmount: new Prisma.Decimal(0) },
+      { id: "eligible-1", date: new Date("2026-10-02"), posted: false, rateAmount: new Prisma.Decimal(500000) },
+      { id: "eligible-2", date: new Date("2026-10-03"), posted: false, rateAmount: new Prisma.Decimal(149999) },
+    ],
+  };
+
+  it("rejects allocation above any eligible night's rate, not just the first or aggregate rate", () => {
+    expect(buildReservationMealPlanChange(input)).toMatchObject({
+      ok: false, disposition: "failed",
+      error: expect.stringMatching(/Alokasi Arrangement.*2026-10-03.*150000.*149999/),
+    });
+  });
+
+  it("checks the package cap for same-plan price-only edits too", () => {
+    expect(buildReservationMealPlanChange({
+      ...input, currentPlan: "BB", allowSamePlanPriceChange: true,
+    })).toMatchObject({ ok: false, disposition: "failed" });
+  });
+
+  it("accepts equality and ignores locked nights with lower package rates", () => {
+    const result = buildReservationMealPlanChange({
+      ...input,
+      nights: input.nights.map((night) => night.id === "eligible-2"
+        ? { ...night, rateAmount: new Prisma.Decimal(150000) } : night),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.snapshot.eligibleNightIds).toEqual(["eligible-1", "eligible-2"]);
+    expect(result.snapshot.nightlyAmount).toBe("150000");
+  });
+
+  it.each([0, 1])("handles a zero package rate with override %s without changing quote policy", (price) => {
+    const result = buildReservationMealPlanChange({
+      ...input, unitPriceOverride: new Prisma.Decimal(price),
+      nights: [{ ...input.nights[1], rateAmount: new Prisma.Decimal(0) }],
+    });
+    expect(result.ok).toBe(price === 0);
+  });
+});
+
+describe("same-plan price changes", () => {
+  const input = {
+    reservationId: 1,
+    groupBookingId: "group-1",
+    expectedGroupBookingId: "group-1",
+    status: "CONFIRMED" as const,
+    currentPlan: "BB" as const,
+    targetPlan: "BB" as const,
+    adults: 2,
+    children: 1,
+    roomCapacity: 3,
+    nights: [
+      { id: "posted", date: new Date("2026-10-01"), posted: true, rateAmount: new Prisma.Decimal(500000) },
+      { id: "future-1", date: new Date("2026-10-02"), posted: false, rateAmount: new Prisma.Decimal(500000) },
+      { id: "future-2", date: new Date("2026-10-03"), posted: false, rateAmount: new Prisma.Decimal(500000) },
+    ],
+  };
+
+  it.each([0, 65000])("applies explicit same-plan price %s only to unposted nights", (price) => {
+    const result = buildReservationMealPlanChange({
+      ...input,
+      allowSamePlanPriceChange: true,
+      unitPriceOverride: new Prisma.Decimal(price),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.snapshot.eligibleNightIds).toEqual(["future-1", "future-2"]);
+    expect(result.snapshot.pax).toBe(3);
+    expect(result.snapshot.unitPrice).toBe(String(price));
+    expect(result.snapshot.nightlyAmount).toBe(String(price * 3));
+    expect(result.snapshot.expectedAmount).toBe(String(price * 3 * 2));
+    expect(result.data.mealPlan).toBe("BB");
+    expect(String(result.data.mealUnitPrice)).toBe(String(price));
+  });
+
+  it.each([undefined, null, new Prisma.Decimal(65000)])(
+    "keeps default/group same-plan requests skipped with price %s",
+    (unitPriceOverride) => {
+      expect(buildReservationMealPlanChange({ ...input, unitPriceOverride }))
+        .toMatchObject({ ok: false, disposition: "skipped" });
+    },
+  );
+
+  it.each([undefined, null])("requires an actual price even with opt-in: %s", (unitPriceOverride) => {
+    expect(buildReservationMealPlanChange({
+      ...input, allowSamePlanPriceChange: true, unitPriceOverride,
+    })).toMatchObject({ ok: false, disposition: "skipped" });
+  });
+
+  it("does not create a price-only change for RO", () => {
+    expect(buildReservationMealPlanChange({
+      ...input, currentPlan: "RO", targetPlan: "RO",
+      allowSamePlanPriceChange: true, unitPriceOverride: new Prisma.Decimal(65000),
+    })).toMatchObject({ ok: false, disposition: "skipped" });
+  });
+
+  it.each([
+    { status: "CHECKED_OUT" as const },
+    { status: "CANCELLED" as const },
+    { status: "NO_SHOW" as const },
+    { nights: input.nights.map((night) => ({ ...night, posted: true })) },
+    { groupBookingId: "different-group" },
+    { adults: 4 },
+    { adults: 0, children: 0 },
+  ])("preserves eligibility guards for price-only changes: %j", (overrides) => {
+    expect(buildReservationMealPlanChange({
+      ...input, ...overrides,
+      allowSamePlanPriceChange: true, unitPriceOverride: new Prisma.Decimal(65000),
+    }).ok).toBe(false);
+  });
+
+  it("still rejects a preview with a different same-plan price", () => {
+    const old = buildReservationMealPlanChange({
+      ...input, allowSamePlanPriceChange: true, unitPriceOverride: new Prisma.Decimal(50000),
+    });
+    const updated = buildReservationMealPlanChange({
+      ...input, allowSamePlanPriceChange: true, unitPriceOverride: new Prisma.Decimal(65000),
+    });
+    expect(old.ok && updated.ok).toBe(true);
+    if (!old.ok || !updated.ok) throw new Error("Expected price-only changes");
+    expect(matchesExpectedMealPlanPreview(updated.snapshot, old.snapshot)).toBe(false);
+  });
+});
+
 describe("meal snapshot overrides", () => {
   it.each([0, 65000, 180000])("snapshots explicit whole-IDR price %s", (price) => {
     const result = createReservationNightMealSnapshot("BB", 2, new Prisma.Decimal(price));
@@ -52,8 +183,8 @@ describe("meal snapshot overrides", () => {
   it("prices only eligible nights at the target price and rejects stale price previews", () => {
     const input = { reservationId: 1, groupBookingId: null, status: "CONFIRMED" as const,
       currentPlan: "BB" as const, targetPlan: "HB" as const, adults: 2, children: 0, roomCapacity: 2,
-      nights: [{ id: "posted", date: new Date("2026-10-01"), posted: true },
-        { id: "future", date: new Date("2026-10-02"), posted: false }],
+      nights: [{ id: "posted", date: new Date("2026-10-01"), posted: true, rateAmount: new Prisma.Decimal(500000) },
+        { id: "future", date: new Date("2026-10-02"), posted: false, rateAmount: new Prisma.Decimal(500000) }],
     };
     const old = buildReservationMealPlanChange(input);
     const current = buildReservationMealPlanChange({ ...input, unitPriceOverride: new Prisma.Decimal(180000) });

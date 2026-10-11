@@ -69,9 +69,9 @@ describe("buildReservationMealPlanChange", () => {
       children: 1,
       roomCapacity: 3,
       nights: [
-        { id: "posted", date: date("2026-08-01"), posted: true },
-        { id: "future-1", date: date("2026-08-02"), posted: false },
-        { id: "future-2", date: date("2026-08-03"), posted: false },
+        { id: "posted", date: date("2026-08-01"), posted: true, rateAmount: new Prisma.Decimal(500000) },
+        { id: "future-1", date: date("2026-08-02"), posted: false, rateAmount: new Prisma.Decimal(500000) },
+        { id: "future-2", date: date("2026-08-03"), posted: false, rateAmount: new Prisma.Decimal(500000) },
       ],
     });
 

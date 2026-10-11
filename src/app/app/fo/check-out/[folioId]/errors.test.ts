@@ -61,6 +61,8 @@ const STATIC_MESSAGES: Record<
     "Salah satu Tarif malam terhubung ke reservasi yang tidak sesuai. Hentikan check-out dan minta pemeriksaan data.",
   ROOM_RATE_INVALID:
     "Tarif Kamar untuk salah satu malam tidak valid. Perbaiki Tarif sebelum melanjutkan check-out.",
+  INVALID_STAY_CHARGE_AMOUNT:
+    "Alokasi Arrangement untuk salah satu malam melebihi tarif paket sehingga nilai Kamar menjadi negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan check-out.",
   MEAL_VALUES_INCOMPLETE:
     "Data Inklusi makan untuk salah satu malam belum lengkap. Lengkapi atau hapus Inklusi tersebut sebelum check-out.",
   MEAL_VALUES_INVALID:
@@ -156,6 +158,16 @@ const BLOCKERS: Array<{
       rateAmount: "123456.789",
     },
     code: "ROOM_RATE_INVALID",
+  },
+  {
+    blocker: {
+      kind: "INVALID_STAY_CHARGE_AMOUNT",
+      nightId: "night-secret",
+      affectedDate: DATE,
+      rateAmount: "50000",
+      mealAmount: "100000",
+    },
+    code: "INVALID_STAY_CHARGE_AMOUNT",
   },
   {
     blocker: {

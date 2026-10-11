@@ -89,6 +89,13 @@ export type StayChargePostingBlocker =
       rateAmount: string;
     }
   | {
+      kind: "INVALID_STAY_CHARGE_AMOUNT";
+      nightId: string;
+      affectedDate: Date;
+      rateAmount: string;
+      mealAmount: string;
+    }
+  | {
       kind: "INCOMPLETE_MEAL_VALUES";
       nightId: string;
       affectedDate: Date;
@@ -429,6 +436,8 @@ export function stayChargeShortfallLines({
   const roomLines: PendingStayChargeLine[] = [];
 
   for (const night of eligibleNights) {
+    const roomAmount = night.rateAmount.minus(night.mealAmount ?? new Prisma.Decimal(0));
+
     const alreadyPosted = lineItems.some(
       (lineItem) =>
         lineItem.fbOrderId === null &&
@@ -447,8 +456,8 @@ export function stayChargeShortfallLines({
       article: roomArticle,
       description: "Room charge",
       quantity: new Prisma.Decimal(1),
-      unitPrice: night.rateAmount,
-      amount: night.rateAmount,
+      unitPrice: roomAmount,
+      amount: roomAmount,
     });
   }
 
@@ -510,7 +519,30 @@ export function stayChargeShortfallLines({
     });
   }
 
-  return [...roomLines, ...mealLines];
+  const pendingLines = [...roomLines, ...mealLines];
+  const pendingNightIds = new Set(pendingLines.map((line) => line.reservationNightId));
+
+  // Fully posted historical nights must not acquire the new net-package invariant.
+  for (const night of eligibleNights) {
+    if (!pendingNightIds.has(night.id)) continue;
+
+    const mealAmount = night.mealAmount ?? new Prisma.Decimal(0);
+    if (night.rateAmount.minus(mealAmount).isNegative()) {
+      postingBlocked(
+        reservationNo,
+        `alokasi Arrangement melebihi tarif paket untuk malam ${dateKey(night.date)}; nilai Kamar setelah dikurangi alokasi Arrangement tidak boleh negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan.`,
+        {
+          kind: "INVALID_STAY_CHARGE_AMOUNT",
+          nightId: night.id,
+          affectedDate: night.date,
+          rateAmount: night.rateAmount.toString(),
+          mealAmount: mealAmount.toString(),
+        },
+      );
+    }
+  }
+
+  return pendingLines;
 }
 
 /**

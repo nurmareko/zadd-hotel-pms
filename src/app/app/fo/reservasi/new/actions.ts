@@ -1017,7 +1017,7 @@ export async function getReservationQuote(
       ok: true,
       roomTotal: roomTotal.toString(),
       inclusionTotal: inclusionTotal.toString(),
-      reservationTotal: roomTotal.plus(inclusionTotal).toString(),
+      reservationTotal: roomTotal.toString(),
       deposits,
       standardFirstNightRates,
       inclusionRooms,

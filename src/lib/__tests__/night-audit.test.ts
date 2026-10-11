@@ -129,6 +129,54 @@ describe("executeNightAudit room-block reconciliation", () => {
     tx.folioLineItem.findMany.mockResolvedValue([]);
   });
 
+  it("explains a negative net room blocker and stops before any posting or audit writes", async () => {
+    tx.reservation.findMany.mockResolvedValue([{
+      id: 101,
+      reservationNo: "RSV-101",
+      status: "CHECKED_IN",
+      arrangementType: "BB",
+      arrivalDate: date("2026-08-06"),
+      departureDate: date("2026-08-07"),
+      guest: { fullName: "Tamu Uji" },
+      room: { number: "101" },
+      folio: { id: 201, folioNo: "FOL-201", status: "OPEN", lineItems: [] },
+      reservationNights: [{
+        id: "night-1",
+        reservationId: 101,
+        date: date("2026-08-06"),
+        rateAmount: decimal(50_000),
+        mealPlan: "BB",
+        mealPax: 2,
+        mealUnitPrice: decimal(50_000),
+        mealAmount: decimal(100_000),
+      }],
+    }]);
+
+    const result = await run();
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected Night Audit to be blocked");
+    expect(result.blockingErrors).toHaveLength(1);
+    const blocker = result.blockingErrors?.[0];
+    expect(blocker).toMatchObject({
+      kind: "INVALID_STAY_CHARGE_AMOUNT",
+      affectedDate: date("2026-08-06"),
+      isFutureDate: false,
+      reservation: { id: 101, reservationNo: "RSV-101" },
+      folio: { id: 201, folioNo: "FOL-201", status: "OPEN" },
+      currentValues: { nightId: "night-1", rateAmount: "50000", mealAmount: "100000" },
+      resolution: "Perbaiki tarif paket atau alokasi Arrangement malam tersebut agar nilai Kamar tidak negatif, lalu muat ulang Night Audit.",
+    });
+    expect(blocker?.explanation).toContain("Alokasi Arrangement untuk malam");
+    expect(blocker?.explanation).toContain("100000 melebihi tarif paket 50000");
+    expect(blocker?.explanation).toContain("nilai Kamar menjadi negatif");
+    expect(result.error).toContain(blocker!.explanation);
+    expect(result.error).toContain(blocker!.resolution);
+    expect(tx.folioLineItem.createMany).not.toHaveBeenCalled();
+    expect(tx.nightAudit.create).not.toHaveBeenCalled();
+    expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+
   it.each([RoomStatus.VC, RoomStatus.VD, RoomStatus.VCU, RoomStatus.OC, RoomStatus.OD])("activates a covering block from %s with no physical occupant", async (status) => {
     tx.room.findUnique.mockResolvedValue({ id: 10, number: "101", status });
     const result = await run();
@@ -336,7 +384,8 @@ describe("night audit domain logic", () => {
     const mealLine = lines.find((l) => l.articleId === 2);
 
     expect(roomLine).toBeDefined();
-    expect(roomLine?.amount.toString()).toBe("500000");
+    expect(roomLine?.unitPrice.toString()).toBe("400000");
+    expect(roomLine?.amount.toString()).toBe("400000");
     expect(roomLine?.reservationNightId).toBe("night-1");
     expect(roomLine?.description).toBe("Night Audit Room Charge - 2026-08-05");
 
@@ -344,6 +393,20 @@ describe("night audit domain logic", () => {
     expect(mealLine?.amount.toString()).toBe("100000");
     expect(mealLine?.reservationNightId).toBe("night-1");
     expect(mealLine?.description).toBe("Night Audit Breakfast Inclusion - 2026-08-05");
+    expect(mealLine?.quantity.toString()).toBe("2");
+    expect(mealLine?.unitPrice.toString()).toBe("50000");
+
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: lines,
+      existingDaytimeFolioLines: [],
+      closedFbRevenueTotal: 0,
+      roomArticleId: 1,
+    });
+    expect(revenue.roomRevenue.toNumber()).toBe(400_000);
+    expect(revenue.inclusionRevenue.toNumber()).toBe(100_000);
+    expect(revenue.fbRevenue.toNumber()).toBe(100_000);
+    expect(revenue.otherRevenue.toNumber()).toBe(0);
+    expect(revenue.totalRevenue.toNumber()).toBe(500_000);
   });
 
   it("buildAuditStayChargeLines returns empty array if night was already posted", () => {

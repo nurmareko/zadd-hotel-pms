@@ -11,7 +11,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { getMealPlanPrices, MEAL_ARTICLE_CODES } from "@/lib/arrangement-inclusions";
+import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
+import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import {
@@ -228,8 +229,9 @@ export async function previewGroupMealPlan(
         select: {
           id: true,
           date: true,
+          rateAmount: true,
           folioLineItems: {
-            where: { article: { code: { in: [...MEAL_ARTICLE_CODES] } } },
+            where: { article: { code: { in: [...STAY_CHARGE_ARTICLE_CODES] } } },
             take: 1,
             select: { id: true },
           },
@@ -280,6 +282,7 @@ export async function previewGroupMealPlan(
       nights: reservation.reservationNights.map((night) => ({
         id: night.id,
         date: night.date,
+        rateAmount: night.rateAmount,
         posted: night.folioLineItems.length > 0,
       })),
     });

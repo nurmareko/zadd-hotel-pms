@@ -1,8 +1,11 @@
 import { Prisma } from "@prisma/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import { checkoutStayChargeFailure } from "@/lib/check-out/errors";
 
 import {
   stayChargeShortfallLines,
+  StayChargePostingError,
   stayNightsThroughAuditDate,
   stayNightsThroughCheckout,
   type StayChargeArticle,
@@ -94,6 +97,29 @@ describe("stay charge night counts", () => {
 });
 
 describe("stayChargeShortfallLines", () => {
+  it("maps a negative net room blocker to a precise, safe checkout failure", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const failure = checkoutStayChargeFailure(new StayChargePostingError(
+        "raw internal reservation details",
+        {
+          kind: "INVALID_STAY_CHARGE_AMOUNT",
+          nightId: "private-night-id",
+          affectedDate: date("2026-08-01"),
+          rateAmount: "50000",
+          mealAmount: "100000",
+        },
+      ));
+
+      expect(failure).toEqual({
+        ok: false,
+        code: "INVALID_STAY_CHARGE_AMOUNT",
+        error: "Alokasi Arrangement untuk salah satu malam melebihi tarif paket sehingga nilai Kamar menjadi negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan check-out.",
+      });
+    } finally {
+      log.mockRestore();
+    }
+  });
   it("builds room and snapshotted meal lines from the verified nightly amounts", () => {
     const roomArticle = {
       id: 1,
@@ -134,11 +160,106 @@ describe("stayChargeShortfallLines", () => {
     const mealLine = lines.find((line) => line.article.code === "MEAL-BB");
 
     expect(roomLine?.quantity.toNumber()).toBe(1);
-    expect(roomLine?.unitPrice.toNumber()).toBe(550_000);
-    expect(roomLine?.amount.toNumber()).toBe(550_000);
+    expect(roomLine?.unitPrice.toNumber()).toBe(450_000);
+    expect(roomLine?.amount.toNumber()).toBe(450_000);
     expect(mealLine?.quantity.toNumber()).toBe(2);
     expect(mealLine?.unitPrice.toNumber()).toBe(50_000);
     expect(mealLine?.amount.toNumber()).toBe(100_000);
+    expect(lines.reduce((sum, line) => sum.plus(line.amount), decimal(0)).toNumber()).toBe(550_000);
+    expect(lines.map((line) => line.reservationNightId)).toEqual(["night-1", "night-1"]);
+  });
+
+  it.each([
+    { postedArticles: [] },
+    { postedArticles: [1] },
+    { postedArticles: [2] },
+    { postedArticles: [1, 2], invalidArticle: 1, fbOrderId: 20 },
+    { postedArticles: [1, 2], invalidArticle: 2, fbOrderId: 20 },
+    { postedArticles: [1, 2], invalidArticle: 1, reservationNightId: null },
+    { postedArticles: [1, 2], invalidArticle: 2, reservationNightId: null },
+    { postedArticles: [1, 2], invalidArticle: 1, reservationNightId: "other-night" },
+    { postedArticles: [1, 2], invalidArticle: 2, reservationNightId: "other-night" },
+  ])("blocks negative net room amounts when either exact posting is missing: %j", ({ postedArticles, invalidArticle, fbOrderId = null, reservationNightId = "night-1" }) => {
+    const build = () => stayChargeShortfallLines({
+      reservationId: 10,
+      reservationNo: "RSV-NEGATIVE",
+      arrivalDate: date("2026-08-01"),
+      departureDate: date("2026-08-02"),
+      expectedNights: 1,
+      reservationNights: [{
+        id: "night-1",
+        reservationId: 10,
+        date: date("2026-08-01"),
+        rateAmount: decimal(0),
+        mealPlan: "BB",
+        mealPax: 2,
+        mealUnitPrice: decimal(50_000),
+        mealAmount: decimal(100_000),
+      }],
+      lineItems: postedArticles.map((articleId) => ({
+        articleId,
+        fbOrderId: articleId === invalidArticle ? fbOrderId : null,
+        reservationNightId: articleId === invalidArticle ? reservationNightId : "night-1",
+      })),
+      articles: [
+        { id: 1, code: "ROOM-CHARGE", name: "Room charge", type: "ROOM", defaultPrice: null },
+        { id: 2, code: "MEAL-BB", name: "Breakfast", type: "FB", defaultPrice: null },
+      ],
+    });
+
+    expect(build).toThrow(StayChargePostingError);
+    expect(build).toThrow("alokasi Arrangement melebihi tarif paket");
+    try {
+      build();
+    } catch (error) {
+      expect(error).toMatchObject({
+        blocker: {
+          kind: "INVALID_STAY_CHARGE_AMOUNT",
+          nightId: "night-1",
+          affectedDate: date("2026-08-01"),
+          rateAmount: "0",
+          mealAmount: "100000",
+        },
+      });
+    }
+  });
+
+  it.each([
+    { rate: 0, postedArticles: [1, 2], expected: [] },
+    { rate: 100_000, postedArticles: [], expected: [[1, 0], [2, 100_000]] },
+    { rate: 550_000, postedArticles: [1], expected: [[2, 100_000]] },
+    { rate: 550_000, postedArticles: [2], expected: [[1, 450_000]] },
+    { rate: 550_000, postedArticles: [1, 2], expected: [] },
+  ])("preserves exact identity with package $rate and posted articles $postedArticles", ({ rate, postedArticles, expected }) => {
+    const lines = stayChargeShortfallLines({
+      reservationId: 10,
+      reservationNo: "RSV-PACKAGE",
+      arrivalDate: date("2026-08-01"),
+      departureDate: date("2026-08-02"),
+      expectedNights: 1,
+      reservationNights: [{
+        id: "night-1",
+        reservationId: 10,
+        date: date("2026-08-01"),
+        rateAmount: decimal(rate),
+        mealPlan: "BB",
+        mealPax: 2,
+        mealUnitPrice: decimal(50_000),
+        mealAmount: decimal(100_000),
+      }],
+      lineItems: postedArticles.map((articleId) => ({
+        articleId,
+        fbOrderId: null,
+        reservationNightId: "night-1",
+      })),
+      articles: [
+        { id: 1, code: "ROOM-CHARGE", name: "Room charge", type: "ROOM", defaultPrice: null },
+        { id: 2, code: "MEAL-BB", name: "Breakfast", type: "FB", defaultPrice: null },
+      ],
+    });
+
+    expect(lines.map((line) => [line.articleId, line.amount.toNumber()])).toEqual(expected);
+    expect(lines.every((line) => line.reservationNightId === "night-1")).toBe(true);
   });
 
   it("posts an earlier missing room night when a later night is already linked", () => {

@@ -72,6 +72,67 @@ afterAll(async () => {
 });
 
 describe("inclusion snapshots and stay-charge posting", () => {
+  it("keeps a ROOM-CHARGE-only RO night immutable and catch-up cannot add a meal to its gross charge", async () => {
+    const user = await createUser();
+    await createHotelSettings();
+    const roomType = await createRoomType();
+    const guest = await createGuest();
+    const articles = await createStayChargeArticles();
+    const { reservation, nights } = await createReservationFixture({
+      userId: user.id, roomTypeId: roomType.id, guestId: guest.id,
+      arrivalDate: "2026-08-05", nightlyRates: [500_000, 500_000],
+      status: ReservationStatus.CHECKED_IN, arrangementType: ArrangementType.RO, adults: 2,
+    });
+    const folio = await createFolio(reservation.id);
+    await createFolioLine({
+      folioId: folio.id, articleId: articles.room.id, postedById: user.id,
+      reservationNightId: nights[0]!.id, quantity: 1, unitPrice: 500_000, amount: 500_000,
+    });
+    const lockedBefore = await prisma.reservationNight.findUniqueOrThrow({ where: { id: nights[0]!.id } });
+
+    await expect(changeReservationMealPlan({
+      reservationId: reservation.id, arrangementType: ArrangementType.BB,
+    })).resolves.toEqual({ ok: true, effectiveDate: "2026-08-06", changedNights: 1 });
+    expect(await prisma.reservationNight.findUniqueOrThrow({ where: { id: nights[0]!.id } }))
+      .toEqual(lockedBefore);
+    expect((await prisma.reservationNight.findUniqueOrThrow({ where: { id: nights[1]!.id } })).mealAmount?.toNumber())
+      .toBe(100_000);
+
+    await postPendingStayCharges({ folioId: folio.id, postedById: user.id, now: FROZEN_NOW });
+    const lockedLines = await prisma.folioLineItem.findMany({
+      where: { reservationNightId: nights[0]!.id }, include: { article: true },
+    });
+    expect(lockedLines).toHaveLength(1);
+    expect(lockedLines[0]!.article.code).toBe(ROOM_CHARGE_ARTICLE_CODE);
+    expect(lockedLines[0]!.amount.toNumber()).toBe(500_000);
+  });
+
+  it.each([ArrangementType.RO, ArrangementType.BB])(
+    "rejects an over-allocation from %s atomically using each transaction-read nightly rate",
+    async (currentPlan) => {
+      const user = await createUser();
+      const roomType = await createRoomType();
+      const guest = await createGuest();
+      await createStayChargeArticles();
+      const { reservation } = await createReservationFixture({
+        userId: user.id, roomTypeId: roomType.id, guestId: guest.id,
+        arrivalDate: "2026-08-05", nightlyRates: [500_000, 99_999],
+        status: ReservationStatus.CONFIRMED, arrangementType: currentPlan, adults: 2,
+      });
+      const before = await prisma.reservation.findUniqueOrThrow({
+        where: { id: reservation.id }, include: { reservationNights: { orderBy: { date: "asc" } } },
+      });
+      await expect(changeReservationMealPlan({
+        reservationId: reservation.id, arrangementType: ArrangementType.BB, unitPriceOverride: 50_000,
+      })).resolves.toMatchObject({
+        ok: false, disposition: "failed",
+        error: expect.stringMatching(/2026-08-06.*100000.*99999/),
+      });
+      expect(await prisma.reservation.findUniqueOrThrow({
+        where: { id: reservation.id }, include: { reservationNights: { orderBy: { date: "asc" } } },
+      })).toEqual(before);
+    },
+  );
   it("changes only future unposted meal snapshots while elapsed and posted nights remain immutable", async () => {
     const user = await createUser();
     await createHotelSettings();

@@ -297,7 +297,7 @@ export function Grc({ source }: GrcProps) {
             <Field label="Kedatangan" value={dateLabel(data.arrivalDate)} />
             <Field label="Keberangkatan" value={dateLabel(data.departureDate)} />
             <Field label="Jumlah Malam" value={String(data.nights)} />
-            <Field label="Inklusi" value={data.arrangementLabel} />
+            <Field label="Arrangement" value={data.arrangementLabel} />
             <Field label="Jenis Reservasi" value={data.reservationTypeLabel} />
           </View>
         </View>
