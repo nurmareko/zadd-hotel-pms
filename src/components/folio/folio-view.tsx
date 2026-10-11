@@ -87,6 +87,7 @@ export async function GuestFolioView({
         id: true,
         code: true,
         name: true,
+        type: true,
         defaultPrice: true,
       },
     }),
@@ -163,7 +164,7 @@ export async function GuestFolioView({
             className={buttonVariants({ variant: "outline" })}
           >
             <Download aria-hidden="true" />
-            PDF Bill
+            Tagihan PDF
           </a>
           {canContinueToCheckout ? (
             <Link
@@ -207,7 +208,7 @@ export async function GuestFolioView({
               className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-slate-900 hover:bg-slate-50 desktop:min-h-10"
             >
               <Download aria-hidden="true" />
-              PDF Bill
+              Tagihan PDF
             </a>
             <a
               href={`/api/reservations/${folio.reservationId}/grc`}

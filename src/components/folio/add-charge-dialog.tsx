@@ -1,9 +1,10 @@
 "use client";
 
+import type { ArticleType } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { safelyRunAction } from "@/lib/action-errors";
+import { getArticleDepartmentLabel, POSTABLE_DEPARTMENTS } from "@/lib/article-departments";
 import { formatIDR } from "@/lib/format";
 import { postCharge } from "@/lib/folio/actions";
 import {
@@ -40,6 +42,7 @@ export type ChargeArticleOption = {
   id: number;
   code: string;
   name: string;
+  type: ArticleType;
   defaultPrice: number | null;
 };
 
@@ -71,6 +74,14 @@ export function AddChargeDialog({
 }: AddChargeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const departmentFilterId = useId();
+  const [departmentFilter, setDepartmentFilter] = useState<ArticleType | "">("");
+  const postableArticles = articles.filter((article) =>
+    POSTABLE_DEPARTMENTS.includes(article.type),
+  );
+  const filteredArticles = postableArticles.filter((article) =>
+    !departmentFilter || article.type === departmentFilter,
+  );
   const [uiState, setUiState] = useState<FolioDialogUiState>(
     INITIAL_FOLIO_DIALOG_UI_STATE,
   );
@@ -105,6 +116,7 @@ export function AddChargeDialog({
   );
 
   function resetForm() {
+    setDepartmentFilter("");
     form.reset({
       folioId,
       articleId: "",
@@ -172,7 +184,7 @@ export function AddChargeDialog({
       <Button
         type="button"
         variant={variant}
-        disabled={disabled || articles.length === 0}
+        disabled={disabled || postableArticles.length === 0}
         onClick={() => setOpen(true)}
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
@@ -198,6 +210,34 @@ export function AddChargeDialog({
                 {...form.register("folioId")}
               />
 
+              <div className="space-y-2">
+                <label htmlFor={departmentFilterId} className="text-sm font-medium text-slate-700">
+                  Departemen
+                </label>
+                <select
+                  id={departmentFilterId}
+                  className={selectClassName}
+                  value={departmentFilter}
+                  disabled={isSubmitting}
+                  onChange={(event) => {
+                    const nextDepartment = event.target.value as ArticleType | "";
+                    setDepartmentFilter(nextDepartment);
+                    const selectedArticle = postableArticles.find(
+                      (article) => String(article.id) === form.getValues("articleId"),
+                    );
+                    if (selectedArticle && nextDepartment && selectedArticle.type !== nextDepartment) {
+                      form.setValue("articleId", "", { shouldDirty: true, shouldValidate: true });
+                      form.setValue("unitPrice", "", { shouldDirty: true, shouldValidate: true });
+                    }
+                  }}
+                >
+                  <option value="">Semua Departemen</option>
+                  {POSTABLE_DEPARTMENTS.map((type) => (
+                    <option key={type} value={type}>{getArticleDepartmentLabel(type)}</option>
+                  ))}
+                </select>
+              </div>
+
               <FormField
                 control={form.control}
                 name="articleId"
@@ -211,7 +251,7 @@ export function AddChargeDialog({
                         {...field}
                         onChange={(event) => {
                           field.onChange(event.target.value);
-                          const article = articles.find(
+                          const article = filteredArticles.find(
                             (candidate) =>
                               String(candidate.id) === event.target.value,
                           );
@@ -226,13 +266,16 @@ export function AddChargeDialog({
                         }}
                       >
                         <option value="">Pilih artikel</option>
-                        {articles.map((article) => (
+                        {filteredArticles.map((article) => (
                           <option key={article.id} value={String(article.id)}>
-                            {article.code} - {article.name}
+                            {article.code} - {article.name} ({getArticleDepartmentLabel(article.type)})
                           </option>
                         ))}
                       </select>
                     </FormControl>
+                    {filteredArticles.length === 0 ? (
+                      <FormDescription>Tidak ada artikel yang dapat dicatat untuk departemen ini.</FormDescription>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}

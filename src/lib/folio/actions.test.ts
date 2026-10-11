@@ -288,6 +288,65 @@ describe("folio server actions", () => {
       });
     });
 
+    describe("Issue291 operational departments", () => {
+      beforeEach(() => {
+        vi.resetAllMocks();
+        mocks.auth.mockResolvedValue({ user: { id: "1", role: "FO" } });
+      });
+
+      afterEach(() => {
+        vi.resetAllMocks();
+      });
+
+      it.each([
+        { type: ArticleType.ROOM, id: 21, code: "FO-EXTRA", name: "Layanan FO" },
+        { type: ArticleType.SERVICE, id: 22, code: "LAUNDRY", name: "Laundry" },
+        { type: ArticleType.FB, id: 23, code: "FB-MEAL", name: "Makanan" },
+        { type: ArticleType.MISC, id: 24, code: "SPA", name: "Spa" },
+      ])("posts $type with the selected article and edited charge fields", async (article) => {
+        mocks.folioFindUnique.mockResolvedValueOnce({
+          id: 10,
+          reservationId: 1,
+          status: FolioStatus.OPEN,
+        });
+        mocks.articleFindUnique.mockResolvedValueOnce(article);
+        const tx = {
+          folio: {
+            findUnique: vi.fn().mockResolvedValue({ id: 10, status: FolioStatus.OPEN }),
+          },
+          folioLineItem: { create: vi.fn().mockResolvedValue({ id: 1 }) },
+          nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
+        };
+        mocks.transaction.mockImplementation(async (callback) => callback(tx));
+
+        const result = await postCharge(createChargeFormData({
+          articleId: String(article.id),
+          quantity: "1.5",
+          unitPrice: "42000",
+          description: "  Layanan tambahan sesuai permintaan tamu  ",
+        }));
+
+        expect(result).toEqual({ ok: true });
+        expect(mocks.articleFindUnique).toHaveBeenCalledExactlyOnceWith({
+          where: { id: article.id },
+          select: { id: true, code: true, name: true, type: true },
+        });
+        expect(mocks.transaction).toHaveBeenCalledOnce();
+        expect(tx.folioLineItem.create).toHaveBeenCalledExactlyOnceWith({
+          data: {
+            articleId: article.id,
+            folioId: 10,
+            description: "Layanan tambahan sesuai permintaan tamu",
+            quantity: 1.5,
+            unitPrice: 42000,
+            amount: new Prisma.Decimal(63000),
+            postedById: 1,
+            postedAt: expect.any(Date),
+          },
+        });
+      });
+    });
+
     it("returns SESSION_EXPIRED when session is missing", async () => {
       mocks.auth.mockResolvedValueOnce(null);
 
@@ -388,6 +447,14 @@ describe("folio server actions", () => {
         name: "Pajak 10%",
         type: ArticleType.TAX,
       });
+      const tx = {
+        folio: {
+          findUnique: vi.fn().mockResolvedValue({ id: 10, status: FolioStatus.OPEN }),
+        },
+        folioLineItem: { create: vi.fn().mockResolvedValue({ id: 1 }) },
+        nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
+      };
+      mocks.transaction.mockImplementation(async (callback) => callback(tx));
 
       const result = await postCharge(createChargeFormData());
 
@@ -396,6 +463,10 @@ describe("folio server actions", () => {
         code: "PROTECTED_TAX_ARTICLE",
         error: FOLIO_FAILURE_MESSAGES.PROTECTED_TAX_ARTICLE,
       });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
     });
 
     it("returns PROTECTED_STAY_ARTICLE when article is a stay charge or fee", async () => {

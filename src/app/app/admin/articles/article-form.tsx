@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ARTICLE_DEPARTMENT_LABELS } from "@/lib/article-departments";
 import { focusFirstFormError } from "@/lib/form-error-focus";
 import { createArticle, updateArticle } from "./actions";
 import {
@@ -129,7 +130,7 @@ export function ArticleForm({
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Code</FormLabel>
+                <FormLabel className={labelClassName}>Kode</FormLabel>
                 <FormControl>
                   <Input placeholder="ROOM" {...field} className={inputClassName} />
                 </FormControl>
@@ -143,7 +144,7 @@ export function ArticleForm({
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Tipe</FormLabel>
+                <FormLabel className={labelClassName}>Departemen / Kategori</FormLabel>
                 <Select
                   value={field.value}
                   onValueChange={(value) => {
@@ -154,13 +155,15 @@ export function ArticleForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih tipe" />
+                      <SelectValue placeholder="Pilih departemen / kategori">
+                                              {ARTICLE_DEPARTMENT_LABELS[field.value]}
+                                            </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
                     {articleTypes.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type}
+                        {ARTICLE_DEPARTMENT_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -179,7 +182,7 @@ export function ArticleForm({
               <FormLabel className={labelClassName}>Nama</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Room Charge"
+                  placeholder="Tagihan Kamar"
                   {...field}
                   className={inputClassName}
                 />
@@ -194,7 +197,7 @@ export function ArticleForm({
           name="defaultPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Default Price</FormLabel>
+              <FormLabel className={labelClassName}>Harga Standar</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -227,7 +230,7 @@ export function ArticleForm({
               ? "Menyimpan..."
               : isEditing
                 ? "Simpan Perubahan"
-                : "Tambah Article"}
+                : "Tambah Artikel"}
           </Button>
         </div>
       </form>

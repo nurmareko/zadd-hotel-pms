@@ -50,6 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ARTICLE_DEPARTMENT_LABELS } from "@/lib/article-departments";
 import { formatIDR } from "@/lib/format";
 import { deleteArticle } from "./actions";
 import { ArticleForm } from "./article-form";
@@ -92,7 +93,7 @@ function AddArticleButton({ onClick }: { onClick: () => void }) {
 function TypeBadge({ type }: { type: ArticleType }) {
   return (
     <StatusBadge
-      label={type}
+      label={ARTICLE_DEPARTMENT_LABELS[type]}
       className={typeClassNames[type]}
       showPip={false}
     />
@@ -136,7 +137,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       } else if (sortField === "name") {
         comparison = a.name.localeCompare(b.name, "id", { sensitivity: "base" });
       } else if (sortField === "type") {
-        comparison = a.type.localeCompare(b.type, "id", { sensitivity: "base" });
+        comparison = ARTICLE_DEPARTMENT_LABELS[a.type].localeCompare(
+                  ARTICLE_DEPARTMENT_LABELS[b.type], "id", { sensitivity: "base" },
+                );
       } else if (sortField === "defaultPrice") {
         const priceA = a.defaultPrice ? Number(a.defaultPrice) : 0;
         const priceB = b.defaultPrice ? Number(b.defaultPrice) : 0;
@@ -195,10 +198,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Articles (Charge Codes)
+              Artikel (Kode Tagihan)
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Daftar kode charge yang digunakan untuk posting line item folio.
+              Daftar kode tagihan yang digunakan untuk mencatat rincian tagihan folio.
             </p>
           </div>
           <AddArticleButton onClick={() => setCreateOpen(true)} />
@@ -208,8 +211,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       {articles.length === 0 ? (
         <EmptyState
           icon={Newspaper}
-          title="Belum ada article"
-          description="Tambahkan charge code untuk posting folio dan billing."
+          title="Belum ada artikel"
+          description="Tambahkan kode tagihan untuk pencatatan tagihan folio."
           action={<AddArticleButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -227,15 +230,16 @@ export function ArticleTable({ articles }: ArticleTableProps) {
             </div>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              value={typeFilter}
+              aria-label="Filter departemen / kategori"
+                            value={typeFilter}
               onChange={(event) =>
                 setTypeFilter(event.target.value as ArticleType | "")
               }
             >
-              <option value="">Semua Tipe</option>
+              <option value="">Semua Departemen / Kategori</option>
               {articleTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  {ARTICLE_DEPARTMENT_LABELS[type]}
                 </option>
               ))}
             </select>
@@ -286,9 +290,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                       type="button"
                       onClick={() => toggleSort("type")}
                       className="inline-flex items-center gap-1 hover:text-foreground"
-                      aria-label="Urutkan berdasarkan tipe"
+                      aria-label="Urutkan berdasarkan departemen / kategori"
                     >
-                      Tipe
+                      Departemen / Kategori
                       {sortField === "type" && sortDirection === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : sortField === "type" && sortDirection === "desc" ? (
@@ -373,10 +377,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Article"}
+              {"Tambah Artikel"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat kode charge untuk workflow billing.
+              Buat kode tagihan untuk pencatatan tagihan folio.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -399,10 +403,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Article"}
+              {"Ubah Artikel"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui kode charge yang tampil di workflow billing.
+              Perbarui kode tagihan yang digunakan dalam pencatatan tagihan folio.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">

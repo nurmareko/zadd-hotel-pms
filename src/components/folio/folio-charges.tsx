@@ -3,6 +3,7 @@ import { ReceiptText } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getArticleDepartmentLabel } from "@/lib/article-departments";
 import { formatIDR, formatMonthDayTimeID, formatDecimalID } from "@/lib/format";
 
 type FolioChargeLineItem = {
@@ -37,7 +38,7 @@ function postedAtLabel(date: Date) {
 function descriptionLabel(lineItem: FolioChargeLineItem) {
   const base = lineItem.description || lineItem.article.name;
 
-  return lineItem.fbOrder ? `${base} - Order ${lineItem.fbOrder.orderNo}` : base;
+  return lineItem.fbOrder ? `${base} - Pesanan ${lineItem.fbOrder.orderNo}` : base;
 }
 
 const statusClassNames: Record<FolioStatus, string> = {
@@ -49,7 +50,7 @@ const statusClassNames: Record<FolioStatus, string> = {
 
 function FolioStatusBadge({ status }: { status: FolioStatus }) {
   return (
-    <StatusBadge label={status} className={statusClassNames[status]} />
+    <StatusBadge label={{ OPEN: "Terbuka", CLOSED: "Ditutup", VOIDED: "Dibatalkan" }[status]} className={statusClassNames[status]} />
   );
 }
 
@@ -110,6 +111,9 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
                       {lineItem.article.code}
+                      <div className="mt-1 text-xs font-normal text-slate-500">
+                        {getArticleDepartmentLabel(lineItem.article.type)}
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {descriptionLabel(lineItem)}
