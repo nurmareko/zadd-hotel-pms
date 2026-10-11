@@ -279,14 +279,23 @@ export function classifyNightAuditRevenues({
     )
     .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
 
-  const otherRevenue = existingDaytimeFolioLines
+  const hkRevenue = existingDaytimeFolioLines
+    .filter(
+      (line) =>
+        line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
+        line.article.type === ArticleType.SERVICE,
+    )
+    .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+  const miscRevenue = existingDaytimeFolioLines
     .filter(
       (line) =>
         line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
         line.article.type !== ArticleType.ROOM &&
-        line.article.type !== ArticleType.FB,
+        line.article.type !== ArticleType.FB &&
+        line.article.type !== ArticleType.SERVICE,
     )
     .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0));
+  const otherRevenue = hkRevenue.plus(miscRevenue);
 
   const roomRevenue = shortfallRoomRevenue.plus(existingRoomRevenue);
   const inclusionRevenue = shortfallInclusionRevenue.plus(existingInclusionRevenue);
@@ -299,9 +308,37 @@ export function classifyNightAuditRevenues({
     inclusionRevenue,
     closedFbOrderRevenue,
     fbRevenue,
+    hkRevenue,
+    miscRevenue,
     otherRevenue,
     totalRevenue,
   };
+}
+
+export function splitAuditedOtherRevenue(
+  otherRevenue: Prisma.Decimal.Value,
+  lines: Array<{
+    amount: Prisma.Decimal.Value;
+    article: { code: string; type: ArticleType };
+  }>,
+): { hkRevenue: Prisma.Decimal; miscRevenue: Prisma.Decimal } {
+  const storedOtherRevenue = new Prisma.Decimal(otherRevenue);
+  const classified = classifyNightAuditRevenues({
+    shortfallLineItems: [],
+    existingDaytimeFolioLines: lines.map((line) => ({
+      ...line,
+      amount: new Prisma.Decimal(line.amount),
+    })),
+    closedFbRevenueTotal: null,
+    roomArticleId: undefined,
+  });
+
+  // Article metadata can change after an audit. Never replace its stored total
+  // or invent a departmental allocation when the available lines do not reconcile.
+  if (storedOtherRevenue.isZero() || !classified.otherRevenue.equals(storedOtherRevenue)) {
+    return { hkRevenue: new Prisma.Decimal(0), miscRevenue: storedOtherRevenue };
+  }
+  return { hkRevenue: classified.hkRevenue, miscRevenue: classified.miscRevenue };
 }
 
 function addDecimal(

@@ -13,6 +13,7 @@ import {
   isValidISODateOnly,
   parseISODateOnly,
 } from "@/lib/date-only";
+import { splitAuditedOtherRevenue } from "@/lib/night-audit";
 import { prisma } from "@/lib/prisma";
 import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
 
@@ -24,6 +25,8 @@ export type ManagerFlashDay = {
   roomRevenue: number;
   fbRevenue: number;
   otherRevenue: number;
+  hkRevenue: number;
+  miscRevenue: number;
   totalRevenue: number;
   soldRoomNights: number;
   adr: number;
@@ -221,6 +224,8 @@ async function calculateDay(
   let roomRevenue: number;
   let fbRevenue: number;
   let otherRevenue: number;
+  let hkRevenue: number;
+  let miscRevenue: number;
   let totalRevenue: number;
   let roomsOccupied: number;
   let inHouseCount: number;
@@ -231,6 +236,15 @@ async function calculateDay(
     roomRevenue = Number(audit.roomRevenue.toString());
     fbRevenue = Number(audit.fbRevenue.toString());
     otherRevenue = Number(audit.otherRevenue.toString());
+    const otherLineItems = otherRevenue !== 0
+      ? await prisma.folioLineItem.findMany({
+          where: { postedAt: { gte: start, lt: end }, fbOrderId: null },
+          select: { amount: true, article: { select: { code: true, type: true } } },
+        })
+      : [];
+    const split = splitAuditedOtherRevenue(audit.otherRevenue.toString(), otherLineItems);
+    hkRevenue = Number(split.hkRevenue.toString());
+    miscRevenue = Number(split.miscRevenue.toString());
     totalRevenue = Number(audit.totalRevenue.toString());
     roomsOccupied = audit.roomsOccupied;
     inHouseCount = audit.inHouseCount;
@@ -251,7 +265,7 @@ async function calculateDay(
           fbOrderId: null,
           reservationNightId: null,
         },
-        select: { amount: true, article: { select: { type: true } } },
+        select: { amount: true, article: { select: { code: true, type: true } } },
       }),
       prisma.fBOrder.aggregate({
         where: { status: FBOrderStatus.CLOSED, closedAt: { gte: start, lt: end } },
@@ -265,13 +279,23 @@ async function calculateDay(
       .filter((line) => line.article.type === ArticleType.FB)
       .reduce((sum, line) => sum + Number(line.amount), 0);
     fbRevenue = inclusionRevenue + Number(closedFbRevenue._sum.total ?? 0);
-    otherRevenue = otherLineItems
+    hkRevenue = otherLineItems
       .filter(
         (line) =>
-          line.article.type !== ArticleType.ROOM &&
-          line.article.type !== ArticleType.FB,
+          line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
+          line.article.type === ArticleType.SERVICE,
       )
       .reduce((sum, line) => sum + Number(line.amount), 0);
+    miscRevenue = otherLineItems
+      .filter(
+        (line) =>
+          line.article.code !== ROOM_CHARGE_ARTICLE_CODE &&
+          line.article.type !== ArticleType.ROOM &&
+          line.article.type !== ArticleType.FB &&
+          line.article.type !== ArticleType.SERVICE,
+      )
+      .reduce((sum, line) => sum + Number(line.amount), 0);
+    otherRevenue = hkRevenue + miscRevenue;
     totalRevenue = roomRevenue + fbRevenue + otherRevenue;
     const activeMovement = movement.filter(
       (reservation) =>
@@ -316,6 +340,8 @@ async function calculateDay(
     roomRevenue,
     fbRevenue,
     otherRevenue,
+    hkRevenue,
+    miscRevenue,
     totalRevenue,
     soldRoomNights,
     adr,

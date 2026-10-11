@@ -31,6 +31,8 @@ export type NightReportSnapshot = {
 
 type ReportViewProps = {
   audit: NightReportSnapshot;
+  hkRevenue: number;
+  miscRevenue: number;
   settings: {
     hotelName: string;
     address: string | null;
@@ -118,7 +120,7 @@ function MetricCard({
   );
 }
 
-export function ReportView({ audit, settings }: ReportViewProps) {
+export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportViewProps) {
   return (
     <section className="border border-border bg-card rounded-lg">
       <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
@@ -237,8 +239,12 @@ export function ReportView({ audit, settings }: ReportViewProps) {
               value={formatIDR(audit.fbRevenue.toString())}
             />
             <SnapshotRow
-              label="Pendapatan Lain"
-              value={formatIDR(audit.otherRevenue.toString())}
+              label="Pendapatan Housekeeping"
+              value={formatIDR(hkRevenue)}
+            />
+            <SnapshotRow
+              label="Pendapatan Spa & Lainnya"
+              value={formatIDR(miscRevenue)}
             />
             <SnapshotRow
               label="Total Pendapatan"

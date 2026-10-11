@@ -20,7 +20,7 @@ function money(value: number) {
 }
 
 function metricSubline(day: ManagerFlashDay) {
-  return `Kamar ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · Lain ${money(day.otherRevenue)}`;
+  return `Kamar ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · HK ${money(day.hkRevenue)} · Lain ${money(day.miscRevenue)}`;
 }
 
 const bookingSourceLabels: Record<BookingSourceContribution["source"], string> = {
@@ -134,16 +134,17 @@ export function ManagerFlashView({
             {[
               ["Pendapatan Kamar", day.roomRevenue],
               ["Pendapatan F&B", day.fbRevenue],
-              ["Pendapatan Lain", day.otherRevenue],
+              ["Pendapatan Housekeeping", day.hkRevenue],
+              ["Pendapatan Spa & Lainnya", day.miscRevenue],
               ["Total Pendapatan", day.totalRevenue],
             ].map(([label, value], index) => (
               <div
                 className={`flex items-center justify-between gap-3 ${
-                  index === 3 ? "border-t border-border pt-3 font-bold" : ""
+                  index === 4 ? "border-t border-border pt-3 font-bold" : ""
                 }`}
                 key={label}
               >
-                <span className={index === 3 ? "text-foreground" : "text-muted-foreground"}>
+                <span className={index === 4 ? "text-foreground" : "text-muted-foreground"}>
                   {label}
                 </span>
                 <span className="whitespace-nowrap text-foreground">{money(Number(value))}</span>

@@ -24,6 +24,7 @@ export type AccountingExportRow = {
   roomNumber: string | null;
   roomRevenue: number;
   fbRevenue: number;
+  hkRevenue: number;
   otherRevenue: number;
   subtotal: number;
   tax: number;
@@ -151,7 +152,7 @@ function createFolioRow(
     .filter((line) => line.article.type === ArticleType.TAX)
     .reduce((sum, line) => sum + toNumber(line.amount), 0);
   const serviceLines = folioLines
-    .filter((line) => line.article.type === ArticleType.SERVICE)
+    .filter((line) => !isRoomChargeLine(line) && line.article.type === ArticleType.SERVICE)
     .reduce((sum, line) => sum + toNumber(line.amount), 0);
   const linkedOrderTotals = [...linkedOrders.values()].reduce(
     (totals, order) => ({
@@ -187,13 +188,13 @@ function createFolioRow(
     settings as Parameters<typeof computeFolioTotals>[2],
   );
   const fbRevenue = fbLineRevenue + linkedOrderTotals.fbRevenue;
+  const hkRevenue = serviceLines;
   const otherRevenue =
     otherLineRevenue +
-    serviceLines +
     linkedOrderTotals.serviceCharge +
     canonicalTotals.serviceCharge;
   const tax = explicitTax > 0 ? explicitTax : canonicalTotals.tax + linkedOrderTotals.tax;
-  const subtotal = roomRevenue + fbRevenue + otherRevenue;
+  const subtotal = roomRevenue + fbRevenue + hkRevenue + otherRevenue;
   const total = subtotal + tax;
   const firstLine = [...lines].sort(
     (left, right) => lineDate(left).getTime() - lineDate(right).getTime(),
@@ -206,6 +207,7 @@ function createFolioRow(
     roomNumber: folio.reservation.room?.number ?? null,
     roomRevenue,
     fbRevenue,
+    hkRevenue,
     otherRevenue,
     subtotal,
     tax,
@@ -288,6 +290,7 @@ export async function getAccountingExportRows(
     roomNumber: null,
     roomRevenue: 0,
     fbRevenue: toNumber(order.subtotal),
+    hkRevenue: 0,
     otherRevenue: toNumber(order.serviceCharge),
     subtotal: toNumber(order.subtotal) + toNumber(order.serviceCharge),
     tax: toNumber(order.tax),
@@ -306,7 +309,8 @@ export const accountingExportCsvColumns: CsvColumn<AccountingExportRow>[] = [
   { header: "Kamar", accessor: (row) => row.roomNumber },
   { header: "Pendapatan Kamar (Rp)", accessor: (row) => row.roomRevenue },
   { header: "Pendapatan F&B (Rp)", accessor: (row) => row.fbRevenue },
-  { header: "Pendapatan Lain (Rp)", accessor: (row) => row.otherRevenue },
+  { header: "Pendapatan Housekeeping (Rp)", accessor: (row) => row.hkRevenue },
+  { header: "Pendapatan Lain / Spa (Rp)", accessor: (row) => row.otherRevenue },
   { header: "Subtotal (Rp)", accessor: (row) => row.subtotal },
   { header: "Pajak (Rp)", accessor: (row) => row.tax },
   { header: "Total (Rp)", accessor: (row) => row.total },

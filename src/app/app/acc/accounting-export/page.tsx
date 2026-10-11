@@ -51,6 +51,7 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
 
   const roomRevenue = rows.reduce((sum, row) => sum + row.roomRevenue, 0);
   const fbRevenue = rows.reduce((sum, row) => sum + row.fbRevenue, 0);
+  const hkRevenue = rows.reduce((sum, row) => sum + row.hkRevenue, 0);
   const otherRevenue = rows.reduce((sum, row) => sum + row.otherRevenue, 0);
   const tax = rows.reduce((sum, row) => sum + row.tax, 0);
   const totalRevenue = rows.reduce((sum, row) => sum + row.total, 0);
@@ -59,8 +60,8 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
   return (
     <main className="min-h-screen min-w-0 max-w-full bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Accounting</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Accounting Export</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Akuntansi</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Ekspor Akuntansi</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           Ekspor data transaksi dan pendapatan untuk kebutuhan pencatatan dan pengolahan data.
         </p>
@@ -87,20 +88,20 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
       </section>
 
       {loadError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Data accounting gagal dimuat. Silakan coba lagi.</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Data akuntansi gagal dimuat. Silakan coba lagi.</div>
       ) : rows.length === 0 ? (
         <EmptyState icon={FileSpreadsheet} title="Tidak ada data transaksi" description="Tidak ada data transaksi pada periode yang dipilih." />
       ) : (
         <>
           <p className="mb-3 text-sm text-muted-foreground">
-            {rows.length} invoice · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)} · Pendapatan Lain {numberLabel(otherRevenue)} · Pajak {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
+            {rows.length} invoice · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)} · Pendapatan Housekeeping {numberLabel(hkRevenue)} · Pendapatan Lain / Spa {numberLabel(otherRevenue)} · Pajak {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
           </p>
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-card">
             <div className="relative w-full min-w-0 max-w-full overflow-x-auto">
               <table className="w-full min-w-[1100px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {["Invoice", "Tanggal", "Tamu / Party", "Kamar", "Pendapatan Kamar", "Pendapatan F&B", "Pendapatan Lain", "Subtotal", "Pajak", "Total"].map((heading) => (
+                    {["Invoice", "Tanggal", "Tamu / Party", "Kamar", "Pendapatan Kamar", "Pendapatan F&B", "Pendapatan Housekeeping", "Pendapatan Lain / Spa", "Subtotal", "Pajak", "Total"].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>
@@ -114,6 +115,7 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
                       <td className="px-4 py-3">{row.roomNumber ?? "-"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.roomRevenue)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.fbRevenue)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.hkRevenue)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.otherRevenue)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.subtotal)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right">{numberLabel(row.tax)}</td>

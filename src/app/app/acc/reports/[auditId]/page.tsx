@@ -13,6 +13,8 @@ import { auth, type AppRole } from "@/auth";
 import { can } from "@/lib/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCompactDateTimeID, formatLongDateID } from "@/lib/format";
+import { addDateOnlyDays, hotelTimestampBoundaryForDate } from "@/lib/date-only";
+import { splitAuditedOtherRevenue } from "@/lib/night-audit";
 import { prisma } from "@/lib/prisma";
 
 import { ReportActions } from "./report-actions";
@@ -77,6 +79,22 @@ export default async function NightAuditReportPage({
     throw new Error("Hotel settings not found");
   }
 
+  const otherLineItems = !audit.otherRevenue.isZero()
+    ? await prisma.folioLineItem.findMany({
+        where: {
+          postedAt: {
+            gte: hotelTimestampBoundaryForDate(audit.businessDate.toISOString().slice(0, 10)),
+            lt: hotelTimestampBoundaryForDate(
+              addDateOnlyDays(audit.businessDate, 1).toISOString().slice(0, 10),
+            ),
+          },
+          fbOrderId: null,
+        },
+        select: { amount: true, article: { select: { code: true, type: true } } },
+      })
+    : [];
+  const { hkRevenue, miscRevenue } = splitAuditedOtherRevenue(audit.otherRevenue, otherLineItems);
+
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -111,7 +129,12 @@ export default async function NightAuditReportPage({
         </div>
       </div>
 
-      <ReportView audit={audit} settings={settings} />
+      <ReportView
+        audit={audit}
+        settings={settings}
+        hkRevenue={Number(hkRevenue.toString())}
+        miscRevenue={Number(miscRevenue.toString())}
+      />
     </main>
   );
 }

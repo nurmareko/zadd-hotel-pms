@@ -35,7 +35,8 @@ describe("classifyNightAuditRevenues", () => {
     { code: "ROOM-CHARGE", type: "ROOM" as const, bucket: "roomRevenue" as const },
     { code: "ROOM-CUSTOM", type: "ROOM" as const, bucket: "roomRevenue" as const },
     { code: "MEAL-BB", type: "FB" as const, bucket: "inclusionRevenue" as const },
-    { code: "LAUNDRY", type: "MISC" as const, bucket: "otherRevenue" as const },
+    { code: "LAUNDRY", type: "SERVICE" as const, bucket: "hkRevenue" as const },
+        { code: "SPA", type: "MISC" as const, bucket: "miscRevenue" as const },
   ])("classifies daytime $code as $bucket", ({ code, type, bucket }) => {
     const revenue = classifyNightAuditRevenues({
       shortfallLineItems: [],
@@ -75,11 +76,11 @@ describe("classifyNightAuditRevenues", () => {
     )).toBe(true);
   });
 
-  it("gives ROOM-CHARGE code precedence over FB type without double counting", () => {
+  it.each(["FB", "SERVICE", "MISC"] as const)("gives ROOM-CHARGE code precedence over %s type without double counting", (type) => {
     const revenue = classifyNightAuditRevenues({
       shortfallLineItems: [],
       existingDaytimeFolioLines: [
-        { amount: decimal(100), article: { code: "ROOM-CHARGE", type: "FB" } },
+        { amount: decimal(100), article: { code: "ROOM-CHARGE", type } },
       ],
       closedFbRevenueTotal: null,
       roomArticleId: 1,
@@ -87,7 +88,28 @@ describe("classifyNightAuditRevenues", () => {
     expect(revenue.roomRevenue.toString()).toBe("100");
     expect(revenue.inclusionRevenue.toString()).toBe("0");
     expect(revenue.fbRevenue.toString()).toBe("0");
+    expect(revenue.hkRevenue.toString()).toBe("0");
+    expect(revenue.miscRevenue.toString()).toBe("0");
     expect(revenue.totalRevenue.toString()).toBe("100");
+  });
+
+  it("keeps fractional SERVICE and MISC adjustments separate with exact totals", () => {
+    const revenue = classifyNightAuditRevenues({
+      shortfallLineItems: [],
+      existingDaytimeFolioLines: [
+        { amount: decimal("0.3"), article: { code: "LAUNDRY", type: "SERVICE" } },
+        { amount: decimal("-0.1"), article: { code: "LAUNDRY", type: "SERVICE" } },
+        { amount: decimal("0.1"), article: { code: "SPA", type: "MISC" } },
+      ],
+      closedFbRevenueTotal: null,
+      roomArticleId: 1,
+    });
+    expect(revenue.hkRevenue.toString()).toBe("0.2");
+    expect(revenue.miscRevenue.toString()).toBe("0.1");
+    expect(revenue.otherRevenue.equals(revenue.hkRevenue.plus(revenue.miscRevenue))).toBe(true);
+    expect(revenue.totalRevenue.equals(
+      revenue.roomRevenue.plus(revenue.fbRevenue).plus(revenue.hkRevenue).plus(revenue.miscRevenue),
+    )).toBe(true);
   });
 
   it("returns zero revenue when there are no charges or room article", () => {
