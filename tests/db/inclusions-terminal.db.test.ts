@@ -2,6 +2,7 @@ import {
   ArrangementType,
   ArticleType,
   GuestIdType,
+  Prisma,
   ReservationStatus,
   ReservationStayFeeKind,
   ReservationType,
@@ -236,7 +237,7 @@ describe("inclusion snapshots and stay-charge posting", () => {
     ]);
   });
 
-  it("posts mixed per-night FB and HB snapshots once with their matching articles and amounts", async () => {
+  it("posts mixed per-night FB and HB snapshots once while preserving each nightly package total", async () => {
     const user = await createUser();
     await createHotelSettings();
     const roomType = await createRoomType();
@@ -312,8 +313,8 @@ describe("inclusion snapshots and stay-charge posting", () => {
       {
         articleCode: ROOM_CHARGE_ARTICLE_CODE,
         quantity: 1,
-        unitPrice: 510_000,
-        amount: 510_000,
+        unitPrice: 10_000,
+        amount: 10_000,
       },
       {
         articleCode: "MEAL-HB",
@@ -324,11 +325,20 @@ describe("inclusion snapshots and stay-charge posting", () => {
       {
         articleCode: ROOM_CHARGE_ARTICLE_CODE,
         quantity: 1,
-        unitPrice: 520_000,
-        amount: 520_000,
+        unitPrice: 220_000,
+        amount: 220_000,
       },
     ]);
-    expect(new Set(lines.map((line) => line.reservationNightId)).size).toBe(2);
+    const nightIds = [...new Set(lines.map((line) => line.reservationNightId))];
+    expect(nightIds).toHaveLength(2);
+    expect(
+      nightIds.map((nightId) =>
+        lines
+          .filter((line) => line.reservationNightId === nightId)
+          .reduce((sum, line) => sum.plus(line.amount), new Prisma.Decimal(0))
+          .toNumber(),
+      ),
+    ).toEqual([510_000, 520_000]);
   });
 
   it("posts an earlier missing room night when a later night was posted first", async () => {
