@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Check, Loader2, Play, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { AmenitiesStepper } from "@/components/hk/amenities-stepper";
+import { AMENITIES_ITEMS, EMPTY_AMENITIES, type AmenitiesCounts } from "@/lib/housekeeping/amenities";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { MobileCleaningRoom } from "@/lib/housekeeper-mobile-data";
@@ -22,6 +24,7 @@ export function MobileTaskCard({ room, userId, onReportFound }: MobileTaskCardPr
   const { isPending, run } = useMobileAction();
   const [linenChanged, setLinenChanged] = useState(false);
   const [towelChanged, setTowelChanged] = useState(false);
+  const [amenities, setAmenities] = useState<AmenitiesCounts>({ ...EMPTY_AMENITIES });
   const [inspectionNotes, setInspectionNotes] = useState("");
   const [failMode, setFailMode] = useState(false);
   const [inspectionError, setInspectionError] = useState<string | null>(null);
@@ -35,11 +38,21 @@ export function MobileTaskCard({ room, userId, onReportFound }: MobileTaskCardPr
   function finish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!cleanable || !ownsSession || (isTurnover && (!linenChanged || !towelChanged))) return;
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     formData.set("roomId", String(room.id));
     formData.set("linenChanged", String(linenChanged));
     formData.set("towelChanged", String(towelChanged));
-    run(() => finishMobileCleaning(formData), "Pembersihan selesai");
+    for (const { key } of AMENITIES_ITEMS) {
+      const count = amenities[key];
+      if (count !== null) formData.set(key, String(count));
+    }
+    run(() => finishMobileCleaning(formData), "Pembersihan selesai", () => {
+      setLinenChanged(false);
+      setTowelChanged(false);
+      setAmenities({ ...EMPTY_AMENITIES });
+      form.reset();
+    });
   }
 
   function inspect(passed: boolean) {
@@ -88,6 +101,17 @@ export function MobileTaskCard({ room, userId, onReportFound }: MobileTaskCardPr
               <span>Catatan pembersihan (opsional)</span>
               <Textarea name="note" maxLength={500} className="min-h-24 w-full min-w-0 text-base" />
             </label>
+          </fieldset>
+          <fieldset disabled={isPending} className="min-w-0 space-y-3">
+            <legend className="mb-2 text-sm font-semibold">Amenities Kamar (opsional)</legend>
+            {AMENITIES_ITEMS.map(({ key, label }) => (
+              <AmenitiesStepper
+                key={key}
+                label={label}
+                value={amenities[key]}
+                onChange={(value) => setAmenities((current) => ({ ...current, [key]: value }))}
+              />
+            ))}
           </fieldset>
           <Button type="submit" disabled={isPending || (isTurnover && (!linenChanged || !towelChanged))} className="min-h-12 w-full whitespace-normal">
             {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Check aria-hidden="true" />}

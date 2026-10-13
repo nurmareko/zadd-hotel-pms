@@ -127,6 +127,31 @@ describe("mobile action boundaries", () => {
   });
 });
 
+describe.each([
+  ["desktop", finishCleaning],
+  ["mobile", finishMobileCleaning],
+] as const)("%s amenities persistence boundary", (_name, finish) => {
+  it("appends amenities once after a full-length operator note", async () => {
+    const note = "x".repeat(500);
+    expect(await finish(form({ roomId: "10", note, towels: "2", soap: "0", bottledWater: "2" }))).toEqual({ ok: true });
+    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({
+      note: `${note}\n[Amenities: 2 Handuk Mandi, 0 Sabun, 2 Air Mineral]`,
+    }));
+  });
+  it("does not record blank counts as zero", async () => {
+    await finish(form({ roomId: "10", towels: "", shampoo: "  " }));
+    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
+  });
+  it("records amenities even without operator notes", async () => {
+    await finish(form({ roomId: "10", dentalKit: "1" }));
+    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ note: "[Amenities: 1 Sikat Gigi / Dental Kit]" }));
+  });
+  it("rejects invalid amenities before entering the operation", async () => {
+    expect((await finish(form({ roomId: "10", towels: "100" }))).ok).toBe(false);
+    expect(mocks.finish).not.toHaveBeenCalled();
+  });
+});
+
 describe("desktop delegation", () => {
   it.each([null, "FO", "FB", "ACC"])("denies %s before desktop operations or database access", async (role) => {
     mocks.auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);

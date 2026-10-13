@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { formatAmenitiesNote } from "@/lib/housekeeping/amenities";
 import { todayDateOnly } from "@/lib/date-only";
 import {
   finishCleaningOperation,
@@ -65,7 +66,15 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
   if (!operator) return { ok: false, error: "Tidak berwenang" };
   const parsed = FinishCleaningSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
-  const result = await finishCleaningOperation({ ...operator, ...parsed.data });
+  const { roomId, linenChanged, towelChanged, note, ...counts } = parsed.data;
+  const amenitiesNote = formatAmenitiesNote(counts);
+  const result = await finishCleaningOperation({
+    ...operator,
+    roomId,
+    linenChanged,
+    towelChanged,
+    note: [note, amenitiesNote].filter(Boolean).join("\n") || null,
+  });
   if (result.ok) revalidateRoomPaths(parsed.data.roomId);
   return result;
 }

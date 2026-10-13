@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AmenitiesCountSchema } from "@/lib/housekeeping/amenities";
 
 const OptionalNotesSchema = z
   .string()
@@ -27,6 +28,11 @@ export const FinishCleaningSchema = RoomActionSchema.extend({
   linenChanged: FormBooleanSchema,
   towelChanged: FormBooleanSchema,
   note: OptionalNotesSchema,
+  towels: AmenitiesCountSchema,
+  shampoo: AmenitiesCountSchema,
+  soap: AmenitiesCountSchema,
+  dentalKit: AmenitiesCountSchema,
+  bottledWater: AmenitiesCountSchema,
 });
 
 export const LogFoundItemSchema = RoomActionSchema.extend({

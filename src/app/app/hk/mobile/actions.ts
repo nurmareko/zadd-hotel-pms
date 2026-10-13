@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { formatAmenitiesNote } from "@/lib/housekeeping/amenities";
 import {
   claimAvailableRoomOperation,
   finishCleaningOperation,
@@ -47,7 +48,15 @@ export async function finishMobileCleaning(formData: FormData): Promise<Cleaning
   if (!(formData instanceof FormData)) return { ok: false, error: "Input tidak valid" };
   const parsed = MobileFinishSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return validationError(parsed.error);
-  const result = await finishCleaningOperation({ ...operator, ...parsed.data });
+  const { roomId, linenChanged, towelChanged, note, ...counts } = parsed.data;
+  const amenitiesNote = formatAmenitiesNote(counts);
+  const result = await finishCleaningOperation({
+    ...operator,
+    roomId,
+    linenChanged,
+    towelChanged,
+    note: [note, amenitiesNote].filter(Boolean).join("\n") || null,
+  });
   if (result.ok) revalidateRoom(parsed.data.roomId);
   return result;
 }

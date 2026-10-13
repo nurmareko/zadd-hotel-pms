@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AmenitiesCountSchema } from "@/lib/housekeeping/amenities";
 
 export const MobileRoomIdSchema = z.number({ error: "Kamar tidak valid" })
   .int("Kamar tidak valid").positive("Kamar tidak valid").max(2147483647, "Kamar tidak valid");
@@ -16,6 +17,11 @@ export const MobileFinishSchema = z.object({
   linenChanged: CheckboxSchema,
   towelChanged: CheckboxSchema,
   note: NotesSchema,
+  towels: AmenitiesCountSchema,
+  shampoo: AmenitiesCountSchema,
+  soap: AmenitiesCountSchema,
+  dentalKit: AmenitiesCountSchema,
+  bottledWater: AmenitiesCountSchema,
 });
 export const MobileInspectSchema = z.object({
   roomId: MobileRoomIdSchema,

@@ -32,6 +32,10 @@ export function RoomFilterForm({
   defaultQ,
   defaultStatus,
   defaultPriority,
+  defaultFloor,
+  defaultAssigneeId,
+  floors,
+  housekeepers,
   statusCounts,
   totalRoomsCount,
 }: {
@@ -39,6 +43,10 @@ export function RoomFilterForm({
   defaultQ: string;
   defaultStatus: string;
   defaultPriority: string;
+  defaultFloor: string;
+  defaultAssigneeId: string;
+  floors: number[];
+  housekeepers: { id: number; name: string }[];
   statusCounts?: Record<string, number>;
   totalRoomsCount?: number;
 }) {
@@ -50,6 +58,8 @@ export function RoomFilterForm({
     q: defaultQ,
     status: defaultStatus,
     priority: defaultPriority,
+    floor: defaultFloor,
+    assigneeId: defaultAssigneeId,
   });
   const source = JSON.stringify([
     pathname,
@@ -58,11 +68,19 @@ export function RoomFilterForm({
     defaultQ,
     defaultStatus,
     defaultPriority,
+    defaultFloor,
+    defaultAssigneeId,
   ]);
   const [previousSource, setPreviousSource] = useState(source);
   if (source !== previousSource) {
     setPreviousSource(source);
-    setFilters({ q: defaultQ, status: defaultStatus, priority: defaultPriority });
+    setFilters({
+      q: defaultQ,
+      status: defaultStatus,
+      priority: defaultPriority,
+      floor: defaultFloor,
+      assigneeId: defaultAssigneeId,
+    });
   }
 
   function navigate(next: typeof filters) {
@@ -81,7 +99,7 @@ export function RoomFilterForm({
 
   const controlClass =
     "h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-ring disabled:cursor-wait disabled:opacity-50 desktop:h-10 sm:w-auto";
-  const active = Boolean(filters.q || filters.status || filters.priority);
+  const active = Object.values(filters).some(Boolean);
 
   return (
     <div>
@@ -97,6 +115,7 @@ export function RoomFilterForm({
               key={chip.key}
               type="button"
               disabled={pending}
+              aria-pressed={isSelected}
               onClick={() =>
                 navigate({
                   ...filters,
@@ -176,12 +195,46 @@ export function RoomFilterForm({
               <option key={code} value={code}>{code} - {config.label}</option>
             ))}
         </select>
+        <select
+          name="floor"
+          aria-label="Lantai kamar"
+          value={filters.floor}
+          disabled={pending}
+          onChange={(event) => navigate({ ...filters, floor: event.target.value })}
+          className={controlClass}
+        >
+          <option value="">Semua Lantai</option>
+          {filters.floor && !floors.some((floor) => String(floor) === filters.floor) && (
+            <option value={filters.floor} disabled>Lantai {filters.floor} (tidak tersedia)</option>
+          )}
+          {floors.map((floor) => (
+            <option key={floor} value={floor}>Lantai {floor}</option>
+          ))}
+        </select>
+        <select
+          name="assigneeId"
+          aria-label="Petugas yang ditugaskan"
+          value={filters.assigneeId}
+          disabled={pending}
+          onChange={(event) => navigate({ ...filters, assigneeId: event.target.value })}
+          className={`${controlClass} min-w-0 max-w-full`}
+        >
+          <option value="">Semua Petugas</option>
+          <option value="unassigned">Belum Ditugaskan</option>
+          {filters.assigneeId && filters.assigneeId !== "unassigned" &&
+            !housekeepers.some((housekeeper) => String(housekeeper.id) === filters.assigneeId) && (
+              <option value={filters.assigneeId} disabled>Petugas ID {filters.assigneeId} (di luar daftar aktif)</option>
+            )}
+          {housekeepers.map((housekeeper) => (
+            <option key={housekeeper.id} value={housekeeper.id}>{housekeeper.name}</option>
+          ))}
+        </select>
         {active && (
           <Button
             type="button"
             variant="ghost"
             disabled={pending}
-            onClick={() => navigate({ q: "", status: "", priority: "" })}
+            onClick={() => navigate({ q: "", status: "", priority: "", floor: "", assigneeId: "" })}
           >
             <RotateCcw className="size-4" aria-hidden="true" />
             Atur Ulang

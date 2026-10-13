@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { AmenitiesStepper } from "@/components/hk/amenities-stepper";
+import { AMENITIES_ITEMS, EMPTY_AMENITIES, type AmenitiesCounts } from "@/lib/housekeeping/amenities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +57,7 @@ export function HousekeeperWorkPanel({
   const [linenChanged, setLinenChanged] = useState(false);
   const [towelChanged, setTowelChanged] = useState(false);
   const [cleaningNote, setCleaningNote] = useState("");
+  const [amenities, setAmenities] = useState<AmenitiesCounts>({ ...EMPTY_AMENITIES });
 
   function handleFinishCleaning() {
     const formData = new FormData();
@@ -62,6 +65,10 @@ export function HousekeeperWorkPanel({
     formData.set("linenChanged", String(linenChanged));
     formData.set("towelChanged", String(towelChanged));
     formData.set("note", cleaningNote);
+    for (const { key } of AMENITIES_ITEMS) {
+      const count = amenities[key];
+      if (count !== null) formData.set(key, String(count));
+    }
 
     startTransition(async () => {
       const result = await finishCleaning(formData);
@@ -76,6 +83,7 @@ export function HousekeeperWorkPanel({
       setLinenChanged(false);
       setTowelChanged(false);
       setCleaningNote("");
+      setAmenities({ ...EMPTY_AMENITIES });
       router.refresh();
     });
   }
@@ -166,7 +174,7 @@ export function HousekeeperWorkPanel({
             {canFinish ? (
               <div className="space-y-4 border-t border-border pt-4 text-left">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Checklist Amenities
+                  Daftar Periksa Perlengkapan
                 </p>
                 
                 <div className="space-y-2.5">
@@ -190,6 +198,20 @@ export function HousekeeperWorkPanel({
                     <span>Handuk diganti {isTurnover && <span className="text-destructive font-semibold">*wajib</span>}</span>
                   </label>
                 </div>
+
+                <fieldset disabled={isPending} className="min-w-0 space-y-3">
+                  <legend className="mb-2 text-sm font-semibold">
+                    Amenities Kamar (opsional)
+                  </legend>
+                  {AMENITIES_ITEMS.map(({ key, label }) => (
+                    <AmenitiesStepper
+                      key={key}
+                      label={label}
+                      value={amenities[key]}
+                      onChange={(value) => setAmenities((current) => ({ ...current, [key]: value }))}
+                    />
+                  ))}
+                </fieldset>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">

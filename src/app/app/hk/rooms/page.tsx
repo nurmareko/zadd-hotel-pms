@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 
 import { auth } from "@/auth";
+import { HkSopAccordion } from "@/components/hk/hk-sop-accordion";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,8 @@ type SearchParams = {
   q?: string | string[];
   status?: string | string[];
   priority?: string | string[];
+  floor?: string | string[];
+  assigneeId?: string | string[];
   sortBy?: string | string[];
   sortOrder?: string | string[];
 };
@@ -71,6 +74,8 @@ type BoardQuery = {
   q: string;
   status: string;
   priority: string;
+  floor: string;
+  assigneeId: string;
   sortBy: BoardSortBy;
   sortOrder: "asc" | "desc";
 };
@@ -84,6 +89,8 @@ function buildQuery(params: BoardQuery) {
   if (params.q) query.set("q", params.q);
   if (params.status) query.set("status", params.status);
   if (params.priority) query.set("priority", params.priority);
+  if (params.floor) query.set("floor", params.floor);
+  if (params.assigneeId) query.set("assigneeId", params.assigneeId);
   return `?${query}`;
 }
 
@@ -168,9 +175,27 @@ export default async function HkRoomsPage({
   const canAccessMyRooms = Boolean(
     session?.user?.role && ["HK", "ADMIN", "GM"].includes(session.user.role),
   );
-  const { date, rows } = list;
+  const { date } = list;
   const dateIso = date.toISOString().slice(0, 10);
   const { housekeepers } = forecast;
+  const floors = [...new Set(forecast.rooms.map(({ room }) => room.floor))]
+    .sort((a, b) => a - b);
+  const floorParam = firstParam(params.floor)?.trim() ?? "";
+  const floor = floorParam && Number.isInteger(Number(floorParam))
+    ? String(Number(floorParam))
+    : "";
+  const assigneeIdParam = firstParam(params.assigneeId)?.trim() ?? "";
+  const assigneeId = assigneeIdParam === "unassigned"
+    ? "unassigned"
+    : /^\d+$/.test(assigneeIdParam) &&
+        Number.isSafeInteger(Number(assigneeIdParam)) && Number(assigneeIdParam) > 0
+      ? String(Number(assigneeIdParam))
+      : "";
+  const rows = list.rows.filter((row) => {
+    if (floor && String(row.room.floor) !== floor) return false;
+    if (assigneeId === "unassigned") return row.assignedHousekeeper === null;
+    return !assigneeId || String(row.assignedHousekeeper?.id) === assigneeId;
+  });
   const todayPriorities = new Map(
     todayList.rows.map((row) => [row.room.id, row.priority]),
   );
@@ -200,6 +225,8 @@ export default async function HkRoomsPage({
     q,
     status: status ?? "",
     priority: priority ?? "",
+    floor,
+    assigneeId,
     sortBy,
     sortOrder,
   };
@@ -290,6 +317,10 @@ export default async function HkRoomsPage({
               defaultQ={q}
               defaultStatus={status ?? ""}
               defaultPriority={priority ?? ""}
+              defaultFloor={floor}
+              defaultAssigneeId={assigneeId}
+              floors={floors}
+              housekeepers={housekeepers}
               statusCounts={forecast.rooms.reduce<Record<string, number>>(
                 (acc, { room }) => {
                   acc[room.status] = (acc[room.status] ?? 0) + 1;
@@ -299,6 +330,11 @@ export default async function HkRoomsPage({
               )}
               totalRoomsCount={forecast.rooms.length}
             />
+            {(floor || assigneeId) && (
+              <p className="px-3.5 pb-3.5 text-xs text-muted-foreground">
+                Filter lantai dan petugas hanya berlaku pada lembar kerja, belum pada ekspor CSV atau cetak daftar harian.
+              </p>
+            )}
           </section>
 
           <Card className="rounded-lg overflow-hidden p-0">
@@ -368,6 +404,7 @@ export default async function HkRoomsPage({
           />
         </TabsContent>
       </Tabs>
+      <HkSopAccordion />
     </main>
   );
 }

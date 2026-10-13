@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Loader2, Monitor, Plus, RefreshCw } from "lucide-react";
 
+import { HkSopAccordion } from "@/components/hk/hk-sop-accordion";
 import { Button } from "@/components/ui/button";
 import { formatWeekdayLongDateID } from "@/lib/format";
 import type { HousekeeperMobileData } from "@/lib/housekeeper-mobile-data";
@@ -35,7 +36,7 @@ export function MobileView({ data, userId, userName, userRole }: MobileViewProps
       <header className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold">HK Mobile</h1>
+            <h1 className="text-2xl font-bold">Tugas HK</h1>
             <p className="mt-1 text-sm font-medium">{userName}</p>
             <p className="text-xs text-slate-600">{userRole === "HK" ? "Petugas tata graha" : userRole === "ADMIN" ? "Administrator" : userRole}</p>
           </div>
@@ -44,7 +45,7 @@ export function MobileView({ data, userId, userName, userRole }: MobileViewProps
         <p className="text-xs text-slate-600">{formatWeekdayLongDateID(data.date)}</p>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Link href="/app/hk/rooms" className="inline-flex min-h-12 items-center gap-2 rounded-md px-2 text-sm font-medium text-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2">
-            <Monitor className="size-4 shrink-0" aria-hidden="true" />Ke Desktop
+            <Monitor className="size-4 shrink-0" aria-hidden="true" />Papan Kamar
           </Link>
           <Button variant="ghost" disabled={isRefreshing} onClick={refresh} className="min-h-12">
             {isRefreshing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <RefreshCw aria-hidden="true" />}
@@ -85,6 +86,7 @@ export function MobileView({ data, userId, userName, userRole }: MobileViewProps
           data.availablePoolRooms.map((room) => <MobilePoolCard key={room.id} room={room} />)
         )}
       </section>
+      <HkSopAccordion />
       <QuickLostFoundDialog open={finding !== null} onOpenChange={(open) => { if (!open) setFinding(null); }} rooms={data.allHotelRooms} defaultRoomId={finding?.roomId} />
     </div>
   );
