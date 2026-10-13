@@ -26,6 +26,7 @@ const capabilityRoles = {
   "rooms:clean": ["ADMIN", "GM", "HK"],
   "rooms:override_status": ["ADMIN", "GM", "HK"],
   "laundry:manage": ["ADMIN", "GM", "FO", "HK"],
+  "laundry:guest-order": ["ADMIN", "GM", "FO", "HK"],
   "lost_found:manage": ["ADMIN", "GM", "FO", "HK"],
   "orders:read": ["ADMIN", "GM", "FB"],
   "orders:write": ["ADMIN", "GM", "FB"],

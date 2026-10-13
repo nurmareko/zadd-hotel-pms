@@ -139,6 +139,24 @@ async function main() {
 
   console.log("✓ seeded correction article");
 
+  const guestLaundryArticles = [
+    { code: "LND-KEMEJA", name: "Kemeja / Blus", defaultPrice: 25000 },
+    { code: "LND-CELANA", name: "Celana Panjang", defaultPrice: 30000 },
+    { code: "LND-JAS", name: "Jas / Blazer", defaultPrice: 60000 },
+    { code: "LND-GAUN", name: "Gaun / Dress", defaultPrice: 45000 },
+    { code: "LND-DRYCLEAN", name: "Cuci Kering / Dry Clean", defaultPrice: 75000 },
+  ];
+  for (const article of guestLaundryArticles) {
+    const data = { ...article, type: ArticleType.SERVICE };
+    await prisma.article.upsert({
+      where: { code: article.code },
+      create: data,
+      update: data,
+    });
+  }
+
+  console.log("✓ seeded guest laundry articles");
+
   for (const userToSeed of users) {
     const passwordHash = await getPasswordHash(
       userToSeed.username,

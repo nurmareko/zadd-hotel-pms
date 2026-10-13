@@ -1,4 +1,7 @@
 import { Shirt } from "lucide-react";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { GuestLaundryView } from "./guest-laundry-view";
 import { Card } from "@/components/ui/card";
 import { getLaundrySummary, getLinenBatches } from "@/lib/laundry/data";
 import { LaundryFiltersSchema } from "@/lib/laundry/logic";
@@ -20,6 +23,33 @@ const hotelDateTime = new Intl.DateTimeFormat("id-ID", {
 
 export default async function LaundryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
+  const guestTab = (Array.isArray(params.tab) ? params.tab[0] : params.tab) === "guest";
+  const tabHref = (tab: string) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (key === "tab" || value === undefined) continue;
+      for (const item of Array.isArray(value) ? value : [value]) query.append(key, item);
+    }
+    query.set("tab", tab);
+    return `/app/hk/laundry?${query.toString()}`;
+  };
+
+  return (
+    <main className="min-w-0 max-w-full space-y-4 p-4 md:space-y-6 md:p-6">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight">Manajemen Binatu / Laundry</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">{guestTab ? "Catat cucian tamu dan pilih pembayaran langsung atau beban ke folio kamar." : "Pantau pengiriman, pencucian, dan penerimaan linen hotel."}</p>
+      </header>
+      <nav aria-label="Jenis laundry" className="flex flex-wrap gap-2">
+        <Link href={tabHref("linen")} aria-current={!guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "outline" : "default", className: "min-h-11" })}>Linen Hotel</Link>
+        <Link href={tabHref("guest")} aria-current={guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "default" : "outline", className: "min-h-11" })}>Laundry Tamu</Link>
+      </nav>
+      {guestTab ? <GuestLaundryView /> : <LinenLaundryView params={params} />}
+    </main>
+  );
+}
+
+async function LinenLaundryView({ params }: { params: SearchParams }) {
   const first = (key: string) => {
     const value = params[key];
     return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
@@ -39,11 +69,7 @@ export default async function LaundryPage({ searchParams }: { searchParams: Prom
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
-    <main className="min-w-0 max-w-full space-y-4 p-4 md:space-y-6 md:p-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Manajemen Binatu / Laundry</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">Pantau pengiriman, pencucian, dan penerimaan linen hotel.</p>
-      </header>
+    <>
       <LaundrySummaryCards summary={summary} />
       <Card className="min-w-0 max-w-full gap-4 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -199,6 +225,6 @@ export default async function LaundryPage({ searchParams }: { searchParams: Prom
           </div>
         </Card>
       )}
-    </main>
+    </>
   );
 }

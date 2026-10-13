@@ -215,8 +215,38 @@ const articles = [
   {
     code: "LAUNDRY",
     name: "Laundry",
-    type: ArticleType.MISC,
+    type: ArticleType.SERVICE,
     defaultPrice: 50000,
+  },
+  {
+    code: "LND-KEMEJA",
+    name: "Kemeja / Blus",
+    type: ArticleType.SERVICE,
+    defaultPrice: 25000,
+  },
+  {
+    code: "LND-CELANA",
+    name: "Celana Panjang",
+    type: ArticleType.SERVICE,
+    defaultPrice: 30000,
+  },
+  {
+    code: "LND-JAS",
+    name: "Jas / Blazer",
+    type: ArticleType.SERVICE,
+    defaultPrice: 60000,
+  },
+  {
+    code: "LND-GAUN",
+    name: "Gaun / Dress",
+    type: ArticleType.SERVICE,
+    defaultPrice: 45000,
+  },
+  {
+    code: "LND-DRYCLEAN",
+    name: "Cuci Kering / Dry Clean",
+    type: ArticleType.SERVICE,
+    defaultPrice: 75000,
   },
   {
     code: "MINIBAR",
