@@ -1,7 +1,9 @@
 import { TableLocation, TableStatus } from "@prisma/client";
-import { Table2 } from "lucide-react";
+import { LayoutGrid, Table2 } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
+
+import { buttonVariants } from "@/components/ui/button";
 
 import {
   RESTAURANT_FLOOR_CANVAS_HEIGHT,
@@ -70,7 +72,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
       <div className="flex flex-col gap-3 border-b border-gray-200 p-4 md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">
-            Floor Plan
+            Denah Meja
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             <span className="num">{RESTAURANT_FLOOR_CANVAS_WIDTH}</span>x
@@ -78,6 +80,10 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
             <span className="num">{selectedTables.length}</span> meja
           </p>
         </div>
+        <Link href="/app/fb/tables" className={buttonVariants({ variant: "outline" })}>
+          <LayoutGrid className="size-4" aria-hidden="true" />
+          Kelola Meja & Layout
+        </Link>
         <div className="flex flex-wrap gap-2" aria-label="Legenda status meja">
           {statusLegendItems.map((status) => (
             <div
@@ -115,7 +121,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
                   Belum ada meja di area ini
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Pilih area lain atau tambahkan meja dari admin.
+                  Pilih area lain atau kelola meja dan layout.
                 </p>
               </div>
             ) : null}

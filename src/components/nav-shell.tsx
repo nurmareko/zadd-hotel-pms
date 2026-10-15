@@ -175,6 +175,7 @@ const fbNavGroup: NavGroup = {
   links: [
     { label: "Dasbor F&B", href: "/app/fb", icon: LayoutDashboard, activeMatch: "exact" },
     { label: "POS Restoran", href: "/app/fb/pos", icon: UtensilsCrossed },
+        { label: "Denah & Meja", href: "/app/fb/tables", icon: LayoutGrid, activeMatch: "startsWith" },
     { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
     { label: "Inventaris Dapur", href: "/app/fb/inventory", icon: Boxes },
     {

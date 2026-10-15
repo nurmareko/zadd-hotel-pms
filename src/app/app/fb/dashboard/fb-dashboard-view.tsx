@@ -9,7 +9,7 @@ import { formatDecimalID, formatIDR } from "@/lib/format";
 import { DashboardNote, DashboardPanel, DashboardTable, FBDashboardCards } from "./fb-dashboard-cards";
 import { FBDatePicker } from "./fb-date-picker";
 
-const serviceLabels: Record<string, string> = { DINE_IN: "Dine In", ROOM_SERVICE: "Room Service" };
+const serviceLabels: Record<string, string> = { DINE_IN: "Makan di Tempat", ROOM_SERVICE: "Layanan Kamar" };
 const tenderLabels: Record<string, string> = {
   CASH: "Tunai", TRANSFER: "Transfer", CARD: "Kartu", CHARGE_TO_ROOM: "Tagih ke Kamar", UNKNOWN: "Belum tercatat",
 };
@@ -21,9 +21,10 @@ function BillTime({ date }: { date: Date }) {
   return <time dateTime={date.toISOString()}>{wibTime.format(date)} WIB</time>;
 }
 
-export function FBDashboardView({ metrics, children }: {
+export function FBDashboardView({ metrics, children, kitchenShortcut }: {
   metrics: FBDashboardMetrics;
   children?: ReactNode;
+  kitchenShortcut?: ReactNode;
 }) {
   return (
     <main className="min-w-0 w-full space-y-4 bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
@@ -38,6 +39,7 @@ export function FBDashboardView({ metrics, children }: {
             <UtensilsCrossed aria-hidden="true" className="size-4" />
             Buka POS
           </Link>
+          {kitchenShortcut}
         </div>
       </header>
 
@@ -112,8 +114,8 @@ export function FBDashboardView({ metrics, children }: {
           <DashboardNote>Item dihapus secara permanen; riwayat pembatalannya tidak disimpan. Nilai 0 bukan konfirmasi bahwa tidak ada penghapusan.</DashboardNote>
         </DashboardPanel>
         <DashboardPanel title={`Pesanan Dibatalkan (${formatDecimalID(metrics.voidedBills.length, 0)})`} tone="red" icon={Ban}>
-          {metrics.voidedBills.length === 0 ? <DashboardNote>Belum ada pesanan Void tercatat pada tanggal ini.</DashboardNote> : (
-            <DashboardTable caption="Pesanan Void pada tanggal terpilih" headers={[{ label: "Tagihan" }, { label: "Lokasi" }, { label: "Total", numeric: true }, { label: "Dibatalkan" }]}>
+          {metrics.voidedBills.length === 0 ? <DashboardNote>Belum ada pesanan dibatalkan pada tanggal ini.</DashboardNote> : (
+            <DashboardTable caption="Pesanan dibatalkan pada tanggal terpilih" headers={[{ label: "Tagihan" }, { label: "Lokasi" }, { label: "Total", numeric: true }, { label: "Dibatalkan" }]}>
               {metrics.voidedBills.map((bill) => (
                 <tr key={bill.id}>
                   <th scope="row" className="whitespace-nowrap">{bill.orderNo}</th>

@@ -159,6 +159,7 @@ export function RestaurantPos({ tables, orders, menuItems, settings, initialOrde
           <Button type="button" variant="outline" className="size-11" aria-label={fullscreen ? "Keluar layar penuh" : "Layar penuh"} onClick={toggleFullscreen}>{fullscreen ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}</Button>
           <Button type="button" variant="outline" className="size-11" aria-label="Muat ulang pesanan" disabled={disabled} onClick={() => startTransition(() => router.refresh())}><RefreshCw aria-hidden="true" className={isPending ? "animate-spin" : ""} /></Button>
           <Link href="/app/fb" className={buttonVariants({ variant: "outline", className: "min-h-11" })}>Kembali ke Dasbor</Link>
+                    <Link href="/app/fb/kitchen" className={buttonVariants({ variant: "outline", className: "min-h-11" })}><ChefHat aria-hidden="true" />Layar Dapur</Link>
           <Button type="button" className="min-h-11" disabled={disabled} onClick={() => openNewOrder()}><Plus aria-hidden="true" />[F2] Pesanan Baru</Button>
         </div>
       </header>

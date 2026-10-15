@@ -4,6 +4,7 @@ import {
   TableLocation,
   TableStatus,
 } from "@prisma/client";
+import { ChefHat } from "lucide-react";
 import Link from "next/link";
 
 import { auth } from "@/auth";
@@ -82,9 +83,29 @@ export default async function FBLandingPage({
     </nav>
   );
 
+  const activeKitchenOrderCount = isReadOnly ? 0 : await prisma.fBOrder.count({
+    where: {
+      status: FBOrderStatus.OPEN,
+      kitchenReadyAt: null,
+      items: { some: {} },
+    },
+  });
+  const kitchenShortcut = !isReadOnly ? (
+    <Link className={buttonVariants({ variant: "outline" })} href="/app/fb/kitchen">
+      <ChefHat className="size-4" aria-hidden="true" />
+      Layar Dapur
+      {activeKitchenOrderCount > 0 ? (
+        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-700">
+          {activeKitchenOrderCount}
+          <span className="sr-only"> pesanan dapur aktif</span>
+        </span>
+      ) : null}
+    </Link>
+  ) : null;
+
   if (activeTab === "dashboard") {
     const metrics = await getFBDashboardMetrics(firstParam(params.date));
-    return <FBDashboardView metrics={metrics}>{tabs}</FBDashboardView>;
+    return <FBDashboardView metrics={metrics} kitchenShortcut={kitchenShortcut}>{tabs}</FBDashboardView>;
   }
   const selectedStatusParam = firstParam(params.status);
   const selectedStatus = isOrderStatus(selectedStatusParam)
@@ -186,6 +207,7 @@ export default async function FBLandingPage({
             <Link className={buttonVariants()} href="/app/fb/pos">
               Buka POS Restoran
             </Link>
+            {kitchenShortcut}
             <Link
               className={buttonVariants({ variant: "outline" })}
               href="/app/fb/orders/new?service=room-service"

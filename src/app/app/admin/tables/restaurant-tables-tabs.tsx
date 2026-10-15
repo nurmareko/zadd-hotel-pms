@@ -28,7 +28,7 @@ export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
         <Breadcrumb className="mb-2">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/app/admin">Admin</BreadcrumbLink>
+              <BreadcrumbLink href="/app/fb">F&B</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -37,10 +37,10 @@ export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Restaurant Tables
+          Denah & Meja
         </h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">
-          Master meja dan koordinat layout F&amp;B Hotel Restaurant.
+          Kelola data meja dan tata letak restoran.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export function RestaurantTablesTabs({ tables }: RestaurantTablesTabsProps) {
             className="rounded-md bg-transparent px-3 py-2 text-sm font-semibold text-slate-500 shadow-none transition-colors hover:bg-slate-50 hover:text-slate-900 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
             value="layout"
           >
-            Layout
+            Tata Letak
           </TabsTrigger>
         </TabsList>
         <TabsContent value="list">

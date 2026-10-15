@@ -24,6 +24,7 @@ type LayoutActionResult =
 
 const TABLES_PATH = "/app/admin/tables";
 const FB_PATH = "/app/fb";
+const FB_TABLES_PATH = "/app/fb/tables";
 
 function validationFailure(error: {
   issues: { message: string; path: PropertyKey[] }[];
@@ -41,7 +42,9 @@ function validationFailure(error: {
 async function canManageRestaurantTables() {
   const session = await auth();
 
-  return session?.user.role === "ADMIN";
+  const role = session?.user.role;
+
+  return role === "ADMIN" || role === "GM" || role === "FB";
 }
 
 function prismaErrorResult(error: unknown): ActionResult {
@@ -61,6 +64,7 @@ function prismaErrorResult(error: unknown): ActionResult {
 function revalidateTableScreens() {
   revalidatePath(TABLES_PATH);
   revalidatePath(FB_PATH);
+  revalidatePath(FB_TABLES_PATH);
 }
 
 export async function createRestaurantTable(
