@@ -120,7 +120,7 @@ describe("guest laundry schema and totals", () => {
       expect(GuestLaundryOrderSchema.safeParse({ ...direct, paymentMethod: "CASH", cashTendered }).success).toBe(false);
     }
     expect(GuestLaundryOrderSchema.safeParse({ ...direct, paymentMethod: "CASH", cashTendered: 85000 }).success).toBe(true);
-    for (const paymentMethod of ["CARD", "QRIS", "TRANSFER"]) {
+    for (const paymentMethod of ["CARD", "TRANSFER"]) {
       expect(GuestLaundryOrderSchema.safeParse({ ...direct, paymentMethod }).success).toBe(true);
     }
     expect(GuestLaundryOrderSchema.safeParse({ ...direct, paymentMethod: "CHARGE_TO_ROOM" }).success).toBe(false);
@@ -161,16 +161,16 @@ describe("createGuestLaundryOrder", () => {
     expect(businessDateOpen.mock.invocationCallOrder[0]).toBeLessThan(tx.folioLineItem.create.mock.invocationCallOrder[0]);
   });
 
-  it.each(["CASH", "CARD", "QRIS", "TRANSFER"])("posts only the order total as a folio-owned %s payment", async (paymentMethod) => {
+  it.each(["CASH", "CARD", "TRANSFER"])("posts only the order total as a folio-owned %s payment", async (paymentMethod) => {
     expect(await createGuestLaundryOrder({ ...input, settlementType: "DIRECT_TENDER", paymentMethod, cashTendered: 100000 })).toEqual({
       ok: true, orderTotal: 85000, change: paymentMethod === "CASH" ? 15000 : 0,
     });
     const payment = committed.find((write) => write.kind === "payment")!.data;
     expect(payment).toMatchObject({
       folioId: 30, fbOrderId: null,
-      method: paymentMethod === "QRIS" ? "TRANSFER" : paymentMethod,
+      method: paymentMethod,
       purpose: "PAYMENT", receivedById: 7,
-      reference: paymentMethod === "QRIS" ? "QRIS - Room 101" : "Laundry Direct Payment - Room 101",
+      reference: "Laundry Direct Payment - Room 101",
     });
     expect(committed.find((write) => write.kind === "audit")?.data).toMatchObject({
       metadata: { settlementMethod: paymentMethod },
@@ -179,14 +179,14 @@ describe("createGuestLaundryOrder", () => {
     expect(committed.filter((write) => write.kind === "payment")).toHaveLength(1);
   });
 
-  it.each(["CASH", "CARD", "QRIS", "TRANSFER"])("preserves %s and trimmed notes in the payment reference", async (paymentMethod) => {
+  it.each(["CASH", "CARD", "TRANSFER"])("preserves %s and trimmed notes in the payment reference", async (paymentMethod) => {
     expect((await createGuestLaundryOrder({
       ...input, settlementType: "DIRECT_TENDER", paymentMethod,
       cashTendered: 100000, notes: "  Bukti pembayaran 123  ",
     })).ok).toBe(true);
     expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        method: paymentMethod === "QRIS" ? "TRANSFER" : paymentMethod,
+        method: paymentMethod,
         reference: `${paymentMethod} - Bukti pembayaran 123`,
       }),
     }));
@@ -195,13 +195,12 @@ describe("createGuestLaundryOrder", () => {
     });
   });
 
-  it("uses the QRIS room reference when notes contain only whitespace", async () => {
-    expect((await createGuestLaundryOrder({
-      ...input, settlementType: "DIRECT_TENDER", paymentMethod: "QRIS", notes: "   ",
-    })).ok).toBe(true);
-    expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ method: "TRANSFER", reference: "QRIS - Room 101" }),
-    }));
+  it("rejects unsupported QRIS payment method", async () => {
+    const res = await createGuestLaundryOrder({
+      ...input, settlementType: "DIRECT_TENDER", paymentMethod: "QRIS",
+    });
+    expect(res).toEqual({ ok: false, error: "Invalid payment method" });
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it("returns zero change for exact cash and permits zero-priced laundry", async () => {

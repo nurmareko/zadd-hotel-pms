@@ -33,7 +33,7 @@ export const GuestLaundryOrderSchema = z.object({
   roomId: idSchema,
   items: z.array(itemSchema, "Invalid laundry item").min(1, "Select at least one laundry item"),
   settlementType: z.enum(["CHARGE_TO_ROOM", "DIRECT_TENDER"], "Select a settlement type"),
-  paymentMethod: z.enum(["CASH", "CARD", "TRANSFER", "QRIS"], "Invalid payment method").optional(),
+  paymentMethod: z.enum(["CASH", "CARD", "TRANSFER"], "Invalid payment method").optional(),
   cashTendered: z.number("Cash received must be a number").int("Cash received must be in whole IDR")
     .min(0, "Cash received must not be negative")
     .max(Number.MAX_SAFE_INTEGER, "Cash received exceeds the limit").optional(),

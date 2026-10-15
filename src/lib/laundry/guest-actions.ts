@@ -97,21 +97,17 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
 
         let paymentId: number | null = null;
         let change = 0;
+        // The schema requires a method and sufficient explicit tender for direct cash.
+        const method: PaymentMethod = input.paymentMethod!;
         if (input.settlementType === "DIRECT_TENDER") {
-          // The schema requires a method and sufficient explicit tender for cash.
-          const method = input.paymentMethod!;
-          // PostgreSQL has no QRIS enum value; retain the intake method in the reference and audit.
-          const dbPaymentMethod: PaymentMethod = method === "QRIS" ? PaymentMethod.TRANSFER : method;
-          const paymentReference = method === "QRIS"
-            ? `QRIS - ${input.notes || `Room ${currentRoom.number}`}`
-            : input.notes
-              ? `${method} - ${input.notes}`
-              : `Laundry Direct Payment - Room ${currentRoom.number}`;
+          const paymentReference = input.notes
+            ? `${method} - ${input.notes}`
+            : `Laundry Direct Payment - Room ${currentRoom.number}`;
           change = method === "CASH" ? input.cashTendered! - orderTotal : 0;
           const payment = await tx.payment.create({
             data: {
               folioId: folio.id, fbOrderId: null, purpose: "PAYMENT",
-              amount: new Prisma.Decimal(orderTotal), method: dbPaymentMethod,
+              amount: new Prisma.Decimal(orderTotal), method,
               reference: paymentReference,
               receivedById: operator.userId, receivedAt: now,
             },
@@ -130,8 +126,8 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
               source: "GUEST_LAUNDRY", amount: orderTotal, settlementType: input.settlementType,
               notes: input.notes || null, lineItemIds, paymentId,
               ...(input.settlementType === "DIRECT_TENDER" ? {
-                method: input.paymentMethod,
-                settlementMethod: input.paymentMethod,
+                method,
+                settlementMethod: method,
                 ...(input.paymentMethod === "CASH" ? { cashTendered: input.cashTendered, change } : {}),
               } : {}),
             },

@@ -168,7 +168,7 @@ export function GuestLaundryDialog({ rooms, catalog }: Props) {
             </label>
             {settlement === "DIRECT_TENDER" && <label className="block text-sm font-medium">Payment method
               <select value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value as NonNullable<GuestLaundryOrderInput["paymentMethod"]>); setCashTendered(""); }} className={controlClass}>
-                <option value="CASH">Cash</option><option value="CARD">Card</option><option value="QRIS">QRIS</option><option value="TRANSFER">Transfer</option>
+                <option value="CASH">Cash</option><option value="CARD">Card</option><option value="TRANSFER">Transfer</option>
               </select>
             </label>}
             {directCash && <div className="space-y-2">
