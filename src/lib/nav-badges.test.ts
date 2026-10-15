@@ -27,7 +27,7 @@ describe("getRoleNavBadges night_audit:run authorization", () => {
       await expect(getRoleNavBadges(role)).resolves.toEqual({
         "/app/acc/night-audit": {
           value: "!",
-          label: "Night Audit hari ini belum dijalankan",
+          label: "Night Audit has not been run today",
         },
       });
       expect(mocks.findUnique).toHaveBeenCalledTimes(1);

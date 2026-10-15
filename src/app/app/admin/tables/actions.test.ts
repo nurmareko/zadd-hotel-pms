@@ -72,7 +72,7 @@ describe.each(actions)("$name authorization and revalidation", ({ run }) => {
 
   it.each([null, "FO", "HK", "ACC", "UNKNOWN", "admin", ""])("rejects %s before database access", async (role) => {
     auth.mockResolvedValue(role === null ? null : { user: { role } });
-    expect(await run()).toEqual({ ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." });
+    expect(await run()).toEqual({ ok: false, error: "You do not have permission to perform this action." });
     expectNoDatabaseAccess();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -98,7 +98,7 @@ describe("validation", () => {
   });
 
   it("rejects an invalid auto-arrange location", async () => {
-    expect(await autoArrangeRestaurantTables({ location: "OTHER" })).toEqual({ ok: false, error: "Lokasi tidak valid" });
+    expect(await autoArrangeRestaurantTables({ location: "OTHER" })).toEqual({ ok: false, error: "Invalid location" });
     expectNoDatabaseAccess();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -117,7 +117,7 @@ describe("createRestaurantTable", () => {
 
   it("rejects duplicate numbers before counting or inserting", async () => {
     db.restaurantTable.findUnique.mockResolvedValue({ id: 2 });
-    expect(await createRestaurantTable(input)).toEqual({ ok: false, error: "Nomor meja sudah digunakan", field: "number" });
+    expect(await createRestaurantTable(input)).toEqual({ ok: false, error: "Table number is already in use", field: "number" });
     expect(db.restaurantTable.count).not.toHaveBeenCalled();
     expect(db.restaurantTable.create).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -134,7 +134,7 @@ describe("updateRestaurantTable", () => {
 
   it("rejects a number used by another table", async () => {
     db.restaurantTable.findFirst.mockResolvedValue({ id: 2 });
-    expect(await updateRestaurantTable({ ...input, id: 1 })).toEqual({ ok: false, error: "Nomor meja sudah digunakan", field: "number" });
+    expect(await updateRestaurantTable({ ...input, id: 1 })).toEqual({ ok: false, error: "Table number is already in use", field: "number" });
     expect(db.fBOrder.count).not.toHaveBeenCalled();
     expect(db.restaurantTable.update).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe("updateRestaurantTable", () => {
 
   it.each(["AVAILABLE", "RESERVED", "OUT_OF_SERVICE"])("rejects %s while orders are open", async (status) => {
     db.fBOrder.count.mockResolvedValue(1);
-    expect(await updateRestaurantTable({ ...input, id: 1, status })).toEqual({ ok: false, error: "Meja memiliki pesanan terbuka. Status harus tetap Terisi.", field: "status" });
+    expect(await updateRestaurantTable({ ...input, id: 1, status })).toEqual({ ok: false, error: "This table has open orders. Its status must remain Occupied.", field: "status" });
     expect(db.restaurantTable.update).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -163,7 +163,7 @@ describe("deleteRestaurantTable", () => {
 
   it("rejects a table with order history", async () => {
     db.fBOrder.count.mockResolvedValue(1);
-    expect(await deleteRestaurantTable(1)).toEqual({ ok: false, error: "Meja memiliki riwayat pesanan. Ubah status ke Tidak Beroperasi." });
+    expect(await deleteRestaurantTable(1)).toEqual({ ok: false, error: "This table has order history. Change its status to Out of Service instead." });
     expect(db.restaurantTable.delete).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -187,9 +187,9 @@ describe.each([
   { name: "position", run: actions[3].run, write: db.restaurantTable.update },
 ])("$name database errors", ({ run, write }) => {
   it.each([
-    { code: "P2002", result: { ok: false, error: "Nomor meja sudah digunakan", field: "number" } },
-    { code: "P2025", result: { ok: false, error: "Meja tidak ditemukan." } },
-    { code: "P2003", result: { ok: false, error: "Terjadi kesalahan" } },
+    { code: "P2002", result: { ok: false, error: "Table number is already in use", field: "number" } },
+    { code: "P2025", result: { ok: false, error: "Table not found." } },
+    { code: "P2003", result: { ok: false, error: "An error occurred" } },
   ])("maps $code without revalidation", async ({ code, result }) => {
     write.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("private detail", { code, clientVersion: "6" }));
     expect(await run()).toEqual(result);
@@ -198,7 +198,7 @@ describe.each([
 
   it("hides unexpected errors without revalidation", async () => {
     write.mockRejectedValue(new Error("private connection detail"));
-    expect(await run()).toEqual({ ok: false, error: "Terjadi kesalahan" });
+    expect(await run()).toEqual({ ok: false, error: "An error occurred" });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
@@ -242,7 +242,7 @@ describe("autoArrangeRestaurantTables", () => {
       await run(tx);
       throw error;
     });
-    expect(await autoArrangeRestaurantTables({ location: "INDOOR" })).toEqual({ ok: false, error: "Terjadi kesalahan" });
+    expect(await autoArrangeRestaurantTables({ location: "INDOOR" })).toEqual({ ok: false, error: "An error occurred" });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

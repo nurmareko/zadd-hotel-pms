@@ -83,13 +83,13 @@ const selectClassName =
 const labelClassName = "text-sm font-semibold text-foreground";
 
 const dayLabels: Record<PricingRuleDayOfWeek, string> = {
-  MONDAY: "Senin",
-  TUESDAY: "Selasa",
-  WEDNESDAY: "Rabu",
-  THURSDAY: "Kamis",
-  FRIDAY: "Jumat",
-  SATURDAY: "Sabtu",
-  SUNDAY: "Minggu",
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
+  FRIDAY: "Friday",
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
 };
 
 function sanitizeSelectorValues(
@@ -135,7 +135,7 @@ export function PricingRuleForm({
 
     if (result.ok) {
       toast.success(
-        isEditing ? "Musim diperbarui" : "Musim dibuat",
+        isEditing ? "Season updated" : "Season created",
       );
       form.reset(emptyValues);
       onSavedAction();
@@ -177,12 +177,12 @@ export function PricingRuleForm({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Nama musim</FormLabel>
+                  <FormLabel className={labelClassName}>Season name</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       className={inputClassName}
-                      placeholder="Tarif akhir pekan"
+                      placeholder="Weekend rate"
                       autoComplete="off"
                     />
                   </FormControl>
@@ -196,14 +196,14 @@ export function PricingRuleForm({
               name="roomTypeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Tipe kamar</FormLabel>
+                  <FormLabel className={labelClassName}>Room type</FormLabel>
                   <FormControl>
                     <select
                       {...field}
                       className={selectClassName}
                       value={field.value ?? ""}
                     >
-                      <option value="">Pilih tipe kamar</option>
+                      <option value="">Select a room type</option>
                       {roomTypes.map((roomType) => (
                         <option key={roomType.id} value={roomType.id}>
                           {roomType.code} — {roomType.name}
@@ -223,7 +223,7 @@ export function PricingRuleForm({
               name="selectorKind"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Berlaku berdasarkan</FormLabel>
+                  <FormLabel className={labelClassName}>Applies by</FormLabel>
                   <FormControl>
                     <select
                       {...field}
@@ -243,15 +243,15 @@ export function PricingRuleForm({
                       }}
                     >
                       <option value={PricingRuleSelectorKind.DAY_OF_WEEK}>
-                        Hari dalam minggu
+                        Day of week
                       </option>
                       <option value={PricingRuleSelectorKind.DATE_RANGE}>
-                        Rentang tanggal
+                        Date range
                       </option>
                     </select>
                   </FormControl>
                   <FormDescription>
-                    Rentang tanggal lebih diprioritaskan daripada musim hari saat keduanya cocok.
+                    Date-range seasons take precedence over weekday seasons when both match.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -264,14 +264,14 @@ export function PricingRuleForm({
                 name="dayOfWeek"
                 render={({ field }) => (
                   <FormItem className="mt-4">
-                    <FormLabel className={labelClassName}>Hari</FormLabel>
+                    <FormLabel className={labelClassName}>Day</FormLabel>
                     <FormControl>
                       <select
                         {...field}
                         className={selectClassName}
                         value={field.value ?? ""}
                       >
-                        <option value="">Pilih hari</option>
+                        <option value="">Select a day</option>
                         {Object.values(PricingRuleDayOfWeek).map((day) => (
                           <option key={day} value={day}>
                             {dayLabels[day]}
@@ -290,7 +290,7 @@ export function PricingRuleForm({
                   name="startsOn"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={labelClassName}>Mulai berlaku</FormLabel>
+                      <FormLabel className={labelClassName}>Effective from</FormLabel>
                       <FormControl>
                         <Input
                           type="date"
@@ -299,7 +299,7 @@ export function PricingRuleForm({
                           className={inputClassName}
                         />
                       </FormControl>
-                      <FormDescription>Termasuk tanggal ini.</FormDescription>
+                      <FormDescription>Includes this date.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -309,7 +309,7 @@ export function PricingRuleForm({
                   name="endsBefore"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={labelClassName}>Berakhir sebelum</FormLabel>
+                      <FormLabel className={labelClassName}>Ends before</FormLabel>
                       <FormControl>
                         <Input
                           type="date"
@@ -318,7 +318,7 @@ export function PricingRuleForm({
                           className={inputClassName}
                         />
                       </FormControl>
-                      <FormDescription>Tidak termasuk tanggal ini.</FormDescription>
+                      <FormDescription>Excludes this date.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -333,14 +333,14 @@ export function PricingRuleForm({
               name="adjustmentKind"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Jenis penyesuaian</FormLabel>
+                  <FormLabel className={labelClassName}>Adjustment type</FormLabel>
                   <FormControl>
                     <select {...field} className={selectClassName}>
                       <option value={PricingRuleAdjustmentKind.AMOUNT_DELTA}>
-                        Nominal rupiah
+                        Amount in IDR
                       </option>
                       <option value={PricingRuleAdjustmentKind.PERCENT_DELTA}>
-                        Persentase
+                        Percentage
                       </option>
                     </select>
                   </FormControl>
@@ -354,18 +354,18 @@ export function PricingRuleForm({
               name="adjustmentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClassName}>Nilai penyesuaian</FormLabel>
+                  <FormLabel className={labelClassName}>Adjustment value</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       className={inputClassName}
                       inputMode="decimal"
-                      placeholder="Contoh: 100000 atau -10"
+                      placeholder="Example: 100000 or -10"
                       autoComplete="off"
                     />
                   </FormControl>
                   <FormDescription>
-                    Gunakan nilai negatif untuk potongan harga.
+                    Use a negative value for a discount.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -378,7 +378,7 @@ export function PricingRuleForm({
             name="isActive"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Status musim</FormLabel>
+                <FormLabel className={labelClassName}>Season status</FormLabel>
                 <FormControl>
                   <button
                     ref={field.ref}
@@ -392,10 +392,10 @@ export function PricingRuleForm({
                   >
                     <span>
                       <span className="block text-sm font-semibold text-foreground">
-                        {field.value ? "Aktif" : "Nonaktif"}
+                        {field.value ? "Active" : "Inactive"}
                       </span>
                       <span className="block text-xs text-slate-500">
-                        Hanya musim aktif yang digunakan dalam perhitungan pratinjau.
+                        Only active seasons are used in preview calculations.
                       </span>
                     </span>
                     <span
@@ -425,14 +425,14 @@ export function PricingRuleForm({
             onClick={onCancelAction}
             disabled={form.formState.isSubmitting}
           >
-            Batal
+            Cancel
           </Button>
           <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan perubahan"
-                : "Buat musim"}
+                ? "Save Changes"
+                : "Create Season"}
           </Button>
         </DialogFooter>
       </form>

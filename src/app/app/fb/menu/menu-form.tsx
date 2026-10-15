@@ -93,7 +93,7 @@ export function MenuForm({
       : await createMenuItem(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Menu diperbarui" : "Menu dibuat");
+      toast.success(isEditing ? "Menu item updated" : "Menu item created");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -111,10 +111,10 @@ export function MenuForm({
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Kode</FormLabel>
+                <FormLabel className={labelClassName}>Code</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="KOPI"
+                    placeholder="COFFEE"
                     {...field}
                     className={inputClassName}
                   />
@@ -129,7 +129,7 @@ export function MenuForm({
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Harga</FormLabel>
+                <FormLabel className={labelClassName}>Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -157,9 +157,9 @@ export function MenuForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Nama Menu</FormLabel>
+              <FormLabel className={labelClassName}>Item Name</FormLabel>
               <FormControl>
-                <Input placeholder="Kopi" {...field} className={inputClassName} />
+                <Input placeholder="Coffee" {...field} className={inputClassName} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,7 +176,7 @@ export function MenuForm({
 
             return (
               <FormItem>
-                <FormLabel className={labelClassName}>Kategori</FormLabel>
+                <FormLabel className={labelClassName}>Category</FormLabel>
                 <Select
                   value={selectValue}
                   onValueChange={(value) => {
@@ -202,7 +202,7 @@ export function MenuForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih kategori" />
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
@@ -211,15 +211,15 @@ export function MenuForm({
                         {menuCategoryLabel(category)}
                       </SelectItem>
                     ))}
-                    <SelectItem value={OTHER_CATEGORY}>Lainnya</SelectItem>
+                    <SelectItem value={OTHER_CATEGORY}>Other</SelectItem>
                   </SelectContent>
                 </Select>
                 {usesCustomCategory ? (
                   <FormControl>
                     <Input
                       className={`${inputClassName} mt-2`}
-                      placeholder="Kategori khusus"
-                                            aria-label="Kategori khusus"
+                      placeholder="Custom category"
+                                            aria-label="Custom category"
                       value={field.value}
                       onBlur={field.onBlur}
                       onChange={field.onChange}
@@ -238,17 +238,17 @@ export function MenuForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Menu"}
+                ? "Save Changes"
+                : "Add Menu Item"}
           </Button>
         </div>
       </form>

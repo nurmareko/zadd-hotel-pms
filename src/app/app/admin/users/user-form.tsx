@@ -100,7 +100,7 @@ export function UserForm({
       : await createUser(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Pengguna diperbarui" : "Pengguna dibuat");
+      toast.success(isEditing ? "User updated" : "User created");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -161,7 +161,7 @@ export function UserForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih role" />
+                      <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
@@ -183,7 +183,7 @@ export function UserForm({
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Nama Lengkap</FormLabel>
+              <FormLabel className={labelClassName}>Full Name</FormLabel>
               <FormControl>
                 <Input
                   placeholder="Front Office User"
@@ -227,7 +227,7 @@ export function UserForm({
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Minimal 8 karakter"
+                      placeholder="At least 8 characters"
                       {...field}
                       value={field.value ?? ""}
                       className={`${inputClassName} pr-9`}
@@ -262,17 +262,17 @@ export function UserForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Pengguna"}
+                ? "Save Changes"
+                : "Add User"}
           </Button>
         </div>
       </form>

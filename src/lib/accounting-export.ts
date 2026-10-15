@@ -41,10 +41,10 @@ export type AccountingExportRange = {
 };
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
-  CASH: "Tunai",
+  CASH: "Cash",
   TRANSFER: "Transfer",
-  CARD: "Kartu",
-  CHARGE_TO_ROOM: "Dibebankan ke kamar",
+  CARD: "Card",
+  CHARGE_TO_ROOM: "Charge to Room",
 };
 
 function dateAfter(value: string): string {
@@ -61,7 +61,7 @@ export function getAccountingExportRange(
   const normalizedTo = to && isValidISODateOnly(to) ? to : today;
 
   if (normalizedFrom > normalizedTo) {
-    throw new RangeError("Tanggal awal harus sama atau sebelum tanggal akhir.");
+    throw new RangeError("Start date must be on or before the end date.");
   }
 
   const fromDate = parseISODateOnly(normalizedFrom);
@@ -304,15 +304,15 @@ export async function getAccountingExportRows(
 
 export const accountingExportCsvColumns: CsvColumn<AccountingExportRow>[] = [
   { header: "Invoice", accessor: (row) => row.invoice },
-  { header: "Tanggal", accessor: (row) => formatISODate(row.date) },
-  { header: "Tamu / Party", accessor: (row) => row.party },
-  { header: "Kamar", accessor: (row) => row.roomNumber },
-  { header: "Pendapatan Kamar (Rp)", accessor: (row) => row.roomRevenue },
-  { header: "Pendapatan F&B (Rp)", accessor: (row) => row.fbRevenue },
-  { header: "Pendapatan Housekeeping (Rp)", accessor: (row) => row.hkRevenue },
-  { header: "Pendapatan Lain / Spa (Rp)", accessor: (row) => row.otherRevenue },
+  { header: "Date", accessor: (row) => formatISODate(row.date) },
+  { header: "Guest / Party", accessor: (row) => row.party },
+  { header: "Room", accessor: (row) => row.roomNumber },
+  { header: "Room Revenue (Rp)", accessor: (row) => row.roomRevenue },
+  { header: "F&B Revenue (Rp)", accessor: (row) => row.fbRevenue },
+  { header: "Housekeeping Revenue (Rp)", accessor: (row) => row.hkRevenue },
+  { header: "Other / Spa Revenue (Rp)", accessor: (row) => row.otherRevenue },
   { header: "Subtotal (Rp)", accessor: (row) => row.subtotal },
-  { header: "Pajak (Rp)", accessor: (row) => row.tax },
+  { header: "Tax (Rp)", accessor: (row) => row.tax },
   { header: "Total (Rp)", accessor: (row) => row.total },
 ];
 

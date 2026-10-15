@@ -9,10 +9,10 @@ import type { GuestLookupResult } from "./types";
 export async function searchGuestsAction(q: string): Promise<GuestLookupResult[]> {
   const session = await auth();
   if (!session?.user || !can(session.user.role, "reservations:read")) {
-    throw new Error("Anda tidak memiliki akses untuk mencari tamu.");
+    throw new Error("You do not have access to search guests.");
   }
   if (typeof q !== "string") {
-    throw new Error("Kata pencarian tamu tidak valid.");
+    throw new Error("Invalid guest search term.");
   }
 
   const query = normalizeGuestQuery(q);

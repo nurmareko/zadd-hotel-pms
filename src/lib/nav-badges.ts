@@ -24,7 +24,7 @@ export async function getRoleNavBadges(role: AppRole): Promise<NavBadgeMap> {
   return {
     "/app/acc/night-audit": {
       value: "!",
-      label: "Night Audit hari ini belum dijalankan",
+      label: "Night Audit has not been run today",
     },
   };
 }

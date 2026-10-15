@@ -24,7 +24,7 @@ describe("room block CSV", () => {
     expect(response.status).toBe(400);
     expect(findRoomBlocks).not.toHaveBeenCalled();
   });
-  it.each(["FO", "ADMIN"])("exports the same filters and safe Indonesian CSV for %s", async (role) => {
+  it.each(["FO", "ADMIN"])("exports the same filters and safe English CSV for %s", async (role) => {
     auth.mockResolvedValue({ user: { role } });
     findRoomBlocks.mockResolvedValue([{
       id: 1, roomId: 1, room: { number: "101", roomType: { name: "Deluxe" } },
@@ -36,7 +36,7 @@ describe("room block CSV", () => {
     expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="daftar-blokir-kamar-2026-09-14.csv"');
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const csv = await response.text();
-    expect(csv).toContain("Kamar,Tipe Kamar,Alasan,Tanggal Mulai,Tanggal Selesai (Eksklusif),Jumlah Malam,Status,Catatan,Dibuat Oleh");
-    expect(csv).toContain('101,Deluxe,Pemeliharaan,2026-10-01,2026-10-03,2,Dilepas,"\'=HYPERLINK(""contoh"")\nCatatan, uji",\'@Petugas');
+    expect(csv).toContain("Room,Room Type,Reason,Start Date,End Date (Exclusive),Number of Nights,Status,Notes,Created By");
+    expect(csv).toContain('101,Deluxe,Maintenance,2026-10-01,2026-10-03,2,Released,"\'=HYPERLINK(""contoh"")\nCatatan, uji",\'@Petugas');
   });
 });

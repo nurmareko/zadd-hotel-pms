@@ -28,7 +28,7 @@ export function ManagerFlashDatePicker({ selectedDate }: { selectedDate: string 
   return (
     <div className="grid gap-1.5">
       <label className="text-xs font-semibold text-muted-foreground" htmlFor="manager-flash-date">
-        Tanggal bisnis
+        Business date
       </label>
       <input
         aria-busy={isPending}
@@ -41,7 +41,7 @@ export function ManagerFlashDatePicker({ selectedDate }: { selectedDate: string 
       />
       {isPending ? (
         <span aria-live="polite" className="text-xs text-muted-foreground">
-          Memuat laporan...
+          Loading report...
         </span>
       ) : null}
     </div>

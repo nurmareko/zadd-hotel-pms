@@ -1,7 +1,7 @@
 export default function LoadingRevenueReports() {
   return (
-    <main aria-busy="true" aria-label="Memuat laporan pendapatan" className="space-y-4 bg-slate-50 p-4 sm:p-5 md:space-y-6 lg:p-6">
-      <span className="sr-only" role="status">Memuat laporan pendapatan…</span>
+    <main aria-busy="true" aria-label="Loading revenue report" className="space-y-4 bg-slate-50 p-4 sm:p-5 md:space-y-6 lg:p-6">
+      <span className="sr-only" role="status">Loading revenue report…</span>
       <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse md:space-y-6">
         <div className="space-y-3"><div className="h-8 w-64 max-w-full rounded bg-slate-200" /><div className="h-4 w-80 max-w-full rounded bg-slate-200" /></div>
         <div className="h-56 rounded-lg border border-slate-200 bg-white sm:h-44" />

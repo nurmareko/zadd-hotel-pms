@@ -12,7 +12,7 @@ vi.mock("@/lib/housekeeping-list-data", () => ({ getHousekeepingListData }));
 
 import { GET } from "./route";
 
-const header = "Kode Tugas,Kamar,Lantai,Tipe Kamar,Prioritas,Status,Petugas,Konteks Tamu,Catatan";
+const header = "Task Code,Room,Floor,Room Type,Priority,Status,Staff,Guest Details,Notes";
 const request = (query = "") => new Request(`http://localhost/app/hk/rooms/export${query ? `?${query}` : ""}`);
 
 function roomRow(): HousekeepingListRow {
@@ -22,7 +22,7 @@ function roomRow(): HousekeepingListRow {
     taskNote: "Bersihkan kaca",
     room: { id: 1, number: "102", floor: 1, typeName: "Deluks", typeCode: "DLX", status: "VD" },
     cleaningState: "IN_PROGRESS",
-    serviceLabel: "Persiapan kedatangan",
+    serviceLabel: "Arrival preparation",
     assignedHousekeeper: { id: 2, name: "Siti", initials: "S" },
     reservationContexts: [{ kind: "arrival", label: "Kedatangan", reservationNo: "RSV-001", guestName: "Budi", nightsLabel: "2 malam", etaLabel: "12:00" }],
     note: { reservationNo: "RSV-001", etaLabel: "12:00", notes: "Bantal tambahan" },
@@ -61,7 +61,7 @@ describe("GET /app/hk/rooms/export", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const bytes = new Uint8Array(await response.arrayBuffer());
     expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
-    expect(new TextDecoder().decode(bytes)).toBe(`${header}\r\nTSK-102,102,1,Deluks,P1 - Mendesak,VD,Siti,Kedatangan: Budi (RSV-001) · 2 malam · ETA 12:00,Bersihkan kaca | Bantal tambahan`);
+    expect(new TextDecoder().decode(bytes)).toBe(`${header}\r\nTSK-102,102,1,Deluks,P1 - Urgent,VD,Siti,Kedatangan: Budi (RSV-001) · 2 malam · ETA 12:00,Bersihkan kaca | Bantal tambahan`);
   });
 
   it("delegates the default date and uses priority ascending without filters", async () => {
@@ -103,7 +103,7 @@ describe("GET /app/hk/rooms/export", () => {
 
   it("handles missing assignee, guest context and notes", async () => {
     getHousekeepingListData.mockResolvedValue({ rows: [{ ...roomRow(), assignedHousekeeper: null, reservationContexts: [], taskNote: null, note: null }] });
-    expect(await (await GET(request())).text()).toBe(`${header}\r\nTSK-102,102,1,Deluks,P1 - Mendesak,VD,,,`);
+    expect(await (await GET(request())).text()).toBe(`${header}\r\nTSK-102,102,1,Deluks,P1 - Urgent,VD,,,`);
   });
 
   it.each(["=SUM(1,2)", "+SUM(1,2)", "-SUM(1,2)", "@SUM(1,2)", "\tSUM(1,2)", "\rSUM(1,2)"])("uses real CSV formula protection for %j", async (value) => {
@@ -116,10 +116,10 @@ describe("GET /app/hk/rooms/export", () => {
   it("quotes commas, quotes and newlines while retaining both notes and multiple guest contexts", async () => {
     const row = roomRow();
     row.taskNote = 'Kaca, "bersih"\nPeriksa';
-    row.reservationContexts.push({ kind: "departure", label: "Keberangkatan", reservationNo: "RSV-002", guestName: "Ani", nightsLabel: "1 malam", etaLabel: null });
+    row.reservationContexts.push({ kind: "departure", label: "Keberangkatan", reservationNo: "RSV-002", guestName: "Ani", nightsLabel: "1 night", etaLabel: null });
     getHousekeepingListData.mockResolvedValue({ rows: [row] });
     const csv = await (await GET(request())).text();
     expect(csv).toContain('"Kaca, ""bersih""\nPeriksa | Bantal tambahan"');
-    expect(csv).toContain(" | Keberangkatan: Ani (RSV-002) · 1 malam");
+    expect(csv).toContain(" | Keberangkatan: Ani (RSV-002) · 1 night");
   });
 });

@@ -16,7 +16,7 @@ async function retryTransaction<T>(operation: (tx: Prisma.TransactionClient) => 
       });
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || !["P2034", "P2028"].includes(error.code)) throw error;
-      if (attempt === 2) throw new RoomBlockError("CONCURRENT_CHANGE", "Data kamar berubah bersamaan. Muat ulang halaman lalu coba lagi.");
+      if (attempt === 2) throw new RoomBlockError("CONCURRENT_CHANGE", "Room data was changed concurrently. Reload the page and try again.");
     }
   }
 }
@@ -36,10 +36,10 @@ async function createRoomBlockInTransaction(
   // Same lock order as reservation writers: physical room, then room-type capacity.
   await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE`;
   const room = await tx.room.findUnique({ where: { id: input.roomId } });
-  if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Kamar tidak ditemukan.");
+  if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Room not found.");
   const conflicts = await detectRoomBlockReservationConflicts({ roomId: room.id, range: input }, tx);
   if (conflicts.length) {
-    throw new RoomBlockError("RESERVATION_CONFLICT", `Kamar ${room.number} memiliki reservasi aktif ${conflicts[0].reservationNo} yang bertumpang tindih dengan periode blokir. Ubah kamar atau tanggal blokir.`);
+    throw new RoomBlockError("RESERVATION_CONFLICT", `Room ${room.number} has an active reservation ${conflicts[0].reservationNo} overlapping the block period. Change the room or block dates.`);
   }
   const startDate = parseISODateOnly(input.startDate);
   const endDate = parseISODateOnly(input.endDate);
@@ -49,7 +49,7 @@ async function createRoomBlockInTransaction(
   } });
   // Include this block in the authoritative per-day check. Throw rolls it back.
   const capacity = await validateRoomTypeCapacity({ roomTypeId: room.roomTypeId, arrival: startDate, departure: endDate, requestedCount: 0 }, tx);
-  if (!capacity.ok) throw new RoomBlockError("CAPACITY_CONFLICT", `Blokir tidak dapat dibuat. ${capacity.error}`);
+  if (!capacity.ok) throw new RoomBlockError("CAPACITY_CONFLICT", `The block cannot be created. ${capacity.error}`);
   const today = hotelTodayDateOnly(now);
   if (startDate <= today && endDate > today && room.status !== "OOO") {
     const activeCleaningSession = await tx.cleaningSession.findFirst({
@@ -59,7 +59,7 @@ async function createRoomBlockInTransaction(
     if (activeCleaningSession) {
       throw new RoomBlockError(
         "CLEANING_IN_PROGRESS",
-        "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
+        "Room cleaning is in progress. Complete it from the housekeeper task list first.",
       );
     }
     // Departure dates free inventory, but only checkout ends physical occupancy.
@@ -70,12 +70,12 @@ async function createRoomBlockInTransaction(
     if (occupant) {
       throw new RoomBlockError(
         "ROOM_OCCUPIED",
-        "Kamar masih ditempati tamu yang belum check-out. Selesaikan check-out sebelum mengubah status kamar.",
+        "The room is still occupied by a guest who has not checked out. Complete check-out before changing the room status.",
       );
     }
     const updated = await tx.room.updateMany({ where: { id: room.id, status: room.status }, data: { status: "OOO" } });
-    if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Status kamar berubah. Muat ulang halaman lalu coba lagi.");
-    await tx.housekeepingLog.create({ data: { roomId: room.id, oldStatus: room.status, newStatus: "OOO", updatedById: operatorId, note: `Blokir kamar #${block.id} dimulai.` } });
+    if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Room status changed. Reload the page and try again.");
+    await tx.housekeepingLog.create({ data: { roomId: room.id, oldStatus: room.status, newStatus: "OOO", updatedById: operatorId, note: `Room block #${block.id} started.` } });
   }
   return { ok: true as const, blockId: block.id, roomId: room.id };
 }
@@ -89,7 +89,7 @@ export async function setHousekeepingRoomStatus(
     const { roomId, status, source } = input;
     await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE`;
     const room = await tx.room.findUnique({ where: { id: roomId } });
-    if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Kamar tidak ditemukan");
+    if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Room not found");
     if (room.status === status) return { ok: true as const };
 
     const [occupant, cleaningSession] = await Promise.all([
@@ -101,14 +101,14 @@ export async function setHousekeepingRoomStatus(
     ]);
     if (source === "board" && !allowedRoomStatuses(Boolean(occupant)).includes(status)) {
       throw new RoomBlockError("INVALID_INPUT", occupant
-        ? "Kamar dengan tamu check-in hanya bisa memakai status OC, OD, atau OOO."
-        : "Kamar tanpa tamu check-in hanya bisa memakai status VC, VD, VCU, atau OOO.");
+        ? "A room with a checked-in guest can only use status OC, OD, or OOO."
+        : "A room without a checked-in guest can only use status VC, VD, VCU, or OOO.");
     }
     if (cleaningSession) {
-      throw new RoomBlockError("CLEANING_IN_PROGRESS", "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja petugas HK terlebih dahulu.");
+      throw new RoomBlockError("CLEANING_IN_PROGRESS", "Room cleaning is in progress. Complete it from the HK staff task list first.");
     }
     if (occupant && (room.status === "OOO" || status === "OOO")) {
-      throw new RoomBlockError("ROOM_OCCUPIED", "Kamar masih ditempati tamu yang belum check-out. Selesaikan check-out sebelum mengubah status kamar.");
+      throw new RoomBlockError("ROOM_OCCUPIED", "The room is still occupied by a guest who has not checked out. Complete check-out before changing the room status.");
     }
 
     const now = new Date();
@@ -120,7 +120,7 @@ export async function setHousekeepingRoomStatus(
         startDate: today.toISOString().slice(0, 10),
         endDate: tomorrow.toISOString().slice(0, 10),
         reason: "MAINTENANCE",
-        note: "Blokir OOO manual dari Housekeeping",
+        note: "Manual OOO block from Housekeeping",
       }, operatorId, now);
       return { ok: true as const };
     }
@@ -137,7 +137,7 @@ export async function setHousekeepingRoomStatus(
           data: { status: "RELEASED" },
         });
         if (released.count !== blocks.length) {
-          throw new RoomBlockError("CONCURRENT_CHANGE", "Blokir kamar berubah bersamaan. Muat ulang halaman lalu coba lagi.");
+          throw new RoomBlockError("CONCURRENT_CHANGE", "Room blocks were changed concurrently. Reload the page and try again.");
         }
       }
     }
@@ -145,12 +145,12 @@ export async function setHousekeepingRoomStatus(
     const updated = await tx.room.updateMany({
       where: { id: roomId, status: room.status }, data: { status },
     });
-    if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Status kamar berubah. Muat ulang halaman lalu coba lagi.");
+    if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Room status changed. Reload the page and try again.");
     await tx.housekeepingLog.create({ data: {
       roomId, oldStatus: room.status, newStatus: status, updatedById: operatorId, updatedAt: now,
       note: source === "board"
-        ? "Perubahan status manual dari papan kamar HK"
-        : "Perubahan status manual oleh petugas HK atau ADMIN",
+        ? "Manual status change from the HK room board"
+        : "Manual status change by HK staff or ADMIN",
     } });
     return { ok: true as const };
   });
@@ -160,15 +160,15 @@ export async function releaseRoomBlock(blockId: number, operatorId: number) {
   return retryTransaction(async (tx) => {
     // The first read only locates the room lock; block state is re-read afterwards.
     const locator = await tx.roomBlock.findUnique({ where: { id: blockId }, select: { roomId: true } });
-    if (!locator) throw new RoomBlockError("BLOCK_NOT_FOUND", "Blokir kamar tidak ditemukan.");
+    if (!locator) throw new RoomBlockError("BLOCK_NOT_FOUND", "Room block not found.");
     await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${locator.roomId} FOR UPDATE`;
     const room = await tx.room.findUnique({ where: { id: locator.roomId } });
     const block = await tx.roomBlock.findUnique({ where: { id: blockId } });
-    if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Kamar tidak ditemukan.");
-    if (!block || block.roomId !== room.id) throw new RoomBlockError("BLOCK_NOT_FOUND", "Blokir kamar tidak ditemukan. Muat ulang halaman.");
+    if (!room) throw new RoomBlockError("ROOM_NOT_FOUND", "Room not found.");
+    if (!block || block.roomId !== room.id) throw new RoomBlockError("BLOCK_NOT_FOUND", "Room block not found. Reload the page.");
     if (block.status === "RELEASED") return { ok: true as const, blockId, roomId: room.id, alreadyReleased: true };
     const released = await tx.roomBlock.updateMany({ where: { id: blockId, roomId: room.id, status: "ACTIVE" }, data: { status: "RELEASED" } });
-    if (released.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Blokir kamar berubah bersamaan. Muat ulang halaman lalu coba lagi.");
+    if (released.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Room blocks were changed concurrently. Reload the page and try again.");
     const { today, tomorrow } = todayDateOnly();
     const remaining = await tx.roomBlock.findFirst({ where: activeRoomBlockWhere({ roomId: room.id, range: { startDate: today.toISOString().slice(0, 10), endDate: tomorrow.toISOString().slice(0, 10) } }), select: { id: true } });
     // A future block has not begun its lifecycle and cannot clear current OOO.
@@ -181,12 +181,12 @@ export async function releaseRoomBlock(blockId: number, operatorId: number) {
       if (occupant) {
         throw new RoomBlockError(
           "ROOM_OCCUPIED",
-          "Kamar masih ditempati tamu yang belum check-out. Selesaikan check-out sebelum mengubah status kamar.",
+          "The room is still occupied by a guest who has not checked out. Complete check-out before changing the room status.",
         );
       }
       const updated = await tx.room.updateMany({ where: { id: room.id, status: "OOO" }, data: { status: "VD" } });
-      if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Status kamar berubah. Muat ulang halaman lalu coba lagi.");
-      await tx.housekeepingLog.create({ data: { roomId: room.id, oldStatus: "OOO", newStatus: "VD", updatedById: operatorId, note: `Blokir kamar #${blockId} dilepas. Kamar perlu dibersihkan.` } });
+      if (updated.count !== 1) throw new RoomBlockError("CONCURRENT_CHANGE", "Room status changed. Reload the page and try again.");
+      await tx.housekeepingLog.create({ data: { roomId: room.id, oldStatus: "OOO", newStatus: "VD", updatedById: operatorId, note: `Room block #${blockId} released. The room needs cleaning.` } });
     }
     return { ok: true as const, blockId, roomId: room.id, alreadyReleased: false };
   });

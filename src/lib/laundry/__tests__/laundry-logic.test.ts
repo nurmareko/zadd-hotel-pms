@@ -24,9 +24,9 @@ describe("linen reconciliation", () => {
     },
   );
   it("appends receipt notes without overwriting dispatch notes", () => {
-    expect(appendReceiptNotes("Catatan kirim", " Dua rusak ")).toBe("Catatan kirim\nCatatan penerimaan: Dua rusak");
+    expect(appendReceiptNotes("Catatan kirim", " Dua rusak ")).toBe("Catatan kirim\nReceipt notes: Dua rusak");
     expect(appendReceiptNotes("Catatan kirim", " ")).toBe("Catatan kirim");
-    expect(appendReceiptNotes(null, "Diterima")).toBe("Catatan penerimaan: Diterima");
+    expect(appendReceiptNotes(null, "Diterima")).toBe("Receipt notes: Diterima");
   });
 });
 
@@ -79,8 +79,8 @@ describe("action input validation", () => {
     expect(ReceiveLinenBatchSchema.safeParse({ batchId, receivedQuantity: "1", damagedQuantity: "-1" }).success).toBe(false);
   });
   it("formats copy in Indonesian with explicit hotel timezone", () => {
-    expect(LINEN_ITEM_LABELS.BED_SHEET).toBe("Sprei");
-    expect(LINEN_STATUS_LABELS.WASHING).toBe("Sedang Dicuci");
+    expect(LINEN_ITEM_LABELS.BED_SHEET).toBe("Bed Sheet");
+    expect(LINEN_STATUS_LABELS.WASHING).toBe("Washing");
     expect(formatLaundryQuantity(1000)).toBe("1.000");
     expect(formatLaundryDate(null)).toBe("—");
     expect(formatLaundryDate(new Date("2026-05-31T17:00:00Z"))).toContain("1 Jun 2026");

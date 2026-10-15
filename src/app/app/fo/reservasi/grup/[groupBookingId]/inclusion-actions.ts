@@ -162,7 +162,7 @@ async function resolveCandidates(
     (id) =>
       reservationById.get(id) ?? {
         id,
-        reservationNo: `Reservasi #${id}`,
+        reservationNo: `Reservation #${id}`,
         room: null,
       },
   );
@@ -187,7 +187,7 @@ function revalidateGroupInclusions(groupBookingId: string) {
     revalidatePath(`/app/fo/reservasi/grup/${groupBookingId}`);
     revalidatePath("/app/fo/reservasi/list");
   } catch (error) {
-    console.error("Gagal menyegarkan tampilan Inklusi grup", error);
+    console.error("Unable to refresh group inclusions", error);
   }
 }
 
@@ -195,12 +195,12 @@ export async function previewGroupMealPlan(
   input: unknown,
 ): Promise<GroupMealPlanPreviewResult> {
   if (!(await canManageGroupInclusions())) {
-    return { ok: false, error: "Tidak diizinkan" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = GroupMealPlanSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Permintaan pratinjau meal plan tidak valid." };
+    return { ok: false, error: "Invalid meal plan preview request." };
   }
 
   const { groupBookingId, arrangementType, ...selection } = parsed.data;
@@ -208,7 +208,7 @@ export async function previewGroupMealPlan(
   const candidates = await resolveCandidates(groupBookingId, selection);
 
   if (candidates.length === 0) {
-    return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
+    return { ok: false, error: "There are no reservations in this group booking." };
   }
 
   const reservations = await prisma.reservation.findMany({
@@ -258,7 +258,7 @@ export async function previewGroupMealPlan(
         children: reservation?.children ?? null,
         pax: reservation ? reservation.adults + reservation.children : null,
         eligible: false,
-        reason: "Reservasi bukan anggota booking grup ini.",
+        reason: "The reservation does not belong to this group booking.",
         nightsAffected: 0,
         unitPrice: "0",
         nightlyAmount: "0",
@@ -317,12 +317,12 @@ export async function applyGroupMealPlan(
   | { ok: false; error: string }
 > {
   if (!(await canManageGroupInclusions())) {
-    return { ok: false, error: "Tidak diizinkan" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = GroupMealPlanApplySchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Permintaan meal plan grup tidak valid." };
+    return { ok: false, error: "Invalid group meal plan request." };
   }
 
   const {
@@ -338,7 +338,7 @@ export async function applyGroupMealPlan(
       : { scope, reservationIds: reservationIds ?? [] };
   const candidates = await resolveCandidates(groupBookingId, selection);
   if (candidates.length === 0) {
-    return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
+    return { ok: false, error: "There are no reservations in this group booking." };
   }
 
   const previewByReservationId = new Map(
@@ -354,7 +354,7 @@ export async function applyGroupMealPlan(
     return {
       ok: false,
       error:
-        "Cakupan kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan meal plan.",
+        "The room selection has changed since the preview. Load a new preview before applying the meal plan.",
     };
   }
 
@@ -403,7 +403,7 @@ export async function applyGroupMealPlan(
           ? resultFor(
               reservation,
               "completed",
-              `Meal plan diterapkan mulai ${result.effectiveDate} untuk ${result.changedNights} malam.`,
+              `Meal plan applied from ${result.effectiveDate} for ${result.changedNights} nights.`,
             )
           : resultFor(
               reservation,
@@ -418,7 +418,7 @@ export async function applyGroupMealPlan(
           "failed",
           error instanceof Error
             ? error.message
-            : "Terjadi kegagalan saat memproses kamar ini.",
+            : "An error occurred while processing this room.",
         ),
       );
     }
@@ -429,8 +429,8 @@ export async function applyGroupMealPlan(
 }
 
 const stayFeeLabels: Record<ReservationStayFeeKind, string> = {
-  EARLY_CHECK_IN: "Check-in lebih awal",
-  LATE_CHECK_OUT: "Check-out lebih lambat",
+  EARLY_CHECK_IN: "Early Check-in",
+  LATE_CHECK_OUT: "Late Check-out",
 };
 
 function feeOutcomeReason(
@@ -439,11 +439,11 @@ function feeOutcomeReason(
   changed: boolean,
 ) {
   const label = stayFeeLabels[kind];
-  if (!changed) return `${label} sudah dipilih; dilewati.`;
+  if (!changed) return `${label} already selected; skipped.`;
   if (status === ReservationStayFeeStatus.POSTED) {
-    return `${label} langsung terposting Rp100.000 ke folio kamar.`;
+    return `${label} posted immediately to the room folio for Rp100.000.`;
   }
-  return `${label} disimpan PENDING Rp100.000 untuk kamar ini.`;
+  return `${label} saved as pending for Rp100.000 for this room.`;
 }
 
 export async function applyGroupStayFees(
@@ -453,18 +453,18 @@ export async function applyGroupStayFees(
   | { ok: false; error: string }
 > {
   if (!(await canManageGroupInclusions())) {
-    return { ok: false, error: "Tidak diizinkan" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = GroupStayFeeSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Permintaan biaya fleksibilitas grup tidak valid." };
+    return { ok: false, error: "Invalid group stay flexibility fee request." };
   }
 
   const { groupBookingId, kinds, ...selection } = parsed.data;
   const candidates = await resolveCandidates(groupBookingId, selection);
   if (candidates.length === 0) {
-    return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
+    return { ok: false, error: "There are no reservations in this group booking." };
   }
 
   const uniqueKinds = Array.from(new Set(kinds));
@@ -507,7 +507,7 @@ export async function applyGroupStayFees(
           reason:
             error instanceof Error
               ? error.message
-              : "Terjadi kegagalan saat memproses kamar ini.",
+              : "An error occurred while processing this room.",
         });
       }
     }
@@ -515,12 +515,12 @@ export async function applyGroupStayFees(
     const status = failed ? "failed" : completed ? "completed" : "skipped";
     const summary =
       failed && completed
-        ? "Sebagian biaya berhasil diterapkan; lihat hasil per jenis."
+        ? "Some fees were applied successfully; see the results for each fee type."
         : status === "completed"
-          ? "Semua biaya terpilih berhasil diterapkan."
+          ? "All selected fees were applied successfully."
           : status === "failed"
-            ? "Biaya gagal diterapkan; lihat hasil per jenis."
-            : "Semua biaya terpilih sudah ada atau terkunci.";
+            ? "Unable to apply fees; see the results for each fee type."
+            : "All selected fees already exist or are locked.";
     results.push({ ...resultFor(reservation, status, summary), details });
   }
 

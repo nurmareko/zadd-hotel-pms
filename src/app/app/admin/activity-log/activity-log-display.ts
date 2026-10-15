@@ -2,13 +2,13 @@ import { ActivityAction, type Prisma } from "@prisma/client";
 import { formatCompactDateTimeID, formatIDR } from "@/lib/format";
 
 export const activityLabels = {
-  RESERVATION_CREATED: "Reservasi Dibuat",
-  RESERVATION_UPDATED: "Reservasi Diubah",
-  RESERVATION_CANCELLED: "Reservasi Dibatalkan",
-  CHECK_IN_COMPLETED: "Check-in Selesai",
-  CHECK_OUT_COMPLETED: "Check-out Selesai",
-  PAYMENT_RECORDED: "Pembayaran Dicatat",
-  FOLIO_CHARGE_POSTED: "Biaya Ditambahkan",
+  RESERVATION_CREATED: "Reservation Created",
+  RESERVATION_UPDATED: "Reservation Updated",
+  RESERVATION_CANCELLED: "Reservation Cancelled",
+  CHECK_IN_COMPLETED: "Check-in Completed",
+  CHECK_OUT_COMPLETED: "Check-out Completed",
+  PAYMENT_RECORDED: "Payment Recorded",
+  FOLIO_CHARGE_POSTED: "Charge Posted",
 } satisfies Record<ActivityAction, string>;
 
 export type ActivityQuery = {
@@ -56,7 +56,7 @@ export function activityTime(date: Date) {
 }
 
 const paymentMethods: Record<string, string> = {
-  CASH: "Tunai", CARD: "Kartu", TRANSFER: "Transfer", CHARGE_TO_ROOM: "Tagihkan ke kamar",
+  CASH: "Cash", CARD: "Card", TRANSFER: "Transfer", CHARGE_TO_ROOM: "Charge to Room",
 };
 
 export function activitySummary(metadata: Prisma.JsonValue) {
@@ -66,10 +66,10 @@ export function activitySummary(metadata: Prisma.JsonValue) {
     summary.push(formatIDR(metadata.amount));
   }
   if (typeof metadata.method === "string" && Object.hasOwn(paymentMethods, metadata.method)) {
-    summary.push(`Metode: ${paymentMethods[metadata.method]}`);
+    summary.push(`Method: ${paymentMethods[metadata.method]}`);
   }
   // Only fields emitted by production writers or the activity demo seed belong here.
-  for (const [key, label] of [["article", "Artikel"], ["note", "Catatan"]] as const) {
+  for (const [key, label] of [["article", "Article"], ["note", "Notes"]] as const) {
     const value = metadata[key];
     if (typeof value === "string" && value.trim()) {
       const text = value.trim();

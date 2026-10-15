@@ -14,11 +14,11 @@ export async function updateMealPlanPrices(input: unknown): Promise<
 > {
   const session = await auth();
   if (!session?.user || !can(session.user.role, "pricing_rules:manage")) {
-    return { ok: false, error: "Anda tidak memiliki izin mengubah harga paket makan." };
+    return { ok: false, error: "You do not have permission to change meal plan prices." };
   }
   const parsed = MealPlanPricesSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Harga paket makan tidak valid." };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid meal plan prices." };
   }
 
   try {
@@ -33,9 +33,9 @@ export async function updateMealPlanPrices(input: unknown): Promise<
     }, TRANSACTION_OPTIONS);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return { ok: false, error: "Artikel paket makan belum lengkap. Tidak ada harga yang disimpan." };
+      return { ok: false, error: "Meal plan articles are incomplete. No prices were saved." };
     }
-    return { ok: false, error: "Gagal menyimpan harga paket makan. Silakan coba lagi." };
+    return { ok: false, error: "Unable to save meal plan prices. Please try again." };
   }
 
   // A refresh failure must not report that a committed catalog update failed.
@@ -46,7 +46,7 @@ export async function updateMealPlanPrices(input: unknown): Promise<
     revalidatePath("/app/fo/reservasi/grup/[groupBookingId]", "page");
     revalidatePath("/app/admin/articles");
   } catch {
-    console.error("Gagal menyegarkan tampilan setelah harga paket makan disimpan.");
+    console.error("Unable to refresh the view after saving meal plan prices.");
   }
   return { ok: true };
 }

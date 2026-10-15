@@ -21,8 +21,7 @@ function statusBanner(status: FBOrderStatus) {
   if (status === FBOrderStatus.CLOSED) {
     return (
       <div className="mb-4 rounded-lg border border-status-vc-pip bg-status-vc-bg px-4 py-3 text-sm font-medium text-status-vc-fg shadow-sm">
-        Order ini sudah dibayar. Bill tersedia sebagai arsip dan dapat dicetak
-        ulang.
+        This order has been paid. The bill is retained as an archive and can be reprinted.
       </div>
     );
   }
@@ -30,8 +29,7 @@ function statusBanner(status: FBOrderStatus) {
   if (status === FBOrderStatus.VOIDED) {
     return (
       <div className="mb-4 rounded-lg border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
-        Order ini sudah dibatalkan. Alasan void belum tersimpan pada data order
-        saat ini.
+        This order has been voided. No reason for voiding is recorded in the current order data.
       </div>
     );
   }
@@ -39,8 +37,7 @@ function statusBanner(status: FBOrderStatus) {
   if (status === FBOrderStatus.BILLED) {
     return (
       <div className="mb-4 rounded-lg border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm font-medium text-status-oc-fg shadow-sm">
-        Bill sudah dikonfirmasi. Lanjutkan ke pembayaran atau buka kembali jika
-        tamu ingin menambah item.
+        The bill is confirmed. Continue to payment or reopen the order if the guest wishes to add items.
       </div>
     );
   }
@@ -97,8 +94,8 @@ export default async function BillPage({ params }: BillPageProps) {
   const roomNumber = order.chargedFolio?.reservation.room?.number ?? "-";
   const guestName = order.chargedFolio?.reservation.guest.fullName ?? "-";
   const locationLabel = isRoomService
-    ? `Room Service · Kamar ${roomNumber} · ${guestName}`
-    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
+    ? `Room Service · Room ${roomNumber} · ${guestName}`
+    : `Table ${order.table?.number ?? order.tableNo ?? "-"}`;
   const openedAtLabel = formatDateTimeID(order.openedAt);
 
   return (
@@ -110,7 +107,7 @@ export default async function BillPage({ params }: BillPageProps) {
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
-            pax · Dibuka {openedAtLabel}
+            pax · Opened {openedAtLabel}
           </p>
         </div>
         <OrderStatusBadge status={order.status} />

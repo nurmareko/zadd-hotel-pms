@@ -106,16 +106,16 @@ export default async function NightAuditReportPage({
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Riwayat Laporan</BreadcrumbPage>
+                <BreadcrumbPage>Report History</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Laporan Night Audit #{audit.id}
+            Night Audit Report #{audit.id}
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            {businessDateLabel(audit.businessDate)} · dijalankan{" "}
-            {dateTimeLabel(audit.runAt)} oleh {audit.runBy.fullName}
+            {businessDateLabel(audit.businessDate)} · run at{" "}
+            {dateTimeLabel(audit.runAt)} by {audit.runBy.fullName}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -124,7 +124,7 @@ export default async function NightAuditReportPage({
             className={buttonVariants({ variant: "outline" })}
             href="/app/acc"
           >
-            Kembali
+            Back
           </Link>
         </div>
       </div>

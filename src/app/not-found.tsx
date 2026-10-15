@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FileQuestion, Home } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Halaman tidak ditemukan | ZADD Hotel Management",
+  title: "Page not found | ZADD Hotel Management",
 };
 
 const homeLinkClassName =
@@ -17,16 +17,16 @@ export default function NotFound() {
           <FileQuestion size={22} aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-[24px] font-bold leading-tight text-slate-900">
-          Halaman tidak ditemukan
+          Page not found
         </h1>
         <p className="mt-2 max-w-md text-[14px] leading-6 text-slate-500">
-          Alamat yang diminta tidak tersedia atau sudah dipindahkan. Kembali ke
-          dashboard untuk melanjutkan operasional.
+          The requested address is unavailable or has moved. Return to the
+          dashboard to continue working.
         </p>
         <div className="mt-6">
           <Link href="/app" className={homeLinkClassName}>
             <Home size={16} aria-hidden="true" />
-            Ke dashboard
+            Go to dashboard
           </Link>
         </div>
       </section>

@@ -64,10 +64,10 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-[760px]">
         <div className="mb-5">
           <h1 className="text-[32px] font-bold leading-tight text-slate-900">
-            Profil
+            Profile
           </h1>
           <p className="mt-2 text-[14px] leading-6 text-slate-500">
-            Kelola informasi akun Anda
+            Manage your account information
           </p>
         </div>
 

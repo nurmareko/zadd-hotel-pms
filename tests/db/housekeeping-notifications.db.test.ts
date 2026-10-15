@@ -60,7 +60,7 @@ describe("housekeeping notifications", () => {
       roomNumber: "201",
       taskType: "Turnover",
       status: HousekeepingNotificationStatus.ASSIGNED,
-      assignmentInfo: "Ditugaskan kepada Anda",
+      assignmentInfo: "Assigned to you",
       href: `/app/hk/rooms/${room.id}`,
     });
     expect(staffBNotifications.items).toHaveLength(0);

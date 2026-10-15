@@ -187,11 +187,11 @@ describe("executeNightAudit room-block reconciliation", () => {
       reservation: { id: 101, reservationNo: "RSV-101" },
       folio: { id: 201, folioNo: "FOL-201", status: "OPEN" },
       currentValues: { nightId: "night-1", rateAmount: "50000", mealAmount: "100000" },
-      resolution: "Perbaiki tarif paket atau alokasi Arrangement malam tersebut agar nilai Kamar tidak negatif, lalu muat ulang Night Audit.",
+      resolution: "Correct the nightly package rate or Arrangement allocation so the room amount is not negative, then reload Night Audit.",
     });
-    expect(blocker?.explanation).toContain("Alokasi Arrangement untuk malam");
-    expect(blocker?.explanation).toContain("100000 melebihi tarif paket 50000");
-    expect(blocker?.explanation).toContain("nilai Kamar menjadi negatif");
+    expect(blocker?.explanation).toContain("Arrangement allocation for");
+    expect(blocker?.explanation).toContain("100000 exceeds the package rate of 50000");
+    expect(blocker?.explanation).toContain("room amount negative");
     expect(result.error).toContain(blocker!.explanation);
     expect(result.error).toContain(blocker!.resolution);
     expect(tx.folioLineItem.createMany).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe("executeNightAudit room-block reconciliation", () => {
     expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status }, data: { status: "OOO" } });
     expect(tx.housekeepingLog.create).toHaveBeenCalledWith({ data: {
       roomId: 10, oldStatus: status, newStatus: "OOO", updatedById: 7, updatedAt: now,
-      note: "Blokir kamar #20 aktif pada pergantian hari bisnis.",
+      note: "Room block #20 active at business-day rollover.",
     } });
     if (result.ok) expect(result.summary.transactionWriteCount).toBe(3);
   });
@@ -240,7 +240,7 @@ describe("executeNightAudit room-block reconciliation", () => {
     await run();
     expect(tx.housekeepingLog.create).toHaveBeenCalledWith({ data: {
       roomId: 10, oldStatus: "OOO", newStatus: "VD", updatedById: 7, updatedAt: now,
-      note: "Blokir kamar telah berakhir. Kamar dialihkan ke VD untuk pembersihan.",
+      note: "The room block has ended. The room was set to VD for cleaning.",
     } });
   });
 

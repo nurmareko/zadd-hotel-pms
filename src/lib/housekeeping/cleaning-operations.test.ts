@@ -57,10 +57,10 @@ function conflict(code = "P2034") {
 describe("complete cleaning operations", () => {
   it.each(["ADMIN", "GM"] as const)("keeps assignment and session ownership mandatory for %s", async (role) => {
     tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
-    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
-    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "This room is not assigned to you" });
+    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "This room is not assigned to you" });
     tx.housekeepingAssignment.findFirst.mockResolvedValue({ id: 20 });
-    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "Tidak ada sesi pembersihan aktif" });
+    expect(await finishCleaningOperation({ ...finish, role })).toEqual({ ok: false, error: "There is no active cleaning session" });
     expect(tx.cleaningSession.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { roomId: 10, housekeeperId: 7, startedAt: { not: null }, finishedAt: null } }));
     expect(tx.room.updateMany).not.toHaveBeenCalled();
     expect(tx.cleaningSession.create).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe("complete cleaning operations", () => {
 
   it.each([startCleaningOperation, finishCleaningOperation])("requires today's own assignment", async (operation) => {
     tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
-    expect(await operation(finish)).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    expect(await operation(finish)).toEqual({ ok: false, error: "This room is not assigned to you" });
     expect(tx.cleaningSession.create).not.toHaveBeenCalled();
     expect(tx.room.updateMany).not.toHaveBeenCalled();
   });
@@ -111,7 +111,7 @@ describe("complete cleaning operations", () => {
   });
 
   it("requires the same user's open session, including sessions spanning midnight", async () => {
-    expect(await finishCleaningOperation(finish)).toEqual({ ok: false, error: "Tidak ada sesi pembersihan aktif" });
+    expect(await finishCleaningOperation(finish)).toEqual({ ok: false, error: "There is no active cleaning session" });
     expect(tx.cleaningSession.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { roomId: 10, housekeeperId: 7, startedAt: { not: null }, finishedAt: null } }));
   });
 
@@ -138,7 +138,7 @@ describe("complete cleaning operations", () => {
 
   it.each(["HK", "ADMIN", "GM"] as const)("rejects inactive or role-revoked %s operators in the transaction", async (role) => {
     tx.user.findFirst.mockResolvedValue(null);
-    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(await startCleaningOperation({ ...input, role })).toEqual({ ok: false, error: "Not authorized" });
     expect(tx.user.findFirst).toHaveBeenCalledWith({ where: { id: 7, isActive: true, roles: { some: { role: { code: role } } } }, select: { id: true } });
     expect(tx.cleaningSession.create).not.toHaveBeenCalled();
   });
@@ -201,7 +201,7 @@ describe("inspection", () => {
 describe("mobile self-claim", () => {
   it.each(["HK", "ADMIN", "GM"] as const)("never lets %s steal another operator's assignment", async (role) => {
     tx.housekeepingAssignment.findUnique.mockResolvedValue({ id: 20, housekeeperId: 8 });
-    expect(await claimAvailableRoomOperation({ ...input, role })).toEqual({ ok: false, error: "Kamar sudah ditugaskan ke petugas lain. Daftar diperbarui." });
+    expect(await claimAvailableRoomOperation({ ...input, role })).toEqual({ ok: false, error: "The room is already assigned to another staff member. The list has been refreshed." });
     expect(tx.housekeepingAssignment.create).not.toHaveBeenCalled();
     expect(tx.housekeepingNotification.upsert).not.toHaveBeenCalled();
   });
@@ -238,7 +238,7 @@ describe("mobile self-claim", () => {
   it("rechecks ownership after a serialization retry instead of stealing the winning claim", async () => {
     tx.housekeepingAssignment.create.mockRejectedValueOnce(conflict());
     tx.housekeepingAssignment.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 21, housekeeperId: 8 });
-    expect(await claimAvailableRoomOperation(input)).toEqual({ ok: false, error: "Kamar sudah ditugaskan ke petugas lain. Daftar diperbarui." });
+    expect(await claimAvailableRoomOperation(input)).toEqual({ ok: false, error: "The room is already assigned to another staff member. The list has been refreshed." });
     expect(transaction).toHaveBeenCalledTimes(2);
     expect(tx.housekeepingAssignment.create).toHaveBeenCalledTimes(1);
     expect(tx.housekeepingNotification.upsert).not.toHaveBeenCalled();
@@ -271,7 +271,7 @@ describe("floor lost and found", () => {
   });
   it("checks room existence in the transaction", async () => {
     tx.room.findUnique.mockResolvedValue(null);
-    expect(await reportFloorLostFoundOperation({ ...input, description: "Dompet" })).toEqual({ ok: false, error: "Kamar tidak ditemukan" });
+    expect(await reportFloorLostFoundOperation({ ...input, description: "Dompet" })).toEqual({ ok: false, error: "Room not found" });
     expect(tx.lostFoundItem.create).not.toHaveBeenCalled();
   });
   it.each([" a ", "x".repeat(501)])("rejects invalid trimmed description length", async (description) => {

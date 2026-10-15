@@ -27,7 +27,7 @@ function validationFailure(error: {
 
   return {
     ok: false,
-    error: issue?.message ?? "Data kamar tidak valid",
+    error: issue?.message ?? "Invalid room data",
     field,
   };
 }
@@ -47,10 +47,10 @@ function prismaErrorResult(
       return entity === "room"
         ? {
             ok: false,
-            error: "Nomor kamar sudah digunakan",
+            error: "Room number is already in use",
             field: "number",
           }
-        : { ok: false, error: "Kode sudah digunakan", field: "code" };
+        : { ok: false, error: "Code is already in use", field: "code" };
     }
 
     if (error.code === "P2003") {
@@ -58,15 +58,15 @@ function prismaErrorResult(
         ok: false,
         error:
           entity === "room"
-            ? "Kamar memiliki riwayat reservasi. Ubah status ke OOO."
-            : "Tipe kamar masih memiliki kamar. Hapus kamar terlebih dahulu.",
+            ? "This room has reservation history. Change its status to OOO instead."
+            : "This room type still has rooms. Delete the rooms first.",
       };
     }
 
     if (error.code === "P2034" || error.code === "P2028") {
       return {
         ok: false,
-        error: "Data tipe kamar berubah bersamaan. Silakan coba lagi.",
+        error: "Room type data was changed by another user. Please try again.",
       };
     }
 
@@ -75,18 +75,18 @@ function prismaErrorResult(
         ok: false,
         error:
           entity === "room"
-            ? "Kamar tidak ditemukan"
-            : "Tipe kamar tidak ditemukan",
+            ? "Room not found"
+            : "Room type not found",
       };
     }
   }
 
-  return { ok: false, error: "Terjadi kesalahan" };
+  return { ok: false, error: "An error occurred" };
 }
 
 export async function createRoomType(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomTypeCreateSchema.safeParse(input);
@@ -102,7 +102,7 @@ export async function createRoomType(input: unknown): Promise<ActionResult> {
     });
 
     if (existingCode) {
-      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+      return { ok: false, error: "Code is already in use", field: "code" };
     }
 
     await prisma.roomType.create({
@@ -119,7 +119,7 @@ export async function createRoomType(input: unknown): Promise<ActionResult> {
 
 export async function updateRoomType(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomTypeUpdateSchema.safeParse(input);
@@ -139,7 +139,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
         });
 
         if (existingCode) {
-          return { ok: false as const, error: "Kode sudah digunakan", field: "code" };
+          return { ok: false as const, error: "Code is already in use", field: "code" };
         }
 
         const activeRules = await tx.pricingRule.findMany({
@@ -163,7 +163,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
           return {
             ok: false as const,
             error:
-              "Tarif dasar ini membuat aturan harga aktif menghasilkan tarif malam 0 atau negatif.",
+              "This base rate causes an active pricing rule to produce a zero or negative nightly rate.",
             field: "baseRate",
           };
         }
@@ -193,7 +193,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
 
 export async function deleteRoomType(id: number): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomTypeIdSchema.safeParse({ id });
@@ -210,7 +210,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
     if (roomCount > 0) {
       return {
         ok: false,
-        error: "Tipe kamar masih memiliki kamar. Hapus kamar terlebih dahulu.",
+        error: "This room type still has rooms. Delete the rooms first.",
       };
     }
 
@@ -228,7 +228,7 @@ export async function deleteRoomType(id: number): Promise<ActionResult> {
 
 export async function createRoom(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomCreateSchema.safeParse(input);
@@ -246,7 +246,7 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
     if (existingNumber) {
       return {
         ok: false,
-        error: "Nomor kamar sudah digunakan",
+        error: "Room number is already in use",
         field: "number",
       };
     }
@@ -265,7 +265,7 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
 
 export async function updateRoom(input: unknown): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomUpdateSchema.safeParse(input);
@@ -285,7 +285,7 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
     if (existingNumber) {
       return {
         ok: false,
-        error: "Nomor kamar sudah digunakan",
+        error: "Room number is already in use",
         field: "number",
       };
     }
@@ -305,7 +305,7 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
 
 export async function deleteRoom(id: number): Promise<ActionResult> {
   if (!(await canManageRooms())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RoomIdSchema.safeParse({ id });
@@ -322,7 +322,7 @@ export async function deleteRoom(id: number): Promise<ActionResult> {
     if (reservationCount > 0) {
       return {
         ok: false,
-        error: "Kamar memiliki riwayat reservasi. Ubah status ke OOO.",
+        error: "This room has reservation history. Change its status to OOO instead.",
       };
     }
 

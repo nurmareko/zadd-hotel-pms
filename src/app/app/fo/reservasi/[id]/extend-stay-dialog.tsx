@@ -38,7 +38,7 @@ function minimumDepartureDate(departureDate: string) {
 }
 
 function departureLabel(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -84,7 +84,7 @@ export function ExtendStayDialog({
     const minimum = minimumDepartureDate(departureDate);
     setMinDate(minimum);
     if (!isValidISODateOnly(newDepartureDate) || newDepartureDate < minimum) {
-      setError(`Pilih tanggal keberangkatan paling awal ${departureLabel(minimum)}.`);
+      setError(`Select the earliest departure date ${departureLabel(minimum)}.`);
       return;
     }
 
@@ -99,12 +99,12 @@ export function ExtendStayDialog({
       }
 
       toast.success(
-        `Masa menginap berhasil diperpanjang hingga ${departureLabel(result.data.newDepartureDate)} (${result.data.additionalNights} malam tambahan).`,
+        `Stay extended to ${departureLabel(result.data.newDepartureDate)} (${result.data.additionalNights} additional nights).`,
       );
       setOpen(false);
       router.refresh();
     } catch {
-      setError("Hasil penyimpanan belum dapat dipastikan. Muat ulang halaman dan periksa tanggal keberangkatan sebelum mencoba kembali.");
+      setError("The save result could not be confirmed. Reload the page and check the departure date before trying again.");
     } finally {
       submitting.current = false;
       setIsPending(false);
@@ -115,25 +115,25 @@ export function ExtendStayDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button variant="outline" />} disabled={isPending}>
         <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
-        Perpanjang Menginap
+        Extend Stay
       </DialogTrigger>
       <DialogContent
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto border border-slate-200 sm:max-w-md"
         showCloseButton={!isPending}
       >
         <DialogHeader>
-          <DialogTitle>Perpanjang Masa Menginap</DialogTitle>
+          <DialogTitle>Extend Stay</DialogTitle>
           <DialogDescription className="break-words">
-            {guestName} · {roomNumber ? `Kamar ${roomNumber}` : "Kamar belum ditetapkan"}
+            {guestName} · {roomNumber ? `Room ${roomNumber}` : "Room not assigned"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate className="space-y-4" aria-busy={isPending}>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs text-slate-500">Keberangkatan saat ini</p>
+            <p className="text-xs text-slate-500">Current departure</p>
             <p className="mt-1 font-medium">{departureLabel(departureDate)}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor={inputId}>Tanggal keberangkatan baru</Label>
+            <Label htmlFor={inputId}>New departure date</Label>
             <Input
               id={inputId}
               type="date"
@@ -149,13 +149,13 @@ export function ExtendStayDialog({
               }}
             />
             <p id={`${inputId}-hint`} className="text-xs text-slate-500">
-              {minDate ? `Paling awal ${departureLabel(minDate)} (waktu hotel, WIB).` : "Pilih tanggal keberangkatan baru."}
+              {minDate ? `Earliest ${departureLabel(minDate)} (hotel time, WIB).` : "Select a new departure date."}
             </p>
           </div>
           <p role="status" className="text-sm text-slate-600">
             {additionalNights > 0
-              ? `Tambahan menginap: ${additionalNights} malam.`
-              : "Pilih tanggal untuk melihat jumlah malam tambahan."}
+              ? `Stay extension: ${additionalNights} nights.`
+              : "Select a date to see the number of additional nights."}
           </p>
           {error ? (
             <p id={`${inputId}-error`} role="alert" className="text-sm text-destructive">
@@ -164,10 +164,10 @@ export function ExtendStayDialog({
           ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={isPending} onClick={() => handleOpenChange(false)}>
-              Batal
+              Cancel
             </Button>
             <Button type="submit" disabled={isPending || !validSelection}>
-              {isPending ? "Menyimpan..." : "Simpan Perpanjangan"}
+              {isPending ? "Saving..." : "Save Extension"}
             </Button>
           </DialogFooter>
         </form>

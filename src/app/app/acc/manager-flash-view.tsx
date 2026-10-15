@@ -20,23 +20,23 @@ function money(value: number) {
 }
 
 function metricSubline(day: ManagerFlashDay) {
-  return `Kamar ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · HK ${money(day.hkRevenue)} · Lain ${money(day.miscRevenue)}`;
+  return `Room ${money(day.roomRevenue)} · F&B ${money(day.fbRevenue)} · HK ${money(day.hkRevenue)} · Other ${money(day.miscRevenue)}`;
 }
 
 const bookingSourceLabels: Record<BookingSourceContribution["source"], string> = {
   INDIVIDUAL: "Individual",
-  COMPANY: "Perusahaan",
-  GOVERNMENT: "Pemerintah",
+  COMPANY: "Corporate",
+  GOVERNMENT: "Government",
   OTA: "Online Travel Agent",
   WALK_IN: "Walk-in",
-  UNKNOWN: "Lainnya",
+  UNKNOWN: "Other",
 };
 
 function BookingSourceRows({ rows }: { rows: BookingSourceContribution[] }) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Belum ada pendapatan berdasarkan sumber pemesanan.
+        No revenue by booking source yet.
       </p>
     );
   }
@@ -48,7 +48,7 @@ function BookingSourceRows({ rows }: { rows: BookingSourceContribution[] }) {
           <div>
             <p className="font-medium text-foreground">{bookingSourceLabels[row.source]}</p>
             <p className="text-xs text-muted-foreground">
-              {row.reservationCount} reservasi · {row.roomNights} room night
+              {row.reservationCount} reservations · {row.roomNights} room nights
             </p>
           </div>
           <span className="whitespace-nowrap font-semibold text-foreground">
@@ -75,10 +75,10 @@ export function ManagerFlashView({
             Accounting
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-            Laporan Malam
+            Night Report
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Ringkasan kinerja hotel untuk {dateLabel(report.selectedDate)}.
+            Hotel performance summary for {dateLabel(report.selectedDate)}.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end print:hidden">
@@ -90,34 +90,34 @@ export function ManagerFlashView({
         </div>
       </div>
 
-      <section aria-label="Metrik kinerja" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <section aria-label="Performance metrics" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <KpiCard
           className="border-slate-200 bg-slate-50 [&_div:first-child]:text-slate-600 [&_div:nth-child(2)]:text-slate-900"
-          label="OKUPANSI"
-          sub={`${day.roomsOccupied} dari ${day.totalRooms} kamar`}
+          label="OCCUPANCY"
+          sub={`${day.roomsOccupied} of ${day.totalRooms} rooms`}
           value={formatFixedPercent(day.occupancyRate, 1)}
         />
         <KpiCard
           className="border-amber-100 bg-amber-50/50 [&_div:first-child]:text-amber-600 [&_div:nth-child(2)]:text-amber-900"
           label="ARR / ADR"
-          sub={`${day.soldRoomNights} room night terjual`}
+          sub={`${day.soldRoomNights} room nights sold`}
           value={money(day.adr)}
         />
         <KpiCard
           className="border-violet-100 bg-violet-50/50 [&_div:first-child]:text-violet-600 [&_div:nth-child(2)]:text-violet-900"
           label="REVPAR"
-          sub={`${money(day.roomRevenue)} / ${day.totalRooms} kamar`}
+          sub={`${money(day.roomRevenue)} / ${day.totalRooms} rooms`}
           value={money(day.revPar)}
         />
         <KpiCard
           className="border-orange-100 bg-orange-50/50 [&_div:first-child]:text-orange-600 [&_div:nth-child(2)]:text-orange-900"
           label="REVPAX"
-          sub={`${day.inHouseCount} tamu menginap`}
+          sub={`${day.inHouseCount} in-house guests`}
           value={money(day.revPax)}
         />
         <KpiCard
           className="border-emerald-100 bg-emerald-50/50 [&_div:first-child]:text-emerald-600 [&_div:nth-child(2)]:text-emerald-900"
-          label="PENDAPATAN HARIAN"
+          label="DAILY REVENUE"
           sub={metricSubline(day)}
           value={money(day.totalRevenue)}
         />
@@ -127,16 +127,16 @@ export function ManagerFlashView({
         <Card className="rounded-lg border border-border p-0">
           <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
             <CardTitle className="text-base font-semibold tracking-tight text-foreground">
-              Pendapatan Harian
+              Daily Revenue
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-5 text-sm">
             {[
-              ["Pendapatan Kamar", day.roomRevenue],
-              ["Pendapatan F&B", day.fbRevenue],
-              ["Pendapatan Housekeeping", day.hkRevenue],
-              ["Pendapatan Spa & Lainnya", day.miscRevenue],
-              ["Total Pendapatan", day.totalRevenue],
+              ["Room Revenue", day.roomRevenue],
+              ["F&B Revenue", day.fbRevenue],
+              ["Housekeeping Revenue", day.hkRevenue],
+              ["Spa & Other Revenue", day.miscRevenue],
+              ["Total Revenue", day.totalRevenue],
             ].map(([label, value], index) => (
               <div
                 className={`flex items-center justify-between gap-3 ${
@@ -156,7 +156,7 @@ export function ManagerFlashView({
         <Card className="rounded-lg border border-border p-0">
           <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
             <CardTitle className="text-base font-semibold tracking-tight text-foreground">
-              Sumber Pemesanan
+              Booking Sources
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5">
@@ -169,10 +169,10 @@ export function ManagerFlashView({
         <Card className="min-w-0 overflow-hidden rounded-lg border border-border p-0">
           <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
             <CardTitle className="text-base font-semibold tracking-tight text-foreground">
-              14 Hari Terakhir
+              Last 14 Days
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Sampai {dateLabel(report.selectedDate)} · ARR/ADR dihitung dari room night aktual setiap tanggal.
+              Through {dateLabel(report.selectedDate)} · ARR/ADR is calculated from actual room nights for each date.
             </p>
           </CardHeader>
           <CardContent className="p-0">
@@ -180,7 +180,7 @@ export function ManagerFlashView({
               <table className="w-full min-w-[680px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {['Tanggal', 'Okupansi %', 'ARR / ADR', 'RevPAR', 'Total Pendapatan'].map((heading) => (
+                    {['Date', 'Occupancy %', 'ARR / ADR', 'RevPAR', 'Total Revenue'].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>
@@ -203,14 +203,14 @@ export function ManagerFlashView({
 
         <Card className="h-fit rounded-lg border border-border p-0">
           <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">
-            <CardTitle className="text-base font-semibold tracking-tight text-foreground">Pergerakan</CardTitle>
+            <CardTitle className="text-base font-semibold tracking-tight text-foreground">Guest Movements</CardTitle>
             <p className="text-xs text-muted-foreground">{dateLabel(report.selectedDate)}</p>
           </CardHeader>
           <CardContent className="space-y-3 p-5 text-sm">
             {[
               ['Check-in', day.checkInCount],
               ['Check-out', day.checkOutCount],
-              ['Tamu Menginap', day.inHouseCount],
+              ['In-house Guests', day.inHouseCount],
               ['No-show', day.noShowCount],
             ].map(([label, value]) => (
               <div className="flex items-center justify-between gap-3" key={label}>

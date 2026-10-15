@@ -43,7 +43,7 @@ export function RoomStatusControl({
         return;
       }
 
-      toast.success(`Status kamar ${roomNumber} diperbarui`);
+      toast.success(`Room status ${roomNumber} updated`);
       router.refresh();
     });
   }
@@ -52,7 +52,7 @@ export function RoomStatusControl({
     <form onSubmit={onSubmit} className="mt-2 flex gap-1">
       <input type="hidden" name="roomId" value={roomId} />
       <select
-        aria-label={`Status kamar ${roomNumber}`}
+        aria-label={`Room status ${roomNumber}`}
         name="status"
         value={selectedStatus}
         disabled={isPending}
@@ -68,7 +68,7 @@ export function RoomStatusControl({
       <Button
         type="submit"
         size="icon"
-        aria-label={`Simpan status kamar ${roomNumber}`}
+        aria-label={`Save room status ${roomNumber}`}
         disabled={isPending || selectedStatus === status}
       >
         <Save className="h-3.5 w-3.5" aria-hidden="true" />

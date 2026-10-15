@@ -44,7 +44,7 @@ export async function validateRoomTypeCapacity(
     return {
       ok: false,
       field: "roomTypeId",
-      error: "Tipe kamar tidak valid untuk reservasi ini.",
+      error: "Invalid room type for this reservation.",
     };
   }
 
@@ -83,7 +83,7 @@ export async function validateRoomTypeCapacity(
     return {
       ok: false,
       field: "roomTypeId",
-      error: "Jumlah kamar yang diminta tidak valid.",
+      error: "Invalid requested room count.",
     };
   }
 
@@ -92,7 +92,7 @@ export async function validateRoomTypeCapacity(
     return {
       ok: false,
       field: "roomTypeId",
-      error: `Tipe kamar ${roomType.name} sudah penuh pada tanggal ${fullDay.date}. Kapasitas ${roomCount}, diblokir ${fullDay.blockedCount}, sudah dipesan ${fullDay.reservationCount}, diminta ${requestedCount}.`,
+      error: `Room type ${roomType.name} is fully booked on ${fullDay.date}. Capacity ${roomCount}, blocked ${fullDay.blockedCount}, reserved ${fullDay.reservationCount}, requested ${requestedCount}.`,
     };
   }
 

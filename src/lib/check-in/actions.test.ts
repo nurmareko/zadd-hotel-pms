@@ -819,7 +819,7 @@ describe("check-in server actions", () => {
         ok: false,
         code: "ROOM_BLOCKED",
         field: "roomId",
-        error: expect.stringContaining("Kamar diblokir untuk Pemeliharaan"),
+        error: expect.stringContaining("Room blocked for Maintenance"),
       });
     });
 

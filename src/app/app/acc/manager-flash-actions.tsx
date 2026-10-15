@@ -8,7 +8,7 @@ export function ManagerFlashActions() {
   return (
     <Button onClick={() => window.print()} type="button" variant="outline">
       <Printer aria-hidden="true" />
-      Cetak
+      Print
     </Button>
   );
 }

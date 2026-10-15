@@ -117,7 +117,7 @@ describe("computeFBDashboardMetrics", () => {
       order({ status: "OPEN", table: null, tableNo: null, chargedFolio: { reservation: { room: { number: "101" } } } }),
       order({ status: "OPEN", table: null, tableNo: null }),
     ]);
-    expect(result.openBills.map((bill) => bill.location)).toEqual(["Meja T1", "Meja legacy", "Kamar 101", "—"]);
+    expect(result.openBills.map((bill) => bill.location)).toEqual(["Table T1", "Table legacy", "Room 101", "—"]);
   });
   it("lists voids only by closedAt, without contributing sales or active totals", () => {
     const result = compute([
@@ -125,7 +125,7 @@ describe("computeFBDashboardMetrics", () => {
       order({ status: "VOIDED", closedAt: end }), order({ status: "VOIDED", closedAt: null }),
       order({ status: "VOIDED", closedAt: new Date(start.getTime() - 1) }),
     ]);
-    expect(result.voidedBills).toEqual([{ id: 1, orderNo: "FB-001", location: "Meja T1", total: 100, closedAt: start }]);
+    expect(result.voidedBills).toEqual([{ id: 1, orderNo: "FB-001", location: "Table T1", total: 100, closedAt: start }]);
     expect(result).toMatchObject({ grossSales: 0, openBillTotal: 0 });
   });
   it("aggregates item quantities and snapshot amounts, ranking quantity then revenue", () => {

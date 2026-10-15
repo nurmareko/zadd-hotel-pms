@@ -17,7 +17,7 @@ export type FinishCleaningInput = RoomInput & {
 export type InspectRoomInput = RoomInput & { passed: boolean; notes?: string | null };
 
 class CleaningError extends Error {}
-const conflictMessage = "Kamar sedang diproses. Muat ulang halaman.";
+const conflictMessage = "The room is being processed. Reload the page.";
 
 function requireOne(result: { count: number }) {
   // Throw after any failed conditional write so earlier writes cannot commit.
@@ -56,7 +56,7 @@ async function runTransaction(
 async function requireOperator(tx: Prisma.TransactionClient, operator: CleaningOperator) {
   if (!Number.isSafeInteger(operator.userId) || operator.userId <= 0 || operator.userId > 2147483647 ||
       (operator.role !== "HK" && operator.role !== "ADMIN" && operator.role !== "GM")) {
-    throw new CleaningError("Tidak berwenang");
+    throw new CleaningError("Not authorized");
   }
   const user = await tx.user.findFirst({
     where: {
@@ -66,19 +66,19 @@ async function requireOperator(tx: Prisma.TransactionClient, operator: CleaningO
     },
     select: { id: true },
   });
-  if (!user) throw new CleaningError("Tidak berwenang");
+  if (!user) throw new CleaningError("Not authorized");
 }
 
 async function lockRoom(tx: Prisma.TransactionClient, roomId: number) {
   if (!Number.isSafeInteger(roomId) || roomId <= 0 || roomId > 2147483647) {
-    throw new CleaningError("Kamar tidak valid");
+    throw new CleaningError("Invalid room");
   }
   await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${roomId} FOR UPDATE`;
   // One clock sample after acquiring the lock, including on each retry.
   const now = new Date();
   const today = hotelTodayDateOnly(now);
   const room = await tx.room.findUnique({ where: { id: roomId }, select: { status: true } });
-  if (!room) throw new CleaningError("Kamar tidak ditemukan");
+  if (!room) throw new CleaningError("Room not found");
   return { room, now, today };
 }
 
@@ -87,7 +87,7 @@ async function ownAssignment(tx: Prisma.TransactionClient, input: RoomInput, tod
     where: { roomId: input.roomId, date: today, housekeeperId: input.userId },
     select: { id: true },
   });
-  if (!assignment) throw new CleaningError("Kamar ini bukan tugas Anda");
+  if (!assignment) throw new CleaningError("This room is not assigned to you");
   return assignment;
 }
 
@@ -96,16 +96,16 @@ async function requireNoActiveSession(tx: Prisma.TransactionClient, roomId: numb
     where: { roomId, startedAt: { not: null }, finishedAt: null },
     select: { id: true },
   });
-  if (active) throw new CleaningError("Pembersihan kamar ini sudah berjalan");
+  if (active) throw new CleaningError("Cleaning is already in progress for this room");
 }
 
 export async function startCleaningOperation(input: RoomInput): Promise<CleaningResult> {
-  return runTransaction("Gagal memulai pembersihan", async (tx) => {
+  return runTransaction("Failed to start cleaning", async (tx) => {
     const { room, now, today } = await lockRoom(tx, input.roomId);
     await requireOperator(tx, input);
     const assignment = await ownAssignment(tx, input, today);
     if (room.status !== RoomStatus.VD && room.status !== RoomStatus.OD) {
-      throw new CleaningError("Kamar ini tidak berada dalam antrean pembersihan");
+      throw new CleaningError("This room is not in the cleaning queue");
     }
     await requireNoActiveSession(tx, input.roomId);
     await tx.cleaningSession.create({
@@ -120,15 +120,15 @@ export async function startCleaningOperation(input: RoomInput): Promise<Cleaning
 }
 
 export async function finishCleaningOperation(input: FinishCleaningInput): Promise<CleaningResult> {
-  return runTransaction("Gagal menyelesaikan pembersihan", async (tx) => {
+  return runTransaction("Failed to complete cleaning", async (tx) => {
     const { room, now, today } = await lockRoom(tx, input.roomId);
     await requireOperator(tx, input);
     const assignment = await ownAssignment(tx, input, today);
     if (room.status !== RoomStatus.VD && room.status !== RoomStatus.OD) {
-      throw new CleaningError("Status kamar berubah. Muat ulang halaman.");
+      throw new CleaningError("Room status changed. Reload the page.");
     }
     if (room.status === RoomStatus.VD && (!input.linenChanged || !input.towelChanged)) {
-      throw new CleaningError("Untuk kamar kosong setelah check-out, linen dan handuk wajib diganti.");
+      throw new CleaningError("Linen and towels must be replaced in vacant rooms after check-out.");
     }
     // A session may cross WIB midnight; today's assignment must still be ours.
     const sessionWhere = {
@@ -142,7 +142,7 @@ export async function finishCleaningOperation(input: FinishCleaningInput): Promi
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
-    if (!session) throw new CleaningError("Tidak ada sesi pembersihan aktif");
+    if (!session) throw new CleaningError("There is no active cleaning session");
     const nextStatus = room.status === RoomStatus.OD ? RoomStatus.OC : RoomStatus.VCU;
     requireOne(await tx.cleaningSession.updateMany({
       where: { id: session.id, ...sessionWhere },
@@ -156,7 +156,7 @@ export async function finishCleaningOperation(input: FinishCleaningInput): Promi
       data: {
         roomId: input.roomId, oldStatus: room.status, newStatus: nextStatus,
         updatedById: input.userId, updatedAt: now,
-        note: input.note || "Pembersihan selesai dari daftar kerja petugas HK",
+        note: input.note || "Cleaning completed from the HK staff task list",
         linenChanged: input.linenChanged, towelChanged: input.towelChanged,
       },
     });
@@ -168,13 +168,13 @@ export async function finishCleaningOperation(input: FinishCleaningInput): Promi
 }
 
 export async function inspectRoomOperation(input: InspectRoomInput): Promise<CleaningResult> {
-  return runTransaction("Gagal menyimpan hasil inspeksi", async (tx) => {
+  return runTransaction("Failed to save the inspection result", async (tx) => {
     const { room, now } = await lockRoom(tx, input.roomId);
     await requireOperator(tx, input);
     if (!input.passed && !input.notes?.trim()) {
-      throw new CleaningError("Alasan kegagalan inspeksi wajib diisi");
+      throw new CleaningError("A reason for the failed inspection is required");
     }
-    if (room.status !== RoomStatus.VCU) throw new CleaningError("Kamar ini tidak menunggu inspeksi");
+    if (room.status !== RoomStatus.VCU) throw new CleaningError("This room is not awaiting inspection");
     await requireNoActiveSession(tx, input.roomId);
     const session = await tx.cleaningSession.findFirst({
       where: { roomId: input.roomId, finishedAt: { not: null }, inspectedAt: null },
@@ -202,7 +202,7 @@ export async function inspectRoomOperation(input: InspectRoomInput): Promise<Cle
 }
 
 export async function claimAvailableRoomOperation(input: RoomInput): Promise<CleaningResult> {
-  return runTransaction("Gagal mengambil tugas kamar", async (tx) => {
+  return runTransaction("Failed to claim the room task", async (tx) => {
     const { room, today } = await lockRoom(tx, input.roomId);
     await requireOperator(tx, input);
     const assignment = await tx.housekeepingAssignment.findUnique({
@@ -211,7 +211,7 @@ export async function claimAvailableRoomOperation(input: RoomInput): Promise<Cle
     });
     if (assignment) {
       if (assignment.housekeeperId === input.userId) return;
-      throw new CleaningError("Kamar sudah ditugaskan ke petugas lain. Daftar diperbarui.");
+      throw new CleaningError("The room is already assigned to another staff member. The list has been refreshed.");
     }
     await requireNoActiveSession(tx, input.roomId);
     const movement = await tx.reservation.findFirst({
@@ -225,7 +225,7 @@ export async function claimAvailableRoomOperation(input: RoomInput): Promise<Cle
       select: { id: true },
     });
     if (!isMobilePoolEligible({ status: room.status, hasScheduledMovement: Boolean(movement) })) {
-      throw new CleaningError("Kamar ini tidak tersedia untuk diambil");
+      throw new CleaningError("This room is unavailable to claim");
     }
     const created = await tx.housekeepingAssignment.create({
       data: { roomId: input.roomId, date: today, housekeeperId: input.userId },
@@ -241,12 +241,12 @@ export async function claimAvailableRoomOperation(input: RoomInput): Promise<Cle
 export async function reportFloorLostFoundOperation(
   input: CleaningOperator & { roomId: number | null; description: string },
 ): Promise<CleaningResult> {
-  return runTransaction("Gagal mencatat barang temuan", async (tx) => {
+  return runTransaction("Failed to record the found item", async (tx) => {
     if (input.roomId !== null) await lockRoom(tx, input.roomId);
     await requireOperator(tx, input);
     const description = input.description.trim();
     if (description.length < 3 || description.length > 500) {
-      throw new CleaningError("Deskripsi harus terdiri dari 3–500 karakter");
+      throw new CleaningError("Description must be 3–500 characters");
     }
     const allocation = await allocateLostFoundReference(tx);
     await tx.lostFoundItem.create({

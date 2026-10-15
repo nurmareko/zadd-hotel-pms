@@ -68,56 +68,56 @@ export type CheckInActionResult = ActionResult<
 export const CHECK_IN_FAILURE_MESSAGES: Record<CheckInFailureCode, string> = {
   SESSION_EXPIRED: UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED,
   FORBIDDEN: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
-  INVALID_INPUT: "Data check-in tidak valid. Periksa kembali formulir.",
-  RESERVATION_NOT_FOUND: "Reservasi tidak ditemukan. Muat ulang halaman.",
+  INVALID_INPUT: "Invalid check-in data. Please review the form.",
+  RESERVATION_NOT_FOUND: "Reservation not found. Reload the page.",
   RESERVATION_NOT_ELIGIBLE:
-    "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
-  ARRIVAL_NOT_DUE: "Check-in baru dapat dilakukan pada tanggal kedatangan.",
-  ROOM_REQUIRED: "Pilih kamar yang sesuai untuk melanjutkan check-in.",
+    "This reservation is no longer eligible for check-in. Reload the page and check its status.",
+  ARRIVAL_NOT_DUE: "Check-in is only available from the arrival date.",
+  ROOM_REQUIRED: "Select a suitable room to continue check-in.",
   ROOM_TYPE_MISMATCH:
-    "Kamar yang dipilih tidak sesuai dengan tipe kamar reservasi. Pilih kamar lain.",
-  ROOM_OOO: "Kamar yang dipilih berstatus OOO. Pilih kamar lain.",
-  ROOM_BLOCKED: "Kamar yang dipilih diblokir pada periode menginap. Pilih kamar lain.",
-  ROOM_UNAVAILABLE: "Kamar yang dipilih sudah tidak tersedia. Pilih kamar lain.",
+    "The selected room does not match the reserved room type. Select another room.",
+  ROOM_OOO: "The selected room is OOO. Select another room.",
+  ROOM_BLOCKED: "The selected room is blocked during this stay. Select another room.",
+  ROOM_UNAVAILABLE: "The selected room is no longer available. Select another room.",
   DEPOSIT_NOT_ELIGIBLE:
-    "Deposit belum dapat dikumpulkan untuk reservasi ini. Muat ulang dan periksa status reservasi.",
+    "A deposit cannot yet be collected for this reservation. Reload and check the reservation status.",
   DEPOSIT_STATE_INCONSISTENT:
-    "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
+    "The deposit status and folio payments are inconsistent. Stop and request a data review.",
   DEPOSIT_RATE_UNAVAILABLE:
-    "Tarif malam pertama belum tersedia atau tidak valid. Perbaiki tarif sebelum mengumpulkan deposit.",
+    "The first-night rate is missing or invalid. Correct the rate before collecting a deposit.",
   DEPOSIT_REQUIRED:
-    "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
+    "The deposit has not been paid. Collect the deposit before check-in.",
   DEPOSIT_FOLIO_MISSING:
-    "Folio deposit tidak ditemukan. Hentikan check-in dan periksa data reservasi.",
+    "Deposit folio not found. Stop check-in and review the reservation data.",
   DEPOSIT_CONFLICT:
-    "Status deposit berubah bersamaan. Muat ulang halaman sebelum mencoba lagi.",
+    "The deposit status was changed concurrently. Reload the page before trying again.",
   DEPOSIT_UNEXPECTED:
-    "Pembayaran deposit tidak dapat dicatat. Silakan coba lagi.",
+    "The deposit payment could not be recorded. Please try again.",
   GRC_INCOMPLETE:
-    "Lengkapi GRC, tanda tangan tamu, dan konfirmasi kedatangan sebelum check-in.",
+    "Complete the GRC, guest signature, and arrival confirmation before check-in.",
   RESERVATION_CHANGED:
-    "Data reservasi berubah. Muat ulang, tinjau kembali GRC, lalu minta tanda tangan ulang.",
+    "The reservation data has changed. Reload, review the GRC, and request a new signature.",
   STAY_FEE_UNAVAILABLE:
-    "Biaya fleksibilitas belum dapat dicatat. Periksa konfigurasi biaya lalu coba lagi.",
+    "Stay flexibility fees could not be recorded. Check the fee settings and try again.",
   NIGHT_AUDIT_CLOSED:
-    "Audit malam untuk tanggal bisnis hari ini sudah selesai. Check-in tidak dapat diproses.",
+    "Night Audit for the current business date is complete. Check-in cannot be processed.",
   CHECK_IN_CONFLICT:
-    "Check-in mengalami konflik data. Muat ulang halaman dan periksa status reservasi serta kamar.",
-  CHECK_IN_UNEXPECTED: "Check-in tidak dapat diselesaikan. Silakan coba lagi.",
-  REVIEW_UNEXPECTED: "Data check-in tidak dapat dimuat. Silakan coba lagi.",
+    "Check-in encountered a data conflict. Reload the page and check the reservation and room status.",
+  CHECK_IN_UNEXPECTED: "Check-in could not be completed. Please try again.",
+  REVIEW_UNEXPECTED: "Check-in data could not be loaded. Please try again.",
   RESULT_UNKNOWN:
-    "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+    "The action result is uncertain. Reload the page before trying again.",
 };
 
 export const CHECK_IN_UNKNOWN_RESULT_MESSAGES = {
   deposit:
-    "Hasil pembayaran deposit belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+    "The deposit payment result is uncertain. Reload the page before trying again.",
   checkIn:
-    "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+    "The check-in result is uncertain. Reload the page before trying again.",
 } as const;
 
 export const GROUP_MUTATION_UNCERTAIN_MESSAGE =
-  "Hasil proses grup belum dapat dipastikan. Beberapa kamar mungkin sudah diproses. Muat ulang halaman sebelum mencoba lagi.";
+  "The group operation result is uncertain. Some rooms may already have been processed. Reload the page before trying again.";
 
 export function checkInFailureMessage(
   code: CheckInFailureCode,

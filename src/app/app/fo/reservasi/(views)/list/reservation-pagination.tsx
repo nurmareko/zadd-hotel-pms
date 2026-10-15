@@ -27,25 +27,25 @@ export function ReservationPagination({
 
   return (
     <nav
-      aria-label="Navigasi halaman reservasi"
+      aria-label="Reservation pagination"
       className="flex flex-col gap-3 border-t border-slate-200 p-4 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
     >
-      <p>Menampilkan {fromRow}–{toRow} dari {totalCount} reservasi</p>
+      <p>Showing {fromRow}–{toRow} of {totalCount} reservations</p>
       <div className="flex flex-wrap items-center gap-3">
-        <p>Halaman {currentPage} dari {totalPages}</p>
+        <p>Page {currentPage} of {totalPages}</p>
         <div className="flex gap-2">
           {currentPage <= 1 ? (
-            <button type="button" disabled className={buttonClass}>Sebelumnya</button>
+            <button type="button" disabled className={buttonClass}>Previous</button>
           ) : (
             <Link href={buildPageHref(filters, currentPage - 1)} className={buttonClass}>
-              Sebelumnya
+              Previous
             </Link>
           )}
           {currentPage >= totalPages ? (
-            <button type="button" disabled className={buttonClass}>Berikutnya</button>
+            <button type="button" disabled className={buttonClass}>Next</button>
           ) : (
             <Link href={buildPageHref(filters, currentPage + 1)} className={buttonClass}>
-              Berikutnya
+              Next
             </Link>
           )}
         </div>

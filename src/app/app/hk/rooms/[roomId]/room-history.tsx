@@ -20,14 +20,14 @@ export function RoomHistory({ logs }: { logs: HistoryLog[] }) {
   return (
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
-        <CardTitle className="text-base font-semibold">Riwayat</CardTitle>
+        <CardTitle className="text-base font-semibold">History</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {logs.length === 0 ? (
           <EmptyState
             icon={History}
-            title="Belum ada riwayat kamar"
-            description="Perubahan status dan aktivitas pembersihan kamar akan muncul di sini."
+            title="No room history yet"
+            description="Room status changes and cleaning activity will appear here."
             className="m-4"
           />
         ) : (
@@ -66,7 +66,7 @@ function HistoryRow({ log }: { log: HistoryLog }) {
               <Badge variant="secondary" className="text-xs rounded-full">Linen</Badge>
             )}
             {log.towelChanged && (
-              <Badge variant="secondary" className="text-xs rounded-full">Handuk</Badge>
+              <Badge variant="secondary" className="text-xs rounded-full">Towels</Badge>
             )}
           </div>
         ) : null}

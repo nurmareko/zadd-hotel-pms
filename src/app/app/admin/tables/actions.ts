@@ -34,7 +34,7 @@ function validationFailure(error: {
 
   return {
     ok: false,
-    error: issue?.message ?? "Data meja tidak valid",
+    error: issue?.message ?? "Invalid table data",
     field,
   };
 }
@@ -50,15 +50,15 @@ async function canManageRestaurantTables() {
 function prismaErrorResult(error: unknown): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      return { ok: false, error: "Nomor meja sudah digunakan", field: "number" };
+      return { ok: false, error: "Table number is already in use", field: "number" };
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Meja tidak ditemukan." };
+      return { ok: false, error: "Table not found." };
     }
   }
 
-  return { ok: false, error: "Terjadi kesalahan" };
+  return { ok: false, error: "An error occurred" };
 }
 
 function revalidateTableScreens() {
@@ -71,7 +71,7 @@ export async function createRestaurantTable(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RestaurantTableCreateSchema.safeParse(input);
@@ -89,7 +89,7 @@ export async function createRestaurantTable(
     if (existingNumber) {
       return {
         ok: false,
-        error: "Nomor meja sudah digunakan",
+        error: "Table number is already in use",
         field: "number",
       };
     }
@@ -117,7 +117,7 @@ export async function updateRestaurantTable(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RestaurantTableUpdateSchema.safeParse(input);
@@ -137,7 +137,7 @@ export async function updateRestaurantTable(
     if (existingNumber) {
       return {
         ok: false,
-        error: "Nomor meja sudah digunakan",
+        error: "Table number is already in use",
         field: "number",
       };
     }
@@ -149,7 +149,7 @@ export async function updateRestaurantTable(
     if (openOrderCount > 0 && data.status !== TableStatus.OCCUPIED) {
       return {
         ok: false,
-        error: "Meja memiliki pesanan terbuka. Status harus tetap Terisi.",
+        error: "This table has open orders. Its status must remain Occupied.",
         field: "status",
       };
     }
@@ -171,7 +171,7 @@ export async function deleteRestaurantTable(
   id: number,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RestaurantTableIdSchema.safeParse({ id });
@@ -188,7 +188,7 @@ export async function deleteRestaurantTable(
     if (orderCount > 0) {
       return {
         ok: false,
-        error: "Meja memiliki riwayat pesanan. Ubah status ke Tidak Beroperasi.",
+        error: "This table has order history. Change its status to Out of Service instead.",
       };
     }
 
@@ -208,7 +208,7 @@ export async function updateRestaurantTablePosition(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RestaurantTablePositionSchema.safeParse(input);
@@ -237,13 +237,13 @@ export async function autoArrangeRestaurantTables(
   input: unknown,
 ): Promise<LayoutActionResult> {
   if (!(await canManageRestaurantTables())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RestaurantTableLocationSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Lokasi tidak valid" };
+    return { ok: false, error: "Invalid location" };
   }
 
   try {
@@ -277,6 +277,6 @@ export async function autoArrangeRestaurantTables(
 
     return { ok: true, tables: updatedTables };
   } catch {
-    return { ok: false, error: "Terjadi kesalahan" };
+    return { ok: false, error: "An error occurred" };
   }
 }

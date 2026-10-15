@@ -74,11 +74,11 @@ export function HousekeeperWorkPanel({
       const result = await finishCleaning(formData);
 
       if (!result.ok) {
-        toast.error(result.error ?? "Gagal menyelesaikan pembersihan");
+        toast.error(result.error ?? "Unable to complete cleaning");
         return;
       }
 
-      toast.success("Pembersihan selesai");
+      toast.success("Cleaning completed");
       window.dispatchEvent(new Event("housekeeping-notifications-refresh"));
       setLinenChanged(false);
       setTowelChanged(false);
@@ -99,7 +99,7 @@ export function HousekeeperWorkPanel({
       const result = await action(formData);
 
       if (!result.ok) {
-        toast.error(result.error ?? "Aksi gagal");
+        toast.error(result.error ?? "Action failed");
         return;
       }
 
@@ -123,7 +123,7 @@ export function HousekeeperWorkPanel({
         return;
       }
 
-      toast.success("Barang temuan dicatat");
+      toast.success("Found item recorded");
       foundItemFormRef.current?.reset();
       router.refresh();
     });
@@ -133,7 +133,7 @@ export function HousekeeperWorkPanel({
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border rounded-t-lg px-5 py-4">
         <CardTitle className="text-[16px] font-semibold tracking-tight">
-          Tugas Housekeeper
+          Room Attendant Tasks
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3.5 p-3.5">
@@ -159,14 +159,14 @@ export function HousekeeperWorkPanel({
           </div>
         ) : (
           <p className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-            Tidak ada catatan reservasi aktif untuk kamar ini.
+            No active reservation notes for this room.
           </p>
         )}
 
         {activeCleaningSession ? (
           <div className="space-y-4 rounded-lg border border-border bg-muted/40 p-4">
             <div className="text-xs font-medium text-muted-foreground text-center">
-              Berlangsung · dimulai {formatTimeID(activeCleaningSession.startedAt)}
+              In progress · started {formatTimeID(activeCleaningSession.startedAt)}
             </div>
             <div className="text-center">
               <CleaningTimer startedAt={activeCleaningSession.startedAt} />
@@ -174,7 +174,7 @@ export function HousekeeperWorkPanel({
             {canFinish ? (
               <div className="space-y-4 border-t border-border pt-4 text-left">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Daftar Periksa Perlengkapan
+                  Room Supplies Checklist
                 </p>
                 
                 <div className="space-y-2.5">
@@ -185,7 +185,7 @@ export function HousekeeperWorkPanel({
                       onChange={(e) => setLinenChanged(e.target.checked)}
                       className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary cursor-pointer"
                     />
-                    <span>Linen diganti (Ganti Sprei) {isTurnover && <span className="text-destructive font-semibold">*wajib</span>}</span>
+                    <span>Bed linen replaced {isTurnover && <span className="text-destructive font-semibold">*required</span>}</span>
                   </label>
 
                   <label className="flex min-h-11 items-center gap-2.5 text-sm font-medium text-foreground cursor-pointer select-none desktop:min-h-10">
@@ -195,13 +195,13 @@ export function HousekeeperWorkPanel({
                       onChange={(e) => setTowelChanged(e.target.checked)}
                       className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary cursor-pointer"
                     />
-                    <span>Handuk diganti {isTurnover && <span className="text-destructive font-semibold">*wajib</span>}</span>
+                    <span>Towels replaced {isTurnover && <span className="text-destructive font-semibold">*required</span>}</span>
                   </label>
                 </div>
 
                 <fieldset disabled={isPending} className="min-w-0 space-y-3">
                   <legend className="mb-2 text-sm font-semibold">
-                    Amenities Kamar (opsional)
+                    Room Amenities (optional)
                   </legend>
                   {AMENITIES_ITEMS.map(({ key, label }) => (
                     <AmenitiesStepper
@@ -215,10 +215,10 @@ export function HousekeeperWorkPanel({
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Catatan Pembersihan (Opsional)
+                    Cleaning Notes (Optional)
                   </label>
                   <Textarea
-                    placeholder="Catatan tambahan kondisi kamar..."
+                    placeholder="Additional notes on room condition..."
                     value={cleaningNote}
                     onChange={(e) => setCleaningNote(e.target.value)}
                     maxLength={500}
@@ -234,7 +234,7 @@ export function HousekeeperWorkPanel({
                   className="w-full rounded-md"
                 >
                   <Square className="h-4 w-4" aria-hidden="true" />
-                  {isPending ? "Menyelesaikan..." : "Selesai Bersihkan"}
+                  {isPending ? "Completing..." : "Complete Cleaning"}
                 </Button>
               </div>
             ) : null}
@@ -246,11 +246,11 @@ export function HousekeeperWorkPanel({
             type="button"
             size="lg"
             disabled={isPending}
-            onClick={() => runRoomAction(startCleaning, "Pembersihan dimulai")}
+            onClick={() => runRoomAction(startCleaning, "Cleaning started")}
             className="w-full rounded-md"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
-            {isPending ? "Memulai..." : "Mulai Bersihkan"}
+            {isPending ? "Starting..." : "Start Cleaning"}
           </Button>
         ) : null}
 
@@ -258,8 +258,8 @@ export function HousekeeperWorkPanel({
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
             <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
             {latestCompletedCleaningSession
-              ? `Selesai ${formatTimeID(latestCompletedCleaningSession.finishedAt)}`
-              : "Tidak ada aksi pembersihan yang tersedia untuk status kamar ini."}
+              ? `Completed ${formatTimeID(latestCompletedCleaningSession.finishedAt)}`
+              : "No cleaning actions are available for this room status."}
           </div>
         ) : null}
 
@@ -274,7 +274,7 @@ export function HousekeeperWorkPanel({
             className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide"
           >
             <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-            Catat barang temuan
+            Record found item
           </label>
           <Textarea
             id={`found-item-${roomId}`}
@@ -282,7 +282,7 @@ export function HousekeeperWorkPanel({
             required
             minLength={3}
             maxLength={500}
-            placeholder={`Deskripsi barang di kamar ${roomNumber}`}
+            placeholder={`Description of the item found in the room ${roomNumber}`}
             aria-invalid={Boolean(foundItemError)}
             className="min-h-16 rounded-md"
           />
@@ -299,7 +299,7 @@ export function HousekeeperWorkPanel({
             className="w-full rounded-md"
           >
             <Archive className="h-4 w-4" aria-hidden="true" />
-            {isFoundItemPending ? "Menyimpan..." : "Simpan barang temuan"}
+            {isFoundItemPending ? "Saving..." : "Save found item"}
           </Button>
         </form>
       </CardContent>

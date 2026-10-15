@@ -14,17 +14,17 @@ import { setHousekeepingRoomStatus } from "@/lib/room-blocks/operations";
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const UpdateRoomStatusSchema = z.object({
-  roomId: z.coerce.number().int().positive("Kamar tidak valid"),
+  roomId: z.coerce.number().int().positive("Invalid room"),
   status: z.enum(RoomStatus),
 });
 
 const RoomStatusOverrideSchema = z.object({
-  roomId: z.coerce.number().int().positive("Kamar tidak valid"),
+  roomId: z.coerce.number().int().positive("Invalid room"),
   status: z.enum(RoomStatus),
 });
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Input tidak valid";
+  return error.issues[0]?.message ?? "Invalid input";
 }
 
 export async function updateRoomStatus(
@@ -33,7 +33,7 @@ export async function updateRoomStatus(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role as AppRole, "rooms:clean")) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = UpdateRoomStatusSchema.safeParse(Object.fromEntries(formData));
@@ -55,7 +55,7 @@ export async function updateRoomStatus(
     if (error instanceof RoomBlockError) {
       return { ok: false, error: error.message };
     }
-    return { ok: false, error: "Gagal memperbarui status kamar" };
+    return { ok: false, error: "Unable to update room status" };
   }
 }
 
@@ -66,7 +66,7 @@ export async function setRoomStatusOverride(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role as AppRole, "rooms:override_status")) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = RoomStatusOverrideSchema.safeParse({ roomId, status });
@@ -85,6 +85,6 @@ export async function setRoomStatusOverride(
     if (error instanceof RoomBlockError) {
       return { ok: false, error: error.message };
     }
-    return { ok: false, error: "Gagal menyimpan perubahan status kamar" };
+    return { ok: false, error: "Unable to save room status changes" };
   }
 }

@@ -39,7 +39,7 @@ describe("Arrangement package-rate limits", () => {
   it("rejects allocation above any eligible night's rate, not just the first or aggregate rate", () => {
     expect(buildReservationMealPlanChange(input)).toMatchObject({
       ok: false, disposition: "failed",
-      error: expect.stringMatching(/Alokasi Arrangement.*2026-10-03.*150000.*149999/),
+      error: expect.stringMatching(/Arrangement allocation.*2026-10-03.*150000.*149999/),
     });
   });
 

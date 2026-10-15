@@ -35,15 +35,15 @@ function cleaningSummary(
   latestCompletedCleaningSession: InspectionPanelProps["latestCompletedCleaningSession"],
 ) {
   if (!latestCompletedCleaningSession) {
-    return "Belum ada catatan pembersihan selesai untuk kamar ini.";
+    return "No completed cleaning record for this room yet.";
   }
 
-  return `Dibersihkan oleh ${latestCompletedCleaningSession.housekeeperName} pada ${formatTimeID(
+  return `Cleaned by ${latestCompletedCleaningSession.housekeeperName} on ${formatTimeID(
     latestCompletedCleaningSession.startedAt,
-  )}, selesai ${formatTimeID(latestCompletedCleaningSession.finishedAt)} (${durationMinutes(
+  )}, completed ${formatTimeID(latestCompletedCleaningSession.finishedAt)} (${durationMinutes(
     latestCompletedCleaningSession.startedAt,
     latestCompletedCleaningSession.finishedAt,
-  )} menit)`;
+  )} minutes)`;
 }
 
 export function InspectionPanel({
@@ -70,7 +70,7 @@ export function InspectionPanel({
         return;
       }
 
-      toast.success(passed ? "Inspeksi lulus" : "Inspeksi gagal");
+      toast.success(passed ? "Inspection passed" : "Inspection failed");
       router.refresh();
     });
   }
@@ -85,7 +85,7 @@ export function InspectionPanel({
     setIsFailMode(!passed);
 
     if (!passed && (!notes || String(notes).trim().length === 0)) {
-      const message = "Alasan kegagalan inspeksi wajib diisi";
+      const message = "A reason is required for a failed inspection";
       setError(message);
       toast.error(message);
       return;
@@ -98,7 +98,7 @@ export function InspectionPanel({
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border rounded-t-lg px-5 py-4">
         <CardTitle className="text-[16px] font-semibold tracking-tight">
-          Menunggu Inspeksi
+          Awaiting Inspection
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -114,15 +114,15 @@ export function InspectionPanel({
         {latestCompletedCleaningSession && (latestCompletedCleaningSession.linenChanged || latestCompletedCleaningSession.towelChanged || latestCompletedCleaningSession.note) ? (
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2 text-sm">
             <div>
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amenities Diganti:</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amenities Replaced:</span>
               <ul className="list-inside list-disc mt-1 space-y-0.5 text-muted-foreground">
-                <li>Linen / Seprei: {latestCompletedCleaningSession.linenChanged ? "YA" : "TIDAK"}</li>
-                <li>Handuk: {latestCompletedCleaningSession.towelChanged ? "YA" : "TIDAK"}</li>
+                <li>Bed Linen: {latestCompletedCleaningSession.linenChanged ? "YES" : "NO"}</li>
+                <li>Towels: {latestCompletedCleaningSession.towelChanged ? "YES" : "NO"}</li>
               </ul>
             </div>
             {latestCompletedCleaningSession.note ? (
               <div>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Catatan Housekeeper:</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Attendant Notes:</span>
                 <p className="mt-0.5 text-sm text-muted-foreground italic">
                   &ldquo;{latestCompletedCleaningSession.note}&rdquo;
                 </p>
@@ -133,11 +133,11 @@ export function InspectionPanel({
 
         <label className="block">
           <span className="text-xs font-medium text-muted-foreground">
-            {isFailMode ? "Alasan kegagalan *" : "Catatan Inspeksi"}
+            {isFailMode ? "Reason for failure *" : "Inspection Notes"}
           </span>
           <Textarea
             name="notes"
-            placeholder="Catatan jika ada temuan saat inspeksi"
+            placeholder="Record any findings during inspection"
             aria-invalid={isFailMode && Boolean(error)}
             className="mt-1 min-h-24 rounded-md"
           />
@@ -159,7 +159,7 @@ export function InspectionPanel({
             className="w-full rounded-md"
           >
             <Check className="h-4 w-4" aria-hidden="true" />
-            Lulus Inspeksi (&rarr; VC)
+            Pass Inspection (&rarr; VC)
           </Button>
           <Button
             type="submit"
@@ -171,7 +171,7 @@ export function InspectionPanel({
             className="w-full rounded-md"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-            Gagal Inspeksi (&rarr; VD)
+            Fail Inspection (&rarr; VD)
           </Button>
         </div>
       </form>

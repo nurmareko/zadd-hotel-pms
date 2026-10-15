@@ -13,7 +13,7 @@ const SETTINGS_PATH = "/app/admin/settings";
 const SETTINGS_ID = 1;
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Data pengaturan hotel tidak valid.";
+  return error.issues[0]?.message ?? "Invalid hotel settings.";
 }
 
 async function canManageSettings() {
@@ -25,18 +25,18 @@ async function canManageSettings() {
 function prismaErrorMessage(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2025") {
-      return "Pengaturan hotel tidak ditemukan.";
+      return "Hotel settings not found.";
     }
   }
 
-  return "Terjadi kesalahan pada sistem.";
+  return "A system error occurred.";
 }
 
 export async function updateHotelSettings(
   input: unknown,
 ): Promise<ActionResult> {
   if (!(await canManageSettings())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = HotelSettingsUpdateSchema.safeParse(input);

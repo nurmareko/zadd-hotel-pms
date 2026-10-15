@@ -128,20 +128,20 @@ const GROUP_OPERATION_LABELS: Record<
   { title: string; successLabel: string }
 > = {
   deposit: {
-    title: "Hasil pengumpulan deposit grup",
-    successLabel: "dikumpulkan depositnya",
+    title: "Group deposit collection results",
+    successLabel: "deposits collected",
   },
   "check-in": {
-    title: "Hasil check-in kamar siap",
-    successLabel: "di-check-in",
+    title: "Eligible room check-in results",
+    successLabel: "checked in",
   },
   settlement: {
-    title: "Hasil pelunasan saldo grup",
-    successLabel: "dilunasi",
+    title: "Group balance settlement results",
+    successLabel: "settled",
   },
   checkout: {
-    title: "Hasil check-out kamar siap",
-    successLabel: "di-check-out",
+    title: "Eligible room check-out results",
+    successLabel: "checked out",
   },
 };
 
@@ -345,7 +345,7 @@ describe("group check-in and deposit actions", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Tidak ada reservasi dalam booking grup ini.",
+        error: "There are no reservations in this group booking.",
       });
     });
 
@@ -472,7 +472,7 @@ describe("group check-in and deposit actions", () => {
           reservationNo: "RSV-101",
           roomNumber: "101",
           status: "skipped",
-          reason: "Sudah check-in.",
+          reason: "Already checked in.",
         });
 
         // Room 102: skipped
@@ -481,7 +481,7 @@ describe("group check-in and deposit actions", () => {
           reservationNo: "RSV-102",
           roomNumber: "102",
           status: "skipped",
-          reason: "Deposit sudah dikumpulkan.",
+          reason: "Deposit already collected.",
         });
 
         // Room 103: skipped
@@ -498,7 +498,7 @@ describe("group check-in and deposit actions", () => {
           reservationNo: "RSV-104",
           roomNumber: "104",
           status: "completed",
-          reason: "Deposit 350000 dicatat pada folio kamar ini.",
+          reason: "Deposit 350000 recorded on this room's folio.",
         });
 
         // Room 105: failed with controlled error message (known business domain error)
@@ -526,7 +526,7 @@ describe("group check-in and deposit actions", () => {
           reservationNo: "RSV-107",
           roomNumber: "107",
           status: "completed",
-          reason: "Deposit 400000 dicatat pada folio kamar ini.",
+          reason: "Deposit 400000 recorded on this room's folio.",
         });
       }
 
@@ -564,7 +564,7 @@ describe("group check-in and deposit actions", () => {
 
     it("defines the exact public wording for client transport rejection in GROUP_MUTATION_UNCERTAIN_MESSAGE", () => {
       expect(GROUP_MUTATION_UNCERTAIN_MESSAGE).toBe(
-        "Hasil proses grup belum dapat dipastikan. Beberapa kamar mungkin sudah diproses. Muat ulang halaman sebelum mencoba lagi.",
+        "The group operation result is uncertain. Some rooms may already have been processed. Reload the page before trying again.",
       );
     });
   });
@@ -640,12 +640,12 @@ describe("group check-in and deposit actions", () => {
           reservationNo: "RSV-303",
           roomNumber: "303",
           status: "completed",
-          reason: "Saldo folio dilunasi.",
+          reason: "Folio balance settled.",
           details: [
             {
-              label: "Pembayaran awal",
+              label: "Initial payment",
               status: "completed",
-              reason: "Pembayaran Rp 100.000 berhasil dicatat.",
+              reason: "Payment of Rp 100.000 recorded successfully.",
             },
           ],
         },
@@ -694,15 +694,15 @@ describe("group check-in and deposit actions", () => {
           code: "RESULT_UNKNOWN",
           details: [
             {
-              label: "Pembayaran awal",
+              label: "Initial payment",
               status: "completed",
             },
           ],
         });
         expect(result.results[0].reason).toContain(
-          "Pembayaran berhasil dicatat, tetapi status pelunasan akhir belum dapat dipastikan.",
+          "Payment was recorded, but final settlement could not be confirmed.",
         );
-        expect(result.results[0].reason).toContain("Muat ulang halaman");
+        expect(result.results[0].reason).toContain("Reload the page");
         expect(result.results[0].reason).not.toContain("Prisma");
         expect(result.results[0].details?.[0].reason).not.toContain("secret");
         expect(result.results[1]).toMatchObject({
@@ -764,12 +764,12 @@ describe("group check-in and deposit actions", () => {
           status: "uncertain",
           code: "RESULT_UNKNOWN",
           details: [
-            { label: "Pembayaran awal", status: "completed" },
-            { label: "Pembayaran tambahan", status: "completed" },
+            { label: "Initial payment", status: "completed" },
+            { label: "Additional payment", status: "completed" },
           ],
         });
         expect(result.results[0].reason).toContain(
-          "Pembayaran berhasil dicatat, tetapi status pelunasan akhir belum dapat dipastikan.",
+          "Payment was recorded, but final settlement could not be confirmed.",
         );
         expect(result.results[0].reason).not.toContain("Prisma");
         expect(result.results[1]).toMatchObject({
@@ -812,12 +812,12 @@ describe("group check-in and deposit actions", () => {
         roomNumber: "301",
         status: "failed",
         details: [
-          { label: "Pembayaran awal", status: "completed" },
-          { label: "Pembayaran tambahan", status: "completed" },
+          { label: "Initial payment", status: "completed" },
+          { label: "Additional payment", status: "completed" },
         ],
       });
-      expect(result.results[0].reason).toContain("Sisa Tagihan masih Rp 25.000");
-      expect(result.results[0].reason).toContain("Muat ulang halaman");
+      expect(result.results[0].reason).toContain("balance due is still Rp 25.000");
+      expect(result.results[0].reason).toContain("Reload the page");
       expect(finalPaymentCalls()).toEqual([
         { folioId: "31", amount: "100000" },
         { folioId: "31", amount: "50000" },
@@ -1033,14 +1033,14 @@ describe("group check-in and deposit actions", () => {
     it("keeps confirmed partial payment details visible and locks further mutations", () => {
       const details = [
         {
-          label: "Pembayaran awal",
+          label: "Initial payment",
           status: "completed" as const,
-          reason: "Pembayaran Rp 100.000 berhasil dicatat.",
+          reason: "Payment of Rp 100.000 recorded successfully.",
         },
         {
-          label: "Pembayaran tambahan",
+          label: "Additional payment",
           status: "completed" as const,
-          reason: "Pembayaran Rp 50.000 berhasil dicatat.",
+          reason: "Payment of Rp 50.000 recorded successfully.",
         },
       ];
       const outcome = resolvedGroupBatchOutcome(
@@ -1052,19 +1052,19 @@ describe("group check-in and deposit actions", () => {
             roomNumber: "301",
             status: "uncertain",
             reason:
-              "Pembayaran berhasil dicatat, tetapi status pelunasan akhir belum dapat dipastikan. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.",
+              "Payment was recorded, but final settlement could not be confirmed. Reload the page before making another payment or checking out.",
             code: "RESULT_UNKNOWN",
             details,
           },
         ],
-        "dilunasi",
+        "settled",
         "settlement-checkout",
       );
 
       expect(outcome.batchResult?.results[0].details).toEqual(details);
       expect(details.map(groupResultDetailText)).toEqual([
-        "Pembayaran awal: Selesai — Pembayaran Rp 100.000 berhasil dicatat.",
-        "Pembayaran tambahan: Selesai — Pembayaran Rp 50.000 berhasil dicatat.",
+        "Initial payment: Completed — Payment of Rp 100.000 recorded successfully.",
+        "Additional payment: Completed — Payment of Rp 50.000 recorded successfully.",
       ]);
       expect(outcome.uncertaintyMessage).toBe(GROUP_MUTATION_UNCERTAIN_MESSAGE);
     });
@@ -1128,9 +1128,9 @@ describe("group check-in and deposit actions", () => {
         reason: "Sisa Tagihan berubah.",
         details: [
           {
-            label: "Pembayaran awal",
+            label: "Initial payment",
             status: "completed" as const,
-            reason: "Pembayaran Rp 100.000 berhasil dicatat.",
+            reason: "Payment of Rp 100.000 recorded successfully.",
           },
         ],
       };
@@ -1320,7 +1320,7 @@ describe("group check-in and deposit actions", () => {
         expect(harness.batchResult).toBeNull();
         expect(harness.uncertaintyMessage).toBeNull();
         expect(harness.success).toHaveBeenCalledWith(
-          `1 kamar berhasil ${GROUP_OPERATION_LABELS[operation].successLabel}.`,
+          `Rooms processed: 1 (${GROUP_OPERATION_LABELS[operation].successLabel}).`,
         );
         expect(harness.error).not.toHaveBeenCalled();
         expect(harness.refresh).toHaveBeenCalledOnce();
@@ -1453,7 +1453,7 @@ describe("group check-in and deposit actions", () => {
         expect(harness.uncertaintyMessage).toBeNull();
         expect(harness.success).not.toHaveBeenCalled();
         expect(harness.batchResult && batchSummaryText(harness.batchResult)).toBe(
-          "1 dilewati · 1 gagal",
+          "1 skipped · 1 failed",
         );
 
         const retry = vi
@@ -1665,9 +1665,9 @@ describe("group check-in and deposit actions", () => {
           expect(recovery.showUncertaintyNotice).toBe(false);
           expect(harness.uncertaintyMessage).toBeNull();
           expect(GROUP_COMMITTED_RELOAD_MESSAGE).toBe(
-            "Tindakan berhasil diproses. Muat ulang halaman untuk melanjutkan dengan data terbaru.",
+            "The action was processed successfully. Reload the page to continue with the latest data.",
           );
-          expect(GROUP_RELOAD_BUTTON_LABEL).toBe("Muat ulang halaman");
+          expect(GROUP_RELOAD_BUTTON_LABEL).toBe("Reload page");
 
           // All four mutations stay locked until a real reload.
           await expectEveryGroupOperationBlocked(harness.guard);
@@ -1871,7 +1871,7 @@ describe("group check-in and deposit actions", () => {
 
     it("restores the batch 2B deposit and check-in summary presentation", () => {
       const outcome = resolvedGroupBatchOutcome(
-        "Hasil pengumpulan deposit grup",
+        "Group deposit collection results",
         [
           {
             reservationId: 1,
@@ -1885,7 +1885,7 @@ describe("group check-in and deposit actions", () => {
             reservationNo: "RSV-2",
             roomNumber: "102",
             status: "skipped",
-            reason: "Deposit sudah dikumpulkan.",
+            reason: "Deposit already collected.",
           },
           {
             reservationId: 3,
@@ -1895,16 +1895,16 @@ describe("group check-in and deposit actions", () => {
             reason: "Deposit gagal.",
           },
         ],
-        "dikumpulkan depositnya",
+        "deposits collected",
         "deposit-check-in",
       );
 
       expect(outcome.successMessage).toBe(
-        "1 kamar berhasil dikumpulkan depositnya.",
+        "Rooms processed: 1 (deposits collected).",
       );
       expect(outcome.batchResult?.results).toHaveLength(2);
       expect(outcome.batchResult && batchSummaryText(outcome.batchResult)).toBe(
-        "1 dilewati · 1 gagal",
+        "1 skipped · 1 failed",
       );
     });
   });

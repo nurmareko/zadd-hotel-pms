@@ -35,23 +35,23 @@ const select = {
 type RegistryRow = Prisma.LostFoundItemGetPayload<{ select: typeof select }>;
 
 const columns: CsvColumn<RegistryRow>[] = [
-  { header: "Kode Referensi", accessor: (row) => row.referenceCode },
-  { header: "Kategori", accessor: (row) => LOST_FOUND_CATEGORY_LABELS[row.category] },
-  { header: "Deskripsi", accessor: (row) => row.description },
-  { header: "Kamar", accessor: (row) => row.room?.number },
-  { header: "Detail Lokasi", accessor: (row) => row.locationDetails },
-  { header: "Ditemukan Oleh", accessor: (row) => row.foundBy.fullName },
-  { header: "Waktu Dicatat (UTC)", accessor: (row) => row.createdAt },
+  { header: "Reference Code", accessor: (row) => row.referenceCode },
+  { header: "Category", accessor: (row) => LOST_FOUND_CATEGORY_LABELS[row.category] },
+  { header: "Description", accessor: (row) => row.description },
+  { header: "Room", accessor: (row) => row.room?.number },
+  { header: "Location Details", accessor: (row) => row.locationDetails },
+  { header: "Found By", accessor: (row) => row.foundBy.fullName },
+  { header: "Recorded At (UTC)", accessor: (row) => row.createdAt },
   { header: "Status", accessor: (row) => LOST_FOUND_STATUS_LABELS[row.status] },
-  { header: "Nama Pengambil", accessor: (row) => row.claimantName },
-  { header: "Nomor Telepon Pengambil", accessor: (row) => row.claimantPhone },
-  { header: "Nomor Identitas Pengambil", accessor: (row) => row.claimantIdNumber },
-  { header: "Dikembalikan Oleh", accessor: (row) => row.returnedBy?.fullName },
-  { header: "Waktu Pengembalian (UTC)", accessor: (row) => row.returnedAt },
-  { header: "Catatan Penyelesaian", accessor: (row) => row.resolution },
-  { header: "Dimusnahkan / Dihibahkan Oleh", accessor: (row) => row.disposedBy?.fullName },
-  { header: "Waktu Pemusnahan / Hibah (UTC)", accessor: (row) => row.disposedAt },
-  { header: "Alasan Pemusnahan / Hibah", accessor: (row) => row.disposalReason },
+  { header: "Claimant Name", accessor: (row) => row.claimantName },
+  { header: "Claimant Phone Number", accessor: (row) => row.claimantPhone },
+  { header: "Claimant ID Number", accessor: (row) => row.claimantIdNumber },
+  { header: "Returned By", accessor: (row) => row.returnedBy?.fullName },
+  { header: "Returned At (UTC)", accessor: (row) => row.returnedAt },
+  { header: "Resolution Notes", accessor: (row) => row.resolution },
+  { header: "Disposed of / Donated By", accessor: (row) => row.disposedBy?.fullName },
+  { header: "Disposal / Donation Time (UTC)", accessor: (row) => row.disposedAt },
+  { header: "Disposal / Donation Reason", accessor: (row) => row.disposalReason },
 ];
 
 function errorResponse(message: string, status: number) {
@@ -60,9 +60,9 @@ function errorResponse(message: string, status: number) {
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user) return errorResponse("Silakan masuk terlebih dahulu.", 401);
+  if (!session?.user) return errorResponse("Please sign in first.", 401);
   if (!(await canAccessLostFound(session.user))) {
-    return errorResponse("Anda tidak memiliki akses untuk mengekspor daftar barang temuan.", 403);
+    return errorResponse("You do not have permission to export the lost and found register.", 403);
   }
 
   const searchParams = new URL(request.url).searchParams;
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       const issue = error.issues[0];
       // Zod unions wrap the domain's Indonesian message in a generic English issue.
       const message = issue?.code === "invalid_union" ? issue.errors[0]?.[0]?.message : issue?.message;
-      return errorResponse(message ?? "Filter tidak valid.", 400);
+      return errorResponse(message ?? "Invalid filters.", 400);
     }
     throw error;
   }

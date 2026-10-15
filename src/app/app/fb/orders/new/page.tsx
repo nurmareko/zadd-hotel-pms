@@ -105,8 +105,8 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {isRoomService
-              ? "Validasi kamar in-house sebelum membuat order tanpa meja."
-              : "Konfirmasi meja dan jumlah tamu sebelum membuat order."}
+              ? "Verify an in-house room before creating an order without a table."
+              : "Confirm the table and number of guests before creating an order."}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -132,7 +132,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
             href="/app/fb"
           >
             <ArrowLeft aria-hidden="true" className="size-4" />
-            Kembali
+            Back
           </Link>
         </div>
       </div>
@@ -147,7 +147,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       ) : table ? (
         <section className="max-w-xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
-            Konfirmasi Order
+            Confirm Order
           </div>
           {canCreateOrder ? (
             <ConfirmForm
@@ -160,18 +160,18 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
           ) : (
             <div className="p-5 text-sm text-slate-600">
               <div className="font-semibold text-slate-900">
-                Meja {table.number} tidak tersedia untuk order baru.
+                Table {table.number} is unavailable for new orders.
               </div>
               {table.orders[0] ? (
                 <Link
                   className={buttonVariants({ className: "mt-3" })}
                   href={`/app/fb/orders/${table.orders[0].id}`}
                 >
-                  Buka {table.orders[0].orderNo}
+                  Open {table.orders[0].orderNo}
                 </Link>
               ) : (
                 <p className="mt-2 text-sm text-slate-500">
-                  Pilih meja available dari Floor Plan untuk memulai order.
+                  Select an available table from the Floor Plan to start an order.
                 </p>
               )}
             </div>
@@ -180,13 +180,13 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       ) : (
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
-            Pilih Meja Available
+            Select an Available Table
           </div>
           {availableTables.length === 0 ? (
             <EmptyState
               icon={Table2}
-              title="Tidak ada meja available"
-              description="Semua meja sedang terpakai, reserved, atau tidak tersedia untuk order baru."
+              title="No available tables"
+              description="All tables are occupied, reserved or unavailable for new orders."
               className="m-3.5"
             />
           ) : (
@@ -204,7 +204,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
                     Available
                   </div>
                   <div className="mt-2 text-sm text-slate-500">
-                    Kapasitas {availableTable.capacity}
+                    Capacity {availableTable.capacity}
                   </div>
                 </Link>
               ))}

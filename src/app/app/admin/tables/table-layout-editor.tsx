@@ -110,7 +110,7 @@ export function RestaurantTableLayoutEditor({
 
         return nextOverrides;
       });
-      toast.success("Lokasi tersusun otomatis");
+      toast.success("Location layout arranged automatically");
     });
   }
 
@@ -124,7 +124,7 @@ export function RestaurantTableLayoutEditor({
           <p className="mt-1 text-sm text-slate-500">
             <span className="num">{RESTAURANT_FLOOR_CANVAS_WIDTH}</span>x
             <span className="num">{RESTAURANT_FLOOR_CANVAS_HEIGHT}</span> px ·{" "}
-            <span className="num">{selectedTables.length}</span> meja
+            <span className="num">{selectedTables.length}</span> tables
           </p>
         </div>
         <Button
@@ -138,7 +138,7 @@ export function RestaurantTableLayoutEditor({
       </div>
 
       <div className="border-b border-gray-200 px-4 py-3 md:px-5">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Lokasi meja">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Table location">
           {locationTabs.map((location) => (
             <button
               key={location}
@@ -170,10 +170,10 @@ export function RestaurantTableLayoutEditor({
             <div className="absolute left-4 top-4 max-w-xs rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm">
               <Table2 className="h-5 w-5 text-slate-400" aria-hidden="true" />
               <h3 className="mt-3 text-sm font-semibold text-slate-900">
-                Belum ada meja di area ini
+                No tables in this area yet
               </h3>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Pindahkan atau tambahkan meja untuk mengatur layout area ini.
+                Move or add tables to arrange this area.
               </p>
             </div>
           ) : null}

@@ -91,10 +91,10 @@ export function InclusionPanel({
   );
   const persistedUnitPriceLabel =
     persistedUnitPrices.length === 0
-      ? "Tidak tersedia"
+      ? "Unavailable"
       : persistedUnitPrices.length > 1
-        ? "Bervariasi per malam"
-        : `${formatIDR(persistedUnitPrices[0])} / malam`;
+        ? "Varies by night"
+        : `${formatIDR(persistedUnitPrices[0])} / night`;
   const editableNights = nights.filter((night) => night.lockReason === null);
   const editableCurrentPlanPrices = Array.from(new Set(
     editableNights
@@ -158,7 +158,7 @@ export function InclusionPanel({
     if (
       !selected &&
       !window.confirm(
-        `Hapus pilihan ${fee.label}? Riwayat pilihan akan dipertahankan dengan status dibatalkan.`, 
+        `Remove selection ${fee.label}? The selection history will be retained with Cancelled status.`,
       )
     ) {
       return;
@@ -180,10 +180,10 @@ export function InclusionPanel({
 
       toast.success(
         result.status === "POSTED"
-          ? `${fee.label} langsung terposting ke folio terbuka.`
+          ? `${fee.label} posted immediately to the open folio.`
           : result.status === "PENDING"
-            ? `${fee.label} disimpan dan menunggu posting saat check-in.`
-            : `${fee.label} dibatalkan; riwayat pilihan tetap disimpan.`,
+            ? `${fee.label} saved and awaiting posting at check-in.`
+            : `${fee.label} cancelled; selection history retained.`,
       );
       router.refresh();
       setPendingFeeKind(null);
@@ -210,12 +210,12 @@ export function InclusionPanel({
         }
 
         toast.success(
-          `Arrangement diperbarui mulai ${result.effectiveDate} untuk ${result.changedNights} malam.`,
+          `Arrangement updated from ${result.effectiveDate} for ${result.changedNights} nights.`,
         );
         setDialogOpen(false);
         router.refresh();
       } catch {
-        setError("Tidak dapat memastikan perubahan tersimpan. Muat ulang untuk memeriksa Arrangement sebelum mencoba lagi.");
+        setError("Unable to confirm whether the changes were saved. Reload to check the arrangement before trying again.");
       }
     });
   }
@@ -224,7 +224,7 @@ export function InclusionPanel({
     <div className="flex flex-col gap-4">
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Arrangement Saat Ini</h2>
+          <h2 className="text-base font-semibold text-slate-900">Current Arrangement</h2>
         </div>
         <dl className="grid gap-4 p-5 sm:grid-cols-3">
           <div>
@@ -235,7 +235,7 @@ export function InclusionPanel({
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500">
-              Harga tersimpan per tamu
+              Saved price per guest
             </dt>
             <dd className="num mt-1 text-sm font-semibold text-slate-900">
               {persistedUnitPriceLabel}
@@ -244,7 +244,7 @@ export function InclusionPanel({
           <div>
             <dt className="text-xs font-medium text-slate-500">Pax</dt>
             <dd className="num mt-1 text-sm font-semibold text-slate-900">
-              {pax} tamu
+              {pax} guests
             </dd>
           </div>
         </dl>
@@ -253,25 +253,25 @@ export function InclusionPanel({
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">
-            Fleksibilitas Menginap
+            Stay Flexibility
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Biaya tetap per reservasi, bukan per pax atau per malam.
+            Fixed fees per reservation, not per guest or per night.
             {inHouse
-              ? " Pilihan baru langsung diposting ke folio terbuka."
-              : " Pilihan yang menunggu akan diposting satu kali saat check-in."}
+              ? " New selections are posted immediately to the open folio."
+              : " Pending selections will be posted once at check-in."}
           </p>
         </div>
         <div className="grid gap-3 p-5 sm:grid-cols-2">
           {stayFees.map((fee) => {
             const statusLabel =
               fee.status === "PENDING"
-                ? "Menunggu posting · belum diposting"
+                ? "Pending posting · not yet posted"
                 : fee.status === "POSTED"
-                  ? "Terposting · terkunci"
+                  ? "Posted · locked"
                   : fee.status === "CANCELLED"
-                    ? "Dibatalkan"
-                    : "Belum dipilih";
+                    ? "Cancelled"
+                    : "Not selected";
             const selecting = pendingFeeKind === fee.kind;
 
             return (
@@ -285,13 +285,13 @@ export function InclusionPanel({
                       {fee.label}
                     </h3>
                     <p className="num mt-1 text-sm text-slate-600">
-                      {formatIDR(fee.unitPrice)} · tetap per reservasi
+                      {formatIDR(fee.unitPrice)} · fixed per reservation
                     </p>
                   </div>
                   {fee.status === "POSTED" ? (
                     <LockKeyhole
                       className="h-4 w-4 shrink-0 text-slate-500"
-                      aria-label="Terkunci"
+                      aria-label="Locked"
                     />
                   ) : null}
                 </div>
@@ -301,7 +301,7 @@ export function InclusionPanel({
                 <div className="mt-4">
                   {fee.status === "POSTED" ? (
                     <Button type="button" variant="outline" disabled>
-                      Terposting · terkunci
+                      Posted · locked
                     </Button>
                   ) : fee.status === "PENDING" ? (
                     <Button
@@ -310,7 +310,7 @@ export function InclusionPanel({
                       disabled={terminal || pendingFeeKind !== null}
                       onClick={() => changeStayFee(fee, false)}
                     >
-                      {selecting ? "Menyimpan…" : "Hapus Pilihan"}
+                      {selecting ? "Saving…" : "Remove Selection"}
                     </Button>
                   ) : (
                     <Button
@@ -319,7 +319,7 @@ export function InclusionPanel({
                       disabled={terminal || pendingFeeKind !== null}
                       onClick={() => changeStayFee(fee, true)}
                     >
-                      {selecting ? "Menyimpan…" : "Pilih"}
+                      {selecting ? "Saving…" : "Select"}
                     </Button>
                   )}
                 </div>
@@ -332,14 +332,14 @@ export function InclusionPanel({
       {!terminal ? (
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Perubahan Arrangement</h2>
+            <h2 className="text-base font-semibold text-slate-900">Arrangement Changes</h2>
             <p className="mt-1 text-sm text-slate-500">
               {effectiveDateLabel
-                ? `Perubahan berlaku mulai ${effectiveDateLabel} untuk ${editableNightCount} malam mendatang yang belum diposting.`
-                : "Tidak ada malam mendatang yang dapat diubah."}
+                ? `Changes apply from ${effectiveDateLabel} for ${editableNightCount} upcoming unposted nights.`
+                : "There are no upcoming nights that can be changed."}
             </p>
             <p className="mt-1 text-xs font-medium text-amber-700">
-              Malam yang telah lewat atau diposting tidak akan diubah.
+              Past or posted nights will not be changed.
             </p>
           </div>
           <div className="p-5">
@@ -348,14 +348,13 @@ export function InclusionPanel({
                 render={<Button type="button" variant="outline" />}
                 disabled={editableNightCount === 0 || !effectiveDateLabel || isPending}
               >
-                Ubah Arrangement
+                Change Arrangement
               </DialogTrigger>
               <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg" showCloseButton={!isPending}>
                 <DialogHeader>
-                  <DialogTitle>Ubah Arrangement</DialogTitle>
+                  <DialogTitle>Change Arrangement</DialogTitle>
                   <DialogDescription>
-                    Perubahan berlaku mulai {effectiveDateLabel}. Malam yang telah
-                    lewat atau diposting tetap terkunci dan tidak akan diubah.
+                    Changes apply from {effectiveDateLabel}. Past or posted nights remain locked and will not be changed.
                   </DialogDescription>
                 </DialogHeader>
                 <form
@@ -367,7 +366,7 @@ export function InclusionPanel({
                   }}
                 >
                   <label className="block text-sm font-medium text-slate-700">
-                    Arrangement baru
+                    New arrangement
                     <select
                       className="mt-2 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       value={selectedPlan}
@@ -389,7 +388,7 @@ export function InclusionPanel({
                   {selectedPlan !== "RO" ? (
                     <div>
                       <label className="block text-sm font-medium text-slate-700">
-                        Harga satuan (IDR / pax / malam)
+                        Unit price (IDR / guest / night)
                         <input
                           type="number"
                           inputMode="numeric"
@@ -409,15 +408,15 @@ export function InclusionPanel({
                       </label>
                       <p id="arrangement-price-help" className="mt-2 text-xs text-slate-600">
                         {selectedPlan === currentPlan && editableCurrentPlanPrices.length > 1
-                          ? "Harga tersimpan bervariasi. Masukkan harga pengganti untuk seluruh malam yang dapat diubah."
+                          ? "Saved prices vary. Enter a replacement price for all eligible nights."
                           : selectedPlan === currentPlan && editableCurrentPlanPrices.length === 1
-                            ? "Harga awal menggunakan harga tersimpan pada malam yang dapat diubah."
-                            : "Harga awal mengikuti tarif katalog Arrangement yang dipilih."}
-                        {" "}Masukkan bilangan bulat nol atau lebih; harga ini disimpan untuk malam yang dapat diubah.
+                            ? "The initial price uses the saved price for eligible nights."
+                            : "The initial price follows the catalogue rate for the selected arrangement."}
+                        {" "}Enter a whole number of zero or more; this price will be saved for eligible nights.
                       </p>
                       {!validAllocation ? (
                         <p role="alert" className="mt-2 text-sm text-red-700">
-                          Masukkan harga IDR bulat yang valid, nol atau lebih, dengan total dalam batas angka aman.
+                          Enter a valid whole-number IDR price of zero or more, with a total within the safe numeric range.
                         </p>
                       ) : null}
                     </div>
@@ -426,54 +425,50 @@ export function InclusionPanel({
                     <dl className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <dt className="text-slate-500">Pax</dt>
-                        <dd className="num font-semibold">{pax} tamu</dd>
+                        <dd className="num font-semibold">{pax} guests</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-500">Malam yang dapat diubah</dt>
-                        <dd className="num font-semibold">{editableNightCount} malam</dd>
+                        <dt className="text-slate-500">Eligible Nights</dt>
+                        <dd className="num font-semibold">{editableNightCount} nights</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-500">Alokasi per malam</dt>
+                        <dt className="text-slate-500">Allocation per night</dt>
                         <dd className="num font-semibold">{validAllocation ? formatIDR(nightlyAllocation) : "—"}</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-500">Total alokasi Arrangement</dt>
+                        <dt className="text-slate-500">Total arrangement allocation</dt>
                         <dd className="num font-semibold">{validAllocation ? formatIDR(totalAllocation) : "—"}</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-500">Net kamar untuk malam yang dapat diubah</dt>
+                        <dt className="text-slate-500">Net room amount for eligible nights</dt>
                         <dd className="num font-semibold">{validAllocation ? formatIDR(eligiblePackageTotal - totalAllocation) : "—"}</dd>
                       </div>
                     </dl>
                     <p className="mt-3 text-xs text-slate-600">
-                      Total alokasi = harga satuan × pax × malam yang dapat diubah.
-                      {selectedPlan === "RO" ? " RO tidak memiliki alokasi makan." : ""}
-                      {" "}Net kamar = tarif paket kamar − alokasi Arrangement.
-                      Tarif paket tersimpan tidak diubah oleh tindakan ini.
-                      Alokasi tidak boleh melebihi tarif paket setiap malam.
-                      Kelayakan malam dan tarif paket diperiksa ulang saat disimpan.
+                      Total allocation = unit price × guests × eligible nights.
+                      {selectedPlan === "RO" ? " RO has no meal allocation." : ""}
+                      {" "}Net room amount = room package rate − arrangement allocation. This action does not change the saved package rate. The allocation must not exceed the package rate for any night. Night eligibility and package rates are rechecked when saving.
                     </p>
                   </div>
                   {overAllocatedNight ? (
                     <p role="alert" className="text-sm text-red-700">
-                      Alokasi Arrangement {formatIDR(nightlyAllocation)} melebihi tarif paket
-                      {" "}{formatIDR(overAllocatedNight.rateAmount)} untuk malam {overAllocatedNight.dateLabel}.
-                      Kurangi harga satuan; net kamar tidak boleh negatif.
+                      Arrangement allocation {formatIDR(nightlyAllocation)} exceeds the package rate
+                      {" "}{formatIDR(overAllocatedNight.rateAmount)} for the night of {overAllocatedNight.dateLabel}. Reduce the unit price; the net room amount cannot be negative.
                     </p>
                   ) : null}
                   {!hasChange && validAllocation ? (
                     <p className="text-sm text-slate-600">
-                      Belum ada perubahan. Ubah Arrangement atau harga satuan untuk menyimpan.
+                      No changes yet. Change the arrangement or unit price to save.
                     </p>
                   ) : null}
                   {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
-                  <p role="status" className="sr-only">{isPending ? "Menyimpan Arrangement…" : ""}</p>
+                  <p role="status" className="sr-only">{isPending ? "Saving Arrangement…" : ""}</p>
                   <DialogFooter>
                     <Button type="button" variant="outline" disabled={isPending} onClick={() => changeDialogOpen(false)}>
-                      Batal
+                      Cancel
                     </Button>
                     <Button type="submit" disabled={!canSubmit}>
-                      {isPending ? "Menyimpan…" : "Simpan Arrangement"}
+                      {isPending ? "Saving…" : "Save Arrangement"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -486,9 +481,9 @@ export function InclusionPanel({
           <div className="flex items-start gap-3">
             <LockKeyhole className="mt-0.5 h-4 w-4 text-slate-500" aria-hidden="true" />
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Riwayat terkunci</h2>
+              <h2 className="text-sm font-semibold text-slate-800">Locked History</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Reservasi final hanya menampilkan riwayat Arrangement dan tidak dapat diubah.
+                Finalised reservations only display arrangement history and cannot be changed.
               </p>
             </div>
           </div>
@@ -497,20 +492,20 @@ export function InclusionPanel({
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Jadwal per Malam</h2>
+          <h2 className="text-base font-semibold text-slate-900">Nightly Schedule</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Nilai berikut berasal dari data tersimpan per malam reservasi.
+            These values come from the saved data for each reservation night.
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-180 text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
               <tr>
-                <th className="px-5 py-3">Tanggal</th>
+                <th className="px-5 py-3">Date</th>
                 <th className="px-4 py-3">Arrangement</th>
                 <th className="px-4 py-3 text-right">Pax</th>
-                <th className="px-4 py-3 text-right">Harga Satuan</th>
-                <th className="px-4 py-3 text-right">Jumlah</th>
+                <th className="px-4 py-3 text-right">Unit Price</th>
+                <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-5 py-3">Status</th>
               </tr>
             </thead>
@@ -532,21 +527,21 @@ export function InclusionPanel({
                     {night.lockReason === "posted" ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         <LockKeyhole className="h-3 w-3" aria-hidden="true" />
-                        Diposting · terkunci
+                        Posted · locked
                       </span>
                     ) : night.lockReason === "elapsed" ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                         <LockKeyhole className="h-3 w-3" aria-hidden="true" />
-                        Telah lewat · terkunci
+                        Past · locked
                       </span>
                     ) : night.lockReason === "terminal" ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         <LockKeyhole className="h-3 w-3" aria-hidden="true" />
-                        Reservasi final · terkunci
+                        Finalised reservation · locked
                       </span>
                     ) : (
                       <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                        Dapat diubah
+                        Editable
                       </span>
                     )}
                   </td>

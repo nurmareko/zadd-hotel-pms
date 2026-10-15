@@ -18,10 +18,10 @@ export const dynamic = "force-dynamic";
 const BATCH_SIZE = 100;
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
@@ -44,25 +44,25 @@ type ReservationCsvRow = {
 
 function guestCountLabel(adults: number, children: number): string {
   return children > 0
-    ? `${adults} dewasa, ${children} anak`
-    : `${adults} dewasa`;
+    ? `${adults} adults, ${children} children`
+    : `${adults} adults`;
 }
 
 const CSV_COLUMNS: CsvColumn<ReservationCsvRow>[] = [
-  { header: "Nomor Reservasi", accessor: (row) => row.reservationNo },
-  { header: "Nama Tamu", accessor: (row) => row.guestName },
-  { header: "Nomor Telepon", accessor: (row) => row.phone },
+  { header: "Reservation Number", accessor: (row) => row.reservationNo },
+  { header: "Guest Name", accessor: (row) => row.guestName },
+  { header: "Phone Number", accessor: (row) => row.phone },
   { header: "Email", accessor: (row) => row.email },
   { header: "Status", accessor: (row) => STATUS_LABELS[row.status] },
-  { header: "Kamar", accessor: (row) => row.roomNumber },
-  { header: "Tipe Kamar", accessor: (row) => row.roomTypeName },
-  { header: "Tamu", accessor: (row) => row.guests },
+  { header: "Room", accessor: (row) => row.roomNumber },
+  { header: "Room Type", accessor: (row) => row.roomTypeName },
+  { header: "Guest", accessor: (row) => row.guests },
   { header: "Check-in", accessor: (row) => formatISODate(row.arrivalDate) },
   { header: "Check-out", accessor: (row) => formatISODate(row.departureDate) },
-  { header: "Dibuat", accessor: (row) => row.createdAt },
+  { header: "Created", accessor: (row) => row.createdAt },
   { header: "Total (Rp)", accessor: (row) => row.total },
-  { header: "Saldo (Rp)", accessor: (row) => row.outstanding },
-  { header: "Grup", accessor: (row) => row.groupLabel },
+  { header: "Balance (Rp)", accessor: (row) => row.outstanding },
+  { header: "Group", accessor: (row) => row.groupLabel },
 ];
 
 export async function GET(req: Request) {
@@ -176,7 +176,7 @@ export async function GET(req: Request) {
               )
             : null;
           const groupLabel = reservation.groupBookingId
-            ? `${reservation.groupBookingId} (${groupCountById.get(reservation.groupBookingId) ?? 1} kamar)`
+            ? `${reservation.groupBookingId} (${groupCountById.get(reservation.groupBookingId) ?? 1} rooms)`
             : null;
 
           return {

@@ -41,8 +41,8 @@ const purposeClassNames: Record<PaymentPurpose, string> = {
 
 const purposeLabels: Record<PaymentPurpose, string> = {
   [PaymentPurpose.DEPOSIT]: "Deposit",
-  [PaymentPurpose.PAYMENT]: "Pembayaran",
-  [PaymentPurpose.SETTLEMENT]: "Pelunasan",
+  [PaymentPurpose.PAYMENT]: "Payments",
+  [PaymentPurpose.SETTLEMENT]: "Settlement",
 };
 
 function receivedAtLabel(date: Date) {
@@ -68,17 +68,17 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
   return (
     <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
-        <h2 className="text-sm font-semibold">Pembayaran</h2>
+        <h2 className="text-sm font-semibold">Payments</h2>
         <span className="text-xs font-medium text-slate-500">
-          {payments.length} pembayaran
+          {payments.length} payments
         </span>
       </div>
 
       {payments.length === 0 ? (
         <EmptyState
           icon={WalletCards}
-          title="Belum ada pembayaran"
-          description="Pembayaran folio akan tercatat di sini setelah diterima."
+          title="No payments yet"
+          description="Folio payments will appear here once received."
           className="m-5"
         />
       ) : (
@@ -87,22 +87,22 @@ export function FolioPayments({ payments }: FolioPaymentsProps) {
             <thead>
               <tr>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Tanggal
+                  Date
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Jenis
+                  Type
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Metode
+                  Method
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Referensi
+                  Reference
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                  Diterima oleh
+                  Received by
                 </th>
                 <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                  Jumlah
+                  Amount
                 </th>
               </tr>
             </thead>

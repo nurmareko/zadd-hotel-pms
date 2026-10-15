@@ -39,10 +39,10 @@ type AccFolioPageProps = {
 };
 
 const reservationStatusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked in",
+  CHECKED_OUT: "Checked out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
@@ -53,27 +53,27 @@ const folioStatusClassNames: Record<FolioStatus, string> = {
 };
 
 const folioStatusLabels: Record<FolioStatus, string> = {
-  OPEN: "Terbuka",
-  CLOSED: "Ditutup",
-  VOIDED: "Dibatalkan",
+  OPEN: "Open",
+  CLOSED: "Closed",
+  VOIDED: "Cancelled",
 };
 
 const depositStatusLabels: Record<DepositStatus, string> = {
-  PENDING: "Menunggu",
-  COLLECTED: "Terkumpul",
+  PENDING: "Pending",
+  COLLECTED: "Collected",
 };
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
-  CASH: "Tunai",
+  CASH: "Cash",
   TRANSFER: "Transfer",
-  CARD: "Kartu",
-  CHARGE_TO_ROOM: "Dibebankan ke kamar",
+  CARD: "Card",
+  CHARGE_TO_ROOM: "Charge to Room",
 };
 
 const paymentPurposeLabels: Record<PaymentPurpose, string> = {
   DEPOSIT: "Deposit",
-  PAYMENT: "Pembayaran",
-  SETTLEMENT: "Pelunasan",
+  PAYMENT: "Payment",
+  SETTLEMENT: "Final Payment",
 };
 
 function MetadataItem({ label, value }: { label: string; value: ReactNode }) {
@@ -88,16 +88,16 @@ function MetadataItem({ label, value }: { label: string; value: ReactNode }) {
 function TotalsSummary({ totals }: { totals: FolioTotals }) {
   const rows = [
     ["Subtotal", totals.subtotal],
-    ["Biaya layanan", totals.serviceCharge],
-    ["Pajak", totals.tax],
-    ["Total tagihan", totals.totalCharges],
-    ["Total pembayaran", totals.totalPaid],
+    ["Service charge", totals.serviceCharge],
+    ["Tax", totals.tax],
+    ["Total charges", totals.totalCharges],
+    ["Total payments", totals.totalPaid],
   ] as const;
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <h2 className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
-        Ringkasan
+        Summary
       </h2>
       <dl className="p-5 text-sm">
         {rows.map(([label, amount]) => (
@@ -108,7 +108,7 @@ function TotalsSummary({ totals }: { totals: FolioTotals }) {
         ))}
         <div className="my-3 border-t border-slate-100" />
         <div className="flex items-center justify-between gap-3 py-1.5 text-base font-semibold">
-          <dt>Sisa Tagihan</dt>
+          <dt>Outstanding Balance</dt>
           <dd className={totals.balance > 0 ? "text-red-600" : "text-emerald-600"}>
             {formatIDR(totals.balance)}
           </dd>
@@ -131,22 +131,22 @@ function PaymentsTable({ payments }: { payments: ReadOnlyPayment[] }) {
   return (
     <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h2 className="text-sm font-semibold text-slate-700">Riwayat pembayaran</h2>
-        <span className="text-xs font-medium text-slate-500">{payments.length} pembayaran</span>
+        <h2 className="text-sm font-semibold text-slate-700">Payment history</h2>
+        <span className="text-xs font-medium text-slate-500">{payments.length} payments</span>
       </div>
       {payments.length === 0 ? (
-        <EmptyState icon={WalletCards} title="Belum ada pembayaran" description="Belum ada pembayaran yang diterima untuk folio ini." className="m-5" />
+        <EmptyState icon={WalletCards} title="No payments yet" description="No payments have been received for this folio." className="m-5" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-180 border-collapse text-sm">
             <thead>
               <tr>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Tanggal</th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Tujuan</th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Metode</th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Referensi</th>
-                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Penerima</th>
-                <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Jumlah</th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Purpose</th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Method</th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Reference</th>
+                <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Received By</th>
+                <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -267,7 +267,7 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
           <Breadcrumb className="mb-2">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/app/acc">Akuntansi</BreadcrumbLink>
+                <BreadcrumbLink href="/app/acc">Accounting</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -276,10 +276,10 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Detail folio
+            Folio details
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tampilan hanya baca untuk pemeriksaan penghambat dan rekonsiliasi.
+            Read-only view for reviewing blockers and reconciliation.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -288,13 +288,13 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
             href={`/api/folios/${folioId}/bill`}
           >
             <Download aria-hidden="true" />
-            Unduh Tagihan
+            Download Bill
           </a>
           <Link
             className={buttonVariants({ variant: "outline" })}
             href={session.user.role === "ADMIN" ? "/app" : "/app/acc/night-audit"}
           >
-            {session.user.role === "ADMIN" ? "Kembali" : "Kembali ke Night Audit"}
+            {session.user.role === "ADMIN" ? "Back" : "Back to Night Audit"}
           </Link>
         </div>
       </header>
@@ -310,7 +310,7 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
                 {folio.reservation.guest.fullName}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Reservasi {folio.reservation.reservationNo}
+                Reservation {folio.reservation.reservationNo}
               </p>
             </div>
             <StatusBadge
@@ -320,37 +320,37 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
           </div>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetadataItem
-              label="Kamar"
-              value={`${folio.reservation.room?.number ?? "Belum ditentukan"} · ${folio.reservation.roomType.name}`}
+              label="Room"
+              value={`${folio.reservation.room?.number ?? "Not assigned"} · ${folio.reservation.roomType.name}`}
             />
             <MetadataItem
-              label="Masa inap"
+              label="Stay dates"
               value={`${formatCompactDateID(folio.reservation.arrivalDate)}–${formatCompactDateID(folio.reservation.departureDate)}`}
             />
-            <MetadataItem label="Malam" value={nights} />
+            <MetadataItem label="Night" value={nights} />
             <MetadataItem
-              label="Status reservasi"
+              label="Reservation status"
               value={reservationStatusLabels[folio.reservation.status]}
             />
-            <MetadataItem label="Status folio" value={folioStatusLabels[folio.status]} />
-            <MetadataItem label="Status deposit" value={depositStatusLabels[folio.reservation.depositStatus]} />
+            <MetadataItem label="Folio status" value={folioStatusLabels[folio.status]} />
+            <MetadataItem label="Deposit status" value={depositStatusLabels[folio.reservation.depositStatus]} />
           </dl>
         </section>
 
         <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-            <h2 className="text-sm font-semibold text-slate-700">Rincian tarif per malam</h2>
+            <h2 className="text-sm font-semibold text-slate-700">Nightly rate breakdown</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-190 border-collapse text-sm">
               <thead>
                 <tr>
-                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Tanggal</th>
-                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Tarif kamar</th>
-                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Paket makan</th>
-                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Jumlah tamu</th>
-                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Harga satuan makanan</th>
-                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Jumlah makanan</th>
+                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Room rate</th>
+                  <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Meal plan</th>
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Guest count</th>
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Meal unit price</th>
+                  <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Meal amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,23 +373,23 @@ export default async function AccFolioPage({ params }: AccFolioPageProps) {
           <div className="grid min-w-0 gap-4">
             <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
-                <h2 className="text-sm font-semibold text-slate-700">Baris tagihan</h2>
-                <span className="text-xs font-medium text-slate-500">{folio.lineItems.length} baris</span>
+                <h2 className="text-sm font-semibold text-slate-700">Charge lines</h2>
+                <span className="text-xs font-medium text-slate-500">{folio.lineItems.length} lines</span>
               </div>
               {folio.lineItems.length === 0 ? (
-                <EmptyState icon={ReceiptText} title="Belum ada tagihan" description="Belum ada baris tagihan pada folio ini." className="m-5" />
+                <EmptyState icon={ReceiptText} title="No charges yet" description="No charge lines on this folio yet." className="m-5" />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-205 border-collapse text-sm">
                     <thead>
                       <tr>
-                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Tanggal pencatatan</th>
-                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Kode artikel</th>
-                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Deskripsi</th>
-                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Referensi pesanan F&amp;B</th>
-                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Jumlah</th>
-                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Harga satuan</th>
-                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Nilai</th>
+                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Posting date</th>
+                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Article code</th>
+                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">Description</th>
+                        <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">F&amp;B order reference</th>
+                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Quantity</th>
+                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit price</th>
+                        <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">Amount</th>
                       </tr>
                     </thead>
                     <tbody>

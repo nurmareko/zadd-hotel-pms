@@ -44,7 +44,7 @@ async function getStayFeeArticle(
       !article.defaultPrice.equals(definition.unitPrice))
   ) {
     throw new ReservationStayFeeError(
-      `Artikel ${definition.label} tidak tersedia atau harganya tidak valid.`,
+      `The ${definition.label} article is unavailable or its price is invalid.`,
     );
   }
 
@@ -102,7 +102,7 @@ export async function reactivatePendingReservationStayFee(
 
   if (updated.count !== 1) {
     throw new ReservationStayFeeError(
-      "Status biaya berubah saat dipilih. Muat ulang lalu coba lagi.",
+      "The fee status changed during selection. Reload and try again.",
     );
   }
 }
@@ -142,18 +142,18 @@ export async function postPendingReservationStayFees(
   });
 
   if (!folio || folio.reservationId !== input.reservationId) {
-    throw new ReservationStayFeeError("Folio reservasi tidak ditemukan.");
+    throw new ReservationStayFeeError("Reservation folio not found.");
   }
 
   if (folio.status !== FolioStatus.OPEN) {
     throw new ReservationStayFeeError(
-      "Biaya fleksibilitas tidak dapat diposting ke folio yang sudah ditutup.",
+      "Stay flexibility fees cannot be posted to a closed folio.",
     );
   }
 
   if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
     throw new ReservationStayFeeError(
-      "Biaya fleksibilitas hanya dapat diposting untuk reservasi yang sudah check-in.",
+      "Stay flexibility fees can only be posted for checked-in reservations.",
     );
   }
 
@@ -174,7 +174,7 @@ export async function postPendingReservationStayFees(
   for (const fee of fees) {
     if (!fee.unitPrice.isInteger() || fee.unitPrice.isNegative()) {
       throw new ReservationStayFeeError(
-        `Snapshot harga ${STAY_FEE_DEFINITIONS[fee.kind].label} tidak valid.`,
+        `The ${STAY_FEE_DEFINITIONS[fee.kind].label} price snapshot is invalid.`,
       );
     }
 
@@ -208,7 +208,7 @@ export async function postPendingReservationStayFees(
 
     if (posted.count !== 1) {
       throw new ReservationStayFeeError(
-        `Biaya ${STAY_FEE_DEFINITIONS[fee.kind].label} berubah saat diposting.`,
+        `The ${STAY_FEE_DEFINITIONS[fee.kind].label} fee changed while posting.`,
       );
     }
   }

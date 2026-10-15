@@ -28,7 +28,7 @@ export function ResultPanel({ summary }: ResultPanelProps) {
     <section className="overflow-hidden rounded-lg border border-status-vc-pip bg-status-vc-bg">
       <div className="flex items-center justify-between gap-3 border-b border-status-vc-pip bg-white/70 px-5 py-4">
         <div className="text-base font-semibold tracking-tight text-foreground">
-          Night audit selesai
+          Night audit completed
         </div>
         <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
           COMPLETED
@@ -40,14 +40,14 @@ export function ResultPanel({ summary }: ResultPanelProps) {
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <div>
               <div className="text-[15px] font-semibold text-foreground">
-                Business date terkunci
+                Business date locked
               </div>
               <p className="mt-1 leading-5">
-                Business date {summary.businessDateLabel} dikunci
+                Business date {summary.businessDateLabel} is locked
                 {summary.runAtLabel && summary.runByName ? (
                   <>
                     {" "}
-                    pada {summary.runAtLabel} oleh {summary.runByName}
+                    at {summary.runAtLabel} by {summary.runByName}
                   </>
                 ) : null}
                 .
@@ -57,11 +57,11 @@ export function ResultPanel({ summary }: ResultPanelProps) {
                   <span className="num font-semibold">
                     {summary.roomsCharged}
                   </span>{" "}
-                  reservasi menginap dikenakan charge, dengan{" "}
+                  in-house reservations charged, with{" "}
                   <span className="num font-semibold">
                     {summary.lineItemsPosted}
                   </span>{" "}
-                  line item diposting.
+                  line items posted.
                 </p>
               ) : null}
               <ArrResultSummary result={summary.arr} />
@@ -81,29 +81,28 @@ export function ResultPanel({ summary }: ResultPanelProps) {
               className={buttonVariants()}
               href={`/app/acc/reports/${summary.auditId}`}
             >
-              Lihat Laporan
+              View Report
             </Link>
             <Link
               className={buttonVariants({ variant: "outline" })}
               href="/app/acc"
             >
-              Kembali ke Dashboard
+              Back to Dashboard
             </Link>
           </div>
         </div>
 
         <aside className="rounded-lg border border-status-vc-pip bg-white p-4 text-sm">
-          <SummaryRow label="Pendapatan Kamar" value={formatIDR(summary.roomRevenue)} />
-          <SummaryRow label="Pendapatan F&B" value={formatIDR(summary.fbRevenue)} />
-          <SummaryRow label="Pendapatan Lainnya" value={formatIDR(summary.otherRevenue)} />
+          <SummaryRow label="Room Revenue" value={formatIDR(summary.roomRevenue)} />
+          <SummaryRow label="F&B Revenue" value={formatIDR(summary.fbRevenue)} />
+          <SummaryRow label="Other Revenue" value={formatIDR(summary.otherRevenue)} />
           <div className="flex items-center justify-between gap-3 pt-3 text-[13px] font-bold uppercase tracking-[0.04em] text-emerald-900">
-            <span>Total Pendapatan</span>
+            <span>Total Revenue</span>
             <span className="num">{formatIDR(summary.totalRevenue)}</span>
           </div>
           {summary.transactionWriteCount !== undefined ? (
             <div className="mt-3 border-t border-border pt-2 text-xs leading-5 text-muted-foreground">
-              Operasi pencatatan: {summary.transactionWriteCount} proses
-              terkelompok.
+              Posting operations: {summary.transactionWriteCount} batches.
             </div>
           ) : null}
         </aside>

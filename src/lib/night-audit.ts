@@ -378,12 +378,12 @@ function blockerMessage({
   "reservation" | "fbOrder" | "affectedDate" | "explanation" | "resolution"
 >) {
   const heading = reservation
-    ? `Reservasi ${reservation.reservationNo} — ${reservation.guestName}, Kamar ${reservation.roomNumber ?? "belum ditentukan"}`
+    ? `Reservation ${reservation.reservationNo} — ${reservation.guestName}, Room ${reservation.roomNumber ?? "not assigned"}`
     : fbOrder
-      ? `Order F&B ${fbOrder.orderNo}`
-    : "Konfigurasi Night Audit";
+      ? `F&B order ${fbOrder.orderNo}`
+    : "Night Audit Configuration";
   const dateLine = affectedDate
-    ? `Tanggal terdampak: ${businessDateLabel(affectedDate)}.`
+    ? `Affected date: ${businessDateLabel(affectedDate)}.`
     : null;
 
   return [heading, dateLine, explanation, resolution].filter(Boolean).join("\n");
@@ -416,8 +416,8 @@ function validatePostingArticles(
 
   for (const code of NIGHT_AUDIT_POSTING_ARTICLE_CODES) {
     if (!articleByCode.has(code)) {
-      const explanation = `Night Audit tidak dapat memposting charge karena artikel ${code} belum tersedia. Tanpa artikel ini, pendapatan dapat tercatat ke jenis charge yang salah atau tidak tercatat sama sekali.`;
-      const resolution = `Minta Administrator menambahkan dan mengaktifkan artikel ${code}, lalu muat ulang Night Audit.`;
+      const explanation = `Night Audit cannot post charges because article ${code} is unavailable. Without this article, revenue could be recorded under the wrong charge type or not recorded at all.`;
+      const resolution = `Ask an administrator to add and activate article ${code}, then reload Night Audit.`;
       blockingErrors.push(
         createBlocker({
           kind: "MISSING_POSTING_ARTICLE",
@@ -466,8 +466,8 @@ function validateReservations(
     const context = reservationContext(reservation);
 
     if (!reservation.folio) {
-      const explanation = `Night Audit tidak dapat memposting charge untuk ${businessDateLabel(businessDate)} karena reservasi ini belum memiliki folio. Melanjutkan tanpa folio berisiko membuat charge masa inap tidak tercatat pada tagihan tamu.`;
-      const resolution = "Buat folio untuk reservasi ini, lalu muat ulang Night Audit.";
+      const explanation = `Night Audit cannot post charges for ${businessDateLabel(businessDate)} because this reservation has no folio. Continuing without a folio risks omitting stay charges from the guest bill.`;
+      const resolution = "Create a folio for this reservation, then reload Night Audit.";
       blockingErrors.push(
         createBlocker({
           kind: "MISSING_FOLIO",
@@ -485,8 +485,8 @@ function validateReservations(
     }
 
     if (reservation.folio.status !== FolioStatus.OPEN) {
-      const explanation = `Night Audit tidak dapat memposting charge untuk ${businessDateLabel(businessDate)} ke folio ${reservation.folio.folioNo} karena statusnya ${reservation.folio.status}. Memposting ke folio yang tidak OPEN berisiko mengubah tagihan yang sudah ditutup atau tidak lagi aktif.`;
-      const resolution = `Tinjau folio ${reservation.folio.folioNo}. Buka kembali folio bila penutupannya keliru, atau selesaikan status reservasi yang masih ${reservation.status}, lalu muat ulang Night Audit.`;
+      const explanation = `Night Audit cannot post charges for ${businessDateLabel(businessDate)} to folio ${reservation.folio.folioNo} because its status is ${reservation.folio.status}. Posting to a folio that is not OPEN risks changing a bill that is closed or no longer active.`;
+      const resolution = `Review folio ${reservation.folio.folioNo}. Reopen it if it was closed in error, or resolve the reservation still in ${reservation.status} status, then reload Night Audit.`;
       blockingErrors.push(
         createBlocker({
           kind: "FOLIO_NOT_OPEN",
@@ -556,9 +556,9 @@ function validateOpenFbOrders(orders: OpenFbOrder[], businessDate: Date) {
         }
       : null;
     const explanation = reservation
-      ? `Order F&B ${order.orderNo} masih berstatus OPEN dan belum dapat dihitung sebagai transaksi F&B selesai untuk Night Audit.`
-      : `Order F&B ${order.orderNo} masih berstatus OPEN sehingga transaksi tersebut belum selesai untuk Night Audit.`;
-    const resolution = `Buka order F&B ${order.orderNo}, konfirmasi bill, lalu selesaikan pembayaran atau Charge to Room sesuai transaksi.`;
+      ? `F&B order ${order.orderNo} is still OPEN and cannot yet be counted as a completed F&B transaction for Night Audit.`
+      : `F&B order ${order.orderNo} is still OPEN, so the transaction is not complete for Night Audit.`;
+    const resolution = `Open F&B order ${order.orderNo}, confirm the bill, then complete payment or Charge to Room as appropriate.`;
 
     return createBlocker({
       kind: "OPEN_FB_ORDER",
@@ -656,8 +656,8 @@ function blockerFromStayChargeError({
     : null;
 
   if (!reason) {
-    const explanation = `Night Audit tidak dapat menyiapkan charge untuk reservasi ini. Melanjutkan berisiko menghasilkan tagihan masa inap yang tidak lengkap atau tidak akurat.`;
-    const resolution = "Tinjau jadwal tarif dan Inklusi reservasi ini, perbaiki data yang tidak sesuai, lalu muat ulang Night Audit.";
+    const explanation = `Night Audit cannot prepare charges for this reservation. Continuing risks incomplete or inaccurate stay charges.`;
+    const resolution = "Review the rate schedule and inclusions for this reservation and correct any invalid data, then reload Night Audit.";
     return createBlocker({
       kind: "INCOMPLETE_STAY_SCHEDULE",
       reservation: context,
@@ -676,7 +676,7 @@ function blockerFromStayChargeError({
       : reason.affectedDate;
   const isFutureDate = futureDateContext(affectedDate, businessDate);
   const futureExplanation = isFutureDate
-    ? ` Tanggal ${businessDateLabel(affectedDate!)} adalah tanggal mendatang setelah business date ${businessDateLabel(businessDate)}. Night Audit memeriksa seluruh jadwal masa inap, sehingga tanggal mendatang ini harus diperbaiki sebelum business date dapat ditutup.`
+    ? ` The date ${businessDateLabel(affectedDate!)} is after the business date ${businessDateLabel(businessDate)}. Night Audit checks the entire stay schedule, so this future date must be corrected before closing the business date.`
     : "";
   let explanation: string;
   let resolution: string;
@@ -684,16 +684,16 @@ function blockerFromStayChargeError({
 
   switch (reason.kind) {
     case "INCOMPLETE_STAY_SCHEDULE":
-      explanation = `Jadwal tarif reservasi tidak lengkap: masa inap memerlukan ${reason.expectedCount} malam, tetapi tarif hanya tersedia untuk ${reason.actualCount} malam. Night Audit berhenti agar tidak ada malam yang terlewat atau dikenakan tarif yang keliru.${futureExplanation}`;
-      resolution = "Lengkapi tarif untuk setiap malam dari tanggal kedatangan sampai sebelum tanggal keberangkatan, lalu muat ulang Night Audit.";
+      explanation = `The reservation rate schedule is incomplete: the stay requires ${reason.expectedCount} nights, but rates are available for only ${reason.actualCount} nights. Night Audit stopped to avoid missing nights or charging incorrect rates.${futureExplanation}`;
+      resolution = "Enter rates for every night from arrival up to but not including departure, then reload Night Audit.";
       currentValues = {
         requiredNightCount: reason.expectedCount,
         availableNightCount: reason.actualCount,
       };
       break;
     case "OUT_OF_ORDER_STAY_SCHEDULE":
-      explanation = `Jadwal tarif pada urutan ke-${reason.position} mencatat ${businessDateLabel(reason.actualDate)}, padahal seharusnya ${reason.expectedDate ? businessDateLabel(reason.expectedDate) : "tidak ada tanggal tambahan"}. Night Audit berhenti agar charge tidak diposting ke malam yang salah.${futureExplanation}`;
-      resolution = "Perbaiki urutan tanggal tarif agar berurutan tanpa tanggal yang hilang atau berulang, lalu muat ulang Night Audit.";
+      explanation = `Rate schedule position ${reason.position} records ${businessDateLabel(reason.actualDate)}, but should be ${reason.expectedDate ? businessDateLabel(reason.expectedDate) : "no additional date"}. Night Audit stopped to avoid posting charges to the wrong night.${futureExplanation}`;
+      resolution = "Correct the rate dates so they are consecutive with no missing or duplicate dates, then reload Night Audit.";
       currentValues = {
         position: reason.position,
         requiredDate: reason.expectedDate?.toISOString().slice(0, 10) ?? null,
@@ -701,8 +701,8 @@ function blockerFromStayChargeError({
       };
       break;
     case "NIGHT_OWNERSHIP_MISMATCH":
-      explanation = `Tarif untuk malam ${businessDateLabel(reason.affectedDate)} terhubung ke reservasi lain. Night Audit berhenti agar charge tamu ini tidak masuk ke reservasi atau folio yang salah.${futureExplanation}`;
-      resolution = "Hubungkan tarif malam tersebut ke reservasi yang benar, lalu muat ulang Night Audit.";
+      explanation = `The rate for ${businessDateLabel(reason.affectedDate)} belongs to another reservation. Night Audit stopped to avoid posting this guest's charges to the wrong reservation or folio.${futureExplanation}`;
+      resolution = "Link the nightly rate to the correct reservation, then reload Night Audit.";
       currentValues = {
         nightId: reason.nightId,
         requiredReservationId: reason.expectedReservationId,
@@ -710,13 +710,13 @@ function blockerFromStayChargeError({
       };
       break;
     case "INVALID_ROOM_RATE":
-      explanation = `Tarif Kamar untuk malam ${businessDateLabel(reason.affectedDate)} bernilai ${reason.rateAmount}. Nilai harus berupa rupiah bulat dan tidak boleh negatif agar pendapatan Kamar tidak salah.${futureExplanation}`;
-      resolution = "Perbaiki Tarif Kamar malam tersebut ke nilai rupiah bulat yang tidak negatif, lalu muat ulang Night Audit.";
+      explanation = `The room rate for ${businessDateLabel(reason.affectedDate)} is ${reason.rateAmount}. It must be a nonnegative whole-IDR amount to ensure correct room revenue.${futureExplanation}`;
+      resolution = "Correct the nightly room rate to a nonnegative whole-IDR amount, then reload Night Audit.";
       currentValues = { nightId: reason.nightId, rateAmount: reason.rateAmount };
       break;
     case "INVALID_STAY_CHARGE_AMOUNT":
-      explanation = `Alokasi Arrangement untuk malam ${businessDateLabel(reason.affectedDate)} sebesar ${reason.mealAmount} melebihi tarif paket ${reason.rateAmount}, sehingga nilai Kamar menjadi negatif. Night Audit berhenti agar pendapatan Kamar tidak dicatat dengan nilai negatif.${futureExplanation}`;
-      resolution = "Perbaiki tarif paket atau alokasi Arrangement malam tersebut agar nilai Kamar tidak negatif, lalu muat ulang Night Audit.";
+      explanation = `The Arrangement allocation for ${businessDateLabel(reason.affectedDate)} of ${reason.mealAmount} exceeds the package rate of ${reason.rateAmount}, making the room amount negative. Night Audit stopped to avoid recording negative room revenue.${futureExplanation}`;
+      resolution = "Correct the nightly package rate or Arrangement allocation so the room amount is not negative, then reload Night Audit.";
       currentValues = {
         nightId: reason.nightId,
         rateAmount: reason.rateAmount,
@@ -724,13 +724,13 @@ function blockerFromStayChargeError({
       };
       break;
     case "INCOMPLETE_MEAL_VALUES":
-      explanation = `Data Inklusi makan untuk malam ${businessDateLabel(reason.affectedDate)} belum lengkap. Night Audit berhenti agar charge Inklusi tidak kurang, berlebih, atau masuk dengan harga yang salah.${futureExplanation}`;
-      resolution = "Lengkapi paket makan, jumlah tamu, harga per tamu, dan totalnya; atau hapus seluruh data Inklusi bila malam tersebut tidak memiliki paket makan. Setelah itu, muat ulang Night Audit.";
+      explanation = `Meal inclusion data for ${businessDateLabel(reason.affectedDate)} is incomplete. Night Audit stopped to avoid missing, excessive, or incorrectly priced inclusion charges.${futureExplanation}`;
+      resolution = "Complete the meal plan, guest count, price per guest, and total; or remove all inclusion data if the night has no meal plan. Then reload Night Audit.";
       currentValues = { nightId: reason.nightId };
       break;
     case "INVALID_MEAL_VALUES":
-      explanation = `Data Inklusi makan untuk malam ${businessDateLabel(reason.affectedDate)} tidak valid. Jumlah tamu harus minimal satu, nilai rupiah harus bulat dan tidak negatif, serta total harus sama dengan harga per tamu dikali jumlah tamu.${futureExplanation}`;
-      resolution = "Perbaiki paket dan nilai Inklusi malam tersebut, lalu muat ulang Night Audit.";
+      explanation = `Meal inclusion data for ${businessDateLabel(reason.affectedDate)} is invalid. Guest count must be at least one, IDR amounts must be whole and nonnegative, and the total must equal the price per guest multiplied by the guest count.${futureExplanation}`;
+      resolution = "Correct the nightly inclusion plan and amounts, then reload Night Audit.";
       currentValues = {
         nightId: reason.nightId,
         mealPlan: reason.mealPlan,
@@ -740,26 +740,26 @@ function blockerFromStayChargeError({
       };
       break;
     case "INVALID_EXPECTED_NIGHT_COUNT":
-      explanation = `Jumlah malam yang harus diposting bernilai ${reason.expectedCount}, sehingga Night Audit tidak dapat menentukan charge yang benar. Melanjutkan berisiko membuat tagihan masa inap kurang atau berlebih.${futureExplanation}`;
-      resolution = "Periksa tanggal kedatangan dan business date reservasi, perbaiki tanggal yang tidak sesuai, lalu muat ulang Night Audit.";
+      explanation = `The number of nights to post is ${reason.expectedCount}, so Night Audit cannot determine the correct charges. Continuing risks undercharging or overcharging the stay.${futureExplanation}`;
+      resolution = "Check the reservation arrival date and business date and correct any invalid dates, then reload Night Audit.";
       currentValues = { requiredNightCount: reason.expectedCount };
       break;
     case "STAY_SCHEDULE_SHORTFALL":
-      explanation = `Night Audit tidak dapat memposting charge untuk malam ${businessDateLabel(reason.affectedDate)}. Reservasi masih berstatus ${reservation.status}, tetapi masa inap terjadwal berakhir pada ${businessDateLabel(reservation.departureDate)} dan belum ada tarif untuk malam tersebut. Memaksa proses berlanjut dapat membuat tagihan tamu tidak lengkap.${futureExplanation}`;
-      resolution = "Jika tamu sudah berangkat, selesaikan check-out. Jika tamu masih menginap, perpanjang tanggal keberangkatan, lalu muat ulang Night Audit.";
+      explanation = `Night Audit cannot post charges for the night of ${businessDateLabel(reason.affectedDate)}. The reservation is still ${reservation.status}, but the scheduled stay ends on ${businessDateLabel(reservation.departureDate)} and there is no rate for that night. Forcing the process to continue could leave the guest bill incomplete.${futureExplanation}`;
+      resolution = "If the guest has departed, complete check-out. If the guest is still staying, extend the departure date, then reload Night Audit.";
       currentValues = {
         requiredNightCount: reason.expectedCount,
         availableNightCount: reason.actualCount,
       };
       break;
     case "UNSUPPORTED_MEAL_PLAN":
-      explanation = `Paket makan ${reason.mealPlan} untuk malam ${businessDateLabel(reason.affectedDate)} tidak dapat diposting. Night Audit berhenti agar pendapatan F&B tidak masuk ke paket yang salah.${futureExplanation}`;
-      resolution = "Pilih paket makan yang tersedia untuk malam tersebut atau hapus Inklusi jika tidak berlaku, lalu muat ulang Night Audit.";
+      explanation = `Meal plan ${reason.mealPlan} for ${businessDateLabel(reason.affectedDate)} cannot be posted. Night Audit stopped to avoid assigning F&B revenue to the wrong plan.${futureExplanation}`;
+      resolution = "Select an available meal plan for that night or remove the inclusion if not applicable, then reload Night Audit.";
       currentValues = { mealPlan: reason.mealPlan };
       break;
     case "MISSING_STAY_CHARGE_ARTICLE":
-      explanation = `Night Audit tidak dapat memposting charge karena artikel ${reason.articleCode} belum tersedia. Tanpa artikel ini, pendapatan dapat tercatat ke jenis charge yang salah atau tidak tercatat sama sekali.${futureExplanation}`;
-      resolution = `Minta Administrator menambahkan dan mengaktifkan artikel ${reason.articleCode}, lalu muat ulang Night Audit.`;
+      explanation = `Night Audit cannot post charges because article ${reason.articleCode} is unavailable. Without this article, revenue could be recorded under the wrong charge type or not recorded at all.${futureExplanation}`;
+      resolution = `Ask an administrator to add and activate article ${reason.articleCode}, then reload Night Audit.`;
       currentValues = { articleCode: reason.articleCode };
       break;
   }
@@ -1045,7 +1045,7 @@ export async function buildNightAuditPlan({
 
   if (openFbOrders.length > 0) {
     warnings.push(
-      `${openFbOrders.length} order F&B masih terbuka dan harus diselesaikan sebelum Night Audit.`,
+      `${openFbOrders.length} F&B orders are still open and must be completed before Night Audit.`,
     );
   }
 
@@ -1126,7 +1126,7 @@ export async function buildNightAuditPlan({
 
 export class NightAuditClosedError extends Error {
   constructor(public readonly businessDate: Date) {
-    super(`Audit malam untuk ${businessDateLabel(businessDate)} sudah selesai.`);
+    super(`Night Audit for ${businessDateLabel(businessDate)} is already complete.`);
     this.name = "NightAuditClosedError";
   }
 }
@@ -1148,7 +1148,7 @@ export async function assertBusinessDateOpen(
 
 class NightAuditAlreadyCompletedError extends Error {
   constructor(public readonly businessDate: Date) {
-    super(`Night audit untuk ${businessDateLabel(businessDate)} sudah selesai.`);
+    super(`Night Audit for ${businessDateLabel(businessDate)} is already complete.`);
     this.name = "NightAuditAlreadyCompletedError";
   }
 }
@@ -1492,7 +1492,7 @@ export async function executeNightAudit({
             });
             if (occupant || cleaningSession) {
               roomBlockWarnings.push(
-                `Status kamar ${room.number} tidak diubah pada pergantian hari bisnis: ${occupant ? "tamu belum check-out" : "pembersihan masih berjalan"}. Tinjau status kamar setelah proses selesai.`,
+                `Room ${room.number} status was not changed at business-day rollover: ${occupant ? "the guest has not checked out" : "cleaning is still in progress"}. Review the room status after the process completes.`,
               );
               continue;
             }
@@ -1503,7 +1503,7 @@ export async function executeNightAudit({
             });
             if (updated.count !== 1) {
               throw new Prisma.PrismaClientKnownRequestError(
-                "Status kamar berubah saat Night Audit dijalankan.",
+                "Room status changed while Night Audit was running.",
                 { code: "P2034", clientVersion: Prisma.prismaVersion.client },
               );
             }
@@ -1515,8 +1515,8 @@ export async function executeNightAudit({
                 updatedById: runById,
                 updatedAt: now,
                 note: block
-                  ? `Blokir kamar #${block.id} aktif pada pergantian hari bisnis.`
-                  : "Blokir kamar telah berakhir. Kamar dialihkan ke VD untuk pembersihan.",
+                  ? `Room block #${block.id} active at business-day rollover.`
+                  : "The room block has ended. The room was set to VD for cleaning.",
               },
             });
             transactionWriteCount += 2;
@@ -1571,7 +1571,7 @@ export async function executeNightAudit({
           const warnings = [...reservationWarnings, ...roomBlockWarnings];
           if (openFbOrderRows.length > 0) {
             warnings.push(
-              `${openFbOrderRows.length} order F&B masih terbuka dan harus diselesaikan sebelum Night Audit.`,
+              `${openFbOrderRows.length} F&B orders are still open and must be completed before Night Audit.`,
             );
           }
 
@@ -1615,7 +1615,7 @@ export async function executeNightAudit({
       if (uniqueBusinessDateError(error)) {
         return {
           ok: false,
-          error: `Night audit untuk ${businessDateLabel(businessDate)} sudah dijalankan oleh sesi lain.`,
+          error: `Night Audit for ${businessDateLabel(businessDate)} was already run by another session.`,
         };
       }
 
@@ -1632,7 +1632,7 @@ export async function executeNightAudit({
         return {
           ok: false,
           error:
-            "Data reservasi berubah saat Night Audit dijalankan. Tidak ada charge yang diposting. Muat ulang halaman, tinjau daftar terbaru, lalu coba lagi.",
+            "Reservation data changed while Night Audit was running. No charges were posted. Reload the page, review the updated list, and try again.",
         };
       }
 
@@ -1643,7 +1643,7 @@ export async function executeNightAudit({
       if (retryableAuditPostingConflict(error)) {
         return {
           ok: false,
-          error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
+          error: "Repeated Night Audit posting conflicts. Reload and try again.",
         };
       }
 
@@ -1653,6 +1653,6 @@ export async function executeNightAudit({
 
   return {
     ok: false,
-    error: "Konflik posting Night Audit berulang. Muat ulang dan coba lagi.",
+    error: "Repeated Night Audit posting conflicts. Reload and try again.",
   };
 }

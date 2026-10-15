@@ -99,13 +99,13 @@ describe("getHousekeeperMobileData", () => {
       taskCode: "TSK-1", serviceKind: "turnover", notes: "ETA 12:00; Bantal tambahan",
       taskNote: "[TUGAS:TSK-1] Periksa kaca",
       reservationContexts: [
-        { kind: "departure", reservationNo: "RSV-OLD", guestName: "Ani", nightsLabel: "1 malam", etaLabel: null },
-        { kind: "arrival", reservationNo: "RSV-1", guestName: "Ani", nightsLabel: "1 malam", etaLabel: "12:00" },
+        { kind: "departure", reservationNo: "RSV-OLD", guestName: "Ani", nightsLabel: "1 night", etaLabel: null },
+        { kind: "arrival", reservationNo: "RSV-1", guestName: "Ani", nightsLabel: "1 night", etaLabel: "12:00" },
       ],
     });
     expect(myRooms[3]).toMatchObject({
       serviceKind: "stayover", notes: "Jangan diganggu", taskNote: null,
-      reservationContexts: [{ kind: "stayover", label: "Menginap", nightsLabel: "Malam 2/2" }],
+      reservationContexts: [{ kind: "stayover", label: "Stayover", nightsLabel: "Night 2/2" }],
     });
   });
 

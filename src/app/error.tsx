@@ -30,11 +30,11 @@ export default function Error({
           <AlertTriangle size={22} aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-[24px] font-bold leading-tight text-slate-900">
-          Sistem sedang bermasalah
+          The system is experiencing a problem
         </h1>
         <p className="mt-2 max-w-md text-[14px] leading-6 text-slate-500">
-          Maaf, proses tidak dapat ditampilkan saat ini. Silakan coba lagi atau
-          kembali ke dashboard.
+          This page cannot be displayed right now. Please try again or
+          return to the dashboard.
         </p>
         <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
           <Button
@@ -43,11 +43,11 @@ export default function Error({
             className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            Coba lagi
+            Try again
           </Button>
           <Link href="/app" className={secondaryLinkClassName}>
             <Home size={16} aria-hidden="true" />
-            Ke dashboard
+            Go to dashboard
           </Link>
         </div>
       </section>

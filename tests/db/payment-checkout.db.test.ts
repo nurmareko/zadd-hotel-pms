@@ -189,7 +189,7 @@ describe("postCharge", () => {
       .toEqual({
         ok: false,
         code: "NIGHT_AUDIT_CLOSED",
-        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Transaksi folio tidak dapat dicatat.",
+        error: "Night Audit for the current business date is complete. Folio transactions cannot be recorded.",
       });
     expect(await prisma.folioLineItem.count()).toBe(0);
     expect(await prisma.activityLog.count()).toBe(0);
@@ -248,7 +248,7 @@ describe("postCharge", () => {
       ok: false,
       code: "FOLIO_NOT_OPEN",
       error:
-        "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
+        "The folio is no longer open. Reload the page to see its current status.",
     });
     expect(
       await prisma.folioLineItem.count({
@@ -341,7 +341,7 @@ describe("recordPayment", () => {
       ok: false,
       code: "FOLIO_NOT_OPEN",
       error:
-        "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
+        "The folio is no longer open. Reload the page to see its current status.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });
@@ -360,7 +360,7 @@ describe("recordFinalPayment", () => {
     expect(result).toEqual({
       ok: false,
       code: "FOLIO_NOT_OPEN",
-      error: "Pembayaran tidak dapat dicatat karena folio sudah tidak terbuka.",
+      error: "Payment cannot be recorded because the folio is no longer open.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });
@@ -410,7 +410,7 @@ describe("recordFinalPayment", () => {
       ok: false,
       code: "PAYMENT_EXCEEDS_BALANCE",
       error:
-        "Jumlah pembayaran melebihi Sisa Tagihan terbaru. Muat ulang lalu periksa jumlah pembayaran.",
+        "The payment exceeds the current outstanding balance. Reload and check the payment amount.",
     });
     expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
   });
@@ -426,7 +426,7 @@ describe("completeCheckout", () => {
       ok: false,
       code: "BALANCE_DUE",
       error:
-        "Sisa Tagihan masih belum lunas (Rp 100.000). Catat pembayaran final terlebih dahulu.",
+        "The outstanding balance is not yet settled (Rp 100.000). Record the final payment first.",
     });
 
     const [storedFolio, storedReservation, storedRoom] = await Promise.all([

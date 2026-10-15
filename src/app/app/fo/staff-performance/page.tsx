@@ -57,18 +57,18 @@ type StaffRow = Metrics & {
 };
 
 const windows: Record<WindowKey, { label: string; days: number }> = {
-  today: { label: "Hari ini", days: 1 },
-  week: { label: "7 hari terakhir", days: 7 },
-  month: { label: "30 hari terakhir", days: 30 },
+  today: { label: "Today", days: 1 },
+  week: { label: "Last 7 days", days: 7 },
+  month: { label: "Last 30 days", days: 30 },
 };
 
 const sortableColumns: Record<SortKey, string> = {
-  staff: "Petugas",
-  reservations: "Reservasi",
+  staff: "Staff Member",
+  reservations: "Reservation",
   checkIns: "Check-in",
   checkOuts: "Check-out",
-  payments: "Pembayaran",
-  charges: "Charge folio",
+  payments: "Payments",
+  charges: "Folio charges",
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -404,7 +404,7 @@ export default async function StaffPerformancePage({
       <div className="mb-5 flex justify-end">
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
           <nav
-            aria-label="Periode kinerja"
+            aria-label="Performance period"
             className="flex w-full flex-wrap gap-2 sm:w-auto"
           >
             {(Object.keys(windows) as WindowKey[]).map((key) => {
@@ -440,7 +440,7 @@ export default async function StaffPerformancePage({
             <input
                           type="date"
                           name="from"
-                          aria-label="Tanggal mulai"
+                          aria-label="Start date"
                           defaultValue={from ?? ""}
                           className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
                         />
@@ -448,13 +448,13 @@ export default async function StaffPerformancePage({
             <input
                           type="date"
                           name="to"
-                          aria-label="Tanggal akhir"
+                          aria-label="End date"
                           defaultValue={to ?? ""}
                           className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
                         />
             <Button type="submit">
                           <Search className="size-4" aria-hidden="true" />
-                          Cari
+                          Search
                         </Button>
           </form>
         </div>
@@ -466,7 +466,7 @@ export default async function StaffPerformancePage({
             <div className="max-w-full overflow-auto">
               <table className="w-full min-w-[760px] border-collapse text-sm">
                 <caption className="sr-only">
-                  Kinerja petugas Front Office berdasarkan rentang aktivitas yang dipilih
+                  Front Office staff performance for the selected activity period
                 </caption>
                 <thead>
                   <tr>
@@ -477,7 +477,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Petugas
+                      Staff Member
                     </HeaderCell>
                     <HeaderCell
                       sortKey="reservations"
@@ -485,7 +485,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Reservasi
+                      Reservation
                     </HeaderCell>
                     <HeaderCell
                       sortKey="checkIns"
@@ -509,7 +509,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Pembayaran
+                      Payments
                     </HeaderCell>
                     <HeaderCell
                       sortKey="charges"
@@ -517,7 +517,7 @@ export default async function StaffPerformancePage({
                       currentDirection={direction}
                       rangeQuery={rangeQuery}
                     >
-                      Charge folio
+                      Folio charges
                     </HeaderCell>
                   </tr>
                 </thead>

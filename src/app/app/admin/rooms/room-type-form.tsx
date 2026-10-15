@@ -85,7 +85,7 @@ export function RoomTypeForm({
       : await createRoomType(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Tipe kamar diperbarui" : "Tipe kamar dibuat");
+      toast.success(isEditing ? "Room type updated" : "Room type created");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -131,7 +131,7 @@ export function RoomTypeForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Nama Tipe</FormLabel>
+                <FormLabel className={labelClassName}>Type Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Deluxe Room"
@@ -150,7 +150,7 @@ export function RoomTypeForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Deskripsi</FormLabel>
+              <FormLabel className={labelClassName}>Description</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Optional room type notes"
@@ -170,7 +170,7 @@ export function RoomTypeForm({
             name="capacity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Kapasitas</FormLabel>
+                <FormLabel className={labelClassName}>Capacity</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -214,17 +214,17 @@ export function RoomTypeForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Tipe"}
+                ? "Save Changes"
+                : "Add Type"}
           </Button>
         </div>
       </form>

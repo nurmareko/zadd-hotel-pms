@@ -35,5 +35,5 @@ export function formatFBOrderItemNotes(
 }
 
 export function fbOrderGuestLabel(guestNumber: number | null | undefined) {
-  return guestNumber ? `Tamu ${guestNumber}` : "Tanpa Tamu";
+  return guestNumber ? `Guest ${guestNumber}` : "No Guest";
 }

@@ -30,27 +30,27 @@ export type FolioActionResult = ActionResult<FolioFailureCode>;
 export const FOLIO_FAILURE_MESSAGES: Record<FolioFailureCode, string> = {
   SESSION_EXPIRED: UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED,
   FORBIDDEN: UNIVERSAL_ACTION_MESSAGES.FORBIDDEN,
-  INVALID_INPUT: "Data folio tidak valid. Periksa kembali formulir.",
+  INVALID_INPUT: "Invalid folio data. Please review the form.",
   FOLIO_NOT_FOUND:
-    "Folio tidak ditemukan. Muat ulang halaman lalu coba lagi.",
+    "Folio not found. Reload the page and try again.",
   FOLIO_NOT_OPEN:
-    "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
+    "The folio is no longer open. Reload the page to see its current status.",
   NIGHT_AUDIT_CLOSED:
-    "Audit malam untuk tanggal bisnis hari ini sudah selesai. Transaksi folio tidak dapat dicatat.",
+    "Night Audit for the current business date is complete. Folio transactions cannot be recorded.",
   ARTICLE_NOT_FOUND:
-    "Artikel tidak ditemukan atau sudah tidak tersedia. Pilih artikel lain.",
+    "The article was not found or is no longer available. Select another article.",
   PROTECTED_TAX_ARTICLE:
-    "Pajak dihitung otomatis dan tidak dapat ditambahkan secara manual.",
+    "Tax is calculated automatically and cannot be added manually.",
   PROTECTED_STAY_ARTICLE:
-    "Tagihan menginap ini dicatat otomatis dan tidak dapat ditambahkan secara manual.",
+    "This stay charge is recorded automatically and cannot be added manually.",
   CHARGE_CONFLICT:
-    "Data folio berubah bersamaan. Muat ulang halaman sebelum menambahkan tagihan lagi.",
+    "The folio data was changed concurrently. Reload the page before adding another charge.",
   PAYMENT_CONFLICT:
-    "Data pembayaran berubah bersamaan. Muat ulang halaman sebelum mencoba lagi.",
-  CHARGE_UNEXPECTED: "Tagihan tidak dapat ditambahkan. Silakan coba lagi.",
-  PAYMENT_UNEXPECTED: "Pembayaran tidak dapat dicatat. Silakan coba lagi.",
+    "The payment data was changed concurrently. Reload the page before trying again.",
+  CHARGE_UNEXPECTED: "The charge could not be added. Please try again.",
+  PAYMENT_UNEXPECTED: "The payment could not be recorded. Please try again.",
   RESULT_UNKNOWN:
-    "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+    "The action result is uncertain. Reload the page before trying again.",
 };
 
 export function folioFailureMessage(code: FolioFailureCode): string {

@@ -27,87 +27,87 @@ describe("check-in error definitions and helpers", () => {
     }
   });
 
-  it("provides the specified controlled Indonesian messages", () => {
+  it("provides the specified controlled English messages", () => {
     expect(CHECK_IN_FAILURE_MESSAGES.SESSION_EXPIRED).toBe(
-      "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      "Your session has expired. Please sign in again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.FORBIDDEN).toBe(
-      "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+      "You do not have permission to perform this action.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT).toBe(
-      "Data check-in tidak valid. Periksa kembali formulir.",
+      "Invalid check-in data. Please review the form.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.RESERVATION_NOT_FOUND).toBe(
-      "Reservasi tidak ditemukan. Muat ulang halaman.",
+      "Reservation not found. Reload the page.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.RESERVATION_NOT_ELIGIBLE).toBe(
-      "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
+      "This reservation is no longer eligible for check-in. Reload the page and check its status.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.ARRIVAL_NOT_DUE).toBe(
-      "Check-in baru dapat dilakukan pada tanggal kedatangan.",
+      "Check-in is only available from the arrival date.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.ROOM_REQUIRED).toBe(
-      "Pilih kamar yang sesuai untuk melanjutkan check-in.",
+      "Select a suitable room to continue check-in.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.ROOM_TYPE_MISMATCH).toBe(
-      "Kamar yang dipilih tidak sesuai dengan tipe kamar reservasi. Pilih kamar lain.",
+      "The selected room does not match the reserved room type. Select another room.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.ROOM_OOO).toBe(
-      "Kamar yang dipilih berstatus OOO. Pilih kamar lain.",
+      "The selected room is OOO. Select another room.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.ROOM_UNAVAILABLE).toBe(
-      "Kamar yang dipilih sudah tidak tersedia. Pilih kamar lain.",
+      "The selected room is no longer available. Select another room.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_NOT_ELIGIBLE).toBe(
-      "Deposit belum dapat dikumpulkan untuk reservasi ini. Muat ulang dan periksa status reservasi.",
+      "A deposit cannot yet be collected for this reservation. Reload and check the reservation status.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_STATE_INCONSISTENT).toBe(
-      "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
+      "The deposit status and folio payments are inconsistent. Stop and request a data review.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_RATE_UNAVAILABLE).toBe(
-      "Tarif malam pertama belum tersedia atau tidak valid. Perbaiki tarif sebelum mengumpulkan deposit.",
+      "The first-night rate is missing or invalid. Correct the rate before collecting a deposit.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_REQUIRED).toBe(
-      "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
+      "The deposit has not been paid. Collect the deposit before check-in.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_FOLIO_MISSING).toBe(
-      "Folio deposit tidak ditemukan. Hentikan check-in dan periksa data reservasi.",
+      "Deposit folio not found. Stop check-in and review the reservation data.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_CONFLICT).toBe(
-      "Status deposit berubah bersamaan. Muat ulang halaman sebelum mencoba lagi.",
+      "The deposit status was changed concurrently. Reload the page before trying again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.DEPOSIT_UNEXPECTED).toBe(
-      "Pembayaran deposit tidak dapat dicatat. Silakan coba lagi.",
+      "The deposit payment could not be recorded. Please try again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.GRC_INCOMPLETE).toBe(
-      "Lengkapi GRC, tanda tangan tamu, dan konfirmasi kedatangan sebelum check-in.",
+      "Complete the GRC, guest signature, and arrival confirmation before check-in.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.RESERVATION_CHANGED).toBe(
-      "Data reservasi berubah. Muat ulang, tinjau kembali GRC, lalu minta tanda tangan ulang.",
+      "The reservation data has changed. Reload, review the GRC, and request a new signature.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.STAY_FEE_UNAVAILABLE).toBe(
-      "Biaya fleksibilitas belum dapat dicatat. Periksa konfigurasi biaya lalu coba lagi.",
+      "Stay flexibility fees could not be recorded. Check the fee settings and try again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.CHECK_IN_CONFLICT).toBe(
-      "Check-in mengalami konflik data. Muat ulang halaman dan periksa status reservasi serta kamar.",
+      "Check-in encountered a data conflict. Reload the page and check the reservation and room status.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.CHECK_IN_UNEXPECTED).toBe(
-      "Check-in tidak dapat diselesaikan. Silakan coba lagi.",
+      "Check-in could not be completed. Please try again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.REVIEW_UNEXPECTED).toBe(
-      "Data check-in tidak dapat dimuat. Silakan coba lagi.",
+      "Check-in data could not be loaded. Please try again.",
     );
     expect(CHECK_IN_FAILURE_MESSAGES.RESULT_UNKNOWN).toBe(
-      "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+      "The action result is uncertain. Reload the page before trying again.",
     );
   });
 
   it("provides contextual uncertainty messages for rejected mutating actions", () => {
     expect(CHECK_IN_UNKNOWN_RESULT_MESSAGES.deposit).toBe(
-      "Hasil pembayaran deposit belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+      "The deposit payment result is uncertain. Reload the page before trying again.",
     );
     expect(CHECK_IN_UNKNOWN_RESULT_MESSAGES.checkIn).toBe(
-      "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+      "The check-in result is uncertain. Reload the page before trying again.",
     );
 
     expect(checkInFailureMessage("RESULT_UNKNOWN", "deposit")).toBe(
@@ -120,7 +120,7 @@ describe("check-in error definitions and helpers", () => {
       CHECK_IN_FAILURE_MESSAGES.RESULT_UNKNOWN,
     );
     expect(GROUP_MUTATION_UNCERTAIN_MESSAGE).toBe(
-      "Hasil proses grup belum dapat dipastikan. Beberapa kamar mungkin sudah diproses. Muat ulang halaman sebelum mencoba lagi.",
+      "The group operation result is uncertain. Some rooms may already have been processed. Reload the page before trying again.",
     );
   });
 
@@ -129,7 +129,7 @@ describe("check-in error definitions and helpers", () => {
     expect(defaultFailure).toEqual({
       ok: false,
       code: "ROOM_REQUIRED",
-      error: "Pilih kamar yang sesuai untuk melanjutkan check-in.",
+      error: "Select a suitable room to continue check-in.",
     });
 
     const fieldFailure = checkInFailure("ROOM_TYPE_MISMATCH", {
@@ -139,7 +139,7 @@ describe("check-in error definitions and helpers", () => {
       ok: false,
       code: "ROOM_TYPE_MISMATCH",
       error:
-        "Kamar yang dipilih tidak sesuai dengan tipe kamar reservasi. Pilih kamar lain.",
+        "The selected room does not match the reserved room type. Select another room.",
       field: "roomId",
     });
 
@@ -150,7 +150,7 @@ describe("check-in error definitions and helpers", () => {
       ok: false,
       code: "RESULT_UNKNOWN",
       error:
-        "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The check-in result is uncertain. Reload the page before trying again.",
     });
 
     const customMessageFailure = checkInFailure("INVALID_INPUT", {
@@ -167,7 +167,7 @@ describe("check-in error definitions and helpers", () => {
     expect(checkInAuthorizationFailure(null)).toEqual({
       ok: false,
       code: "SESSION_EXPIRED",
-      error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      error: "Your session has expired. Please sign in again.",
     });
 
     expect(
@@ -175,7 +175,7 @@ describe("check-in error definitions and helpers", () => {
     ).toEqual({
       ok: false,
       code: "FORBIDDEN",
-      error: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+      error: "You do not have permission to perform this action.",
     });
 
     expect(
@@ -216,7 +216,7 @@ describe("check-in client UI state reducer", () => {
 
     expect(nextState).toEqual({
       isUncertain: false,
-      actionError: "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
+      actionError: "The deposit has not been paid. Collect the deposit before check-in.",
       errorCode: "DEPOSIT_REQUIRED",
       errorField: null,
     });
@@ -233,7 +233,7 @@ describe("check-in client UI state reducer", () => {
     expect(nextState).toEqual({
       isUncertain: true,
       actionError:
-        "Hasil pembayaran deposit belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The deposit payment result is uncertain. Reload the page before trying again.",
       errorCode: "RESULT_UNKNOWN",
       errorField: null,
     });
@@ -247,7 +247,7 @@ describe("check-in client UI state reducer", () => {
 
     expect(state).toEqual({
       isUncertain: false,
-      actionError: "Data check-in tidak dapat dimuat. Silakan coba lagi.",
+      actionError: "Check-in data could not be loaded. Please try again.",
       errorCode: "REVIEW_UNEXPECTED",
       errorField: null,
     });
@@ -261,7 +261,7 @@ describe("check-in client UI state reducer", () => {
     expect(depositState).toEqual({
       isUncertain: true,
       actionError:
-        "Hasil pembayaran deposit belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The deposit payment result is uncertain. Reload the page before trying again.",
       errorCode: "RESULT_UNKNOWN",
       errorField: null,
     });
@@ -273,7 +273,7 @@ describe("check-in client UI state reducer", () => {
     expect(checkInState).toEqual({
       isUncertain: true,
       actionError:
-        "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The check-in result is uncertain. Reload the page before trying again.",
       errorCode: "RESULT_UNKNOWN",
       errorField: null,
     });
@@ -293,7 +293,7 @@ describe("check-in client UI state reducer", () => {
     const uncertainState: CheckInUiState = {
       isUncertain: true,
       actionError:
-        "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The check-in result is uncertain. Reload the page before trying again.",
       errorCode: "RESULT_UNKNOWN",
       errorField: null,
     };
@@ -304,7 +304,7 @@ describe("check-in client UI state reducer", () => {
     const uncertainState: CheckInUiState = {
       isUncertain: true,
       actionError:
-        "Hasil check-in belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+        "The check-in result is uncertain. Reload the page before trying again.",
       errorCode: "RESULT_UNKNOWN",
       errorField: null,
     };

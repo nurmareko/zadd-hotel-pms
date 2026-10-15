@@ -195,7 +195,7 @@ export default async function NewReservationPage({
           activeRoomBlocks={activeRoomBlocks}
           createOrigin={originView}
           returnHref={FO_RESERVASI_VIEW_PATHS[originView]}
-          submitLabel="Simpan Reservasi"
+          submitLabel="Save Reservation"
         />
       </div>
     </main>

@@ -87,7 +87,7 @@ const roleModuleNames: Record<AppRole, string> = {
   FO: "FRONT OFFICE",
   HK: "HOUSEKEEPING",
   FB: "FOOD & BEVERAGE",
-  ACC: "AKUNTANSI",
+  ACC: "ACCOUNTING",
   ADMIN: "ADMINISTRATOR",
 };
 
@@ -101,13 +101,13 @@ const frontDeskNavGroup: NavGroup = {
       activeMatch: "exact",
     },
     {
-      label: "Kalender",
+      label: "Calendar",
       href: "/app/fo/reservasi/kalender",
       icon: CalendarDays,
       activePaths: [{ href: "/app/fo/tape-chart", match: "startsWith" }],
     },
     {
-      label: "Daftar Reservasi",
+      label: "Reservations",
       href: "/app/fo/reservasi/list",
       icon: ClipboardList,
       activePaths: [
@@ -117,8 +117,8 @@ const frontDeskNavGroup: NavGroup = {
         { href: "/app/fo/folios", match: "startsWith" },
       ],
     },
-    { label: "Tamu", href: "/app/fo/tamu", icon: Users },
-    { label: "Blokir Kamar", href: "/app/fo/room-blocks", icon: Wrench },
+    { label: "Guests", href: "/app/fo/tamu", icon: Users },
+    { label: "Room Blocks", href: "/app/fo/room-blocks", icon: Wrench },
   ],
 };
 
@@ -126,7 +126,7 @@ const hkNavGroup: NavGroup = {
   label: "Housekeeping",
   links: [
     {
-      label: "Papan Kamar",
+      label: "Room Board",
       href: "/app/hk/rooms",
       icon: LayoutGrid,
       activeMatch: "startsWith",
@@ -138,7 +138,7 @@ const hkNavGroup: NavGroup = {
       activeMatch: "startsWith",
     },
     {
-      label: "Barang Tertinggal & Temuan",
+      label: "Lost & Found",
       href: "/app/hk/lost-found",
       icon: Archive,
       activeMatch: "startsWith",
@@ -150,19 +150,19 @@ const revenueNavGroup: NavGroup = {
   label: "Pendapatan",
   links: [
     {
-      label: "Laporan Pendapatan",
+      label: "Revenue Reports",
       href: "/app/revenue/reports",
       icon: BarChart3,
       activeMatch: "startsWith",
     },
     {
-      label: "Musim & Tarif",
+      label: "Seasons & Rates",
       href: "/app/revenue/seasons",
       icon: TrendingUp,
       activeMatch: "startsWith",
     },
     {
-      label: "Paket Makan",
+      label: "Meal Plans",
       href: "/app/revenue/meal-plans",
       icon: UtensilsCrossed,
       activeMatch: "startsWith",
@@ -173,13 +173,13 @@ const revenueNavGroup: NavGroup = {
 const fbNavGroup: NavGroup = {
   label: "Food & Beverage",
   links: [
-    { label: "Dasbor F&B", href: "/app/fb", icon: LayoutDashboard, activeMatch: "exact" },
-    { label: "POS Restoran", href: "/app/fb/pos", icon: UtensilsCrossed },
-        { label: "Denah & Meja", href: "/app/fb/tables", icon: LayoutGrid, activeMatch: "startsWith" },
-    { label: "Menu Makanan", href: "/app/fb/menu", icon: ClipboardList },
-    { label: "Inventaris Dapur", href: "/app/fb/inventory", icon: Boxes },
+    { label: "F&B Dashboard", href: "/app/fb", icon: LayoutDashboard, activeMatch: "exact" },
+    { label: "Restaurant POS", href: "/app/fb/pos", icon: UtensilsCrossed },
+        { label: "Floor Plan & Tables", href: "/app/fb/tables", icon: LayoutGrid, activeMatch: "startsWith" },
+    { label: "Food Menu", href: "/app/fb/menu", icon: ClipboardList },
+    { label: "Kitchen Inventory", href: "/app/fb/inventory", icon: Boxes },
     {
-      label: "Layar Dapur",
+      label: "Kitchen Display",
       href: "/app/fb/kitchen",
       icon: ChefHat,
       activeMatch: "startsWith",
@@ -192,13 +192,13 @@ const accountingNavGroup: NavGroup = {
   links: [
     { label: "Night Audit", href: "/app/acc/night-audit", icon: Moon },
     {
-      label: "Laporan Malam",
+      label: "Night Report",
       href: "/app/acc/night-report",
       icon: FileText,
       activePaths: [{ href: "/app/acc/reports", match: "startsWith" }],
     },
     {
-      label: "Ekspor Akuntansi",
+      label: "Accounting Export",
       href: "/app/acc/accounting-export",
       icon: Download,
     },
@@ -208,16 +208,16 @@ const accountingNavGroup: NavGroup = {
 const adminNavGroup: NavGroup = {
   label: "Admin",
   links: [
-    { label: "Pengaturan", href: "/app/admin/settings", icon: Settings },
-    { label: "Kamar", href: "/app/admin/rooms", icon: BedDouble },
+    { label: "Settings", href: "/app/admin/settings", icon: Settings },
+    { label: "Rooms", href: "/app/admin/rooms", icon: BedDouble },
     {
-      label: "Tipe Kamar",
+      label: "Room Types",
       href: "/app/admin/rooms?tab=types",
       icon: LayoutGrid,
       activeMatch: "exact",
     },
-    { label: "Pengguna", href: "/app/admin/users", icon: Users },
-    { label: "Log Aktivitas", href: "/app/admin/activity-log", icon: History },
+    { label: "Users", href: "/app/admin/users", icon: Users },
+    { label: "Activity Log", href: "/app/admin/activity-log", icon: History },
   ],
 };
 
@@ -250,7 +250,7 @@ const accountGroup: NavGroup = {
   label: "Akun",
   links: [
     {
-      label: "Profil",
+      label: "Profile",
       href: "/app/profile",
       icon: User,
       activeMatch: "startsWith",
@@ -259,9 +259,16 @@ const accountGroup: NavGroup = {
 };
 
 // Mobile bottom tab bar shows at most this many slots. When a role has more
-// destinations than fit, the last slot becomes "Lainnya" (More), which opens a
+// destinations than fit, the last slot becomes "More", which opens a
 // bottom sheet with the overflow routes.
 const MAX_MOBILE_TABS = 5;
+
+// Keep group labels stable for navigation state and generated element IDs.
+const navGroupDisplayLabels: Record<string, string> = {
+  Pendapatan: "Revenue",
+  Akuntansi: "Accounting",
+  Akun: "Account",
+};
 
 function isActivePath(
   pathname: string,
@@ -387,7 +394,7 @@ export function NavShell({
 
   // One mobile nav: a role-scoped bottom tab bar built from the same link set
   // (and the same longest-match active logic) as the desktop sidebar. Overflow
-  // beyond MAX_MOBILE_TABS collapses into a "Lainnya" sheet.
+  // beyond MAX_MOBILE_TABS collapses into a "More" sheet.
   const mobileLinks = navGroups.flatMap((group) => group.links);
   const hasMoreTab = mobileLinks.length > MAX_MOBILE_TABS;
   const tabLinks = hasMoreTab
@@ -470,7 +477,7 @@ export function NavShell({
                   ZADD
                 </div>
                 <div className="truncate text-[13px] font-semibold leading-tight text-slate-900">
-                  Manajemen Hotel
+                  Hotel Management
                 </div>
                 <div className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-wider text-slate-500">
                   {roleModuleNames[userRole]}
@@ -482,8 +489,8 @@ export function NavShell({
             type="button"
             variant="ghost"
             size={sidebarCollapsed ? "icon-xs" : "icon"}
-            aria-label={sidebarCollapsed ? "Perluas navigasi" : "Ciutkan navigasi"}
-            title={sidebarCollapsed ? "Perluas navigasi" : "Ciutkan navigasi"}
+            aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+            title={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
             className="shrink-0 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             onClick={toggleSidebarCollapsed}
           >
@@ -495,7 +502,7 @@ export function NavShell({
           </Button>
         </div>
 
-        <nav aria-label="Navigasi utama" className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
+        <nav aria-label="Main navigation" className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
           {desktopNavGroups.map((group) => {
             const isOpen = isNavGroupOpen(group.label, desktopNavGroups.length, sidebarCollapsed, openGroupLabels);
             const isGroupActive = isNavGroupActive(group, activeSidebarHref);
@@ -513,7 +520,7 @@ export function NavShell({
                       className="mb-1 flex w-full items-center justify-between rounded px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-100/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
                     >
                       <span className={isGroupActive ? "font-extrabold text-slate-900" : ""}>
-                        {group.label}
+                        {navGroupDisplayLabels[group.label] ?? group.label}
                       </span>
                       <ChevronDown
                         className={`size-3.5 text-slate-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? "rotate-0" : "-rotate-90"}`}
@@ -528,7 +535,7 @@ export function NavShell({
                       sidebarCollapsed ? "sr-only" : "",
                     ].join(" ")}
                   >
-                    {group.label}
+                    {navGroupDisplayLabels[group.label] ?? group.label}
                   </h2>
                 )}
                 <div
@@ -634,8 +641,8 @@ export function NavShell({
             type="button"
             variant="ghost"
             size={sidebarCollapsed ? "icon" : "default"}
-            aria-label={sidebarCollapsed ? "Keluar" : undefined}
-            title={sidebarCollapsed ? "Keluar" : undefined}
+            aria-label={sidebarCollapsed ? "Sign out" : undefined}
+            title={sidebarCollapsed ? "Sign out" : undefined}
             className={[
               "mt-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md",
               sidebarCollapsed
@@ -645,7 +652,7 @@ export function NavShell({
             onClick={() => void signOut({ redirectTo: "/login" })}
           >
             <LogOut size={18} aria-hidden="true" />
-            {!sidebarCollapsed ? "Keluar" : null}
+            {!sidebarCollapsed ? "Sign out" : null}
           </Button>
         </div>
       </aside>
@@ -666,7 +673,7 @@ export function NavShell({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Keluar"
+          aria-label="Sign out"
           className={`text-slate-600 hover:text-slate-900 ${pathname === "/app/hk/mobile" ? "min-h-12 min-w-12 shrink-0" : ""}`}
           onClick={() => void signOut({ redirectTo: "/login" })}
         >
@@ -688,19 +695,19 @@ export function NavShell({
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
-            aria-label="Tutup menu"
+            aria-label="Close menu"
             onClick={() => setMoreOpen(false)}
           />
           <div className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Lainnya
+                More
               </h2>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Tutup menu"
+                aria-label="Close menu"
                 className="shrink-0 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 onClick={() => setMoreOpen(false)}
               >
@@ -740,7 +747,7 @@ export function NavShell({
       ) : null}
 
       <nav
-        aria-label="Navigasi seluler"
+        aria-label="Mobile navigation"
         className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] desktop:hidden"
       >
         {tabLinks.map((link) => {
@@ -772,7 +779,7 @@ export function NavShell({
         {hasMoreTab ? (
           <button
             type="button"
-            aria-label="Menu lainnya"
+            aria-label="More menu"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(true)}
             className={[
@@ -786,7 +793,7 @@ export function NavShell({
               <MoreHorizontal className="size-5" aria-hidden="true" />
               {moreBadge ? <TabBadgeDot badge={moreBadge} /> : null}
             </span>
-            <span className="max-w-full truncate">Lainnya</span>
+            <span className="max-w-full truncate">More</span>
           </button>
         ) : null}
       </nav>

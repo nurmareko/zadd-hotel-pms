@@ -10,18 +10,18 @@ import {
   startOfWeek,
 } from "date-fns";
 
-import { indonesianLocale } from "@/lib/format";
+import { enGB as indonesianLocale } from "date-fns/locale";
 
 import { DAY_COUNT } from "./date-window";
 
 export const WEEKDAY_LABELS = [
-  "Sen",
-  "Sel",
-  "Rab",
-  "Kam",
-  "Jum",
-  "Sab",
-  "Min",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
 ] as const;
 
 export function buildCalendarDays(displayMonth: Date) {

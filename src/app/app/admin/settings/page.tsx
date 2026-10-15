@@ -34,15 +34,15 @@ export default async function HotelSettingsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Pengaturan</BreadcrumbPage>
+              <BreadcrumbPage>Settings</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Pengaturan Hotel
+          Hotel Settings
         </h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">
-          Konfigurasi hotel, pajak, service charge, dan cut-off Night Audit.
+          Configure hotel details, tax, service charge and the Night Audit cut-off time.
         </p>
       </div>
 

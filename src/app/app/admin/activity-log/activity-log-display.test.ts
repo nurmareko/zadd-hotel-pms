@@ -5,6 +5,10 @@ import { ActivityAction } from "@prisma/client";
 describe("activity log display", () => {
   it("labels every actual action", () => {
     expect(Object.keys(activityLabels)).toEqual(Object.values(ActivityAction));
+        expect(Object.values(activityLabels)).toEqual([
+          "Reservation Created", "Reservation Updated", "Reservation Cancelled",
+          "Check-in Completed", "Check-out Completed", "Payment Recorded", "Charge Posted",
+        ]);
   });
 
   it("parses valid filters and preserves them in pagination", () => {
@@ -25,12 +29,12 @@ describe("activity log display", () => {
   });
 
   it("shows only allowlisted metadata", () => {
-    expect(activitySummary({ amount: 125000, method: "CASH", password: "SECRET", token: "SECRET", nested: { amount: 100 } })).toBe("Rp 125.000 · Metode: Tunai");
-    expect(activitySummary({ note: " Catatan tamu ", article: "MINIBAR", seed: "hidden" })).toBe("Artikel: MINIBAR · Catatan: Catatan tamu");
+    expect(activitySummary({ amount: 125000, method: "CASH", password: "SECRET", token: "SECRET", nested: { amount: 100 } })).toBe("Rp 125.000 · Method: Cash");
+    expect(activitySummary({ note: " Catatan tamu ", article: "MINIBAR", seed: "hidden" })).toBe("Article: MINIBAR · Notes: Catatan tamu");
     expect(activitySummary({ method: "toString", amount: "SECRET", note: { secret: true } })).toBe("—");
     expect(activitySummary(null)).toBe("—");
     expect(activitySummary(["SECRET"])).toBe("—");
-    expect(activitySummary({ note: "a".repeat(500) })).toHaveLength(310);
+    expect(activitySummary({ note: "a".repeat(500) })).toBe(`Notes: ${"a".repeat(300)}…`);
   });
 
   it("formats WIB across midnight and a server DST gap", () => {

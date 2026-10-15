@@ -101,13 +101,13 @@ export function CountryCombobox({
             <div className="flex h-11 items-center gap-2 border-b border-slate-200 px-3 desktop:h-10">
               <Search className="size-4 shrink-0 text-slate-400" aria-hidden="true" />
               <Combobox.Input
-                aria-label={`Cari ${ariaLabel.toLocaleLowerCase()}`}
-                placeholder="Cari nama negara atau kode ISO"
+                aria-label={`Search ${ariaLabel.toLocaleLowerCase()}`}
+                placeholder="Search by country name or ISO code"
                 className="h-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
             <Combobox.Empty className="px-3 py-6 text-center text-sm text-slate-500">
-              Negara tidak ditemukan.
+              No countries found.
             </Combobox.Empty>
             <Combobox.List className="max-h-64 overflow-y-auto overscroll-contain p-1">
               {(country: Country) => (

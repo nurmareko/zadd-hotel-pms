@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const AMENITIES_ITEMS = [
-  { key: "towels", label: "Handuk Mandi" },
-  { key: "shampoo", label: "Sampo" },
-  { key: "soap", label: "Sabun" },
-  { key: "dentalKit", label: "Sikat Gigi / Dental Kit" },
-  { key: "bottledWater", label: "Air Mineral" },
+  { key: "towels", label: "Bath Towel" },
+  { key: "shampoo", label: "Shampoo" },
+  { key: "soap", label: "Soap" },
+  { key: "dentalKit", label: "Toothbrush / Dental Kit" },
+  { key: "bottledWater", label: "Bottled Water" },
 ] as const;
 
 export type AmenityKey = (typeof AMENITIES_ITEMS)[number]["key"];
@@ -21,10 +21,10 @@ export const EMPTY_AMENITIES: AmenitiesCounts = {
 // Blank form values mean untouched, not a recorded quantity of zero.
 export const AmenitiesCountSchema = z.preprocess(
   (value) => typeof value === "string" && !value.trim() ? null : value,
-  z.coerce.number({ error: "Jumlah amenities tidak valid" })
-    .int("Jumlah amenities harus bilangan bulat")
-    .min(0, "Jumlah amenities minimal 0")
-    .max(99, "Jumlah amenities maksimal 99")
+  z.coerce.number({ error: "Invalid amenity quantity" })
+    .int("Amenity quantity must be a whole number")
+    .min(0, "Amenity quantity must be at least 0")
+    .max(99, "Amenity quantity must be at most 99")
     .nullable().optional(),
 );
 

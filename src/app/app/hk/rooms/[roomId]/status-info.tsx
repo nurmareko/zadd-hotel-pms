@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCompactDateID } from "@/lib/format";
 
 const statusDescriptions: Record<RoomStatus, string> = {
-  VC: "VC — Vacant Clean, siap dijual",
-  OC: "OC — Occupied Clean, tamu in-house dan bersih",
-  VD: "VD — Vacant Dirty, perlu dibersihkan",
-  OD: "OD — Occupied Dirty, perlu dibersihkan",
-  VCU: "VCU — Vacant Clean Unchecked, menunggu inspeksi",
-  OOO: "OOO — Out of Order, sedang tidak dapat digunakan",
+  VC: "VC — Vacant Clean, ready for sale",
+  OC: "OC — Occupied Clean, guest in-house and room cleaned",
+  VD: "VD — Vacant Dirty, requires cleaning",
+  OD: "OD — Occupied Dirty, requires cleaning",
+  VCU: "VCU — Vacant Clean Unchecked, awaiting inspection",
+  OOO: "OOO — Out of Order, currently unavailable",
 };
 
 function relativeDurationLabel(from: Date | null, to = new Date()) {
@@ -21,16 +21,16 @@ function relativeDurationLabel(from: Date | null, to = new Date()) {
   const minutes = Math.max(1, Math.floor(diffMs / 60_000));
 
   if (minutes < 60) {
-    return `${minutes} menit yang lalu`;
+    return `${minutes} minutes ago`;
   }
 
   const hours = Math.floor(minutes / 60);
 
   if (hours < 24) {
-    return `${hours} jam yang lalu`;
+    return `${hours} hours ago`;
   }
 
-  return `${Math.floor(hours / 24)} hari yang lalu`;
+  return `${Math.floor(hours / 24)} days ago`;
 }
 
 function dateLabel(date: Date) {
@@ -68,14 +68,14 @@ export function StatusInfo({
   return (
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
-        <CardTitle className="text-base font-semibold">Status Saat Ini</CardTitle>
+        <CardTitle className="text-base font-semibold">Current Status</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <dl className="px-5 py-2">
           <InfoRow label="Status" value={statusDescriptions[status]} />
-          <InfoRow label="Sejak" value={relativeDurationLabel(statusSince)} />
+          <InfoRow label="Since" value={relativeDurationLabel(statusSince)} />
           <InfoRow
-            label="Tamu Saat Ini"
+            label="Current Guest"
             value={
               currentGuest
                 ? `${currentGuest.guestName}${currentGuest.notes ? ` · ${currentGuest.notes}` : ""}`
@@ -83,7 +83,7 @@ export function StatusInfo({
             }
           />
           <InfoRow
-            label="Tamu Terakhir"
+            label="Last Guest"
             value={
               recentGuest
                 ? `${recentGuest.guestName} · check-out ${dateLabel(recentGuest.departureDate)}`
@@ -91,10 +91,10 @@ export function StatusInfo({
             }
           />
           <InfoRow
-            label="Reservasi Berikutnya"
+            label="Next Reservation"
             value={
               upcomingReservation
-                ? `${upcomingReservation.guestName} · tiba ${dateLabel(upcomingReservation.arrivalDate)}${upcomingReservation.notes ? ` · ${upcomingReservation.notes}` : ""}`
+                ? `${upcomingReservation.guestName} · arriving ${dateLabel(upcomingReservation.arrivalDate)}${upcomingReservation.notes ? ` · ${upcomingReservation.notes}` : ""}`
                 : "—"
             }
           />

@@ -4,8 +4,8 @@ export const ARTICLE_DEPARTMENT_LABELS: Record<ArticleType, string> = {
   [ArticleType.ROOM]: "Front Office",
   [ArticleType.SERVICE]: "Housekeeping",
   [ArticleType.FB]: "Food & Beverage",
-  [ArticleType.MISC]: "Spa & Lainnya",
-  [ArticleType.TAX]: "Pajak",
+  [ArticleType.MISC]: "Spa & Other",
+  [ArticleType.TAX]: "Tax",
 };
 
 export const POSTABLE_DEPARTMENTS: ArticleType[] = [

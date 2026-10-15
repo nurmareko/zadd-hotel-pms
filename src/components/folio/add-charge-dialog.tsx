@@ -172,7 +172,7 @@ export function AddChargeDialog({
         return;
       }
 
-      toast.success("Tagihan dicatat");
+      toast.success("Charge recorded");
       resetForm();
       setOpen(false);
       router.refresh();
@@ -188,7 +188,7 @@ export function AddChargeDialog({
         onClick={() => setOpen(true)}
       >
         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        Tambah Tagihan
+        Add Charge
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -198,7 +198,7 @@ export function AddChargeDialog({
         >
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
-              Tambah Tagihan
+              Add Charge
             </DialogTitle>
           </DialogHeader>
 
@@ -212,7 +212,7 @@ export function AddChargeDialog({
 
               <div className="space-y-2">
                 <label htmlFor={departmentFilterId} className="text-sm font-medium text-slate-700">
-                  Departemen
+                  Department
                 </label>
                 <select
                   id={departmentFilterId}
@@ -231,7 +231,7 @@ export function AddChargeDialog({
                     }
                   }}
                 >
-                  <option value="">Semua Departemen</option>
+                  <option value="">All Departments</option>
                   {POSTABLE_DEPARTMENTS.map((type) => (
                     <option key={type} value={type}>{getArticleDepartmentLabel(type)}</option>
                   ))}
@@ -243,7 +243,7 @@ export function AddChargeDialog({
                 name="articleId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Artikel</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Article</FormLabel>
                     <FormControl>
                       <select
                         disabled={isSubmitting}
@@ -265,7 +265,7 @@ export function AddChargeDialog({
                           );
                         }}
                       >
-                        <option value="">Pilih artikel</option>
+                        <option value="">Select an article</option>
                         {filteredArticles.map((article) => (
                           <option key={article.id} value={String(article.id)}>
                             {article.code} - {article.name} ({getArticleDepartmentLabel(article.type)})
@@ -274,7 +274,7 @@ export function AddChargeDialog({
                       </select>
                     </FormControl>
                     {filteredArticles.length === 0 ? (
-                      <FormDescription>Tidak ada artikel yang dapat dicatat untuk departemen ini.</FormDescription>
+                      <FormDescription>No chargeable articles are available for this department.</FormDescription>
                     ) : null}
                     <FormMessage />
                   </FormItem>
@@ -287,7 +287,7 @@ export function AddChargeDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">
-                                          {unitPrice < 0 ? "Alasan Koreksi (wajib)" : "Deskripsi"}
+                                          {unitPrice < 0 ? "Adjustment Reason (required)" : "Description"}
                                         </FormLabel>
                     <FormControl>
                       <Input
@@ -295,7 +295,7 @@ export function AddChargeDialog({
                         required={unitPrice < 0}
                                                 minLength={unitPrice < 0 ? 3 : undefined}
                                                 maxLength={255}
-                                                placeholder={unitPrice < 0 ? "Alasan koreksi minimal 3 karakter" : "Opsional"}
+                                                placeholder={unitPrice < 0 ? "Adjustment reason must be at least 3 characters" : "Optional"}
                         className={fieldClassName}
                         {...field}
                       />
@@ -311,7 +311,7 @@ export function AddChargeDialog({
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-slate-700">Jumlah</FormLabel>
+                      <FormLabel className="text-sm font-medium text-slate-700">Quantity</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -332,7 +332,7 @@ export function AddChargeDialog({
                   name="unitPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-slate-700">Harga Satuan</FormLabel>
+                      <FormLabel className="text-sm font-medium text-slate-700">Unit Price</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -346,7 +346,7 @@ export function AddChargeDialog({
                         />
                       </FormControl>
                       <FormDescription>
-                        Nilai negatif untuk koreksi atau pengurangan tagihan. Alasan wajib diisi.
+                        Use a negative amount for adjustments or charge reductions. A reason is required.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -356,7 +356,7 @@ export function AddChargeDialog({
 
               <div>
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Total Harga
+                  Total Amount
                 </div>
                 <div className="mt-1 flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-right text-sm font-bold tabular-nums text-slate-950">
                   {formatIDR(amount)}
@@ -378,7 +378,7 @@ export function AddChargeDialog({
                         className="border-red-300 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
                         onClick={() => window.location.reload()}
                       >
-                        Muat ulang halaman
+                        Reload page
                       </Button>
                     </div>
                   ) : null}
@@ -392,7 +392,7 @@ export function AddChargeDialog({
                   disabled={isSubmitting}
                   onClick={() => handleOpenChange(false)}
                 >
-                  Batal
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
@@ -400,7 +400,7 @@ export function AddChargeDialog({
                     !form.formState.isValid || isSubmitting || uiState.isUncertain
                   }
                 >
-                  {isSubmitting ? "Mencatat..." : "Catat Tagihan"}
+                  {isSubmitting ? "Recording..." : "Record Charge"}
                 </Button>
               </div>
             </form>

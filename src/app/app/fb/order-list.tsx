@@ -36,28 +36,28 @@ const orderStatusOptions: Array<{ value: FBOrderStatus; label: string }> = [
 
 function actionLabel(status: FBOrderStatus) {
   if (status === FBOrderStatus.CLOSED) {
-    return "Lihat Receipt";
+    return "View Receipt";
   }
 
   if (status === FBOrderStatus.OPEN || status === FBOrderStatus.BILLED) {
-    return "Lanjutkan";
+    return "Continue";
   }
 
-  return "Lihat";
+  return "View";
 }
 
 
 function serviceLocation(order: FBOrderListRow) {
   if (order.serviceType === FBOrderServiceType.ROOM_SERVICE) {
     return {
-      primary: `Room Service · Kamar ${order.roomService?.roomNumber ?? "-"}`,
+      primary: `Room Service · Room ${order.roomService?.roomNumber ?? "-"}`,
       secondary: order.roomService?.guestName ?? "-",
     };
   }
 
   return {
     primary: order.table?.number ?? "-",
-    secondary: "Dine in",
+    secondary: "Dine-in",
   };
 }
 
@@ -79,7 +79,7 @@ export function OrderList({
   return (
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4 text-base font-semibold text-slate-900">
-        Daftar Order
+        Order List
       </div>
       <form className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white p-4 md:p-5" action="/app/fb">
         <input type="hidden" name="tab" value="orders" />
@@ -88,7 +88,7 @@ export function OrderList({
           name="status"
           defaultValue={selectedStatus}
         >
-          <option value="">Semua Status</option>
+          <option value="">All Statuses</option>
           {orderStatusOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -100,14 +100,14 @@ export function OrderList({
           name="tableId"
           defaultValue={selectedTableId}
         >
-          <option value="">Semua Meja</option>
+          <option value="">All Tables</option>
           {tableOptions.map((table) => (
             <option key={table.id} value={table.id}>
               {table.number}
             </option>
           ))}
         </select>
-        <Button type="submit">Terapkan</Button>
+        <Button type="submit">Apply</Button>
         <Link
           className={buttonVariants({ variant: "outline" })}
           href="/app/fb?tab=orders"
@@ -123,20 +123,20 @@ export function OrderList({
         <div className="m-4 flex min-h-36 flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 bg-slate-50 px-4 py-8 text-center md:m-5">
           <ClipboardList className="h-6 w-6 text-slate-400" aria-hidden="true" />
           <h3 className="mt-3 text-sm font-semibold text-slate-900">
-            Belum ada order hari ini
+            No orders today yet
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Mulai order dari meja available di tab Floor Plan.
+            Start an order from an available table on the Floor Plan tab.
           </p>
         </div>
       ) : filteredOrders.length === 0 ? (
         <div className="m-4 flex min-h-36 flex-col items-center justify-center rounded-lg border border-dashed border-gray-200 bg-slate-50 px-4 py-8 text-center md:m-5">
           <SearchX className="h-6 w-6 text-slate-400" aria-hidden="true" />
           <h3 className="mt-3 text-sm font-semibold text-slate-900">
-            Tidak ada order
+            No orders
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Tidak ada order yang cocok dengan filter.
+            No orders match the filters.
           </p>
         </div>
       ) : (
@@ -148,22 +148,22 @@ export function OrderList({
                   Order #
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold text-slate-500">
-                  Lokasi
+                  Location
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-500">
-                  Tamu
+                  Guest
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold text-slate-500">
                   Status
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-left text-xs font-semibold text-slate-500">
-                  Dibuka
+                  Opened
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-500">
                   Total
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-500">
-                  Aksi
+                  Actions
                 </th>
               </tr>
             </thead>

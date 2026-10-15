@@ -7,10 +7,10 @@ vi.mock("@/lib/prisma", () => ({ prisma: { lostFoundItem: { findMany }, user: { 
 
 import { GET } from "./route";
 
-const header = "Kode Referensi,Kategori,Deskripsi,Kamar,Detail Lokasi,Ditemukan Oleh,Waktu Dicatat (UTC),Status,Nama Pengambil,Nomor Telepon Pengambil,Nomor Identitas Pengambil,Dikembalikan Oleh,Waktu Pengembalian (UTC),Catatan Penyelesaian,Dimusnahkan / Dihibahkan Oleh,Waktu Pemusnahan / Hibah (UTC),Alasan Pemusnahan / Hibah";
+const header = "Reference Code,Category,Description,Room,Location Details,Found By,Recorded At (UTC),Status,Claimant Name,Claimant Phone Number,Claimant ID Number,Returned By,Returned At (UTC),Resolution Notes,Disposed of / Donated By,Disposal / Donation Time (UTC),Disposal / Donation Reason";
 const request = (query = "") => new Request(`http://localhost/app/hk/lost-found/export?${query}`);
 const item = () => ({
-  referenceCode: "LF-2609-0001", category: "ELECTRONICS", description: "Telepon",
+  referenceCode: "LF-2609-0001", category: "ELECTRONICS", description: "Phone",
   room: { number: "101" }, locationDetails: "Laci", foundBy: { fullName: "Siti" },
   createdAt: new Date("2026-09-16T18:00:00Z"), status: "RETURNED",
   claimantName: "Budi", claimantPhone: "08123456789", claimantIdNumber: "ID-123",
@@ -77,7 +77,7 @@ describe("GET /app/hk/lost-found/export", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const bytes = new Uint8Array(await response.arrayBuffer());
     expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
-    expect(new TextDecoder().decode(bytes)).toBe(`${header}\r\nLF-2609-0001,Elektronik / Gadget,Telepon,101,Laci,Siti,2026-09-16T18:00:00.000Z,Dikembalikan,Budi,08123456789,ID-123,Ani,2026-09-17T01:00:00.000Z,Diambil pemilik,,,`);
+    expect(new TextDecoder().decode(bytes)).toBe(`${header}\r\nLF-2609-0001,Electronics / Gadgets,Phone,101,Laci,Siti,2026-09-16T18:00:00.000Z,Returned,Budi,08123456789,ID-123,Ani,2026-09-17T01:00:00.000Z,Diambil pemilik,,,`);
   });
 
   it("applies all shared filters, including inclusive hotel days, without pagination", async () => {
@@ -118,11 +118,11 @@ describe("GET /app/hk/lost-found/export", () => {
     "category=invalid", "status=invalid", `room=${"x".repeat(21)}`,
     "from=2026-02-29", "to=2026-13-01", "from=2026-09-18&to=2026-09-17",
     `q=${"x".repeat(201)}`,
-  ])("returns an Indonesian validation error without querying: %s", async (query) => {
+  ])("returns an English validation error without querying: %s", async (query) => {
     const response = await GET(request(query));
     expect(response.status).toBe(400);
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
-    expect(await response.text()).toMatch(/tidak valid|tidak boleh|maksimal/);
+    expect(await response.text()).toMatch(/invalid|cannot|must be at most|must not be before/i);
     expect(findMany).not.toHaveBeenCalled();
   });
 
@@ -147,7 +147,7 @@ describe("GET /app/hk/lost-found/export", () => {
       returnedBy: null, returnedAt: null, resolution: null,
       disposedBy: { fullName: "Dewi" }, disposedAt: new Date("2026-09-18T02:00:00Z"), disposalReason: "Masa simpan habis",
     }]);
-    expect(await (await GET(request())).text()).toBe(`${header}\r\nLF-2609-0001,Lainnya,Telepon,,,Siti,2026-09-16T18:00:00.000Z,Dimusnahkan / Dihibahkan,,,,,,,Dewi,2026-09-18T02:00:00.000Z,Masa simpan habis`);
+    expect(await (await GET(request())).text()).toBe(`${header}\r\nLF-2609-0001,Other,Phone,,,Siti,2026-09-16T18:00:00.000Z,Disposed / Donated,,,,,,,Dewi,2026-09-18T02:00:00.000Z,Masa simpan habis`);
   });
 
   it("escapes commas, quotes and newlines", async () => {

@@ -2,29 +2,29 @@ import { reservationStatusColors } from "@/lib/reservation-status-colors";
 
 export const reservationBarColors = {
   CONFIRMED: {
-    label: "Terkonfirmasi",
+    label: "Confirmed",
     bgColor: "#f97316",
     textColor: "#ffffff",
   },
   CHECKED_IN: {
-    label: "Sudah check-in",
+    label: "Checked In",
     bgColor: "#047857",
     textColor: "#ffffff",
   },
   CHECKED_OUT: {
-    label: "Sudah check-out",
+    label: "Checked Out",
     bgColor: reservationStatusColors.CHECKED_OUT.backgroundColor,
     textColor: reservationStatusColors.CHECKED_OUT.foregroundColor,
   },
   UNALLOCATED: {
-    label: "Belum dialokasikan",
+    label: "Not assigned",
     bgColor: "#2563eb",
     textColor: "#ffffff",
   },
 } as const;
 
 export const roomBlockBarColors = {
-  label: "Kamar diblokir",
+  label: "Room blocked",
   bgColor: "#b91c1c",
   textColor: "#ffffff",
 } as const;
@@ -41,9 +41,9 @@ export function TapeChartLegend() {
   return (
     <div
       className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] font-medium text-slate-600"
-      aria-label="Legenda status reservasi"
+      aria-label="Reservation status legend"
     >
-      <span className="font-semibold text-slate-700">Legenda:</span>
+      <span className="font-semibold text-slate-700">Legend:</span>
       {legendItems.map((item) => (
         <span key={item.label} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap">
           <span

@@ -12,16 +12,16 @@ export default function AppForbiddenPage() {
           <ShieldAlert size={22} aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-[24px] font-bold leading-tight text-slate-900">
-          Akses ditolak
+          Access denied
         </h1>
         <p className="mt-2 max-w-md text-[14px] leading-6 text-slate-500">
-          Kode 403. Akun Anda tidak memiliki izin untuk membuka modul ini.
-          Kembali ke dashboard sesuai peran untuk melanjutkan.
+          Error 403. Your account does not have permission to access this module.
+          Return to your role dashboard to continue.
         </p>
         <div className="mt-6">
           <Link href="/app" className={homeLinkClassName}>
             <Home size={16} aria-hidden="true" />
-            Ke dashboard
+            Go to dashboard
           </Link>
         </div>
       </section>

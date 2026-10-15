@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { indonesianLocale } from "@/lib/format";
+import { enGB as indonesianLocale } from "date-fns/locale";
 import type { FoReservasiView } from "@/lib/nav-preferences";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ export function DateRangePickerPopover({
       <PopoverTrigger
         id={triggerId}
         type="button"
-        aria-label="Pilih tanggal mulai reservasi"
+        aria-label="Select reservation start date"
         className="flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
       >
         <CalendarDays
@@ -78,11 +78,11 @@ export function DateRangePickerPopover({
         <span>{buildRangeLabel(visibleStartDate)}</span>
       </PopoverTrigger>
 
-      <PopoverContent aria-label="Pilih tanggal mulai reservasi">
+      <PopoverContent aria-label="Select reservation start date">
         <div className="mb-3 flex items-center justify-between gap-3">
           <button
             type="button"
-            aria-label="Bulan sebelumnya"
+            aria-label="Previous month"
             onClick={() =>
               setDisplayMonth((month) => startOfMonth(addMonths(month, -1)))
             }
@@ -95,7 +95,7 @@ export function DateRangePickerPopover({
           </h2>
           <button
             type="button"
-            aria-label="Bulan berikutnya"
+            aria-label="Next month"
             onClick={() =>
               setDisplayMonth((month) => startOfMonth(addMonths(month, 1)))
             }
@@ -169,7 +169,7 @@ export function DateRangePickerPopover({
             onClick={() => selectDate(getDefaultStartDate())}
             className="flex h-9 w-full items-center justify-center rounded-md text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           >
-            Hari ini
+            Today
           </button>
         </div>
       </PopoverContent>

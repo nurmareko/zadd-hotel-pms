@@ -30,11 +30,11 @@ export default function AppError({
           <AlertTriangle size={22} aria-hidden="true" />
         </div>
         <h1 className="mt-4 text-xl font-bold leading-tight text-slate-900 md:text-2xl">
-          Modul ini mengalami kendala
+          This module is experiencing a problem
         </h1>
         <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-500">
-          Halaman tidak dapat ditampilkan saat ini. Navigasi tetap aktif sehingga
-          Anda dapat berpindah modul atau mencoba memuat ulang halaman ini.
+          This page cannot be displayed right now. Navigation is still available,
+          so you can switch modules or try reloading this page.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <Button
@@ -43,11 +43,11 @@ export default function AppError({
             className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-xs hover:bg-slate-800"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            Coba lagi
+            Try again
           </Button>
           <Link href="/app" className={secondaryLinkClassName}>
             <Home size={16} aria-hidden="true" />
-            Ke Beranda
+            Go to Home
           </Link>
         </div>
       </section>

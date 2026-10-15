@@ -64,14 +64,14 @@ const roomNumberCollator = new Intl.Collator("en", {
 function nightsLabel(arrivalDate: Date, departureDate: Date) {
   const nights = Math.max(1, differenceInCalendarDays(departureDate, arrivalDate));
 
-  return nights === 1 ? "1 malam" : `${nights} malam`;
+  return nights === 1 ? "1 night" : `${nights} nights`;
 }
 
 function stayoverNightsLabel(date: Date, arrivalDate: Date, departureDate: Date) {
   const currentNight = Math.max(1, differenceInCalendarDays(date, arrivalDate) + 1);
   const totalNights = Math.max(1, differenceInCalendarDays(departureDate, arrivalDate));
 
-  return `Malam ${Math.min(currentNight, totalNights)}/${totalNights}`;
+  return `Night ${Math.min(currentNight, totalNights)}/${totalNights}`;
 }
 
 function etaFromReservation(reservation: ReservationCandidate) {

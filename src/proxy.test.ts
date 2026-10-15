@@ -102,7 +102,7 @@ describe("resolveAppRouteAccess", () => {
           ? { type: "next" }
           : {
               type: "forbidden_response",
-              message: "Anda tidak memiliki akses untuk mengekspor papan kamar.",
+              message: "You do not have permission to export the room board.",
             },
       );
     });

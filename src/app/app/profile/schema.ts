@@ -7,7 +7,7 @@ export const ChangePasswordSchema = z
     confirmNewPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmNewPassword, {
-    message: "Password baru dan konfirmasi tidak cocok",
+    message: "The new password and confirmation do not match",
     path: ["confirmNewPassword"],
   });
 

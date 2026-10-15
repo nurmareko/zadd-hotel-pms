@@ -63,13 +63,13 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
   const userId = await canRunNightAudit();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = RunNightAuditSchema.safeParse({});
 
   if (!parsed.success) {
-    return { ok: false, error: "Permintaan night audit tidak valid." };
+    return { ok: false, error: "Invalid night audit request." };
   }
 
   const result = await executeNightAudit({ runById: userId });
@@ -103,7 +103,7 @@ export async function runNightAudit(): Promise<NightAuditRunResult> {
       toExclusive: addDateOnlyDays(businessDate, 1).toISOString().slice(0, 10),
       cutoverDate: dateStr,
       reason:
-        "Night Audit selesai, tetapi pengambilan data ARR terkini gagal. Muat ulang dasbor untuk mencoba kembali.",
+        "Night Audit completed, but the latest ARR data could not be retrieved. Reload the dashboard to try again.",
     };
   }
 

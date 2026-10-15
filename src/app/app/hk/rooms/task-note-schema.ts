@@ -10,6 +10,15 @@ export const TASK_NOTE_CATEGORIES = [
   "Lainnya",
 ] as const;
 
+// Keep submitted categories compatible with existing task records.
+export const TASK_NOTE_CATEGORY_LABELS: Record<(typeof TASK_NOTE_CATEGORIES)[number], string> = {
+  "Pembersihan Khusus": "Special Cleaning",
+  "Tambahan Amenities": "Additional Amenities",
+  "Perbaikan Ringan": "Minor Repairs",
+  "Layanan Kamar": "Room Service",
+  Lainnya: "Other",
+};
+
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 function positiveId(message: string) {
@@ -24,22 +33,22 @@ function formId(message: string) {
 }
 
 export const SetRoomHousekeeperSchema = z.object({
-  roomId: positiveId("Kamar tidak valid"),
-  dateIso: z.string({ error: "Tanggal tidak valid" }).refine(
+  roomId: positiveId("Invalid room"),
+  dateIso: z.string({ error: "Invalid date" }).refine(
     (value) => isValidISODateOnly(value) && !value.startsWith("0000-"),
-    "Tanggal tidak valid",
+    "Invalid date",
   ),
-  housekeeperId: positiveId("Petugas HK tidak valid").nullable(),
+  housekeeperId: positiveId("Invalid room attendant").nullable(),
 });
 
 export const TaskNoteSchema = z.object({
-  roomId: formId("Kamar tidak valid"),
-  category: z.enum(TASK_NOTE_CATEGORIES, { error: "Kategori tugas tidak valid" }),
-  note: z.string({ error: "Catatan tidak valid" }).trim()
-    .min(3, "Catatan minimal 3 karakter")
-    .max(2000, "Catatan maksimal 2000 karakter"),
+  roomId: formId("Invalid room"),
+  category: z.enum(TASK_NOTE_CATEGORIES, { error: "Invalid task category" }),
+  note: z.string({ error: "Invalid notes" }).trim()
+    .min(3, "Notes must be at least 3 characters")
+    .max(2000, "Notes must not exceed 2000 characters"),
   housekeeperId: z.preprocess(
     (value) => value === null || value === "" ? undefined : value,
-    formId("Petugas HK tidak valid").optional(),
+    formId("Invalid room attendant").optional(),
   ),
 });

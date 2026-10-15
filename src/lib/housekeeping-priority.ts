@@ -20,11 +20,11 @@ export interface HousekeepingPriorityInfo {
 }
 
 export const PRIORITY_CONFIG = {
-  P1: { label: "Mendesak", rank: 1, className: "bg-red-100 text-red-700" },
-  P2: { label: "Pergantian Cepat", rank: 2, className: "bg-orange-100 text-orange-700" },
-  P3: { label: "Keberangkatan", rank: 3, className: "bg-amber-100 text-amber-700" },
-  P4: { label: "Menginap", rank: 4, className: "bg-blue-100 text-blue-700" },
-  P5: { label: "Rutin", rank: 5, className: "bg-slate-100 text-slate-600" },
+  P1: { label: "Urgent", rank: 1, className: "bg-red-100 text-red-700" },
+  P2: { label: "Quick Turnover", rank: 2, className: "bg-orange-100 text-orange-700" },
+  P3: { label: "Departure", rank: 3, className: "bg-amber-100 text-amber-700" },
+  P4: { label: "Stayover", rank: 4, className: "bg-blue-100 text-blue-700" },
+  P5: { label: "Routine", rank: 5, className: "bg-slate-100 text-slate-600" },
 } as const satisfies Record<HousekeepingPriority, HousekeepingPriorityInfo>;
 
 export const HOUSEKEEPING_PRIORITY_CONFIG = PRIORITY_CONFIG;

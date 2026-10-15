@@ -76,7 +76,7 @@ function AddRoomButton({
       onClick={onClick}
     >
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Kamar
+      Add Room
     </Button>
   );
 }
@@ -151,13 +151,13 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
     countKey: string;
     dotClass: string;
   }> = [
-    { label: "Semua", value: "", countKey: "ALL", dotClass: "bg-slate-400" },
-    { label: "VC (Bersih)", value: "VC", countKey: "VC", dotClass: "bg-emerald-500" },
-    { label: "OC (Terisi)", value: "OC", countKey: "OC", dotClass: "bg-sky-500" },
-    { label: "VD (Kotor)", value: "VD", countKey: "VD", dotClass: "bg-amber-500" },
-    { label: "OD (Kotor Terisi)", value: "OD", countKey: "OD", dotClass: "bg-orange-500" },
-    { label: "VCU (Inspeksi)", value: "VCU", countKey: "VCU", dotClass: "bg-purple-500" },
-    { label: "OOO (Rusak)", value: "OOO", countKey: "OOO", dotClass: "bg-rose-500" },
+    { label: "All", value: "", countKey: "ALL", dotClass: "bg-slate-400" },
+    { label: "VC (Vacant Clean)", value: "VC", countKey: "VC", dotClass: "bg-emerald-500" },
+    { label: "OC (Occupied Clean)", value: "OC", countKey: "OC", dotClass: "bg-sky-500" },
+    { label: "VD (Vacant Dirty)", value: "VD", countKey: "VD", dotClass: "bg-amber-500" },
+    { label: "OD (Occupied Dirty)", value: "OD", countKey: "OD", dotClass: "bg-orange-500" },
+    { label: "VCU (Awaiting Inspection)", value: "VCU", countKey: "VCU", dotClass: "bg-purple-500" },
+    { label: "OOO (Out of Order)", value: "OOO", countKey: "OOO", dotClass: "bg-rose-500" },
   ];
 
   function handleDelete() {
@@ -169,7 +169,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
       const result = await deleteRoom(deletingRoom.id);
 
       if (result.ok) {
-        toast.success("Kamar dihapus");
+        toast.success("Room deleted");
         setDeletingRoom(null);
         return;
       }
@@ -184,7 +184,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         <div className="flex flex-col gap-3 border-b border-border bg-card px-3.5 py-3 text-primary sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold uppercase tracking-[0.08em]">
-              {"Daftar Kamar"}
+              {"Room List"}
             </h2>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
               {filteredRooms.length} / {rooms.length}
@@ -195,7 +195,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
               <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
-                placeholder="Cari nomor, tipe, status..."
+                placeholder="Search by number, type or status..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -204,7 +204,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
                   type="button"
                   onClick={() => setQuery("")}
                   className="rounded p-0.5 text-xs text-slate-400 hover:text-slate-600"
-                  aria-label="Hapus pencarian"
+                  aria-label="Clear search"
                 >
                   ✕
                 </button>
@@ -255,7 +255,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
                 }}
                 className="ml-auto text-xs font-medium text-slate-500 hover:text-primary underline"
               >
-                Reset Filter
+                Reset Filters
               </button>
             ) : null}
           </div>
@@ -264,11 +264,11 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         {rooms.length === 0 ? (
           <EmptyState
             icon={BedDouble}
-            title="Belum ada kamar"
+            title="No rooms yet"
             description={
               hasRoomTypes
-                ? "Tambahkan kamar fisik untuk inventory hotel."
-                : "Buat tipe kamar terlebih dahulu sebelum menambahkan kamar."
+                ? "Add physical rooms to the hotel inventory."
+                : "Create a room type before adding rooms."
             }
             action={
               <AddRoomButton
@@ -284,22 +284,22 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Nomor
+                    Number
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Lantai
+                    Floor
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Tipe
+                    Type
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Base Rate
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Status Saat Ini
+                    Current Status
                   </TableHead>
                   <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Aksi
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,8 +343,8 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada kamar"
-                        description="Tidak ada kamar yang cocok dengan filter atau kata kunci."
+                        title="No rooms found"
+                        description="No rooms match the filters or search term."
                         action={
                           <Button
                             variant="outline"
@@ -354,7 +354,7 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
                               setStatusFilter("");
                             }}
                           >
-                            Reset Filter
+                            Reset Filters
                           </Button>
                         }
                       />
@@ -371,10 +371,10 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Kamar"}
+              {"Add Room"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat kamar fisik dan hubungkan ke tipe kamar.
+              Create a physical room and assign a room type.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -398,10 +398,10 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Kamar"}
+              {"Edit Room"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui detail kamar dan status saat ini.
+              Update the room details and current status.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -427,21 +427,20 @@ export function RoomTable({ rooms, roomTypes }: RoomTableProps) {
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus kamar?</AlertDialogTitle>
+            <AlertDialogTitle>Delete room?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus kamar {deletingRoom?.number ?? ""} dari inventaris
-              kamar. Tindakan ini tidak dapat dibatalkan.
+              Delete room {deletingRoom?.number ?? ""} from the room inventory. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

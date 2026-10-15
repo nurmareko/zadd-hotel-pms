@@ -72,7 +72,7 @@ function DialogContent({
           >
             <XIcon
             />
-            <span className="sr-only">Tutup</span>
+            <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

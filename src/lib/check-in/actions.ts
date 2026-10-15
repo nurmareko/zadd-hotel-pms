@@ -1023,7 +1023,7 @@ export async function completeCheckIn(
       if (error instanceof NightAuditClosedError) {
         return checkInFailure("NIGHT_AUDIT_CLOSED", {
           message:
-            "Audit malam untuk tanggal bisnis hari ini sudah selesai. Check-in tidak dapat diproses.",
+            "Night Audit for the current business date is complete. Check-in cannot be processed.",
         });
       }
 

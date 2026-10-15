@@ -47,12 +47,12 @@ const MIN_DAY_WIDTH = 56;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const ROOM_STATUS_FULL_NAMES: Record<RoomStatus, string> = {
-  VC: "Kosong bersih",
-  OC: "Terisi bersih",
-  VD: "Kosong kotor",
-  OD: "Terisi kotor",
-  VCU: "Bersih belum diperiksa",
-  OOO: "Tidak beroperasi",
+  VC: "Vacant clean",
+  OC: "Occupied clean",
+  VD: "Vacant dirty",
+  OD: "Occupied dirty",
+  VCU: "Clean, awaiting inspection",
+  OOO: "Out of service",
 };
 
 type AllocatedBarColorKey = Exclude<
@@ -373,7 +373,7 @@ function GroupRow({
               {roomType.name}
             </span>
             <span className="block text-xs text-slate-500">
-              {roomCount} kamar{oooCount ? ` / ${oooCount} OOO hari ini` : ""}
+              {roomCount} rooms{oooCount ? ` / ${oooCount} OOO today` : ""}
             </span>
           </span>
         </button>
@@ -454,8 +454,8 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
         {roomCount === 0 ? (
           <EmptyState
             icon={BedDouble}
-            title="Belum ada kamar di kalender"
-            description="Tambahkan master kamar terlebih dahulu agar kalender dapat ditampilkan."
+            title="No rooms on the calendar yet"
+            description="Add rooms to the room inventory to display the calendar."
             className="m-3.5 min-h-72"
           />
         ) : (
@@ -468,7 +468,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                 <div
                   className={`${styles.labelCell} ${styles.headerLabelCell} flex items-center px-3 text-left text-xs font-semibold uppercase tracking-wider`}
                 >
-                  Kamar
+                  Room
                 </div>
                 {days.map((day) => (
                   <div
@@ -483,7 +483,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       .join(" ")}
                   >
                     {day.iso === todayIso ? (
-                      <span className={styles.todayLabel}>Hari ini</span>
+                      <span className={styles.todayLabel}>Today</span>
                     ) : null}
                     <span className="text-sm font-bold leading-tight text-slate-800">
                       {day.dayNumber} {day.monthLabel}
@@ -508,7 +508,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
 
                 if (row.kind === "room") {
                   const unavailableToday = row.room.isBlockedToday || row.room.status === "OOO";
-                  const outOfOrderLabel = row.room.isBlockedToday ? "Out of Order" : "Status Fisik OOO";
+                  const outOfOrderLabel = row.room.isBlockedToday ? "Out of Order" : "Physical Status: OOO";
                   return (
                     <div
                       key={`room-${row.room.id}`}
@@ -546,8 +546,8 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                         );
                         const isUnavailable = block || (day.iso === todayIso && unavailableToday);
                         const blockLabel = block
-                          ? `Kamar ${row.room.number} ${day.iso}: Tidak tersedia — ${ROOM_BLOCK_REASON_LABELS[block.reason]}${block.note ? ` — ${block.note}` : ""}`
-                          : `Kamar ${row.room.number} ${day.iso}: Tidak tersedia — ${row.room.isBlockedToday ? "Diblokir hari ini" : "Status Fisik OOO"}`;
+                          ? `Room ${row.room.number} ${day.iso}: Unavailable — ${ROOM_BLOCK_REASON_LABELS[block.reason]}${block.note ? ` — ${block.note}` : ""}`
+                          : `Room ${row.room.number} ${day.iso}: Unavailable — ${row.room.isBlockedToday ? "Blocked today" : "Physical Status: OOO"}`;
 
                         return isUnavailable ? (
                           <div
@@ -573,7 +573,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                               todayIso,
                               styles.bookableCell,
                             )}
-                            aria-label={`Buat reservasi kamar ${row.room.number} untuk ${day.iso}`}
+                            aria-label={`Create room reservation ${row.room.number} for ${day.iso}`}
                           />
                         );
                       })}
@@ -591,11 +591,11 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       className={`${styles.labelCell} ${styles.unallocatedLabelCell} flex items-center justify-between gap-2 border-b border-slate-100 px-3`}
                     >
                       <span className="min-w-0 text-xs font-semibold text-slate-800">
-                        Belum dialokasikan
+                        Not assigned
                       </span>
                       <span className="shrink-0 text-[10px] font-semibold text-slate-500">
                         {row.roomType.unallocatedReservations.length}
-                        {row.laneCount > 1 ? ` / ${row.laneCount} baris` : ""}
+                        {row.laneCount > 1 ? ` / ${row.laneCount} row` : ""}
                       </span>
                     </div>
                     {days.map((day) => (
@@ -610,7 +610,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                           todayIso,
                           styles.bookableCell,
                         )}
-                        aria-label={`Buat reservasi ${row.roomType.name} tanpa alokasi kamar untuk ${day.iso}`}
+                        aria-label={`Create reservation ${row.roomType.name} without a room assignment for ${day.iso}`}
                       />
                     ))}
                   </div>
@@ -639,7 +639,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                       key={bar.key}
                       href={`/app/fo/reservasi/${bar.reservation.id}`}
                       className={barClassName}
-                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} hingga ${bar.reservation.checkOutDate}`}
+                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`}
                       style={barStyle}
                     >
                       <span className={styles.reservationBarText}>
@@ -649,7 +649,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                   );
                 })}
                 {roomBlockBars.map(({ block, roomNumber, gridColumn, top }) => {
-                  const label = `Kamar ${roomNumber}: Diblokir — ${ROOM_BLOCK_REASON_LABELS[block.reason]}, ${block.startDate} hingga sebelum ${block.endDate}${block.note ? ` — ${block.note}` : ""}`;
+                  const label = `Room ${roomNumber}: Blocked — ${ROOM_BLOCK_REASON_LABELS[block.reason]}, ${block.startDate} up to but not including ${block.endDate}${block.note ? ` — ${block.note}` : ""}`;
                   return (
                     <div
                       key={`block-${block.id}`}
@@ -668,7 +668,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                     >
                       <Wrench className="h-3 w-3 shrink-0" aria-hidden="true" />
                       <span className={styles.reservationBarText}>
-                        Diblokir — {ROOM_BLOCK_REASON_LABELS[block.reason]}
+                        Blocked — {ROOM_BLOCK_REASON_LABELS[block.reason]}
                       </span>
                     </div>
                   );

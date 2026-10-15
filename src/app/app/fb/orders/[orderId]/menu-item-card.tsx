@@ -67,7 +67,7 @@ export function MenuItemCard({
           type="button"
         >
           <Plus aria-hidden="true" className="size-3.5" />
-          Tamu {guestNumber}
+          Guest {guestNumber}
         </Button>
       </div>
     </article>

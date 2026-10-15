@@ -46,14 +46,14 @@ export function NightAuditBlockerList({
                     )
                   ) : (
                     <div className="font-semibold text-foreground">
-                      Konfigurasi Night Audit
+                      Night Audit Settings
                     </div>
                   )}
                   {blocker.reservation ? (
                     <div className="mt-1 text-xs text-muted-foreground">
-                      Kamar {blocker.reservation.roomNumber ?? "belum ditentukan"} ·{" "}
-                      Kedatangan {formatLongDateID(blocker.reservation.arrivalDate)} ·{" "}
-                      Keberangkatan{" "}
+                      Room {blocker.reservation.roomNumber ?? "not assigned"} ·{" "}
+                      Arrival {formatLongDateID(blocker.reservation.arrivalDate)} ·{" "}
+                      Departure{" "}
                       {formatLongDateID(blocker.reservation.departureDate)} · Status{" "}
                       {blocker.reservation.status}
                     </div>
@@ -61,7 +61,7 @@ export function NightAuditBlockerList({
                 </div>
                 {blocker.affectedDate ? (
                   <div className="shrink-0 rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800">
-                    {blocker.isFutureDate ? "Tanggal mendatang" : "Tanggal terdampak"}: {" "}
+                    {blocker.isFutureDate ? "Future dates" : "Affected dates"}: {" "}
                     {formatLongDateID(blocker.affectedDate)}
                   </div>
                 ) : null}
@@ -77,7 +77,7 @@ export function NightAuditBlockerList({
                 </Link>
               ) : blocker.kind === "MISSING_FOLIO" && blocker.reservation ? (
                 <div className="mt-2 text-xs font-semibold text-red-800">
-                  Folio belum tersedia; selesaikan pembuatan folio dari Front Office.
+                  No folio is available yet; complete folio creation in Front Office.
                 </div>
               ) : null}
 
@@ -86,7 +86,7 @@ export function NightAuditBlockerList({
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-800 underline decoration-red-300 underline-offset-4 hover:text-red-950"
                   href={`/app/fb/orders/${blocker.fbOrder.id}`}
                 >
-                  Buka order F&B {blocker.fbOrder.orderNo} · {blocker.fbOrder.status}
+                  Open F&B order {blocker.fbOrder.orderNo} · {blocker.fbOrder.status}
                   <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
                 </Link>
               ) : null}
@@ -94,13 +94,13 @@ export function NightAuditBlockerList({
               <dl className="mt-3 grid gap-3 text-sm leading-6 md:grid-cols-2">
                 <div>
                   <dt className="text-xs font-bold uppercase tracking-[0.06em] text-red-800">
-                    Risiko
+                    Risk
                   </dt>
                   <dd className="mt-1 text-slate-700">{blocker.explanation}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-bold uppercase tracking-[0.06em] text-red-800">
-                    Tindakan
+                    Action
                   </dt>
                   <dd className="mt-1 font-medium text-slate-900">
                     {blocker.resolution}

@@ -7,17 +7,17 @@ import type { CreateLostFoundItemSchema, DisposeLostFoundItemSchema, LostFoundAc
 export type LostFoundOperator = { userId: number; role: "HK" | "FO" | "ADMIN" };
 type OperationResult = (Extract<LostFoundActionResult, { ok: true }> & { roomId: number | null }) | Extract<LostFoundActionResult, { ok: false }>;
 class LostFoundError extends Error {}
-const conflictMessage = "Barang temuan sedang diproses oleh petugas lain. Muat ulang halaman dan coba lagi.";
+const conflictMessage = "The found item is being processed by another staff member. Reload the page and try again.";
 
 async function requireCurrentOperator(tx: Prisma.TransactionClient, operator: LostFoundOperator) {
   if (!Number.isSafeInteger(operator.userId) || operator.userId <= 0 || operator.userId > 2147483647 || !["HK", "FO", "ADMIN"].includes(operator.role)) {
-    throw new LostFoundError("Anda tidak memiliki akses untuk mengelola barang temuan.");
+    throw new LostFoundError("You do not have access to manage lost and found.");
   }
   const user = await tx.user.findFirst({
     where: { id: operator.userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
     select: { id: true },
   });
-  if (!user) throw new LostFoundError("Akun tidak aktif atau akses barang temuan telah berubah. Silakan masuk kembali.");
+  if (!user) throw new LostFoundError("Your account is inactive or lost-and-found access has changed. Please sign in again.");
 }
 
 async function runTransaction(fallback: string, operation: (tx: Prisma.TransactionClient) => Promise<Extract<OperationResult, { ok: true }>>): Promise<OperationResult> {
@@ -36,11 +36,11 @@ async function runTransaction(fallback: string, operation: (tx: Prisma.Transacti
 }
 
 export async function createLostFoundItemOperation(operator: LostFoundOperator, input: z.infer<typeof CreateLostFoundItemSchema>): Promise<OperationResult> {
-  return runTransaction("Gagal mencatat barang temuan. Silakan coba lagi.", async (tx) => {
+  return runTransaction("Failed to record the found item. Please try again.", async (tx) => {
     if (input.roomId !== null) {
       await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE`;
       const room = await tx.room.findUnique({ where: { id: input.roomId }, select: { id: true } });
-      if (!room) throw new LostFoundError("Kamar tidak ditemukan. Pilih kamar lain atau kosongkan pilihan kamar.");
+      if (!room) throw new LostFoundError("Room not found. Select another room or clear the room selection.");
     }
     await requireCurrentOperator(tx, operator);
     const allocation = await allocateLostFoundReference(tx);
@@ -56,15 +56,15 @@ async function lockUnclaimedItem(tx: Prisma.TransactionClient, itemId: number, o
   await tx.$queryRaw`SELECT id FROM "lost_found_item" WHERE id = ${itemId} FOR UPDATE`;
   await requireCurrentOperator(tx, operator);
   const item = await tx.lostFoundItem.findUnique({ where: { id: itemId }, select: { id: true, referenceCode: true, roomId: true, status: true } });
-  if (!item) throw new LostFoundError("Barang temuan tidak ditemukan.");
-  if (item.status === "RETURNED") throw new LostFoundError("Barang sudah dikembalikan dan tidak dapat diproses lagi.");
-  if (item.status === "DISPOSED") throw new LostFoundError("Barang sudah dimusnahkan atau dihibahkan dan tidak dapat diproses lagi.");
-  if (item.status !== "UNCLAIMED") throw new LostFoundError("Hanya barang yang belum diambil yang dapat diproses.");
+  if (!item) throw new LostFoundError("Found item not found.");
+  if (item.status === "RETURNED") throw new LostFoundError("The item has been returned and cannot be processed again.");
+  if (item.status === "DISPOSED") throw new LostFoundError("The item has been disposed of or donated and cannot be processed again.");
+  if (item.status !== "UNCLAIMED") throw new LostFoundError("Only unclaimed items can be processed.");
   return item;
 }
 
 export async function claimLostFoundItemOperation(operator: LostFoundOperator, input: z.infer<typeof ReturnLostFoundItemSchema>): Promise<OperationResult> {
-  return runTransaction("Gagal mencatat pengembalian barang. Silakan coba lagi.", async (tx) => {
+  return runTransaction("Failed to record the item return. Please try again.", async (tx) => {
     const item = await lockUnclaimedItem(tx, input.itemId, operator);
     const { itemId, ...claim } = input;
     const updated = await tx.lostFoundItem.updateMany({
@@ -77,9 +77,9 @@ export async function claimLostFoundItemOperation(operator: LostFoundOperator, i
 }
 
 export async function disposeLostFoundItemOperation(operator: LostFoundOperator, input: z.infer<typeof DisposeLostFoundItemSchema>): Promise<OperationResult> {
-  return runTransaction("Gagal mencatat pemusnahan/hibah barang. Silakan coba lagi.", async (tx) => {
+  return runTransaction("Failed to record the item disposal/donation. Please try again.", async (tx) => {
     const item = await lockUnclaimedItem(tx, input.itemId, operator);
-    const disposalReason = input.notes ? `${input.disposalReason}\nCatatan: ${input.notes}` : input.disposalReason;
+    const disposalReason = input.notes ? `${input.disposalReason}\nNotes: ${input.notes}` : input.disposalReason;
     const updated = await tx.lostFoundItem.updateMany({
       where: { id: item.id, status: "UNCLAIMED" },
       data: { status: "DISPOSED", disposalReason, disposedById: operator.userId, disposedAt: new Date() },

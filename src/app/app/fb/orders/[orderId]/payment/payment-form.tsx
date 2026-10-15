@@ -62,13 +62,13 @@ type PaymentItem = PaymentFormProps["items"][number];
 const methodOptions = [
   {
     value: PaymentMethod.CASH,
-    label: "Tunai",
+    label: "Cash",
     detail: "Cash",
     icon: Banknote,
   },
   {
     value: PaymentMethod.CARD,
-    label: "Kartu",
+    label: "Card",
     detail: "Card",
     icon: CreditCard,
   },
@@ -81,7 +81,7 @@ const methodOptions = [
   {
     value: PaymentMethod.CHARGE_TO_ROOM,
     label: "Charge to Room",
-    detail: "Beban folio",
+    detail: "Charge to folio",
     icon: BedDouble,
   },
 ] as const;
@@ -144,9 +144,9 @@ function ResultMessage({ result }: { result: ChargeLookupResult }) {
 
   return (
     <div className="rounded-lg border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm text-status-oc-fg">
-      <div className="font-semibold">Tamu in-house ditemukan.</div>
+      <div className="font-semibold">In-house guest found.</div>
       <div className="mt-1 leading-5">
-        Akan dibebankan ke: {result.guestName} · Kamar {result.roomNumber} ·{" "}
+        Will be charged to: {result.guestName} · Room {result.roomNumber} ·{" "}
         <span className="num font-semibold">{result.folioNo}</span>
       </div>
     </div>
@@ -332,8 +332,8 @@ export function PaymentForm({
       setSuccess(nextSuccess);
       toast.success(
         result.alreadyClosed
-          ? "Order sudah tertutup"
-          : "Pembayaran selesai",
+          ? "Order already closed"
+          : "Payment completed",
       );
       downloadReceipt({
         orderId: result.receiptOrderId,
@@ -370,8 +370,8 @@ export function PaymentForm({
       setSuccess(nextSuccess);
       toast.success(
         result.alreadyClosed
-          ? "Order sudah tertutup"
-          : "Order dibebankan ke folio",
+          ? "Order already closed"
+          : "Order charged to folio",
       );
       downloadReceipt({ orderId: result.receiptOrderId, orderNo });
     });
@@ -382,14 +382,14 @@ export function PaymentForm({
       <section className="overflow-hidden rounded-lg border border-status-vc-pip bg-status-vc-bg shadow-sm">
         <div className="border-b border-status-vc-pip/60 bg-white/70 px-5 py-4">
           <div className="text-base font-semibold text-status-vc-fg">
-            Pembayaran Selesai
+            Payment Complete
           </div>
         </div>
         <div className="grid gap-3 p-5 text-sm text-status-vc-fg">
           <div>
-            <div className="text-base font-bold">Order ditutup</div>
+            <div className="text-base font-bold">Order closed</div>
             <div className="mt-1">
-              Metode:{" "}
+              Method:{" "}
               <span className="font-semibold">{methodLabel(success.method)}</span>{" "}
               - Total{" "}
               <span className="num font-semibold">
@@ -406,13 +406,13 @@ export function PaymentForm({
           {success.method === PaymentMethod.CASH && success.change ? (
             <div className="grid gap-2 rounded-lg border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
               <div>
-                <span className="text-slate-500">Uang diterima</span>{" "}
+                <span className="text-slate-500">Amount received</span>{" "}
                 <span className="num font-semibold">
                   {formatIDR(success.amountTendered ?? total)}
                 </span>
               </div>
               <div>
-                <span className="text-slate-500">Kembalian</span>{" "}
+                <span className="text-slate-500">Change</span>{" "}
                 <span className="num font-semibold">
                   {formatIDR(success.change)}
                 </span>
@@ -431,7 +431,7 @@ export function PaymentForm({
               }
               type="button"
             >
-              Cetak Struk
+              Print Receipt
             </Button>
             {!success.fullyPaid ? (
               <Button
@@ -440,14 +440,14 @@ export function PaymentForm({
                   window.location.href = `/app/fb/orders/${orderId}/payment`;
                 }}
               >
-                Kembali ke Pembayaran
+                Back to Payment
               </Button>
             ) : null}
             <Link
               className={buttonVariants({ variant: "outline" })}
               href="/app/fb"
             >
-              Kembali ke Daftar Meja
+              Back to Table List
             </Link>
           </div>
         </div>
@@ -459,10 +459,10 @@ export function PaymentForm({
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
-          Metode Pembayaran
+          Payment Method
         </div>
         <div className="mt-1 text-sm text-slate-500">
-          Pilih item yang dibayar lalu selesaikan dengan metode pembayaran.
+          Select the items to pay, then complete payment using a payment method.
         </div>
       </div>
 
@@ -471,10 +471,10 @@ export function PaymentForm({
           <div className="flex flex-col gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm font-semibold text-slate-900">
-                Item yang dibayar
+                Items to pay
               </div>
               <div className="mt-1 text-sm text-slate-500">
-                Pilih item dan quantity untuk struk tamu ini.
+                Select the items and quantities for this guest’s receipt.
               </div>
             </div>
             <div className="flex gap-2">
@@ -490,7 +490,7 @@ export function PaymentForm({
                 }
                 type="button"
               >
-                Semua
+                All
               </Button>
               <Button
                 variant="outline"
@@ -502,7 +502,7 @@ export function PaymentForm({
                 }
                 type="button"
               >
-                Kosongkan
+                Clear
               </Button>
             </div>
           </div>
@@ -520,7 +520,7 @@ export function PaymentForm({
                       {item.name}
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
-                      {item.guestLabels} - Sisa {item.totalQuantity} -{" "}
+                      {item.guestLabels} - Remaining {item.totalQuantity} -{" "}
                       {formatIDR(item.unitPrice)}
                     </div>
                     {item.notes ? (
@@ -545,7 +545,7 @@ export function PaymentForm({
                     value={quantity}
                   />
                   <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 text-sm sm:justify-end">
-                    <span className="text-slate-500 sm:hidden">Jumlah</span>
+                    <span className="text-slate-500 sm:hidden">Quantity</span>
                     <span className="num font-semibold text-slate-900">
                       {formatIDR(Number(item.unitPrice) * quantity)}
                     </span>
@@ -568,11 +568,11 @@ export function PaymentForm({
               </span>
             </div>
             <div>
-              <span className="text-slate-500">Pajak</span>{" "}
+              <span className="text-slate-500">Tax</span>{" "}
               <span className="num font-semibold">{formatIDR(selectedTax)}</span>
             </div>
             <div className="sm:text-right">
-              <span className="text-slate-500">Total bayar</span>{" "}
+              <span className="text-slate-500">Payment total</span>{" "}
               <span className="num text-base font-bold text-slate-900">
                 {formatIDR(selectedTotalString)}
               </span>
@@ -627,7 +627,7 @@ export function PaymentForm({
             <div className="grid gap-3">
               <label className="block">
                 <span className="text-sm font-medium text-slate-600">
-                  Uang Diterima
+                  Amount Received
                 </span>
                 <Input
                   className={fieldClassName}
@@ -641,7 +641,7 @@ export function PaymentForm({
               </label>
               <div className="rounded-lg border border-gray-200 bg-slate-50 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-slate-500">Kembalian</span>
+                  <span className="text-slate-500">Change</span>
                   <span
                     className={`num text-xl font-bold ${
                       change < 0 ? "text-status-od-fg" : "text-slate-900"
@@ -653,8 +653,8 @@ export function PaymentForm({
                 {!cashIsValid ? (
                   <div className="mt-1 text-xs font-medium text-status-od-fg">
                     {cashIsWholeIDR
-                      ? "Uang diterima kurang dari total tagihan."
-                      : "Uang diterima harus dalam rupiah penuh."}
+                      ? "The amount received is less than the bill total."
+                      : "The amount received must be in whole rupiah."}
                   </div>
                 ) : null}
               </div>
@@ -664,7 +664,7 @@ export function PaymentForm({
           {method === PaymentMethod.CARD ? (
             <label className="block">
               <span className="text-sm font-medium text-slate-600">
-                Nomor Approval / Referensi
+                Approval / Reference Number
               </span>
               <Input
                 className={fieldClassName}
@@ -679,7 +679,7 @@ export function PaymentForm({
           {method === PaymentMethod.TRANSFER ? (
             <label className="block">
               <span className="text-sm font-medium text-slate-600">
-                Nomor Referensi Transfer
+                Transfer Reference Number
               </span>
               <Input
                 className={fieldClassName}
@@ -696,10 +696,10 @@ export function PaymentForm({
               {attachedRoomFolio ? (
                 <div className="rounded-lg border border-status-oc-pip bg-status-oc-bg px-4 py-3 text-sm text-status-oc-fg">
                   <div className="font-semibold">
-                    Folio room service sudah terhubung.
+                    The room service folio is linked.
                   </div>
                   <div className="mt-1 leading-5">
-                    Akan dibebankan ke: {attachedRoomFolio.guestName} · Kamar{" "}
+                    Will be charged to: {attachedRoomFolio.guestName} · Room{" "}
                     {attachedRoomFolio.roomNumber} ·{" "}
                     <span className="num font-semibold">
                       {attachedRoomFolio.folioNo}
@@ -710,7 +710,7 @@ export function PaymentForm({
                 <>
                   <label className="block">
                     <span className="text-sm font-medium text-slate-600">
-                      Nomor Kamar
+                      Room Number
                     </span>
                     <Input
                       className={fieldClassName}
@@ -725,13 +725,13 @@ export function PaymentForm({
                   </label>
                   {isLookupPending ? (
                     <div className="rounded-lg border border-gray-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                      Mencari tamu in-house...
+                      Searching for an in-house guest...
                     </div>
                   ) : lookupResult ? (
                     <ResultMessage result={lookupResult} />
                   ) : (
                     <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                      Masukkan nomor kamar untuk validasi folio aktif.
+                      Enter a room number to verify the active folio.
                     </div>
                   )}
                 </>
@@ -763,10 +763,10 @@ export function PaymentForm({
             type="button"
           >
             {isSubmitPending
-              ? "Memproses..."
+              ? "Processing..."
               : method === PaymentMethod.CHARGE_TO_ROOM
-                ? "Bebankan ke Kamar"
-                : "Selesaikan Pembayaran"}
+                ? "Charge to Room"
+                : "Complete Payment"}
           </Button>
         </div>
       </div>

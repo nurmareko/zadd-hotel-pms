@@ -25,13 +25,13 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
     const parsedGuestCount = Number(guestCount);
 
     if (!Number.isInteger(parsedGuestCount) || parsedGuestCount < 1) {
-      toast.error("Jumlah tamu minimal 1");
+      toast.error("At least 1 guest is required");
       return;
     }
 
     if (parsedGuestCount > table.capacity) {
       toast.error(
-        `Jumlah tamu tidak boleh melebihi kapasitas meja ${table.capacity}`,
+        `The number of guests must not exceed the table capacity ${table.capacity}`,
       );
       return;
     }
@@ -61,7 +61,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           className="h-10 w-full rounded-md border border-gray-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           id="table-number"
           readOnly
-          value={`${table.number} · kapasitas ${table.capacity}`}
+          value={`${table.number} · capacity ${table.capacity}`}
         />
       </div>
       <div>
@@ -69,7 +69,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
           className="mb-1.5 block text-sm font-semibold text-slate-700"
           htmlFor="guest-count"
         >
-          Jumlah Tamu
+          Number of Guests
         </label>
         <input
           className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -84,7 +84,7 @@ export function ConfirmForm({ table }: ConfirmFormProps) {
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
         <Button disabled={isPending} type="submit">
-          {isPending ? "Membuat..." : "Continue"}
+          {isPending ? "Creating..." : "Continue"}
         </Button>
       </div>
     </form>

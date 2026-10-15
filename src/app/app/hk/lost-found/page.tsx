@@ -12,6 +12,7 @@ import { buildLostFoundWhere, parseLostFoundFilters, type LostFoundFilters as Fi
 import { LOST_FOUND_CATEGORY_ICONS, LOST_FOUND_CATEGORY_LABELS, LOST_FOUND_STATUS_LABELS, LOST_FOUND_STATUS_STYLES } from "@/lib/lost-found/labels";
 import { ClaimLostFoundDialog, CreateLostFoundDialog, DisposeLostFoundDialog } from "./lost-found-dialogs";
 import { LostFoundFilters } from "./lost-found-filters";
+import { disposalReasonLabel } from "./disposal-reason-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ function ItemStatus({ status }: { status: LostFoundStatus }) {
 }
 
 function ItemLocation({ item }: { item: Item }) {
-  return <div className="space-y-1"><p className="whitespace-pre-wrap break-words font-medium">{item.description}</p><p className="break-words text-xs text-muted-foreground">{item.room ? `Kamar ${item.room.number}` : "Area Publik"}{item.locationDetails ? ` · ${item.locationDetails}` : ""}</p></div>;
+  return <div className="space-y-1"><p className="whitespace-pre-wrap break-words font-medium">{item.description}</p><p className="break-words text-xs text-muted-foreground">{item.room ? `Room ${item.room.number}` : "Public Area"}{item.locationDetails ? ` · ${item.locationDetails}` : ""}</p></div>;
 }
 
 function ItemCategory({ item }: { item: Item }) {
@@ -47,24 +48,24 @@ function ItemResolution({ item, now }: { item: Item; now: number }) {
   const date = returned ? item.returnedAt : item.disposedAt;
   const operator = returned ? item.returnedBy : item.disposedBy;
   return <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-xs">
-    <p className="break-words font-semibold">{returned ? item.claimantName ?? "Data pengambil belum tercatat" : item.disposalReason ?? "Alasan belum tercatat"}</p>
+    <p className="break-words font-semibold">{returned ? item.claimantName ?? "Claimant details not recorded" : disposalReasonLabel(item.disposalReason) ?? "Reason not recorded"}</p>
     {returned && item.claimantPhone && <p className="break-words">{item.claimantPhone}</p>}
     {returned && item.resolution && <p className="whitespace-pre-wrap break-words text-muted-foreground">{item.resolution}</p>}
-    <p className="text-muted-foreground">{date ? formatCompactDateTimeID(date) : "Waktu belum tercatat"}</p>
-    <p className="text-muted-foreground">Oleh: {operator?.fullName ?? "Petugas belum tercatat"}</p>
+    <p className="text-muted-foreground">{date ? formatCompactDateTimeID(date) : "Time not recorded"}</p>
+    <p className="text-muted-foreground">By: {operator?.fullName ?? "Staff member not recorded"}</p>
   </div>;
 }
 
 export default async function LostFoundPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!(await canAccessLostFound(session.user))) return <main className="p-6"><h1 className="text-xl font-semibold">Akses Ditolak</h1><p>Anda tidak memiliki akses ke daftar barang temuan.</p></main>;
+  if (!(await canAccessLostFound(session.user))) return <main className="p-6"><h1 className="text-xl font-semibold">Access Denied</h1><p>You do not have permission to view the lost and found register.</p></main>;
   let filters: FilterValues = {};
   let filterError: string | null = null;
   try { filters = parseLostFoundFilters(await searchParams); } catch (error) {
     if (!(error instanceof ZodError)) throw error;
     const issue = error.issues[0];
-    filterError = (issue?.code === "invalid_union" ? issue.errors[0]?.[0]?.message : issue?.message) ?? "Filter tidak valid.";
+    filterError = (issue?.code === "invalid_union" ? issue.errors[0]?.[0]?.message : issue?.message) ?? "Invalid filters.";
   }
   const [items, rooms, counts] = await Promise.all([
     filterError ? Promise.resolve([]) : prisma.lostFoundItem.findMany({ where: buildLostFoundWhere(filters), orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: itemSelect }),
@@ -73,24 +74,24 @@ export default async function LostFoundPage({ searchParams }: { searchParams: Pr
   ]);
   const count = (status: LostFoundStatus) => counts.find((row) => row.status === status)?._count._all ?? 0;
   const metrics = [
-    { label: "Disimpan", hint: "Menunggu Klaim", value: count("UNCLAIMED"), icon: Archive },
-    { label: "Dikembalikan", hint: "Telah diserahkan ke tamu", value: count("RETURNED"), icon: CheckCircle2 },
-    { label: "Dimusnahkan / Dihibahkan", hint: "Penyelesaian sesuai kebijakan", value: count("DISPOSED"), icon: Trash2 },
-    { label: "Total Register", hint: "Seluruh barang tercatat", value: counts.reduce((sum, row) => sum + row._count._all, 0), icon: ClipboardList },
+    { label: "In Storage", hint: "Awaiting Claim", value: count("UNCLAIMED"), icon: Archive },
+    { label: "Returned", hint: "Returned to guest", value: count("RETURNED"), icon: CheckCircle2 },
+    { label: "Disposed of / Donated", hint: "Resolved under hotel policy", value: count("DISPOSED"), icon: Trash2 },
+    { label: "Total Registered", hint: "All recorded items", value: counts.reduce((sum, row) => sum + row._count._all, 0), icon: ClipboardList },
   ];
   // This dynamic server page captures one request-time clock for every disposal preview.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   return <main className="space-y-6 p-4 text-foreground md:p-6">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold tracking-tight">Barang Temuan</h1><p className="mt-1 text-sm text-muted-foreground">Pencatatan, penyimpanan, dan penyelesaian barang temuan hotel.</p></div><CreateLostFoundDialog rooms={rooms} /></header>
-    <section aria-label="Ringkasan seluruh barang temuan" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, hint, value, icon: Icon }) => <Card className="gap-2 p-4" key={label}><div className="flex items-start justify-between gap-3"><h2 className="text-sm font-medium">{label}</h2><Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" /></div><p className="text-3xl font-bold tabular-nums">{value}</p><p className="text-xs text-muted-foreground">{hint}</p></Card>)}</section>
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold tracking-tight">Lost and Found</h1><p className="mt-1 text-sm text-muted-foreground">Record, store and resolve lost and found items at the hotel.</p></div><CreateLostFoundDialog rooms={rooms} /></header>
+    <section aria-label="Summary of all lost and found items" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, hint, value, icon: Icon }) => <Card className="gap-2 p-4" key={label}><div className="flex items-start justify-between gap-3"><h2 className="text-sm font-medium">{label}</h2><Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" /></div><p className="text-3xl font-bold tabular-nums">{value}</p><p className="text-xs text-muted-foreground">{hint}</p></Card>)}</section>
     <Card className="gap-0 overflow-hidden p-0">
       <LostFoundFilters key={JSON.stringify(filters)} filters={filters} canExport={!filterError} />
-      {filterError && <p role="alert" className="m-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{filterError} Atur ulang filter untuk menampilkan daftar.</p>}
-      <div className="border-b px-4 py-3 text-sm text-muted-foreground">{items.length} barang sesuai filter · terbaru dahulu</div>
-      {items.length === 0 ? <div className="space-y-2 p-8 text-center"><Archive className="mx-auto size-8 text-muted-foreground" aria-hidden="true" /><h2 className="font-semibold">Tidak ada barang yang ditampilkan</h2><p className="text-sm text-muted-foreground">Sesuaikan filter atau catat barang temuan baru.</p></div> : <>
-        <div className="hidden overflow-x-auto desktop:block"><table className="w-full min-w-[1100px] text-sm"><caption className="sr-only">Daftar barang temuan dan riwayat penyelesaiannya</caption><thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground"><tr>{["Kode & Waktu", "Barang & Lokasi", "Kategori", "Ditemukan Oleh", "Status", "Aksi / Penyelesaian"].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}</tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20"><td className="px-4 py-3 align-top"><p className="font-semibold">{item.referenceCode}</p><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></td><td className="px-4 py-3 align-top"><ItemLocation item={item} /></td><td className="px-4 py-3 align-top"><ItemCategory item={item} /></td><td className="break-words px-4 py-3 align-top">{item.foundBy.fullName}</td><td className="px-4 py-3 align-top"><ItemStatus status={item.status} /></td><td className="px-4 py-3 align-top"><ItemResolution item={item} now={now} /></td></tr>)}</tbody></table></div>
-        <div className="divide-y desktop:hidden">{items.map((item) => <article key={item.id} className="space-y-4 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="text-sm font-semibold">{item.referenceCode}</h2><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></div><ItemStatus status={item.status} /></div><ItemLocation item={item} /><ItemCategory item={item} /><p className="text-xs text-muted-foreground">Ditemukan oleh: {item.foundBy.fullName}</p><ItemResolution item={item} now={now} /></article>)}</div>
+      {filterError && <p role="alert" className="m-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{filterError} Reset the filters to display the list.</p>}
+      <div className="border-b px-4 py-3 text-sm text-muted-foreground">{items.length} matching items · newest first</div>
+      {items.length === 0 ? <div className="space-y-2 p-8 text-center"><Archive className="mx-auto size-8 text-muted-foreground" aria-hidden="true" /><h2 className="font-semibold">No items to display</h2><p className="text-sm text-muted-foreground">Adjust the filters or record a new found item.</p></div> : <>
+        <div className="hidden overflow-x-auto desktop:block"><table className="w-full min-w-[1100px] text-sm"><caption className="sr-only">Lost and found register and resolution history</caption><thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground"><tr>{["Code & Time", "Item & Location", "Category", "Found By", "Status", "Actions / Resolution"].map((label) => <th key={label} scope="col" className="px-4 py-3 font-medium">{label}</th>)}</tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20"><td className="px-4 py-3 align-top"><p className="font-semibold">{item.referenceCode}</p><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></td><td className="px-4 py-3 align-top"><ItemLocation item={item} /></td><td className="px-4 py-3 align-top"><ItemCategory item={item} /></td><td className="break-words px-4 py-3 align-top">{item.foundBy.fullName}</td><td className="px-4 py-3 align-top"><ItemStatus status={item.status} /></td><td className="px-4 py-3 align-top"><ItemResolution item={item} now={now} /></td></tr>)}</tbody></table></div>
+        <div className="divide-y desktop:hidden">{items.map((item) => <article key={item.id} className="space-y-4 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="text-sm font-semibold">{item.referenceCode}</h2><p className="mt-1 text-xs text-muted-foreground">{formatCompactDateTimeID(item.createdAt)}</p></div><ItemStatus status={item.status} /></div><ItemLocation item={item} /><ItemCategory item={item} /><p className="text-xs text-muted-foreground">Found by: {item.foundBy.fullName}</p><ItemResolution item={item} now={now} /></article>)}</div>
       </>}
     </Card>
   </main>;

@@ -91,7 +91,7 @@ function nightsLabel(arrivalDate: Date, departureDate: Date) {
     differenceInCalendarDays(departureDate, arrivalDate),
   );
 
-  return nights === 1 ? "1 malam" : `${nights} malam`;
+  return nights === 1 ? "1 night" : `${nights} nights`;
 }
 
 function stayoverNightsLabel(
@@ -108,7 +108,7 @@ function stayoverNightsLabel(
     differenceInCalendarDays(departureDate, arrivalDate),
   );
 
-  return `Malam ${Math.min(currentNight, totalNights)}/${totalNights}`;
+  return `Night ${Math.min(currentNight, totalNights)}/${totalNights}`;
 }
 
 function etaFromReservation(reservation: ReservationCandidate) {
@@ -123,9 +123,9 @@ function contextForReservation(
   date: Date,
 ): HousekeepingReservationContext {
   const labels: Record<HousekeepingReservationContextKind, string> = {
-    arrival: "Kedatangan",
-    departure: "Keberangkatan",
-    stayover: "Menginap",
+    arrival: "Arrival",
+    departure: "Departure",
+    stayover: "Stayover",
   };
 
   return {
@@ -155,22 +155,22 @@ function serviceLabel({
   stayover: ReservationCandidate | undefined;
 }) {
   if (arrival && departure) {
-    return "Pembersihan pergantian tamu + persiapan kedatangan";
+    return "Turnover cleaning + arrival preparation";
   }
 
   if (departure) {
-    return "Pembersihan pergantian tamu";
+    return "Turnover cleaning";
   }
 
   if (arrival) {
-    return "Persiapan kedatangan";
+    return "Arrival preparation";
   }
 
   if (stayover) {
-    return "Pembersihan kamar terisi";
+    return "Occupied room cleaning";
   }
 
-  return "Kamar kosong / tidak aktif";
+  return "Vacant / inactive room";
 }
 
 export function getHousekeepingListData(

@@ -11,8 +11,8 @@ const expectedLabels = {
   ROOM: "Front Office",
   SERVICE: "Housekeeping",
   FB: "Food & Beverage",
-  MISC: "Spa & Lainnya",
-  TAX: "Pajak",
+  MISC: "Spa & Other",
+  TAX: "Tax",
 } satisfies Record<ArticleType, string>;
 
 describe("Issue291 article departments", () => {

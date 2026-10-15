@@ -65,7 +65,7 @@ function AddMenuItemButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Menu
+      Add Menu Item
     </Button>
   );
 }
@@ -77,7 +77,7 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 
   return (
     <SharedStatusBadge
-      label={isActive ? "Aktif" : "Nonaktif"}
+      label={isActive ? "Active" : "Inactive"}
       className={className}
       showPip={false}
     />
@@ -156,7 +156,7 @@ export function MenuTable({ items }: MenuTableProps) {
       const result = await deleteMenuItem(deletingItem.id);
 
       if (result.ok) {
-        toast.success("Menu dihapus");
+        toast.success("Menu item deleted");
         setDeletingItem(null);
         return;
       }
@@ -168,7 +168,7 @@ export function MenuTable({ items }: MenuTableProps) {
   return (
     <>
       <div className="mb-4">
-        <Breadcrumb className="mb-2" aria-label="Jejak navigasi">
+        <Breadcrumb className="mb-2" aria-label="Breadcrumb">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href="/app/fb">F&amp;B</BreadcrumbLink>
@@ -182,10 +182,10 @@ export function MenuTable({ items }: MenuTableProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Menu F&amp;B
+              F&amp;B Menu
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Restoran hotel (satu lokasi layanan untuk MVP).
+              Hotel restaurant (one service location for the MVP).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -196,27 +196,27 @@ export function MenuTable({ items }: MenuTableProps) {
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <KpiCard
-          label="Total Menu Aktif"
+          label="Active Menu Items"
           value={activeCount}
-          delta={`${items.length - activeCount} nonaktif`}
+          delta={`${items.length - activeCount} inactive`}
         />
         <KpiCard
-          label="Kategori"
+          label="Category"
           value={categories.length}
           delta={categories.map(menuCategoryLabel).join(", ") || "-"}
         />
         <KpiCard
-          label="Harga Rata-rata"
+          label="Average Price"
           value={formatIDR(Math.round(averagePrice).toString())}
-          delta="Per menu"
+          delta="Per item"
         />
       </div>
 
       {items.length === 0 ? (
         <EmptyState
           icon={Utensils}
-          title="Belum ada menu"
-          description="Tambahkan menu agar F&B dapat membuat pesanan."
+          title="No menu items yet"
+          description="Add menu items so F&B staff can create orders."
           action={<AddMenuItemButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -227,19 +227,19 @@ export function MenuTable({ items }: MenuTableProps) {
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
-                placeholder="Cari menu..."
-                                aria-label="Cari menu"
+                placeholder="Search menu..."
+                                aria-label="Search menu"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              aria-label="Filter kategori"
+              aria-label="Category filter"
                             value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
-              <option value="">Semua Kategori</option>
+              <option value="">All Categories</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {menuCategoryLabel(category)}
@@ -248,15 +248,15 @@ export function MenuTable({ items }: MenuTableProps) {
             </select>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              aria-label="Filter status"
+              aria-label="Status filter"
                             value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
               }
             >
-              <option value="">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="inactive">Nonaktif</option>
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
             <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
               <span className="num">{filteredItems.length}</span> menu
@@ -267,22 +267,22 @@ export function MenuTable({ items }: MenuTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Kode
+                    Code
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Nama Menu
+                    Item Name
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Kategori
+                    Category
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Harga
+                    Price
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Status
                   </TableHead>
                   <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Aksi
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -324,8 +324,8 @@ export function MenuTable({ items }: MenuTableProps) {
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada menu"
-                        description="Tidak ada menu yang cocok dengan filter."
+                        title="No menu items"
+                        description="No menu items match the filters."
                       />
                     </TableCell>
                   </TableRow>
@@ -340,10 +340,10 @@ export function MenuTable({ items }: MenuTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Menu"}
+              {"Add Menu Item"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat menu untuk alur pesanan F&amp;B.
+              Create menu items for F&amp;B orders.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -366,10 +366,10 @@ export function MenuTable({ items }: MenuTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Ubah Menu"}
+              {"Edit Menu Item"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui detail menu yang tampil untuk pengguna F&amp;B.
+              Update the menu item details shown to F&amp;B users.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -400,21 +400,20 @@ export function MenuTable({ items }: MenuTableProps) {
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus menu?</AlertDialogTitle>
+            <AlertDialogTitle>Delete menu item?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus {deletingItem?.name ?? "menu ini"} dari menu
-              F&amp;B. Tindakan ini tidak dapat dibatalkan.
+              Delete {deletingItem?.name ?? "this menu item"} from the F&amp;B menu. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

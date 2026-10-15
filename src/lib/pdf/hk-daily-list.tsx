@@ -134,12 +134,12 @@ const statusLabels: Record<RoomStatus, string> = {
 };
 
 function stateLabel(state: HousekeepingCleaningState) {
-  return state === "IN_PROGRESS" ? "BERJALAN" : statusLabels[state];
+  return state === "IN_PROGRESS" ? "IN PROGRESS" : statusLabels[state];
 }
 
 function reservationLabel(row: HousekeepingListRow) {
   if (row.reservationContexts.length === 0) {
-    return <Text style={styles.tiny}>Tidak ada aktivitas</Text>;
+    return <Text style={styles.tiny}>No activity</Text>;
   }
 
   return (
@@ -168,7 +168,7 @@ function noteLabel(row: HousekeepingListRow) {
     <>
       <Text style={styles.line}>{row.note.reservationNo}</Text>
       <Text style={styles.tiny}>
-        {row.note.notes ?? "Tidak ada catatan reservasi"}
+        {row.note.notes ?? "No reservation notes"}
       </Text>
     </>
   );
@@ -177,12 +177,12 @@ function noteLabel(row: HousekeepingListRow) {
 function TableHeader() {
   return (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.headCell, styles.roomCell]}>Kamar / Tipe</Text>
+      <Text style={[styles.headCell, styles.roomCell]}>Room / Type</Text>
       <Text style={[styles.headCell, styles.statusCell]}>Status</Text>
       <Text style={[styles.headCell, styles.reservationCell]}>
-        Reservasi
+        Reservation
       </Text>
-      <Text style={[styles.headCell, styles.noteCell]}>Catatan</Text>
+      <Text style={[styles.headCell, styles.noteCell]}>Notes</Text>
     </View>
   );
 }
@@ -205,7 +205,7 @@ function RoomRow({
       </View>
       <View style={[styles.cell, styles.statusCell]}>
         <Text style={styles.strong}>{stateLabel(row.cleaningState)}</Text>
-        <Text style={styles.tiny}>Status kamar {statusLabels[row.room.status]}</Text>
+        <Text style={styles.tiny}>Room status {statusLabels[row.room.status]}</Text>
       </View>
       <View style={[styles.cell, styles.reservationCell]}>
         {reservationLabel(row)}
@@ -227,10 +227,10 @@ function Section({
   return (
     <View style={styles.section}>
       <Text style={styles.sectionHeader}>
-        {title} <Text style={styles.sectionMeta}>- {count} kamar</Text>
+        {title} <Text style={styles.sectionMeta}>- {count} rooms</Text>
       </Text>
       {rows.length === 0 ? (
-        <Text style={styles.empty}>Tidak ada kamar ditugaskan.</Text>
+        <Text style={styles.empty}>No rooms assigned.</Text>
       ) : (
         <View style={styles.table}>
           <TableHeader />
@@ -270,8 +270,8 @@ export function HkDailyList({
         </View>
 
         <Text style={styles.summary}>
-          Kamar ditugaskan: {assignedTotal} - Belum ditugaskan (perlu
-          perhatian): {unassignedRows.length}
+          Assigned rooms: {assignedTotal} - Unassigned (needs
+          attention): {unassignedRows.length}
         </Text>
 
         {housekeepers.map((housekeeper) => (
@@ -284,7 +284,7 @@ export function HkDailyList({
         ))}
 
         <Section
-          title="Belum ditugaskan"
+          title="Unassigned"
           count={unassignedRows.length}
           rows={unassignedRows}
         />

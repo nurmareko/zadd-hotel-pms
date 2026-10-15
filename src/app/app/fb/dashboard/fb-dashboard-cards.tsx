@@ -6,16 +6,16 @@ import { formatDecimalID, formatIDR } from "@/lib/format";
 
 export function FBDashboardCards({ metrics }: { metrics: FBDashboardMetrics }) {
   const cards = [
-    { label: "Penjualan Kotor", value: formatIDR(metrics.grossSales), detail: `${formatDecimalID(metrics.settledCount, 0)} tagihan lunas`, icon: Banknote },
-    { label: "Rata-rata Tagihan", value: formatIDR(metrics.averageBill), detail: "Per tagihan lunas", icon: ReceiptText },
-    { label: "Tamu", value: formatDecimalID(metrics.covers, 0), detail: "Pada tagihan lunas", icon: Users },
-    { label: "Tagihan Terbuka", value: formatDecimalID(metrics.openBillCount, 0), detail: `${formatIDR(metrics.openBillTotal)} belum lunas`, icon: Clock3 },
-    { label: "Tagihan Cuma-Cuma", value: formatDecimalID(metrics.complimentaryCount, 0), detail: `${formatIDR(metrics.complimentaryTotal)} · Belum didukung skema data`, icon: Gift },
-    { label: "Waktu Masak Dapur", value: metrics.kitchenAverageMinutes === null ? "—" : `${formatDecimalID(metrics.kitchenAverageMinutes, 1)} menit`, detail: metrics.kitchenAverageMinutes === null ? "Belum ada durasi dapur yang dapat dihitung" : `${formatDecimalID(metrics.kitchenCompletedCount, 0)} pesanan selesai`, icon: ChefHat },
+    { label: "Gross Sales", value: formatIDR(metrics.grossSales), detail: `${formatDecimalID(metrics.settledCount, 0)} settled bills`, icon: Banknote },
+    { label: "Average Bill", value: formatIDR(metrics.averageBill), detail: "Per settled bill", icon: ReceiptText },
+    { label: "Guest", value: formatDecimalID(metrics.covers, 0), detail: "On settled bills", icon: Users },
+    { label: "Open Bills", value: formatDecimalID(metrics.openBillCount, 0), detail: `${formatIDR(metrics.openBillTotal)} unpaid`, icon: Clock3 },
+    { label: "Complimentary Bills", value: formatDecimalID(metrics.complimentaryCount, 0), detail: `${formatIDR(metrics.complimentaryTotal)} · Not supported by the data schema yet`, icon: Gift },
+    { label: "Kitchen Preparation Time", value: metrics.kitchenAverageMinutes === null ? "—" : `${formatDecimalID(metrics.kitchenAverageMinutes, 1)} minutes`, detail: metrics.kitchenAverageMinutes === null ? "No kitchen preparation times available yet" : `${formatDecimalID(metrics.kitchenCompletedCount, 0)} completed orders`, icon: ChefHat },
   ];
 
   return (
-    <section aria-label="Ringkasan operasional" className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <section aria-label="Operational summary" className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {cards.map(({ label, value, detail, icon: Icon }) => (
         <div key={label} className="min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-xs font-semibold text-slate-600">

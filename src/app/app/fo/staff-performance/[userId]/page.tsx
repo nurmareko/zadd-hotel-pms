@@ -1,5 +1,5 @@
 import { addDays, formatDistanceToNow } from "date-fns";
-import { id as indonesianLocale } from "date-fns/locale";
+import { enGB as indonesianLocale } from "date-fns/locale";
 import {
   ArrowLeft,
   BedDouble,
@@ -193,9 +193,9 @@ function activityAmount(activity: ActivityWithContext) {
 }
 
 const paymentMethodLabels: Record<string, string> = {
-  CASH: "Tunai",
-  CARD: "Kartu",
-  TRANSFER: "Transfer",
+  CASH: "Cash",
+  CARD: "Card",
+  TRANSFER: "Bank Transfer",
   CHARGE_TO_ROOM: "charge-to-room",
 };
 
@@ -312,13 +312,13 @@ export default async function StaffHistoryPage({
         className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Kembali ke laporan perbandingan
+        Back to comparison report
       </Link>
 
       <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <MetricCard
           icon={ReceiptText}
-          label="Reservasi"
+          label="Reservation"
           value={metrics.reservationsCreated}
         />
         <MetricCard
@@ -333,17 +333,17 @@ export default async function StaffHistoryPage({
         />
         <MetricCard
           icon={CreditCard}
-          label="Pembayaran"
+          label="Payments"
           value={metrics.paymentsRecordedCount}
         />
         <MetricCard
           icon={FileText}
-          label="Charge folio"
+          label="Folio charges"
           value={metrics.folioChargesPosted}
         />
         <MetricCard
           icon={CalendarClock}
-          label="Total aksi"
+          label="Total actions"
           value={metrics.totalActions}
         />
       </section>
@@ -356,7 +356,7 @@ export default async function StaffHistoryPage({
             <div className="max-w-full overflow-auto">
               <table className="w-full min-w-[1280px] border-collapse text-sm">
                 <caption className="sr-only">
-                  Daftar aktivitas petugas, diurutkan dari yang terbaru
+                  Staff activity, most recent first
                 </caption>
                 <thead>
                   <tr>
@@ -364,25 +364,25 @@ export default async function StaffHistoryPage({
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Waktu
+                      Time
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Aksi
+                      Actions
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Reservasi
+                      Reservation
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Tamu
+                      Guest
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
@@ -394,31 +394,31 @@ export default async function StaffHistoryPage({
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Kamar
+                      Room
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Jumlah
+                      Amount
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Metode
+                      Method
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Artikel
+                      Article
                     </th>
                     <th
                       className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600"
                       scope="col"
                     >
-                      Catatan
+                      Notes
                     </th>
                   </tr>
                 </thead>
@@ -475,8 +475,8 @@ export default async function StaffHistoryPage({
           ) : (
             <EmptyState
               icon={FileText}
-              title="Belum ada aktivitas dalam rentang ini"
-              description="Pilih Sepanjang waktu atau rentang yang lebih luas untuk meninjau riwayat petugas ini."
+              title="No activity in this period"
+              description="Select All Time or a wider date range to review this staff member's history."
               className="m-4"
             />
           )}
@@ -484,7 +484,7 @@ export default async function StaffHistoryPage({
           {summaryActivities.length > FEED_PAGE_SIZE ? (
             <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-slate-500">
-                Halaman {page} dari {totalPages}
+                Page {page} of {totalPages}
               </div>
               <div className="flex gap-2">
                 {hasPreviousPage ? (
@@ -496,7 +496,7 @@ export default async function StaffHistoryPage({
                       page: page - 1,
                     })}
                   >
-                    Lebih baru
+                    Newer
                   </Link>
                 ) : null}
                 {hasNextPage ? (
@@ -508,7 +508,7 @@ export default async function StaffHistoryPage({
                       page: page + 1,
                     })}
                   >
-                    Lebih lama
+                    Older
                   </Link>
                 ) : null}
               </div>

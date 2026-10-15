@@ -12,30 +12,30 @@ import {
 } from "./reservation-errors";
 
 const expectedMessages: Record<ReservationFailureCode, string> = {
-  SESSION_EXPIRED: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-  FORBIDDEN: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  FORBIDDEN: "You do not have permission to perform this action.",
   INVALID_RESERVATION_DATA:
-    "Data reservasi tidak valid. Periksa kembali formulir.",
+    "Invalid reservation data. Check the form.",
   RESERVATION_NOT_FOUND:
-    "Reservasi tidak ditemukan. Muat ulang halaman atau kembali ke daftar reservasi.",
+    "Reservation not found. Reload the page or return to the reservation list.",
   RESERVATION_CONFLICT:
-    "Reservasi berubah sejak halaman ini dibuka. Muat ulang data lalu coba lagi.",
+    "The reservation has changed since this page was opened. Reload the data and try again.",
   ROOM_UNAVAILABLE:
-    "Kamar yang dipilih sudah tidak tersedia untuk tanggal tersebut. Pilih kamar lain.",
-  INVALID_ROOM_TYPE: "Tipe kamar yang dipilih tidak valid.",
-  INVALID_ROOM: "Kamar yang dipilih tidak valid.",
+    "The selected room is no longer available for those dates. Select another room.",
+  INVALID_ROOM_TYPE: "The selected room type is invalid.",
+  INVALID_ROOM: "The selected room is invalid.",
   ROOM_OOO:
-    "Kamar yang dipilih sedang berstatus OOO dan tidak dapat dipesan.",
-  ROOM_BLOCKED: "Kamar yang dipilih diblokir pada periode menginap. Pilih kamar atau tanggal lain.",
+    "The selected room is Out of Order (OOO) and cannot be reserved.",
+  ROOM_BLOCKED: "The selected room is blocked during the stay. Select another room or different dates.",
   POST_CHECK_IN_EDIT_RESTRICTED:
-    "Perubahan ini tidak dapat dilakukan setelah check-in.",
+    "This change cannot be made after check-in.",
   PRICING_QUOTE_FAILED:
-    "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
+    "Unable to calculate the rate summary. Please try again.",
   STAY_FEE_UNAVAILABLE:
-    "Biaya fleksibilitas yang dipilih sedang tidak tersedia. Hapus pilihan atau hubungi admin.",
+    "The selected stay flexibility fee is unavailable. Remove the selection or contact an administrator.",
   CANCELLATION_FAILED:
-    "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
-  UNEXPECTED_FAILURE: "Terjadi kegagalan yang tidak terduga. Silakan coba lagi.",
+    "Unable to cancel the reservation. Please try again.",
+  UNEXPECTED_FAILURE: "An unexpected error occurred. Please try again.",
 };
 
 const forbiddenPublicTerms = [
@@ -48,7 +48,7 @@ const forbiddenPublicTerms = [
 ];
 
 describe("reservation failure contract", () => {
-  it("has complete safe Indonesian copy for every stable failure code", () => {
+  it("has complete safe English copy for every stable failure code", () => {
     expect(new Set(RESERVATION_FAILURE_CODES).size).toBe(
       RESERVATION_FAILURE_CODES.length,
     );
@@ -60,7 +60,7 @@ describe("reservation failure contract", () => {
       const message = reservationFailureMessage(code);
 
       expect(message).toBe(expectedMessages[code]);
-      expect(message).not.toMatch(/unauthorized|invalid reservation|not found|something went wrong|no longer available/i);
+      expect(message).not.toMatch(/reservasi|kamar|tidak|silakan|gagal/i);
 
       for (const term of forbiddenPublicTerms) {
         expect(message).not.toContain(term);
@@ -72,14 +72,14 @@ describe("reservation failure contract", () => {
     expect(reservationAuthorizationFailure(null, ["FO"])).toEqual({
       ok: false,
       code: "SESSION_EXPIRED",
-      error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      error: "Your session has expired. Please sign in again.",
     });
     expect(
       reservationAuthorizationFailure({ user: { role: "HK" } }, ["FO"]),
     ).toEqual({
       ok: false,
       code: "FORBIDDEN",
-      error: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+      error: "You do not have permission to perform this action.",
     });
     expect(
       reservationAuthorizationFailure({ user: { role: "FO" } }, ["FO"]),
@@ -89,29 +89,29 @@ describe("reservation failure contract", () => {
   it("preserves a safe field-specific validation message and target", () => {
     expect(
       reservationFailure("INVALID_RESERVATION_DATA", {
-        message: "Nama tamu wajib diisi",
+        message: "Guest name is required",
         field: "fullName",
       }),
     ).toEqual({
       ok: false,
       code: "INVALID_RESERVATION_DATA",
-      error: "Nama tamu wajib diisi",
+      error: "Guest name is required",
       field: "fullName",
     });
   });
 
   it("uses mode-appropriate copy for unexpected create, edit, quote, and cancellation failures", () => {
     expect(unexpectedReservationFailure("create").error).toBe(
-      "Reservasi tidak dapat dibuat. Silakan coba lagi.",
+      "Unable to create the reservation. Please try again.",
     );
     expect(unexpectedReservationFailure("edit").error).toBe(
-      "Perubahan reservasi tidak dapat disimpan. Silakan coba lagi.",
+      "Unable to save reservation changes. Please try again.",
     );
     expect(unexpectedReservationFailure("quote").error).toBe(
-      "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
+      "Unable to calculate the rate summary. Please try again.",
     );
     expect(unexpectedReservationFailure("cancel").error).toBe(
-      "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
+      "Unable to cancel the reservation. Please try again.",
     );
   });
 
@@ -176,7 +176,7 @@ describe("reservation failure contract", () => {
     ).resolves.toEqual({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Reservasi tidak dapat dibuat. Silakan coba lagi.",
+      error: "Unable to create the reservation. Please try again.",
     });
   });
 
@@ -191,7 +191,7 @@ describe("reservation failure contract", () => {
     expect(result).toEqual({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
+      error: "Unable to cancel the reservation. Please try again.",
     });
   });
 });

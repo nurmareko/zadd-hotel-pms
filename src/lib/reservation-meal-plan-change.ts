@@ -65,7 +65,7 @@ export function buildReservationMealPlanChange(input: {
   ) {
     return {
       ok: false,
-      error: "Reservasi bukan anggota booking grup ini.",
+      error: "The reservation does not belong to this group booking.",
       disposition: "failed",
     };
   }
@@ -77,7 +77,7 @@ export function buildReservationMealPlanChange(input: {
   ) {
     return {
       ok: false,
-      error: "Riwayat Arrangement reservasi final tidak dapat diubah.",
+      error: "Arrangement history for a finalized reservation cannot be changed.",
       disposition: "skipped",
     };
   }
@@ -86,7 +86,7 @@ export function buildReservationMealPlanChange(input: {
   if (!Number.isInteger(pax) || pax < 1) {
     return {
       ok: false,
-      error: "Pax reservasi tidak valid; Arrangement tidak diterapkan.",
+      error: "Invalid reservation pax; the Arrangement was not applied.",
       disposition: "failed",
     };
   }
@@ -94,7 +94,7 @@ export function buildReservationMealPlanChange(input: {
   if (!Number.isInteger(input.roomCapacity) || pax > input.roomCapacity) {
     return {
       ok: false,
-      error: `Pax ${pax} melebihi kapasitas kamar ${input.roomCapacity}; Arrangement tidak diterapkan.`,
+      error: `Pax ${pax} exceeds the room capacity of ${input.roomCapacity}; the Arrangement was not applied.`,
       disposition: "failed",
     };
   }
@@ -106,7 +106,7 @@ export function buildReservationMealPlanChange(input: {
   if (input.currentPlan === input.targetPlan && !priceOnlyChange) {
     return {
       ok: false,
-      error: "Arrangement kamar ini sudah menggunakan paket yang dipilih.",
+      error: "This room already uses the selected Arrangement package.",
       disposition: "skipped",
     };
   }
@@ -116,7 +116,7 @@ export function buildReservationMealPlanChange(input: {
   if (!firstEligibleNight) {
     return {
       ok: false,
-      error: "Tidak ada malam mendatang yang belum diposting untuk diubah.",
+      error: "There are no unposted future nights to change.",
       disposition: "skipped",
     };
   }
@@ -130,7 +130,7 @@ export function buildReservationMealPlanChange(input: {
     const date = formatISO(overAllocatedNight.date, { representation: "date" });
     return {
       ok: false,
-      error: `Alokasi Arrangement untuk malam ${date} sebesar IDR ${nightlyAmount.toString()} (${pax} pax) melebihi tarif paket IDR ${overAllocatedNight.rateAmount.toString()}. Kurangi harga satuan Arrangement; net kamar tidak boleh negatif.`,
+      error: `The Arrangement allocation for ${date} of IDR ${nightlyAmount.toString()} (${pax} pax) exceeds the package rate of IDR ${overAllocatedNight.rateAmount.toString()}. Reduce the Arrangement unit price; the net room amount must not be negative.`,
       disposition: "failed",
     };
   }

@@ -13,7 +13,7 @@ export const roomStatuses = [
 const OptionalDescriptionSchema = z
   .string()
   .trim()
-  .max(500, "Deskripsi maksimal 500 karakter")
+  .max(500, "Description must not exceed 500 characters")
   .or(z.literal(""))
   .nullable()
   .optional()
@@ -34,70 +34,70 @@ export const RoomTypeCreateSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Kode wajib diisi")
-    .max(20, "Kode maksimal 20 karakter")
+    .min(1, "Code is required")
+    .max(20, "Code must not exceed 20 characters")
     .regex(
       /^[A-Za-z0-9_-]+$/,
-      "Kode hanya boleh huruf, angka, underscore, dan tanda hubung",
+      "Code may contain only letters, numbers, underscores and hyphens",
     )
     .transform((value) => value.toUpperCase()),
   name: z
     .string()
     .trim()
-    .min(1, "Nama tipe wajib diisi")
-    .min(2, "Nama tipe minimal 2 karakter")
-    .max(50, "Nama tipe maksimal 50 karakter"),
+    .min(1, "Room type name is required")
+    .min(2, "Room type name must contain at least 2 characters")
+    .max(50, "Room type name must not exceed 50 characters"),
   description: OptionalDescriptionSchema,
   capacity: formNumber(
     z
-      .number({ error: "Kapasitas wajib diisi dan harus berupa angka" })
-      .int("Kapasitas harus bilangan bulat")
-      .min(1, "Kapasitas minimal 1"),
+      .number({ error: "Capacity is required and must be a number" })
+      .int("Capacity must be a whole number")
+      .min(1, "Capacity must be at least 1"),
   ),
   baseRate: formNumber(
     z
-      .number({ error: "Base rate wajib diisi dan harus berupa angka" })
-      .positive("Base rate harus lebih besar dari 0"),
+      .number({ error: "Base rate is required and must be a number" })
+      .positive("Base rate must be greater than 0"),
   ),
 });
 
 export const RoomTypeUpdateSchema = RoomTypeCreateSchema.extend({
-  id: z.coerce.number().int().positive("Tipe kamar wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a room type"),
 });
 
 export const RoomTypeIdSchema = z.object({
-  id: z.coerce.number().int().positive("Tipe kamar wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a room type"),
 });
 
 export const RoomCreateSchema = z.object({
   number: z
     .string()
     .trim()
-    .min(1, "Nomor kamar wajib diisi")
-    .max(10, "Nomor kamar maksimal 10 karakter")
+    .min(1, "Room number is required")
+    .max(10, "Room number must not exceed 10 characters")
     .regex(
       /^[A-Za-z0-9]*[0-9][A-Za-z0-9]*$/,
-      "Nomor kamar harus alfanumerik dan mengandung angka",
+      "Room number must be alphanumeric and contain a number",
     ),
   floor: formNumber(
     z
-      .number({ error: "Lantai wajib diisi dan harus berupa angka" })
-      .int("Lantai harus bilangan bulat")
-      .min(1, "Lantai minimal 1"),
+      .number({ error: "Floor is required and must be a number" })
+      .int("Floor must be a whole number")
+      .min(1, "Floor must be at least 1"),
   ),
   roomTypeId: z.coerce
     .number()
-    .int("Tipe kamar tidak valid")
-    .positive("Pilih tipe kamar"),
-  status: z.enum(roomStatuses, { error: "Pilih status kamar yang valid" }),
+    .int("Invalid room type")
+    .positive("Select a room type"),
+  status: z.enum(roomStatuses, { error: "Select a valid room status" }),
 });
 
 export const RoomUpdateSchema = RoomCreateSchema.extend({
-  id: z.coerce.number().int().positive("Kamar wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a room"),
 });
 
 export const RoomIdSchema = z.object({
-  id: z.coerce.number().int().positive("Kamar wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a room"),
 });
 
 export type RoomStatusValue = (typeof roomStatuses)[number];

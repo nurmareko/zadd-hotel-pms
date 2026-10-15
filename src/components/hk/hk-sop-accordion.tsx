@@ -1,11 +1,11 @@
 const roomStatuses = [
-  { code: "VC", label: "Kosong bersih", description: "Kamar kosong, bersih, dan siap dijual setelah lolos inspeksi.", color: "bg-emerald-100 text-emerald-800" },
-  { code: "OC", label: "Terisi bersih", description: "Kamar masih ditempati tamu dan sudah dibersihkan.", color: "bg-blue-100 text-blue-800" },
-  { code: "VD", label: "Kosong kotor", description: "Kamar kosong yang perlu dibersihkan sebelum digunakan kembali.", color: "bg-amber-100 text-amber-800" },
-  { code: "OD", label: "Terisi kotor", description: "Kamar masih ditempati tamu dan memerlukan pembersihan.", color: "bg-orange-100 text-orange-800" },
-  { code: "VCU", label: "Bersih, menunggu inspeksi", description: "Kamar kosong sudah dibersihkan, tetapi belum siap dijual sampai lolos inspeksi.", color: "bg-purple-100 text-purple-800" },
-  { code: "OOO", label: "Tidak dapat digunakan", description: "Kamar rusak atau memerlukan perbaikan sehingga tidak dapat dijual.", color: "bg-red-100 text-red-800" },
-  { code: "OOS", label: "Tidak tersedia sementara", description: "Kamar sementara tidak digunakan untuk operasional atau layanan.", color: "bg-slate-100 text-slate-700" },
+  { code: "VC", label: "Vacant Clean", description: "A vacant, clean room ready for sale after passing inspection.", color: "bg-emerald-100 text-emerald-800" },
+  { code: "OC", label: "Occupied Clean", description: "An occupied room that has been cleaned.", color: "bg-blue-100 text-blue-800" },
+  { code: "VD", label: "Vacant Dirty", description: "A vacant room that requires cleaning before reuse.", color: "bg-amber-100 text-amber-800" },
+  { code: "OD", label: "Occupied Dirty", description: "An occupied room that requires cleaning.", color: "bg-orange-100 text-orange-800" },
+  { code: "VCU", label: "Clean, Awaiting Inspection", description: "A vacant room that has been cleaned but is not ready for sale until it passes inspection.", color: "bg-purple-100 text-purple-800" },
+  { code: "OOO", label: "Out of Order", description: "A damaged room or one requiring repairs that cannot be sold.", color: "bg-red-100 text-red-800" },
+  { code: "OOS", label: "Out of Service", description: "A room temporarily withdrawn from operations or service.", color: "bg-slate-100 text-slate-700" },
 ];
 
 const summaryClass = "min-h-12 cursor-pointer rounded-md px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -14,50 +14,50 @@ const contentClass = "px-4 pb-4 text-sm leading-6 text-muted-foreground";
 
 export function HkSopAccordion() {
   return (
-    <section aria-label="Panduan SOP HK" className="mt-6 min-w-0 rounded-lg border border-border bg-card shadow-sm">
+    <section aria-label="Housekeeping SOP Guide" className="mt-6 min-w-0 rounded-lg border border-border bg-card shadow-sm">
       <header className="border-b border-border px-4 py-4">
-        <h2 className="text-base font-semibold text-foreground">Panduan SOP HK</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Buka panduan sesuai pekerjaan. Catat hasil aktual pada formulir pembersihan.</p>
+        <h2 className="text-base font-semibold text-foreground">Housekeeping SOP Guide</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Open the guide for your task. Record the actual work completed on the cleaning form.</p>
       </header>
       <div className="divide-y divide-border">
         <details>
-          <summary className={summaryClass}>SOP pembersihan kamar check-out · VD → VCU</summary>
+          <summary className={summaryClass}>Departure cleaning SOP · VD → VCU</summary>
           <div className={contentClass}>
             <ol className={listClass}>
-              <li>Pastikan tamu sudah check-out, kamar berstatus VD, dan Anda adalah petugas yang ditugaskan. Mulai pembersihan di aplikasi.</li>
-              <li>Periksa barang tertinggal dan laporkan temuan. Tarik linen kotor, buang sampah, bersihkan seluruh permukaan dan lantai, sanitasi kamar mandi, lalu tata tempat tidur dengan linen bersih.</li>
-              <li><strong className="text-foreground">Wajib mengganti linen/seprei dan handuk</strong> dengan yang bersih. Tandai kedua penggantian hanya setelah benar-benar dilakukan.</li>
-              <li>Lengkapi dan tata amenities sesuai panduan penempatan. Periksa kebersihan, perlengkapan, dan fungsi fasilitas; catat kekurangan atau kerusakan.</li>
-              <li>Selesaikan pembersihan menjadi VCU. Kamar belum siap dijual: inspeksi yang lulus mengubah VCU → VC; jika gagal, kembalikan ke VD dengan alasan untuk dibersihkan ulang.</li>
+              <li>Confirm that the guest has checked out, the room status is VD and you are the assigned attendant. Start the cleaning session in the app.</li>
+              <li>Check for belongings left behind and report any found items. Remove soiled linen and rubbish, clean all surfaces and floors, sanitise the bathroom and make the bed with clean linen.</li>
+              <li><strong className="text-foreground">Bed linen and towels must be replaced</strong> with clean items. Mark both replacements only after completing them.</li>
+              <li>Replenish and arrange amenities according to the placement guide. Check cleanliness, supplies and working facilities; record any shortages or damage.</li>
+              <li>Complete cleaning to set the room to VCU. The room is not yet ready for sale: a passed inspection changes VCU → VC; if it fails, return it to VD with a reason for recleaning.</li>
             </ol>
           </div>
         </details>
         <details>
-          <summary className={summaryClass}>SOP pembersihan kamar terisi · OD → OC</summary>
+          <summary className={summaryClass}>Stayover cleaning SOP · OD → OC</summary>
           <div className={contentClass}>
             <ol className={listClass}>
-              <li>Periksa penugasan, ketuk pintu, minta izin, dan hormati tanda jangan ganggu. Jangan memindahkan barang pribadi tamu tanpa izin.</li>
-              <li>Mulai pembersihan di aplikasi. Rapikan tempat tidur, buang sampah, serta bersihkan permukaan, kamar mandi, dan lantai.</li>
-              <li>Ganti handuk bila diminta tamu atau diletakkan di lantai. Ganti linen sesuai kebutuhan atau permintaan tamu. Catat penggantian yang benar-benar dilakukan.</li>
-              <li>Isi ulang amenities yang habis, lalu catat kekurangan, kerusakan, atau permintaan tamu.</li>
-              <li>Selesaikan pembersihan OD → OC. Tamu tetap menempati kamar; alur ini tidak melalui inspeksi kamar kosong VCU.</li>
+              <li>Check your assignment, knock, ask permission to enter and respect Do Not Disturb signs. Do not move guests’ personal belongings without permission.</li>
+              <li>Start the cleaning session in the app. Make the bed, remove rubbish and clean surfaces, the bathroom and floors.</li>
+              <li>Replace towels at the guest’s request or when left on the floor. Replace bed linen as needed or requested. Record only replacements actually made.</li>
+              <li>Replenish used amenities and record any shortages, damage or guest requests.</li>
+              <li>Complete cleaning to change OD → OC. The guest remains in-house; this workflow does not use the VCU vacant-room inspection.</li>
             </ol>
           </div>
         </details>
         <details>
-          <summary className={summaryClass}>Standar penataan amenities</summary>
+          <summary className={summaryClass}>Amenity Placement Standards</summary>
           <div className={contentClass}>
             <ul className="list-disc space-y-2 pl-5">
-              <li>Handuk bersih: lipat rapi dan letakkan pada rak atau gantungan handuk di kamar mandi, terpisah dari handuk kotor.</li>
-              <li>Sabun dan sampo: letakkan rapi pada wadah atau area perlengkapan mandi yang bersih dan kering.</li>
-              <li>Perlengkapan sikat dan pasta gigi: letakkan dalam kemasan utuh di dekat wastafel pada area yang kering.</li>
-              <li>Air mineral: siapkan <strong className="text-foreground">2 botol air mineral gratis</strong> bersegel pada meja atau baki minuman, bersama gelas bersih.</li>
-              <li>Periksa kebersihan, segel, dan masa berlaku perlengkapan. Catat jumlah aktual yang diganti atau ditambahkan; jangan mengisi jumlah berdasarkan perkiraan.</li>
+              <li>Clean towels: fold neatly and place on the bathroom towel shelf or rail, separate from soiled towels.</li>
+              <li>Soap and shampoo: arrange neatly in a clean, dry tray or toiletry area.</li>
+              <li>Toothbrush and toothpaste: place in unopened packaging in a dry area near the washbasin.</li>
+              <li>Bottled water: provide <strong className="text-foreground">2 complimentary bottles of water</strong> with intact seals on the table or refreshment tray, alongside clean glasses.</li>
+              <li>Check cleanliness, seals and expiry dates. Record the actual quantities replaced or replenished; do not estimate.</li>
             </ul>
           </div>
         </details>
         <details>
-          <summary className={summaryClass}>Glosarium status kamar</summary>
+          <summary className={summaryClass}>Room Status Glossary</summary>
           <dl className="space-y-4 px-4 pb-4 text-sm">
             {roomStatuses.map(({ code, label, description, color }) => (
               <div key={code}>

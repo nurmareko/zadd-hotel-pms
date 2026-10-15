@@ -18,7 +18,7 @@ export function ReportActions({ auditId }: ReportActionsProps) {
       variant="outline"
     >
       <Printer aria-hidden="true" />
-      Cetak Laporan
+      Print Report
     </Button>
   );
 }

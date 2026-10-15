@@ -26,7 +26,7 @@ function validationFailure(error: {
 
   return {
     ok: false,
-    error: issue?.message ?? "Data pengguna tidak valid",
+    error: issue?.message ?? "Invalid user data",
     field,
   };
 }
@@ -58,36 +58,36 @@ function prismaErrorResult(error: unknown): ActionResult {
       if (uniqueTargetIncludes(error, "username")) {
         return {
           ok: false,
-          error: "Nama pengguna sudah digunakan",
+          error: "Username is already in use",
           field: "username",
         };
       }
 
       if (uniqueTargetIncludes(error, "email")) {
-        return { ok: false, error: "Email sudah digunakan", field: "email" };
+        return { ok: false, error: "Email is already in use", field: "email" };
       }
 
-      return { ok: false, error: "Pengguna sudah ada" };
+      return { ok: false, error: "User already exists" };
     }
 
     if (error.code === "P2003") {
       return {
         ok: false,
-        error: "Pengguna memiliki riwayat aktivitas. Nonaktifkan pengguna.",
+        error: "This user has activity history. Deactivate the user instead.",
       };
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Pengguna tidak ditemukan." };
+      return { ok: false, error: "User not found." };
     }
   }
 
-  return { ok: false, error: "Terjadi kesalahan" };
+  return { ok: false, error: "An error occurred" };
 }
 
 export async function createUser(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UserCreateSchema.safeParse(input);
@@ -106,7 +106,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
   if (existingUsername) {
     return {
       ok: false,
-      error: "Nama pengguna sudah digunakan",
+      error: "Username is already in use",
       field: "username",
     };
   }
@@ -118,7 +118,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
     });
 
     if (existingEmail) {
-      return { ok: false, error: "Email sudah digunakan", field: "email" };
+      return { ok: false, error: "Email is already in use", field: "email" };
     }
   }
 
@@ -159,7 +159,7 @@ export async function createUser(input: unknown): Promise<ActionResult> {
 
 export async function updateUser(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UserUpdateSchema.safeParse(input);
@@ -178,7 +178,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
   if (existingUsername) {
     return {
       ok: false,
-      error: "Nama pengguna sudah digunakan",
+      error: "Username is already in use",
       field: "username",
     };
   }
@@ -190,7 +190,7 @@ export async function updateUser(input: unknown): Promise<ActionResult> {
     });
 
     if (existingEmail) {
-      return { ok: false, error: "Email sudah digunakan", field: "email" };
+      return { ok: false, error: "Email is already in use", field: "email" };
     }
   }
 
@@ -244,7 +244,7 @@ export async function deleteUser(id: number): Promise<ActionResult> {
   const session = await getAdminSession();
 
   if (!session) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UserIdSchema.safeParse({ id });
@@ -254,7 +254,7 @@ export async function deleteUser(id: number): Promise<ActionResult> {
   }
 
   if (session.user.id === String(parsed.data.id)) {
-    return { ok: false, error: "Tidak bisa menghapus akun sendiri" };
+    return { ok: false, error: "You cannot delete your own account" };
   }
 
   try {
@@ -274,7 +274,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
   const session = await getAdminSession();
 
   if (!session) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UserIdSchema.safeParse({ id });
@@ -284,7 +284,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
   }
 
   if (session.user.id === String(parsed.data.id)) {
-    return { ok: false, error: "Tidak bisa menonaktifkan akun sendiri" };
+    return { ok: false, error: "You cannot deactivate your own account" };
   }
 
   try {
@@ -308,7 +308,7 @@ export async function toggleUserActive(id: number): Promise<ActionResult> {
 
 export async function resetUserPassword(input: unknown): Promise<ActionResult> {
   if (!(await getAdminSession())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UserPasswordResetSchema.safeParse(input);

@@ -59,30 +59,30 @@ export function FolioSummary({
     <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
         {isPayment
-          ? "Ringkasan pembayaran"
+          ? "Payment summary"
           : isDetailed
-            ? "Ringkasan tagihan"
-            : "Saldo"}
+            ? "Charge summary"
+            : "Balance"}
       </div>
       <div className="p-5 text-sm">
         {isDetailed ? (
           <>
             <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
             <SummaryRow
-              label="Biaya layanan"
+              label="Service charge"
               value={formatIDR(totals.serviceCharge)}
             />
-            <SummaryRow label="Pajak" value={formatIDR(totals.tax)} />
+            <SummaryRow label="Tax" value={formatIDR(totals.tax)} />
           </>
         ) : null}
         {!isPayment ? (
           <SummaryRow
-            label="Total tagihan"
+            label="Total charges"
             value={formatIDR(totals.totalCharges)}
           />
         ) : null}
         <SummaryRow
-          label="Total pembayaran"
+          label="Total payments"
           value={
             isPayment
               ? formatIDR(totals.totalPaid)
@@ -92,7 +92,7 @@ export function FolioSummary({
         <div className="my-3 border-t border-slate-100" />
         <div className="flex items-center justify-between gap-3 py-1.5 text-base font-semibold text-slate-900">
           <span>
-            {isStandard ? "Saldo terhutang" : billBalanceLabel(totals.balance)}
+            {isStandard ? "Balance due" : billBalanceLabel(totals.balance)}
           </span>
           <span className={balanceClassName(totals.balance)}>
             {isStandard

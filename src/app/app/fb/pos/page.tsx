@@ -59,7 +59,7 @@ export default async function RestaurantPosPage({
   ]);
 
   if (!settings) {
-    return <main className="p-6"><h1 className="text-2xl font-bold">POS Restoran</h1><p role="alert" className="mt-4">Pengaturan hotel belum tersedia. Hubungi administrator sebelum memproses pesanan.</p></main>;
+    return <main className="p-6"><h1 className="text-2xl font-bold">Restaurant POS</h1><p role="alert" className="mt-4">Hotel settings are not available. Contact an administrator before processing orders.</p></main>;
   }
 
   const posOrders: PosOrder[] = orders.map((order) => {
@@ -78,8 +78,8 @@ export default async function RestaurantPosPage({
       serviceType: order.serviceType,
       status: order.status,
       destination: order.serviceType === "ROOM_SERVICE"
-        ? `Kamar ${attachedRoomFolio?.roomNumber ?? "-"}`
-        : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`,
+        ? `Room ${attachedRoomFolio?.roomNumber ?? "-"}`
+        : `Table ${order.table?.number ?? order.tableNo ?? "-"}`,
       guestCount: order.guestCount,
       waiterName: order.waitedBy.fullName,
       kitchenStartedAt: order.kitchenStartedAt?.toISOString() ?? null,

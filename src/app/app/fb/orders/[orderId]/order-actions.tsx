@@ -37,7 +37,7 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
     const reason = voidReason.trim();
 
     if (!reason) {
-      toast.error("Alasan pembatalan wajib diisi");
+      toast.error("A reason for voiding is required");
       return;
     }
 
@@ -49,7 +49,7 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
         return;
       }
 
-      toast.success("Order dibatalkan");
+      toast.success("Order voided");
       router.push("/app/fb");
       router.refresh();
     });
@@ -62,11 +62,11 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
           className={buttonVariants({ variant: "outline" })}
           href="/app/fb"
         >
-          Kembali ke Daftar Meja
+          Back to Table List
         </Link>
         {canEdit ? (
           <p className="text-center text-xs font-medium text-slate-500">
-            Perubahan item tersimpan otomatis
+            Item changes are saved automatically
           </p>
         ) : null}
       </div>
@@ -75,11 +75,11 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
           className={buttonVariants()}
           href={`/app/fb/orders/${orderId}/bill`}
         >
-          Lanjut ke Bill
+          Continue to Bill
         </Link>
       ) : (
         <Button disabled type="button">
-          Lanjut ke Bill
+          Continue to Bill
         </Button>
       )}
       <div className="mt-3 border-t border-slate-200 pt-4">
@@ -101,14 +101,13 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
             disabled={!canEdit || isPending}
             type="button"
           >
-            Batalkan Order
+            Void Order
           </AlertDialogTrigger>
           <AlertDialogContent className="border border-slate-200">
             <AlertDialogHeader>
-              <AlertDialogTitle>Batalkan order ini?</AlertDialogTitle>
+              <AlertDialogTitle>Void this order?</AlertDialogTitle>
               <AlertDialogDescription>
-                Order akan dibatalkan setelah alasan dicatat. Tindakan ini tidak
-                dapat dibatalkan.
+                The order will be voided once the reason is recorded. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="grid gap-2">
@@ -116,27 +115,27 @@ export function OrderActions({ orderId, hasItems, canEdit }: OrderActionsProps) 
                 className="text-sm font-medium text-slate-900"
                 htmlFor="void-order-reason"
               >
-                Alasan pembatalan
+                Reason for voiding
               </label>
               <Textarea
                 id="void-order-reason"
                 value={voidReason}
                 onChange={(event) => setVoidReason(event.target.value)}
-                placeholder="Masukkan alasan pembatalan order"
+                placeholder="Enter the reason for voiding this order"
                 disabled={isPending}
                 maxLength={255}
                 autoFocus
               />
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isPending}>Kembali</AlertDialogCancel>
+              <AlertDialogCancel disabled={isPending}>Back</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 disabled={isPending}
                 onClick={handleVoid}
                 type="button"
               >
-                {isPending ? "Membatalkan..." : "Batalkan Order"}
+                {isPending ? "Voiding..." : "Void Order"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

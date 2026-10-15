@@ -133,10 +133,10 @@ describe("createGuestLaundryOrder", () => {
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
     const lines = committed.filter((write) => write.kind === "line");
     expect(lines).toHaveLength(2);
-    expect(lines[0].data).toMatchObject({ folioId: 30, articleId: 1, description: "Laundry Tamu - Kemeja (3 pcs)", quantity: 3, postedById: 7 });
+    expect(lines[0].data).toMatchObject({ folioId: 30, articleId: 1, description: "Guest Laundry - Kemeja (3 pcs)", quantity: 3, postedById: 7 });
     expect(Number(lines[0].data.unitPrice)).toBe(15000);
     expect(Number(lines[0].data.amount)).toBe(45000);
-    expect(lines[1].data.description).toBe("Laundry Tamu - Celana (2 pcs)");
+    expect(lines[1].data.description).toBe("Guest Laundry - Celana (2 pcs)");
     expect(Number(lines[1].data.amount)).toBe(40000);
     expect(tx.payment.create).not.toHaveBeenCalled();
     expect(committed.find((write) => write.kind === "audit")?.data).toMatchObject({
@@ -170,7 +170,7 @@ describe("createGuestLaundryOrder", () => {
       folioId: 30, fbOrderId: null,
       method: paymentMethod === "QRIS" ? "TRANSFER" : paymentMethod,
       purpose: "PAYMENT", receivedById: 7,
-      reference: paymentMethod === "QRIS" ? "QRIS - Kamar 101" : "Pembayaran Langsung Laundry - Kamar 101",
+      reference: paymentMethod === "QRIS" ? "QRIS - Room 101" : "Laundry Direct Payment - Room 101",
     });
     expect(committed.find((write) => write.kind === "audit")?.data).toMatchObject({
       metadata: { settlementMethod: paymentMethod },
@@ -200,7 +200,7 @@ describe("createGuestLaundryOrder", () => {
       ...input, settlementType: "DIRECT_TENDER", paymentMethod: "QRIS", notes: "   ",
     })).ok).toBe(true);
     expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ method: "TRANSFER", reference: "QRIS - Kamar 101" }),
+      data: expect.objectContaining({ method: "TRANSFER", reference: "QRIS - Room 101" }),
     }));
   });
 
@@ -303,7 +303,7 @@ describe("createGuestLaundryOrder", () => {
 
   it("bounds persistent P2034 retries", async () => {
     transaction.mockRejectedValue(conflict());
-    expect(await createGuestLaundryOrder(input)).toMatchObject({ ok: false, error: expect.stringContaining("coba lagi") });
+    expect(await createGuestLaundryOrder(input)).toMatchObject({ ok: false, error: expect.stringContaining("try again") });
     expect(transaction).toHaveBeenCalledTimes(3);
     expect(revalidate).not.toHaveBeenCalled();
   });

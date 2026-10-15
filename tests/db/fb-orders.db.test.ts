@@ -392,10 +392,10 @@ describe("F&B order settlement", () => {
     expect(await prisma.folioLineItem.count({ where: { fbOrderId: order.id } })).toBe(0);
     const before = await settlementState();
     expect(await payOrderDirect({ orderId: order.id, method: PaymentMethod.CASH, amountTendered: 100_000, selectedItems }))
-      .toEqual({ ok: false, error: "Pesanan yang dibatalkan tidak dapat dibayar." });
+      .toEqual({ ok: false, error: "Voided orders cannot be paid." });
     expect(await settlementState()).toEqual(before);
     expect(await chargeOrderToRoom({ orderId: order.id, roomNumber: room.number, selectedItems }))
-      .toEqual({ ok: false, error: "Pesanan yang dibatalkan tidak dapat dibebankan ke kamar." });
+      .toEqual({ ok: false, error: "Voided orders cannot be charged to a room." });
     expect(await settlementState()).toEqual(before);
   });
 
@@ -407,7 +407,7 @@ describe("F&B order settlement", () => {
       method: PaymentMethod.CASH,
       amountTendered: 1,
       selectedItems: [{ orderItemId: itemA.id, quantity: 2 }],
-    })).toEqual({ ok: false, error: "Uang diterima kurang dari total tagihan" });
+    })).toEqual({ ok: false, error: "The amount received is less than the bill total" });
     expect(await settlementState()).toEqual(before);
   });
 });

@@ -31,7 +31,7 @@ function renderChart(
   }));
 }
 
-const bookingLabel = (day: number) => `aria-label="Buat reservasi kamar 108 untuk 2026-09-${day}"`;
+const bookingLabel = (day: number) => `aria-label="Create room reservation 108 for 2026-09-${day}"`;
 
 describe("tape chart dated block cells", () => {
   it("renders one continuous red block bar while keeping blocked dates unbookable", () => {
@@ -40,14 +40,14 @@ describe("tape chart dated block cells", () => {
     expect(html).not.toContain(bookingLabel(15));
     expect(html).not.toContain(bookingLabel(16));
     expect(html).toContain(bookingLabel(17));
-    expect(html).toContain('title="Kamar 108 2026-09-15: Tidak tersedia — Pemeliharaan — Perbaikan pipa AC."');
+    expect(html).toContain('title="Room 108 2026-09-15: Unavailable — Maintenance — Perbaikan pipa AC."');
     expect(html).toContain("lucide-wrench");
     expect(html).toContain("outOfOrderCell");
     expect(html).toContain("unavailableCell");
     expect(html.match(/class="[^"]*roomBlockBar[^"]*"/g)).toHaveLength(1);
     expect(html).toContain("grid-column:4 / 8");
     expect(html).toContain("background-color:#b91c1c");
-    expect(html).toContain('title="Kamar 108: Diblokir — Pemeliharaan, 2026-09-15 hingga sebelum 2026-09-17 — Perbaikan pipa AC."');
+    expect(html).toContain('title="Room 108: Blocked — Maintenance, 2026-09-15 up to but not including 2026-09-17 — Perbaikan pipa AC."');
     expect(html).toMatch(/class="[^"]*barLayer[^"]*" aria-hidden="false"/);
   });
 
@@ -55,23 +55,23 @@ describe("tape chart dated block cells", () => {
     const html = renderChart([{ ...block, status: "RELEASED" }]);
     for (let day = 14; day < 28; day++) expect(html).toContain(bookingLabel(day));
     expect(html).toContain("lucide-wrench");
-        expect(html).toContain("Status Fisik OOO");
-        expect(html).toContain("1 kamar / 1 OOO hari ini");
+        expect(html).toContain("Physical Status: OOO");
+        expect(html).toContain("1 rooms / 1 OOO today");
     expect(html).not.toContain("roomBlockBar");
   });
 
   it.each([
-    ["OOO", false, "Status Fisik OOO"],
+    ["OOO", false, "Physical Status: OOO"],
     ["VC", true, "Out of Order"],
     ["OOO", true, "Out of Order"],
   ] as const)("disables today's cell for status %s and blockedToday %s", (status, blockedToday, label) => {
     const html = renderChart([], blockedToday, "2026-09-14", status);
-    expect(html).toContain("1 kamar / 1 OOO hari ini");
+    expect(html).toContain("1 rooms / 1 OOO today");
     expect(html).toContain(`aria-label="${label}"`);
     expect(html).toContain("lucide-wrench");
-    if (blockedToday) expect(html).not.toContain("Status Fisik OOO");
+    if (blockedToday) expect(html).not.toContain("Physical Status: OOO");
     expect(html).not.toContain(bookingLabel(14));
-    const cell = html.match(/<div[^>]*aria-label="Kamar 108 2026-09-14: Tidak tersedia[^>]*>/)?.[0];
+    const cell = html.match(/<div[^>]*aria-label="Room 108 2026-09-14: Unavailable[^>]*>/)?.[0];
     expect(cell).toBeDefined();
     expect(cell).toContain("outOfOrderCell");
     expect(cell).toContain("unavailableCell");
@@ -89,15 +89,15 @@ describe("tape chart dated block cells", () => {
       { id: 111, number: "111", floor: 1, status: "VC", isBlockedToday: false, roomBlocks: [], reservations: [] },
     ];
     const html = renderChart([], false, "2026-09-14", "OOO", rooms);
-    expect(html).toContain("4 kamar / 3 OOO hari ini");
-    expect(html).toContain('aria-label="Buat reservasi kamar 111 untuk 2026-09-14"');
+    expect(html).toContain("4 rooms / 3 OOO today");
+    expect(html).toContain('aria-label="Create room reservation 111 for 2026-09-14"');
   });
 
   it("preserves today's dated block reason and bar for a physical OOO room", () => {
     const html = renderChart([block], true, "2026-09-15");
     expect(html).toContain('aria-label="Out of Order"');
-    expect(html).not.toContain("Status Fisik OOO");
-    expect(html).toContain('aria-label="Kamar 108 2026-09-15: Tidak tersedia — Pemeliharaan — Perbaikan pipa AC."');
+    expect(html).not.toContain("Physical Status: OOO");
+    expect(html).toContain('aria-label="Room 108 2026-09-15: Unavailable — Maintenance — Perbaikan pipa AC."');
     expect(html.match(/class="[^"]*roomBlockBar[^"]*"/g)).toHaveLength(1);
     expect(html).not.toContain(bookingLabel(15));
     expect(html).toContain(bookingLabel(17));
@@ -113,8 +113,8 @@ describe("tape chart dated block cells", () => {
     }]);
     expect(html).toContain('href="/app/fo/reservasi/10"');
     expect(html).toContain("Tamu Uji");
-    expect(html).not.toContain('aria-label="Buat reservasi kamar 109 untuk 2026-09-14"');
-    expect(html).toContain('aria-label="Buat reservasi kamar 109 untuk 2026-09-17"');
+    expect(html).not.toContain('aria-label="Create room reservation 109 for 2026-09-14"');
+    expect(html).toContain('aria-label="Create room reservation 109 for 2026-09-17"');
   });
 
   it("clips blocks at either window boundary and supports missing notes", () => {
@@ -126,7 +126,7 @@ describe("tape chart dated block cells", () => {
     expect(html).toContain(bookingLabel(15));
     expect(html).toContain(bookingLabel(26));
     expect(html).not.toContain(bookingLabel(27));
-    expect(html).toContain('title="Kamar 108 2026-09-14: Tidak tersedia — Pemeliharaan"');
+    expect(html).toContain('title="Room 108 2026-09-14: Unavailable — Maintenance"');
     expect(html.match(/class="[^"]*roomBlockBar[^"]*"/g)).toHaveLength(2);
     expect(html).toContain("grid-column:2 / 4");
     expect(html).toContain("grid-column:28 / 30");
@@ -134,7 +134,7 @@ describe("tape chart dated block cells", () => {
 
   it("shows today's header count independently of visible block cells", () => {
     const html = renderChart([], true);
-    expect(html).toContain("1 kamar / 1 OOO hari ini");
+    expect(html).toContain("1 rooms / 1 OOO today");
     for (let day = 14; day < 28; day++) expect(html).toContain(bookingLabel(day));
   });
 });

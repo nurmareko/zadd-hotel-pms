@@ -19,14 +19,14 @@ export const dynamic = "force-dynamic";
 function nightsLabel(arrivalDate: Date, departureDate: Date) {
   const nights = Math.max(1, differenceInCalendarDays(departureDate, arrivalDate));
 
-  return nights === 1 ? "1 malam" : `${nights} malam`;
+  return nights === 1 ? "1 night" : `${nights} nights`;
 }
 
 function stayoverNightsLabel(date: Date, arrivalDate: Date, departureDate: Date) {
   const currentNight = Math.max(1, differenceInCalendarDays(date, arrivalDate) + 1);
   const totalNights = Math.max(1, differenceInCalendarDays(departureDate, arrivalDate));
 
-  return `Malam ${Math.min(currentNight, totalNights)}/${totalNights}`;
+  return `Night ${Math.min(currentNight, totalNights)}/${totalNights}`;
 }
 
 function etaFromNotes(notes: string | null) {
@@ -39,11 +39,10 @@ function HousekeeperDeniedPanel() {
   return (
     <Card className="rounded-lg p-0">
       <CardHeader className="border-b border-border px-5 py-4 rounded-t-lg">
-        <CardTitle className="text-base font-semibold">Tugas Petugas HK</CardTitle>
+        <CardTitle className="text-base font-semibold">Room Attendant Tasks</CardTitle>
       </CardHeader>
       <CardContent className="px-5 py-4 text-sm text-muted-foreground leading-relaxed">
-        Kamar ini tidak masuk daftar tugas Anda hari ini. Aksi pembersihan hanya
-        tersedia untuk petugas HK yang ditugaskan.
+        This room is not assigned to you today. Cleaning actions are available only to the assigned room attendant.
       </CardContent>
     </Card>
   );
@@ -185,7 +184,7 @@ export default async function HKRoomDetailPage({
     (room.status === RoomStatus.VD || room.status === RoomStatus.OD);
   const workContext = currentGuest
     ? {
-        label: "Tamu menginap",
+        label: "In-house guest",
         guestName: currentGuest.guest.fullName,
         detail: stayoverNightsLabel(
           today,
@@ -196,7 +195,7 @@ export default async function HKRoomDetailPage({
       }
     : upcomingReservation
       ? {
-          label: "Kedatangan berikutnya",
+          label: "Next arrival",
           guestName: upcomingReservation.guest.fullName,
           detail: `${formatCompactDateID(upcomingReservation.arrivalDate)} · ${nightsLabel(
             upcomingReservation.arrivalDate,

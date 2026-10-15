@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 import type { HousekeepingNotificationItem } from "@/lib/housekeeping-notifications";
 
 const statusLabels = {
-  ASSIGNED: "Ditugaskan",
-  IN_PROGRESS: "Sedang dikerjakan",
-  COMPLETED: "Selesai",
+  ASSIGNED: "Assigned",
+  IN_PROGRESS: "In progress",
+  COMPLETED: "Completed",
 } as const;
 
 const statusClasses = {
@@ -19,7 +19,7 @@ const statusClasses = {
 } as const;
 
 function formatNotificationDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -107,7 +107,7 @@ export function HousekeepingNotificationBell({ touchTargets = false }: { touchTa
     <div className={`fixed top-2.5 z-30 desktop:right-6 desktop:top-4 ${touchTargets ? "right-20" : "right-14"}`}>
       <button
         type="button"
-        aria-label="Notifikasi housekeeping"
+        aria-label="Housekeeping notifications"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
@@ -129,7 +129,7 @@ export function HousekeepingNotificationBell({ touchTargets = false }: { touchTa
         <section className={`w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl ${touchTargets ? "fixed right-4 top-16 desktop:right-6 desktop:top-20" : "absolute right-0 top-12"}`}>
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Notifikasi tugas</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Task notifications</h2>
               <p className="mt-0.5 text-xs text-slate-500">Housekeeping</p>
             </div>
             <Bell className="size-4 text-slate-400" aria-hidden="true" />
@@ -138,11 +138,11 @@ export function HousekeepingNotificationBell({ touchTargets = false }: { touchTa
           {loading ? (
             <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-slate-500">
               <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              Memuat notifikasi...
+              Loading notifications...
             </div>
           ) : items.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-slate-500">
-              Belum ada notifikasi tugas.
+              No task notifications yet.
             </p>
           ) : (
             <div className="max-h-[min(28rem,calc(100vh-7rem))] overflow-y-auto">
@@ -163,7 +163,7 @@ export function HousekeepingNotificationBell({ touchTargets = false }: { touchTa
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold text-slate-900">
-                        Kamar {item.roomNumber}
+                        Room {item.roomNumber}
                       </span>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClasses[item.status]}`}>
                         {statusLabels[item.status]}

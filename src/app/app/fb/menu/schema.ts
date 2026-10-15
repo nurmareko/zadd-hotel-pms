@@ -2,37 +2,37 @@ import { z } from "zod";
 
 export const MenuItemCreateSchema = z.object({
   code: z
-    .string("Kode wajib diisi")
+    .string("A code is required")
     .trim()
-    .min(1, "Kode wajib diisi")
-    .max(20, "Kode maksimal 20 karakter")
+    .min(1, "A code is required")
+    .max(20, "The code must not exceed 20 characters")
     .regex(
       /^[A-Za-z0-9_-]+$/,
-      "Kode hanya boleh huruf, angka, garis bawah, dan tanda hubung",
+      "The code may contain only letters, numbers, underscores and hyphens",
     )
     .transform((value) => value.toUpperCase()),
   name: z
-    .string("Nama wajib diisi")
+    .string("A name is required")
     .trim()
-    .min(1, "Nama wajib diisi")
-    .max(100, "Nama maksimal 100 karakter"),
+    .min(1, "A name is required")
+    .max(100, "The name must not exceed 100 characters"),
   category: z
-    .string("Kategori wajib diisi")
+    .string("A category is required")
     .trim()
-    .min(1, "Kategori wajib diisi")
-    .max(50, "Kategori maksimal 50 karakter"),
+    .min(1, "A category is required")
+    .max(50, "The category must not exceed 50 characters"),
   price: z.coerce
-    .number("Harga wajib diisi")
-    .int("Harga harus bilangan bulat")
-    .positive("Harga harus lebih dari 0"),
+    .number("A price is required")
+    .int("The price must be a whole number")
+    .positive("The price must be greater than 0"),
 });
 
 export const MenuItemUpdateSchema = MenuItemCreateSchema.extend({
-  id: z.coerce.number("Menu wajib dipilih").int("ID menu harus bilangan bulat").positive("Menu wajib dipilih"),
+  id: z.coerce.number("Select a menu item").int("The menu item ID must be a whole number").positive("Select a menu item"),
 });
 
 export const MenuItemIdSchema = z.object({
-  id: z.coerce.number("Menu wajib dipilih").int("ID menu harus bilangan bulat").positive("Menu wajib dipilih"),
+  id: z.coerce.number("Select a menu item").int("The menu item ID must be a whole number").positive("Select a menu item"),
 });
 
 export type MenuItemFormInput = z.input<typeof MenuItemCreateSchema>;

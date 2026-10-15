@@ -13,7 +13,7 @@ export function FBDatePicker({ date }: { date: string }) {
   return (
     <div className="min-w-0" aria-busy={isPending}>
       <label htmlFor={id} className="mb-1 block text-xs font-medium text-slate-600">
-        Tanggal laporan (WIB)
+        Report date (WIB)
       </label>
       <input
         key={date}
@@ -36,9 +36,9 @@ export function FBDatePicker({ date }: { date: string }) {
         }}
       />
       <span id={`${id}-status`} role="status" className="sr-only">
-        {isPending ? "Memuat laporan tanggal terpilih…" : "Laporan siap ditampilkan."}
+        {isPending ? "Loading the report for the selected date…" : "Report ready."}
       </span>
-      {isPending && <p className="mt-1 text-xs text-slate-600" aria-hidden="true">Memuat laporan…</p>}
+      {isPending && <p className="mt-1 text-xs text-slate-600" aria-hidden="true">Loading report…</p>}
     </div>
   );
 }

@@ -144,7 +144,7 @@ describe("kitchen state after order item changes", () => {
   it.each([null, { ...item(2), fbOrderId: 99 }])("rejects an item deleted or moved while waiting for the lock: %j", async (current) => {
     tx.fBOrderItem.findUnique.mockResolvedValueOnce(item(2)).mockResolvedValue(current);
     expect(await updateItemQuantity({ orderItemId: 7, quantity: 3 })).toEqual({
-      ok: false, error: "Item pesanan tidak ditemukan.",
+      ok: false, error: "Order item not found.",
     });
     expect(tx.fBOrderItem.update).not.toHaveBeenCalled();
     expect(tx.fBOrder.update).not.toHaveBeenCalled();

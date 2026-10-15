@@ -19,8 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 
 const loginSchema = z.object({
-  username: z.string().trim().min(1, "Username wajib diisi"),
-  password: z.string().min(1, "Password wajib diisi"),
+  username: z.string().trim().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 const demoAccounts = [
@@ -57,7 +57,7 @@ export function LoginForm() {
     });
 
     if (!result?.ok || result.error || !result.url) {
-      setError("Username atau password salah");
+      setError("Incorrect username or password");
       form.setFocus("password");
       return;
     }
@@ -93,7 +93,7 @@ export function LoginForm() {
                     autoFocus
                     autoComplete="username"
                     disabled={isSubmitting}
-                    placeholder="Masukkan username Anda"
+                    placeholder="Enter your username"
                     className="h-10 rounded-md border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
@@ -116,7 +116,7 @@ export function LoginForm() {
                     type="password"
                     autoComplete="current-password"
                     disabled={isSubmitting}
-                    placeholder="Masukkan password Anda"
+                    placeholder="Enter your password"
                     className="h-10 rounded-md border-gray-300 bg-white px-3 text-[14px] shadow-sm placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-4 focus-visible:ring-slate-900/10 disabled:bg-slate-50"
                     {...field}
                   />
@@ -147,20 +147,20 @@ export function LoginForm() {
                 className="size-3 animate-spin rounded-full border border-white border-t-transparent"
                 aria-hidden="true"
               />
-              Memproses
+              Signing in
             </>
           ) : (
-            "Masuk"
+            "Sign in"
           )}
         </Button>
 
         <div className="mt-4 border-t border-gray-200 pt-6">
           <div className="mb-4 flex items-baseline justify-between">
             <p className="text-[13px] font-medium text-slate-700">
-              Akun Demo
+              Demo Accounts
             </p>
             <p className="text-[12px] text-slate-400">
-              Klik untuk mengisi otomatis
+              Click to autofill
             </p>
           </div>
 

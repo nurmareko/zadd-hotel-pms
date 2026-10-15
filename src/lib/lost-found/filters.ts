@@ -3,16 +3,16 @@ import { z } from "zod";
 import { addDateOnlyDays, hotelTimestampBoundaryForDate, isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 import { lostFoundCategorySchema, lostFoundStatusSchema } from "./schema";
 
-const dateFilter = z.string({ error: "Tanggal tidak valid." }).refine((value) => value === "" || isValidISODateOnly(value), "Tanggal tidak valid.").optional();
+const dateFilter = z.string({ error: "Invalid date." }).refine((value) => value === "" || isValidISODateOnly(value), "Invalid date.").optional();
 export const LostFoundFiltersSchema = z.object({
-  q: z.string({ error: "Pencarian tidak valid." }).trim().max(200, "Pencarian maksimal 200 karakter.").optional(),
+  q: z.string({ error: "Invalid search." }).trim().max(200, "Search must be at most 200 characters.").optional(),
   category: z.union([lostFoundCategorySchema, z.literal("")]).optional(),
   status: z.union([lostFoundStatusSchema, z.literal("")]).optional(),
-  room: z.string({ error: "Nomor kamar tidak valid." }).trim().max(20, "Nomor kamar maksimal 20 karakter.").optional(),
+  room: z.string({ error: "Invalid room number." }).trim().max(20, "Room number must be at most 20 characters.").optional(),
   from: dateFilter,
   to: dateFilter,
 }).refine((value) => !value.from || !value.to || value.from <= value.to, {
-  message: "Tanggal akhir tidak boleh sebelum tanggal awal.", path: ["to"],
+  message: "End date must not be before the start date.", path: ["to"],
 });
 export type LostFoundFilters = z.infer<typeof LostFoundFiltersSchema>;
 

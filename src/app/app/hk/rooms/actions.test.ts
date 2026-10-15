@@ -49,8 +49,8 @@ beforeEach(() => {
 describe("room board server actions", () => {
   it.each([null, "FO", "FB", "ACC"])("denies %s before database access", async (role) => {
     auth.mockResolvedValue(role ? { user: { role, id: "9" } } : null);
-    expect(await setRoomHousekeeper(1, "2026-09-17", 2)).toEqual({ ok: false, error: "Tidak berwenang" });
-    expect(await createHousekeepingTaskNote(form())).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(await setRoomHousekeeper(1, "2026-09-17", 2)).toEqual({ ok: false, error: "Not authorised" });
+    expect(await createHousekeepingTaskNote(form())).toEqual({ ok: false, error: "Not authorised" });
     expect(transaction).not.toHaveBeenCalled();
   });
 
@@ -261,7 +261,7 @@ describe("room board server actions", () => {
   it("returns a safe failure when a write throws", async () => {
     tx.housekeepingLog.create.mockRejectedValue(new Error("private database detail"));
     const result = await createHousekeepingTaskNote(form({ housekeeperId: "2" }));
-    expect(result).toEqual({ ok: false, error: "Gagal menyimpan tugas kamar" });
+    expect(result).toEqual({ ok: false, error: "Unable to save the room task" });
     expect(transaction).toHaveBeenCalledTimes(1);
     expect(revalidatePath).not.toHaveBeenCalled();
   });

@@ -25,7 +25,7 @@ import {
 } from "./schema";
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Input tidak valid";
+  return error.issues[0]?.message ?? "Invalid input";
 }
 
 function revalidateRoomPaths(roomId: number) {
@@ -53,7 +53,7 @@ function isSerializationConflict(error: unknown) {
 
 export async function startCleaning(formData: FormData): Promise<ActionResult> {
   const operator = await requireHousekeeperMember();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = RoomActionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
   const result = await startCleaningOperation({ ...operator, ...parsed.data });
@@ -63,7 +63,7 @@ export async function startCleaning(formData: FormData): Promise<ActionResult> {
 
 export async function finishCleaning(formData: FormData): Promise<ActionResult> {
   const operator = await requireHousekeeperMember();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = FinishCleaningSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
   const { roomId, linenChanged, towelChanged, note, ...counts } = parsed.data;
@@ -82,7 +82,7 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
 export async function logFoundItem(formData: FormData): Promise<ActionResult> {
   const operator = await requireHousekeeperMember();
   if (!operator) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
   const { userId } = operator;
   const parsed = LogFoundItemSchema.safeParse(Object.fromEntries(formData));
@@ -108,7 +108,7 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
           });
 
           if (!assignment) {
-            return { ok: false as const, error: "Kamar ini bukan tugas Anda" };
+            return { ok: false as const, error: "This room is not assigned to you" };
           }
 
           const room = await tx.room.findUnique({
@@ -117,14 +117,14 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
           });
 
           if (!room) {
-            return { ok: false as const, error: "Kamar tidak ditemukan" };
+            return { ok: false as const, error: "Room not found" };
           }
 
           const currentOperator = await tx.user.findFirst({
             where: { id: userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
             select: { id: true },
           });
-          if (!currentOperator) return { ok: false as const, error: "Tidak berwenang" };
+          if (!currentOperator) return { ok: false as const, error: "Not authorised" };
 
           const allocation = await allocateLostFoundReference(tx);
           await tx.lostFoundItem.create({
@@ -157,17 +157,17 @@ export async function logFoundItem(formData: FormData): Promise<ActionResult> {
         (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034");
       if (retryable && attempt < 2) continue;
       if (retryable || isSerializationConflict(error)) {
-        return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
+        return { ok: false, error: "The room is being updated. Refresh the page." };
       }
-      return { ok: false, error: "Gagal mencatat barang temuan" };
+      return { ok: false, error: "Unable to record the found item" };
     }
   }
-  return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman." };
+  return { ok: false, error: "The room is being updated. Refresh the page." };
 }
 
 export async function inspectRoom(formData: FormData): Promise<ActionResult> {
   const operator = await requireHousekeeperMember();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = InspectRoomSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
   const result = await inspectRoomOperation({ ...operator, ...parsed.data });

@@ -21,18 +21,18 @@ describe("date range picker calendar", () => {
     expect(format(days.at(-1)!, "i")).toBe("7");
   });
 
-  it("uses Indonesian month and weekday labels", () => {
-    expect(formatCalendarMonthTitle(new Date(2026, 8, 1))).toBe(
-      "September 2026",
+  it("uses English month and weekday labels", () => {
+    expect(formatCalendarMonthTitle(new Date(2026, 9, 1))).toBe(
+      "October 2026",
     );
     expect(WEEKDAY_LABELS).toEqual([
-      "Sen",
-      "Sel",
-      "Rab",
-      "Kam",
-      "Jum",
-      "Sab",
-      "Min",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
     ]);
   });
 

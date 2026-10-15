@@ -1,11 +1,11 @@
 import type { PosMenuItem, PosOrder } from "./pos-types";
 
 export const POS_CATEGORIES = [
-  { value: "all", label: "Semua" },
-  { value: "main", label: "Makanan Utama" },
-  { value: "beverage", label: "Minuman" },
-  { value: "snack", label: "Camilan" },
-  { value: "dessert", label: "Hidangan Penutup" },
+  { value: "all", label: "All" },
+  { value: "main", label: "Main Courses" },
+  { value: "beverage", label: "Beverages" },
+  { value: "snack", label: "Snacks" },
+  { value: "dessert", label: "Desserts" },
 ];
 
 const categoryAliases: Record<string, string> = {

@@ -9,22 +9,22 @@ import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
 import { cn } from "@/lib/utils";
 
 const roomStatusLabels = {
-  VC: "VC - Kosong bersih",
-  OC: "OC - Terisi bersih",
-  VD: "VD - Kosong kotor",
-  OD: "OD - Terisi kotor",
-  VCU: "VCU - Bersih, menunggu inspeksi",
-  OOO: "OOO - Tidak dapat digunakan",
+  VC: "VC - Vacant Clean",
+  OC: "OC - Occupied Clean",
+  VD: "VD - Vacant Dirty",
+  OD: "OD - Occupied Dirty",
+  VCU: "VCU - Clean, Awaiting Inspection",
+  OOO: "OOO - Out of Order",
 };
 
 const statusChips = [
-  { key: "", label: "Semua", dotClass: "bg-slate-400" },
-  { key: "VC", label: "VC · Kosong Bersih", dotClass: "bg-emerald-500" },
-  { key: "OC", label: "OC · Terisi Bersih", dotClass: "bg-blue-500" },
-  { key: "VD", label: "VD · Kosong Kotor", dotClass: "bg-amber-500" },
-  { key: "OD", label: "OD · Terisi Kotor", dotClass: "bg-orange-500" },
-  { key: "VCU", label: "VCU · Inspeksi", dotClass: "bg-purple-500" },
-  { key: "OOO", label: "OOO · Rusak", dotClass: "bg-red-500" },
+  { key: "", label: "All", dotClass: "bg-slate-400" },
+  { key: "VC", label: "VC · Vacant Clean", dotClass: "bg-emerald-500" },
+  { key: "OC", label: "OC · Occupied Clean", dotClass: "bg-blue-500" },
+  { key: "VD", label: "VD · Vacant Dirty", dotClass: "bg-amber-500" },
+  { key: "OD", label: "OD · Occupied Dirty", dotClass: "bg-orange-500" },
+  { key: "VCU", label: "VCU · Awaiting Inspection", dotClass: "bg-purple-500" },
+  { key: "OOO", label: "OOO · Out of Order", dotClass: "bg-red-500" },
 ];
 
 export function RoomFilterForm({
@@ -105,7 +105,7 @@ export function RoomFilterForm({
     <div>
       {/* Quick Status Chips Bar */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-border/60 bg-muted/20 px-3.5 py-2.5">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Filter Status:</span>
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Filter by Status:</span>
         {statusChips.map((chip) => {
           const isSelected = filters.status === chip.key;
           const count = chip.key === "" ? totalRoomsCount : statusCounts?.[chip.key] ?? 0;
@@ -158,37 +158,37 @@ export function RoomFilterForm({
             value={filters.q}
             disabled={pending}
             onChange={(event) => setFilters({ ...filters, q: event.target.value })}
-            placeholder="Cari kamar (contoh: 101, 204), tamu, atau petugas..."
-            aria-label="Cari kamar, kode tugas, tamu, petugas..."
+            placeholder="Search rooms (e.g. 101, 204), guests or attendants..."
+            aria-label="Search rooms, task codes, guests or attendants..."
             className={`${controlClass} pl-9 sm:w-full`}
           />
         </div>
         <Button type="submit" disabled={pending}>
           <Search className="size-4" aria-hidden="true" />
-          Cari
+          Search
         </Button>
         <select
           name="status"
-          aria-label="Status kamar"
+          aria-label="Room status"
           value={filters.status}
           disabled={pending}
           onChange={(event) => navigate({ ...filters, status: event.target.value })}
           className={controlClass}
         >
-          <option value="">Semua Status</option>
+          <option value="">All Statuses</option>
           {Object.entries(roomStatusLabels).map(([status, label]) => (
             <option key={status} value={status}>{label}</option>
           ))}
         </select>
         <select
           name="priority"
-          aria-label="Prioritas kamar"
+          aria-label="Room priority"
           value={filters.priority}
           disabled={pending}
           onChange={(event) => navigate({ ...filters, priority: event.target.value })}
           className={controlClass}
         >
-          <option value="">Semua Prioritas</option>
+          <option value="">All Priorities</option>
           {Object.entries(PRIORITY_CONFIG)
             .sort(([, a], [, b]) => a.rank - b.rank)
             .map(([code, config]) => (
@@ -197,33 +197,33 @@ export function RoomFilterForm({
         </select>
         <select
           name="floor"
-          aria-label="Lantai kamar"
+          aria-label="Room floor"
           value={filters.floor}
           disabled={pending}
           onChange={(event) => navigate({ ...filters, floor: event.target.value })}
           className={controlClass}
         >
-          <option value="">Semua Lantai</option>
+          <option value="">All Floors</option>
           {filters.floor && !floors.some((floor) => String(floor) === filters.floor) && (
-            <option value={filters.floor} disabled>Lantai {filters.floor} (tidak tersedia)</option>
+            <option value={filters.floor} disabled>Floor {filters.floor} (unavailable)</option>
           )}
           {floors.map((floor) => (
-            <option key={floor} value={floor}>Lantai {floor}</option>
+            <option key={floor} value={floor}>Floor {floor}</option>
           ))}
         </select>
         <select
           name="assigneeId"
-          aria-label="Petugas yang ditugaskan"
+          aria-label="Assigned attendant"
           value={filters.assigneeId}
           disabled={pending}
           onChange={(event) => navigate({ ...filters, assigneeId: event.target.value })}
           className={`${controlClass} min-w-0 max-w-full`}
         >
-          <option value="">Semua Petugas</option>
-          <option value="unassigned">Belum Ditugaskan</option>
+          <option value="">All Attendants</option>
+          <option value="unassigned">Unassigned</option>
           {filters.assigneeId && filters.assigneeId !== "unassigned" &&
             !housekeepers.some((housekeeper) => String(housekeeper.id) === filters.assigneeId) && (
-              <option value={filters.assigneeId} disabled>Petugas ID {filters.assigneeId} (di luar daftar aktif)</option>
+              <option value={filters.assigneeId} disabled>Attendant ID {filters.assigneeId} (not in active staff list)</option>
             )}
           {housekeepers.map((housekeeper) => (
             <option key={housekeeper.id} value={housekeeper.id}>{housekeeper.name}</option>
@@ -237,11 +237,11 @@ export function RoomFilterForm({
             onClick={() => navigate({ q: "", status: "", priority: "", floor: "", assigneeId: "" })}
           >
             <RotateCcw className="size-4" aria-hidden="true" />
-            Atur Ulang
+            Reset
           </Button>
         )}
         <span role="status" className="text-xs text-muted-foreground">
-          {pending ? "Memuat..." : ""}
+          {pending ? "Loading..." : ""}
         </span>
       </form>
     </div>

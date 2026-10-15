@@ -17,13 +17,13 @@ export function ActiveBillsStrip({ orders, activeOrderId, disabled = false, onSe
   const runningOrders = orders.filter((order) => order.status === "OPEN" || order.status === "BILLED");
 
   return (
-    <section aria-label="Tagihan aktif" className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
+    <section aria-label="Active bills" className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
       <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
         <ReceiptText aria-hidden="true" className="size-4" />
-        Tagihan aktif <span className="text-sm font-normal text-muted-foreground">({runningOrders.length})</span>
+        Active bills <span className="text-sm font-normal text-muted-foreground">({runningOrders.length})</span>
       </h2>
       {runningOrders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Belum ada tagihan aktif. Pilih meja atau buat pesanan baru.</p>
+        <p className="text-sm text-muted-foreground">No active bills yet. Select a table or create a new order.</p>
       ) : (
         <ul className="flex gap-2 overflow-x-auto pb-2">
           {runningOrders.map((order) => (
@@ -42,10 +42,10 @@ export function ActiveBillsStrip({ orders, activeOrderId, disabled = false, onSe
                 <span className="mt-1 block break-words text-sm text-muted-foreground">{order.destination}</span>
                 <span className="mt-2 flex flex-wrap gap-1.5">
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${order.kitchenReadyAt ? "bg-status-vc-bg text-status-vc-fg" : order.kitchenStartedAt ? "bg-status-vd-bg text-status-vd-fg" : "bg-status-oos-bg text-status-oos-fg"}`}>
-                    {order.kitchenReadyAt ? "Siap Saji" : order.kitchenStartedAt ? "Sedang Dimasak" : "Belum Dimasak"}
+                    {order.kitchenReadyAt ? "Ready to Serve" : order.kitchenStartedAt ? "Preparing" : "Not Started"}
                   </span>
                   {order.status === "BILLED" && (
-                    <span className="rounded-full bg-status-oc-bg px-2 py-1 text-xs font-semibold text-status-oc-fg">Ditagihkan</span>
+                    <span className="rounded-full bg-status-oc-bg px-2 py-1 text-xs font-semibold text-status-oc-fg">Billed</span>
                   )}
                 </span>
               </button>

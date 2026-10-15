@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const LOST_FOUND_CATEGORY_VALUES = ["ELECTRONICS", "CLOTHING", "DOCUMENTS", "VALUABLES", "ACCESSORIES", "OTHER"] as const;
 export const LOST_FOUND_STATUS_VALUES = ["UNCLAIMED", "RETURNED", "DISPOSED"] as const;
-export const lostFoundCategorySchema = z.enum(LOST_FOUND_CATEGORY_VALUES, { error: "Kategori barang tidak valid." });
-export const lostFoundStatusSchema = z.enum(LOST_FOUND_STATUS_VALUES, { error: "Status barang tidak valid." });
+export const lostFoundCategorySchema = z.enum(LOST_FOUND_CATEGORY_VALUES, { error: "Invalid item category." });
+export const lostFoundStatusSchema = z.enum(LOST_FOUND_STATUS_VALUES, { error: "Invalid item status." });
 
 export function lostFoundIdSchema(message: string) {
   return z.preprocess(
@@ -12,31 +12,31 @@ export function lostFoundIdSchema(message: string) {
   );
 }
 
-const optionalText = (label: string, max: number) => z.string({ error: `${label} tidak valid.` }).trim()
-  .max(max, `${label} maksimal ${max} karakter.`).nullish().transform((value) => value || null);
-const requiredText = (label: string, min: number, max: number) => z.string({ error: `${label} wajib diisi.` }).trim()
-  .min(min, `${label} minimal ${min} karakter.`).max(max, `${label} maksimal ${max} karakter.`);
+const optionalText = (label: string, max: number) => z.string({ error: `Invalid ${label}.` }).trim()
+  .max(max, `${label} must be at most ${max} characters.`).nullish().transform((value) => value || null);
+const requiredText = (label: string, min: number, max: number) => z.string({ error: `${label} is required.` }).trim()
+  .min(min, `${label} must be at least ${min} characters.`).max(max, `${label} must be at most ${max} characters.`);
 
 export const CreateLostFoundItemSchema = z.object({
-  description: requiredText("Deskripsi", 3, 500),
-  roomId: z.preprocess((value) => value === "" || value == null ? null : value, lostFoundIdSchema("Kamar tidak valid.").nullable()),
+  description: requiredText("Description", 3, 500),
+  roomId: z.preprocess((value) => value === "" || value == null ? null : value, lostFoundIdSchema("Invalid room.").nullable()),
   category: lostFoundCategorySchema.default("OTHER"),
-  locationDetails: optionalText("Detail lokasi", 500),
+  locationDetails: optionalText("Location details", 500),
 });
 
 // Legacy forms contain only itemId and resolution; new claim forms require a name.
 export const ReturnLostFoundItemSchema = z.object({
-  itemId: lostFoundIdSchema("Barang tidak valid."),
-  claimantName: optionalText("Nama pengambil", 200),
-  claimantPhone: optionalText("Nomor telepon pengambil", 50),
-  claimantIdNumber: optionalText("Nomor identitas pengambil", 100),
-  resolution: optionalText("Catatan pengembalian", 500),
+  itemId: lostFoundIdSchema("Invalid item."),
+  claimantName: optionalText("Claimant name", 200),
+  claimantPhone: optionalText("Claimant phone number", 50),
+  claimantIdNumber: optionalText("Claimant ID number", 100),
+  resolution: optionalText("Return notes", 500),
 });
-export const ClaimLostFoundItemSchema = ReturnLostFoundItemSchema.extend({ claimantName: requiredText("Nama pengambil", 1, 200) });
+export const ClaimLostFoundItemSchema = ReturnLostFoundItemSchema.extend({ claimantName: requiredText("Claimant name", 1, 200) });
 export const DisposeLostFoundItemSchema = z.object({
-  itemId: lostFoundIdSchema("Barang tidak valid."),
-  disposalReason: requiredText("Alasan pemusnahan/hibah", 1, 500),
-  notes: optionalText("Catatan pemusnahan/hibah", 500),
+  itemId: lostFoundIdSchema("Invalid item."),
+  disposalReason: requiredText("Disposal/donation reason", 1, 500),
+  notes: optionalText("Disposal/donation notes", 500),
 });
 
 export function parseLostFoundStatus(value: string | undefined) {

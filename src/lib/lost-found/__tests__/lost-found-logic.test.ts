@@ -67,20 +67,20 @@ describe("lost-found form validation", () => {
   it("requires a disposal reason and accepts optional notes", () => {
     const invalid = DisposeLostFoundItemSchema.safeParse({ itemId: "1", disposalReason: " " });
     expect(invalid.success).toBe(false);
-    if (!invalid.success) expect(invalid.error.issues[0].message).toBe("Alasan pemusnahan/hibah minimal 1 karakter.");
+    if (!invalid.success) expect(invalid.error.issues[0].message).toBe("Disposal/donation reason must be at least 1 characters.");
     const invalidNotes = DisposeLostFoundItemSchema.safeParse({ itemId: "1", disposalReason: "Rusak", notes: "x".repeat(501) });
     expect(invalidNotes.success).toBe(false);
-    if (!invalidNotes.success) expect(invalidNotes.error.issues[0].message).toBe("Catatan pemusnahan/hibah maksimal 500 karakter.");
+    if (!invalidNotes.success) expect(invalidNotes.error.issues[0].message).toBe("Disposal/donation notes must be at most 500 characters.");
     expect(DisposeLostFoundItemSchema.parse({ itemId: "1", disposalReason: " Rusak ", notes: " Disetujui petugas " })).toEqual({ itemId: 1, disposalReason: "Rusak", notes: "Disetujui petugas" });
   });
   it("has complete category and status presentation mappings", () => {
     expect(LOST_FOUND_CATEGORY_LABELS).toEqual({
-      ELECTRONICS: "Elektronik / Gadget", CLOTHING: "Pakaian / Tekstil", DOCUMENTS: "Dokumen / Identitas",
-      VALUABLES: "Barang Berharga", ACCESSORIES: "Aksesoris / Pribadi", OTHER: "Lainnya",
+      ELECTRONICS: "Electronics / Gadgets", CLOTHING: "Clothing / Textiles", DOCUMENTS: "Documents / Identification",
+      VALUABLES: "Valuables", ACCESSORIES: "Accessories / Personal Items", OTHER: "Other",
     });
     expect(Object.keys(LOST_FOUND_CATEGORY_ICONS)).toEqual(Object.keys(LOST_FOUND_CATEGORY_LABELS));
     expect(LOST_FOUND_STATUS_LABELS).toEqual({
-      UNCLAIMED: "Disimpan", RETURNED: "Dikembalikan", DISPOSED: "Dimusnahkan / Dihibahkan",
+      UNCLAIMED: "Stored", RETURNED: "Returned", DISPOSED: "Disposed / Donated",
     });
     for (const style of Object.values(LOST_FOUND_STATUS_STYLES)) {
       expect(style.badge).toBeTruthy();

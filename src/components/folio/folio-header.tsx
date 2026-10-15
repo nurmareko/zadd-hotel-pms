@@ -50,32 +50,32 @@ const statusClassNames: Record<FolioStatus, string> = {
 };
 
 const reservationTypeLabels: Record<ReservationType, string> = {
-  [ReservationType.INDIVIDUAL]: "Individu",
-  [ReservationType.COMPANY]: "Perusahaan",
-  [ReservationType.GOVERNMENT]: "Pemerintah",
-  [ReservationType.OTA]: "Agen Perjalanan Online (OTA)",
+  [ReservationType.INDIVIDUAL]: "Individual",
+  [ReservationType.COMPANY]: "Corporate",
+  [ReservationType.GOVERNMENT]: "Government",
+  [ReservationType.OTA]: "Online Travel Agency (OTA)",
   [ReservationType.WALK_IN]: "Walk-in",
 };
 
 const folioStatusLabels: Record<FolioStatus, string> = {
-  OPEN: "Terbuka",
-  CLOSED: "Ditutup",
-  VOIDED: "Dibatalkan",
+  OPEN: "Open",
+  CLOSED: "Closed",
+  VOIDED: "Cancelled",
 };
 
 const reservationStatusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO — Tanpa makan",
-  [ArrangementType.BB]: "BB — Sarapan",
-  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
-  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+  [ArrangementType.RO]: "RO — Room Only",
+  [ArrangementType.BB]: "BB — Bed & Breakfast",
+  [ArrangementType.HB]: "HB — Breakfast + One Main Meal",
+  [ArrangementType.FB]: "FB — Breakfast, Lunch & Dinner",
 };
 
 function dateLabel(date: Date) {
@@ -128,7 +128,7 @@ export function FolioHeader({
           Folio
         </div>
         <div className="p-5 text-sm">
-          <InfoRow label="Nomor folio" value={folio.folioNo} />
+          <InfoRow label="Folio number" value={folio.folioNo} />
           <InfoRow
             label="Status"
             value={<FolioStatusBadge status={folio.status} />}
@@ -145,7 +145,7 @@ export function FolioHeader({
   return (
     <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700">
-        {"Tamu"}
+        {"Guest"}
       </div>
       <div className="p-5 text-sm">
         <div className="flex items-start justify-between gap-3">
@@ -159,16 +159,16 @@ export function FolioHeader({
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
           <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
-            Tipe Reservasi: {reservationTypeLabels[reservation.reservationType]}
+            Reservation Type: {reservationTypeLabels[reservation.reservationType]}
           </span>
           <span className="rounded border border-slate-200 px-2 py-0.5 bg-slate-50">
-            Arrangement saat ini: {arrangementLabels[reservation.arrangementType]}
+            Current arrangement: {arrangementLabels[reservation.arrangementType]}
           </span>
         </div>
 
         <div className="my-4 border-t border-slate-100" />
-        <InfoRow label="Reservasi" value={reservation.reservationNo} />
-        <InfoRow label="Telepon" value={reservation.guest.phone ?? "-"} />
+        <InfoRow label="Reservation" value={reservation.reservationNo} />
+        <InfoRow label="Phone" value={reservation.guest.phone ?? "-"} />
         <InfoRow
           label="Status"
           value={<ReservationStatusBadge status={reservation.status} />}
@@ -178,12 +178,12 @@ export function FolioHeader({
           value={<DepositStatusBadge status={reservation.depositStatus} />}
         />
         <InfoRow
-          label="Periode"
+          label="Period"
           value={`${dateLabel(reservation.arrivalDate)} → ${dateLabel(
             reservation.departureDate,
           )}`}
         />
-        <InfoRow label="Malam" value={String(nights)} />
+        <InfoRow label="Nights" value={String(nights)} />
       </div>
     </section>
   );

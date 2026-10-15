@@ -158,8 +158,8 @@ function qtyLabel(quantity: StringableDecimal) {
 
 const paymentPurposeLabels: Record<PaymentPurpose, string> = {
   [PaymentPurpose.DEPOSIT]: "Deposit",
-  [PaymentPurpose.PAYMENT]: "Pembayaran",
-  [PaymentPurpose.SETTLEMENT]: "Pelunasan",
+  [PaymentPurpose.PAYMENT]: "Payment",
+  [PaymentPurpose.SETTLEMENT]: "Settlement",
 };
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -197,37 +197,37 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         <View style={styles.header}>
           <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
-          <Text style={styles.title}>Tagihan Tamu</Text>
+          <Text style={styles.title}>Guest Bill</Text>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"RESERVASI"}</Text>
+          <Text style={styles.blockHeader}>{"RESERVATION"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Tamu" value={folio.reservation.guest.fullName} />
-            <Field label="Kamar" value={folio.reservation.room?.number ?? "-"} />
-            <Field label="Reservasi" value={folio.reservation.reservationNo} />
+            <Field label="Guest" value={folio.reservation.guest.fullName} />
+            <Field label="Room" value={folio.reservation.room?.number ?? "-"} />
+            <Field label="Reservation" value={folio.reservation.reservationNo} />
             <Field label="Folio" value={folio.folioNo} />
             <Field
-              label="Kedatangan"
+              label="Arrival"
               value={dateLabel(folio.reservation.arrivalDate)}
             />
             <Field
-              label="Keberangkatan"
+              label="Departure"
               value={dateLabel(folio.reservation.departureDate)}
             />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"RINCIAN BIAYA"}</Text>
+          <Text style={styles.blockHeader}>{"CHARGE DETAILS"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.cell, { width: 58 }]}>Tanggal</Text>
-                <Text style={[styles.cell, { width: 206 }]}>Deskripsi</Text>
-                <Text style={[styles.cell, styles.right, { width: 40 }]}>Jumlah</Text>
+                <Text style={[styles.cell, { width: 58 }]}>Date</Text>
+                <Text style={[styles.cell, { width: 206 }]}>Description</Text>
+                <Text style={[styles.cell, styles.right, { width: 40 }]}>Quantity</Text>
                 <Text style={[styles.cell, styles.right, { width: 82 }]}>
-                  Tarif Satuan
+                  Unit Rate
                 </Text>
                 <Text style={[styles.cell, styles.right, { width: 86 }]}>
                   Total (Rp)
@@ -236,7 +236,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
               {folio.lineItems.length === 0 ? (
                 <View style={styles.tableRow}>
                   <Text style={[styles.cell, styles.muted, { width: 472 }]}>
-                    Belum ada tagihan.
+                    No charges yet.
                   </Text>
                 </View>
               ) : (
@@ -265,16 +265,16 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
             <View style={styles.summary}>
               <SummaryRow label="Subtotal" value={formatIDR(totals.subtotal)} />
               <SummaryRow
-                label={`Biaya layanan ${settings.serviceChargePercent.toString()}%`}
+                label={`Service charge ${settings.serviceChargePercent.toString()}%`}
                 value={formatIDR(totals.serviceCharge)}
               />
               <SummaryRow
-                label={`Pajak ${settings.taxPercent.toString()}%`}
+                label={`Tax ${settings.taxPercent.toString()}%`}
                 value={formatIDR(totals.tax)}
               />
               {totals.inclusiveCharges > 0 ? (
                 <SummaryRow
-                  label="F&B Inklusif"
+                  label="Inclusive F&B"
                   value={formatIDR(totals.inclusiveCharges)}
                 />
               ) : null}
@@ -288,10 +288,10 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"PEMBAYARAN"}</Text>
+          <Text style={styles.blockHeader}>{"PAYMENTS"}</Text>
           <View style={styles.blockBody}>
             {folio.payments.length === 0 ? (
-              <Text style={styles.muted}>Belum ada pembayaran.</Text>
+              <Text style={styles.muted}>No payments yet.</Text>
             ) : (
               folio.payments.map((payment) => (
                 <View key={payment.id} style={styles.summaryRow}>
@@ -306,7 +306,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
             )}
             <View style={styles.summary}>
               <SummaryRow
-                label="Total Pembayaran"
+                label="Total Payments"
                 value={formatIDR(totals.totalPaid)}
                 strong
               />
@@ -324,7 +324,7 @@ export function Bill({ folio, settings, totals, businessDate }: BillProps) {
               <Text style={styles.muted}>{refundDueNote(totals.balance)}</Text>
             ) : null}
           </View>
-          <Text>Tanggal operasional: {dateLabel(businessDate)}</Text>
+          <Text>Business date: {dateLabel(businessDate)}</Text>
         </View>
       </Page>
     </Document>

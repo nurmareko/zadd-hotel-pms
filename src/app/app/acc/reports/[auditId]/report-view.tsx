@@ -124,7 +124,7 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
   return (
     <section className="border border-border bg-card rounded-lg">
       <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-        {"LAPORAN"}
+        {"REPORT"}
       </div>
 
       <div className="grid gap-6 p-5">
@@ -142,23 +142,23 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
           </div>
           <div className="space-y-1 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">ID Audit</span>
+              <span className="text-muted-foreground">Audit ID</span>
               <span className="num font-semibold">#{audit.id}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Tanggal operasional</span>
+              <span className="text-muted-foreground">Business date</span>
               <span className="num font-semibold">
                 {dateLabel(audit.businessDate)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Dijalankan</span>
+              <span className="text-muted-foreground">Run At</span>
               <span className="num font-semibold">
                 {dateTimeLabel(audit.runAt)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Oleh</span>
+              <span className="text-muted-foreground">By</span>
               <span className="font-semibold">{audit.runBy.fullName}</span>
             </div>
           </div>
@@ -166,22 +166,22 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
 
         <div>
           <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
-            {"OKUPANSI"}
+            {"OCCUPANCY"}
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <MetricCard
-              label="Okupansi"
+              label="Occupancy"
               value={percentLabel(audit.occupancyRate)}
-              sub="Tingkat okupansi saat audit"
+              sub="Occupancy rate at audit time"
               className="bg-blue-50/50 border-blue-100"
               labelClassName="text-blue-600"
               valueClassName="text-blue-900"
               subClassName="text-blue-700/80"
             />
             <MetricCard
-              label="Kamar Terisi"
+              label="Occupied Rooms"
               value={`${audit.roomsOccupied} / ${audit.totalRooms}`}
-              sub="Kamar terisi / total kamar"
+              sub="Occupied rooms / total rooms"
               className="bg-indigo-50/50 border-indigo-100"
               labelClassName="text-indigo-600"
               valueClassName="text-indigo-900"
@@ -192,13 +192,13 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
 
         <div>
           <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
-            {"PERGERAKAN TAMU"}
+            {"GUEST MOVEMENTS"}
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <MetricCard
               label="Check-in"
               value={audit.checkInCount}
-              sub="Kedatangan pada tanggal operasional"
+              sub="Arrivals on the business date"
               className="bg-emerald-50/50 border-emerald-100"
               labelClassName="text-emerald-600"
               valueClassName="text-emerald-900"
@@ -207,16 +207,16 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
             <MetricCard
               label="Check-out"
               value={audit.checkOutCount}
-              sub="Keberangkatan pada tanggal operasional"
+              sub="Departures on the business date"
               className="bg-orange-50/50 border-orange-100"
               labelClassName="text-orange-600"
               valueClassName="text-orange-900"
               subClassName="text-orange-700/80"
             />
             <MetricCard
-              label="Tamu Menginap"
+              label="In-house Guests"
               value={audit.inHouseCount}
-              sub="Tamu menginap saat audit"
+              sub="In-house guests at audit time"
               className="bg-purple-50/50 border-purple-100"
               labelClassName="text-purple-600"
               valueClassName="text-purple-900"
@@ -227,27 +227,27 @@ export function ReportView({ audit, settings, hkRevenue, miscRevenue }: ReportVi
 
         <div>
           <div className="mb-3 text-sm font-semibold tracking-tight text-foreground">
-            Rincian Pendapatan
+            Revenue Breakdown
           </div>
           <div className="border border-border rounded-lg bg-card text-sm overflow-hidden">
             <SnapshotRow
-              label="Pendapatan Kamar"
+              label="Room Revenue"
               value={formatIDR(audit.roomRevenue.toString())}
             />
             <SnapshotRow
-              label="Pendapatan F&B"
+              label="F&B Revenue"
               value={formatIDR(audit.fbRevenue.toString())}
             />
             <SnapshotRow
-              label="Pendapatan Housekeeping"
+              label="Housekeeping Revenue"
               value={formatIDR(hkRevenue)}
             />
             <SnapshotRow
-              label="Pendapatan Spa & Lainnya"
+              label="Spa & Other Revenue"
               value={formatIDR(miscRevenue)}
             />
             <SnapshotRow
-              label="Total Pendapatan"
+              label="Total Revenue"
               value={formatIDR(audit.totalRevenue.toString())}
               strong
             />

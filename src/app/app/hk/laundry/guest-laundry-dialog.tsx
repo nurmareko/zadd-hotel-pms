@@ -67,12 +67,12 @@ export function GuestLaundryDialog({ rooms, catalog }: Props) {
       setOpen(next);
     }}>
       <DialogTrigger render={<Button className="min-h-11" disabled={rooms.length === 0 || catalog.length === 0} />}>
-        <Plus className="size-4" aria-hidden="true" />Catat Laundry Tamu
+        <Plus className="size-4" aria-hidden="true" />Record Guest Laundry
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Catat Laundry Tamu</DialogTitle>
-          <DialogDescription>Pilih kamar, rincian cucian, dan cara pembayaran. Periksa total sebelum menyimpan.</DialogDescription>
+          <DialogTitle>Record Guest Laundry</DialogTitle>
+          <DialogDescription>Select a room, enter the laundry details and choose a payment method. Check the total before saving.</DialogDescription>
         </DialogHeader>
         <form className="min-w-0 space-y-4" aria-busy={pending} onSubmit={(event) => {
           event.preventDefault();
@@ -86,7 +86,7 @@ export function GuestLaundryDialog({ rooms, catalog }: Props) {
             notes: String(data.get("notes") ?? "").trim() || undefined,
           });
           if (!parsed.success || insufficientCash) {
-            const message = insufficientCash ? "Uang diterima harus mencukupi total biaya laundry." : parsed.error?.issues[0]?.message ?? "Periksa kembali rincian laundry.";
+            const message = insufficientCash ? "The amount received must cover the total laundry charge." : parsed.error?.issues[0]?.message ?? "Please check the laundry details.";
             setError(message);
             toast.error(message);
             return;
@@ -101,12 +101,12 @@ export function GuestLaundryDialog({ rooms, catalog }: Props) {
                 toast.error(result.error);
                 return;
               }
-              toast.success(`Laundry tamu berhasil dicatat. Total ${money(result.orderTotal)}.${directCash ? ` Kembalian ${money(result.change)}.` : ""}`);
+              toast.success(`Guest laundry recorded. Total ${money(result.orderTotal)}.${directCash ? ` Change ${money(result.change)}.` : ""}`);
               setOpen(false);
               reset();
               router.refresh();
             } catch {
-              const message = "Hasil penyimpanan belum dapat dipastikan. Periksa folio kamar sebelum mencoba lagi agar tidak tercatat ganda.";
+              const message = "The save could not be confirmed. Check the room folio before trying again to avoid duplicate charges.";
               setError(message);
               toast.error(message);
             } finally {
@@ -115,79 +115,79 @@ export function GuestLaundryDialog({ rooms, catalog }: Props) {
           });
         }}>
           <fieldset disabled={pending} className="min-w-0 space-y-4">
-            <legend className="sr-only">Rincian laundry tamu</legend>
-            <label className="block text-sm font-medium">Kamar dan tamu
+            <legend className="sr-only">Guest laundry details</legend>
+            <label className="block text-sm font-medium">Room and guest
               <select name="roomId" required defaultValue="" className={controlClass}>
-                <option value="" disabled>Pilih kamar</option>
-                {rooms.map((room) => <option key={room.id} value={room.id}>Kamar {room.number} — {room.guestName}</option>)}
+                <option value="" disabled>Select a room</option>
+                {rooms.map((room) => <option key={room.id} value={room.id}>Room {room.number} — {room.guestName}</option>)}
               </select>
             </label>
             <div className="space-y-3">
               {rows.map((row, index) => (
                 <fieldset key={row.key} className="min-w-0 rounded-lg border p-3">
-                  <legend className="px-1 text-sm font-semibold">Cucian {index + 1}</legend>
+                  <legend className="px-1 text-sm font-semibold">Laundry item {index + 1}</legend>
                   <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-                    <label className="block min-w-0 text-sm font-medium sm:col-span-2">Jenis layanan
+                    <label className="block min-w-0 text-sm font-medium sm:col-span-2">Service type
                       <select required value={row.articleId} className={controlClass} onChange={(event) => {
                         const article = catalog.find((item) => item.id === Number(event.target.value));
                         updateRow(row.key, { articleId: event.target.value, unitPrice: article?.defaultPrice == null ? "" : String(article.defaultPrice) });
                       }}>
-                        <option value="" disabled>Pilih layanan laundry</option>
+                        <option value="" disabled>Select a laundry service</option>
                         {catalog.map((article) => <option key={article.id} value={article.id}>{article.name} ({article.code})</option>)}
                       </select>
                     </label>
-                    <label className="block text-sm font-medium">Jumlah (potong)
+                    <label className="block text-sm font-medium">Quantity (pieces)
                       <input type="number" inputMode="numeric" min={1} step={1} required value={row.quantity} onChange={(event) => updateRow(row.key, { quantity: event.target.value })} className={controlClass} />
                     </label>
-                    <label className="block text-sm font-medium">Harga per potong (Rp)
+                    <label className="block text-sm font-medium">Price per piece (Rp)
                       <input type="number" inputMode="numeric" min={0} step={1} required value={row.unitPrice} onChange={(event) => updateRow(row.key, { unitPrice: event.target.value })} className={controlClass} />
                     </label>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-muted-foreground">Subtotal: <span className="num font-semibold text-foreground">{validAmounts ? money(calculateGuestLaundryTotal([items[index]])) : "—"}</span></p>
-                    <Button type="button" variant="ghost" className="min-h-11" disabled={rows.length === 1} aria-label={`Hapus cucian ${index + 1}`} onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}>
-                      <Trash2 className="size-4" aria-hidden="true" />Hapus
+                    <Button type="button" variant="ghost" className="min-h-11" disabled={rows.length === 1} aria-label={`Remove laundry item ${index + 1}`} onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}>
+                      <Trash2 className="size-4" aria-hidden="true" />Remove
                     </Button>
                   </div>
                 </fieldset>
               ))}
               <Button type="button" variant="outline" className="min-h-11" onClick={() => { const row = emptyRow(nextKey.current++); setRows((current) => [...current, row]); }}>
-                <Plus className="size-4" aria-hidden="true" />Tambah Cucian
+                <Plus className="size-4" aria-hidden="true" />Add Laundry Item
               </Button>
             </div>
             <div className="flex flex-wrap justify-between gap-3 rounded-lg bg-muted/50 p-4 text-sm" aria-live="polite" aria-atomic="true">
-              <p>Total potong: <strong className="num">{validAmounts ? formatDecimalID(pieces, 0) : "—"}</strong></p>
-              <p>Total biaya: <strong className="num">{validAmounts ? money(total) : "—"}</strong></p>
+              <p>Total pieces: <strong className="num">{validAmounts ? formatDecimalID(pieces, 0) : "—"}</strong></p>
+              <p>Total charge: <strong className="num">{validAmounts ? money(total) : "—"}</strong></p>
             </div>
-            {!validAmounts && <p role="alert" className="text-sm text-destructive">Jumlah harus berupa potong utuh dan harga dalam rupiah utuh. Periksa nilai cucian atau total yang melampaui batas.</p>}
-            <label className="block text-sm font-medium">Penyelesaian pembayaran
+            {!validAmounts && <p role="alert" className="text-sm text-destructive">Quantities must be whole pieces and prices must be in whole rupiah. Check for item values or totals exceeding the limit.</p>}
+            <label className="block text-sm font-medium">Settlement
               <select value={settlement} onChange={(event) => { setSettlement(event.target.value as GuestLaundryOrderInput["settlementType"]); setCashTendered(""); }} className={controlClass}>
-                <option value="CHARGE_TO_ROOM">Beban ke Kamar (Folio)</option>
-                <option value="DIRECT_TENDER">Bayar Langsung</option>
+                <option value="CHARGE_TO_ROOM">Charge to Room (Folio)</option>
+                <option value="DIRECT_TENDER">Pay Directly</option>
               </select>
             </label>
-            {settlement === "DIRECT_TENDER" && <label className="block text-sm font-medium">Metode pembayaran
+            {settlement === "DIRECT_TENDER" && <label className="block text-sm font-medium">Payment method
               <select value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value as NonNullable<GuestLaundryOrderInput["paymentMethod"]>); setCashTendered(""); }} className={controlClass}>
-                <option value="CASH">Tunai</option><option value="CARD">Kartu</option><option value="QRIS">QRIS</option><option value="TRANSFER">Transfer</option>
+                <option value="CASH">Cash</option><option value="CARD">Card</option><option value="QRIS">QRIS</option><option value="TRANSFER">Transfer</option>
               </select>
             </label>}
             {directCash && <div className="space-y-2">
-              <label className="block text-sm font-medium">Uang diterima (Rp)
+              <label className="block text-sm font-medium">Amount received (Rp)
                 <input type="number" inputMode="numeric" min={total} step={1} required value={cashTendered} onChange={(event) => setCashTendered(event.target.value)} aria-describedby="guest-laundry-cash-hint" aria-invalid={cashTendered !== "" && insufficientCash} className={controlClass} />
               </label>
               <p id="guest-laundry-cash-hint" className={`text-sm ${cashTendered !== "" && insufficientCash ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">
-                {insufficientCash ? "Masukkan uang diterima minimal sebesar total biaya." : `Kembalian: ${money(cash - total)}`}
+                {insufficientCash ? "Enter an amount received that covers the total charge." : `Change: ${money(cash - total)}`}
               </p>
             </div>}
-            <label className="block text-sm font-medium">Catatan (opsional)
-              <textarea name="notes" rows={3} maxLength={255} className={`${controlClass} h-auto py-3`} placeholder="Kondisi pakaian atau instruksi khusus (maks. 255 karakter)" />
+            <label className="block text-sm font-medium">Notes (optional)
+              <textarea name="notes" rows={3} maxLength={255} className={`${controlClass} h-auto py-3`} placeholder="Garment condition or special instructions (max. 255 characters)" />
             </label>
           </fieldset>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="button" variant="outline" className="min-h-11" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" className="min-h-11" disabled={pending || !validAmounts || insufficientCash}>
-              {pending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}{pending ? "Menyimpan..." : "Simpan Laundry Tamu"}
+              {pending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}{pending ? "Saving..." : "Save Guest Laundry"}
             </Button>
           </div>
         </form>

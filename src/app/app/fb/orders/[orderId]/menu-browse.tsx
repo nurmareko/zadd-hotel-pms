@@ -56,7 +56,7 @@ export function MenuBrowse({
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
         <div className="text-base font-semibold text-slate-900">
-          Pilih Menu
+          Select Menu Items
         </div>
         <div className="relative w-full md:max-w-[240px]">
           <Search
@@ -66,7 +66,7 @@ export function MenuBrowse({
           <input
             className="h-10 w-full rounded-md border border-gray-300 bg-white py-1 pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari menu..."
+            placeholder="Search menu..."
             type="search"
             value={query}
           />
@@ -74,7 +74,7 @@ export function MenuBrowse({
       </div>
       <div className="flex flex-wrap gap-2 border-b border-gray-200 px-5 py-3">
         <div className="mr-1 flex items-center text-sm font-semibold text-slate-600">
-          Tamu
+          Guest
         </div>
         {guestNumbers.map((guestNumber) => {
           const active = activeGuest === guestNumber;
@@ -118,11 +118,11 @@ export function MenuBrowse({
       {filteredItems.length === 0 ? (
         <EmptyState
           icon={menuItems.length === 0 ? Utensils : SearchX}
-          title={menuItems.length === 0 ? "Belum ada menu" : "Tidak ada menu"}
+          title={menuItems.length === 0 ? "No menu items yet" : "No menu items"}
           description={
             menuItems.length === 0
-              ? "Menu aktif akan muncul di sini setelah dibuat oleh admin."
-              : "Tidak ada menu yang cocok dengan filter atau pencarian."
+              ? "Active menu items will appear here once an administrator creates them."
+              : "No menu items match the filters or search."
           }
           className="m-3.5"
         />

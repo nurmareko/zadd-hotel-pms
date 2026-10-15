@@ -43,7 +43,7 @@ export function SupervisorRoomStatusSelect({
         return;
       }
 
-      toast.success(`Status kamar ${roomNumber} diperbarui`);
+      toast.success(`Room status ${roomNumber} updated`);
       setPendingStatus(null);
       router.refresh();
     });
@@ -52,12 +52,12 @@ export function SupervisorRoomStatusSelect({
   return (
     <div className="min-w-[190px]">
       <label className="sr-only" htmlFor={`room-status-override-${roomId}`}>
-        Ubah status kamar {roomNumber}
+        Change room status {roomNumber}
       </label>
       <div className="relative">
         <select
           id={`room-status-override-${roomId}`}
-          aria-label={`Ubah status kamar ${roomNumber}`}
+          aria-label={`Change room status ${roomNumber}`}
           value={selectedStatus}
           disabled={isPending}
           onChange={(event) => applyStatus(event.target.value as RoomStatus)}
@@ -80,7 +80,7 @@ export function SupervisorRoomStatusSelect({
         aria-live="polite"
         className="mt-1 h-4 text-xs text-muted-foreground"
       >
-        {isPending && pendingStatus ? "Menyimpan..." : ""}
+        {isPending && pendingStatus ? "Saving..." : ""}
       </div>
     </div>
   );

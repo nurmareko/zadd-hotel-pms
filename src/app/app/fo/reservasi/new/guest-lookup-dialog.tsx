@@ -72,22 +72,22 @@ export function GuestLookupDialog({
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger render={<Button type="button" variant="outline" size="sm" disabled={disabled} />}>
         <Search aria-hidden="true" className="size-4" />
-        Cari Tamu Terdaftar
+        Find Existing Guest
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Cari Tamu Terdaftar</DialogTitle>
+          <DialogTitle>Find Existing Guest</DialogTitle>
           <DialogDescription>
-            Pilih tamu untuk mengisi data reservasi. Perubahan data tamu akan disimpan ke profil terdaftar saat reservasi disimpan.
+            Select a guest to populate the reservation. Changes to guest details will be saved to the existing profile when the reservation is saved.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <label htmlFor={inputId} className="font-medium">Nama, nomor identitas, atau telepon</label>
+          <label htmlFor={inputId} className="font-medium">Name, ID number, or phone</label>
           <Input
             id={inputId}
             type="search"
             autoComplete="off"
-            placeholder="Ketik untuk mencari tamu"
+            placeholder="Type to search for a guest"
             value={query}
             onChange={(event) => {
               requestVersion.current += 1;
@@ -101,20 +101,20 @@ export function GuestLookupDialog({
         </div>
         <div aria-busy={state.status === "loading"} className="min-h-24">
           <p role="status" className="text-sm text-slate-600">
-            {state.status === "idle" && "Masukkan kata pencarian untuk menemukan tamu terdaftar."}
-            {state.status === "loading" && "Mencari tamu…"}
+            {state.status === "idle" && "Enter a search term to find an existing guest."}
+            {state.status === "loading" && "Searching for guests…"}
             {state.status === "success" && (state.guests.length
-              ? `${state.guests.length} tamu ditemukan. Pilih tamu yang sesuai.`
-              : "Tamu tidak ditemukan. Coba kata pencarian lain atau isi data tamu baru pada formulir.")}
+              ? `${state.guests.length} guests found. Select the correct guest.`
+              : "No guests found. Try another search term or enter new guest details in the form.")}
           </p>
           {state.status === "error" && (
             <div className="space-y-3">
-              <p role="alert" className="text-red-700">Pencarian tamu gagal. Silakan coba lagi.</p>
+              <p role="alert" className="text-red-700">Guest search failed. Please try again.</p>
               <Button type="button" variant="outline" onClick={() => {
                 requestVersion.current += 1;
                 setState({ status: "loading" });
                 setRetry((value) => value + 1);
-              }}>Coba Lagi</Button>
+              }}>Try Again</Button>
             </div>
           )}
           {state.status === "success" && state.guests.length > 0 && (
@@ -131,12 +131,12 @@ export function GuestLookupDialog({
                   >
                     <span className="font-semibold text-slate-900">{guest.fullName} <span className="font-normal text-slate-600">(#{guest.id})</span></span>
                     <span className="break-words text-sm text-slate-600">
-                      {guestIdTypeLabel(guest.idType)}: {guest.idNumber || "Belum diisi"} · Telepon: {guest.phone || "Belum diisi"}
+                      {guestIdTypeLabel(guest.idType)}: {guest.idNumber || "Not provided"} · Phone: {guest.phone || "Not provided"}
                     </span>
                     <span className="text-xs text-slate-600">
-                      {guest.totalStays} reservasi · Kedatangan terakhir: {guest.lastStayDate
-                        ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(new Date(guest.lastStayDate))
-                        : "Belum ada reservasi"}
+                      {guest.totalStays} reservations · Last arrival: {guest.lastStayDate
+                        ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(new Date(guest.lastStayDate))
+                        : "No reservations yet"}
                     </span>
                   </button>
                 </li>
@@ -145,7 +145,7 @@ export function GuestLookupDialog({
           )}
         </div>
         <DialogFooter>
-          <DialogClose render={<Button type="button" variant="outline" />}>Batal</DialogClose>
+          <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -12,41 +12,41 @@ type ActionResult = { ok: true; count: number } | { ok: false; error: string };
 
 const DateStringSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
 const AssignmentSchema = z.object({
   date: DateStringSchema,
-  housekeeperId: z.coerce.number().int().positive("Petugas HK tidak valid"),
+  housekeeperId: z.coerce.number().int().positive("Invalid room attendant"),
   roomIds: z
-    .array(z.coerce.number().int().positive("Kamar tidak valid"))
-    .min(1, "Pilih minimal satu kamar"),
+    .array(z.coerce.number().int().positive("Invalid room"))
+    .min(1, "Select at least one room"),
 });
 
 const UnassignmentSchema = z.object({
   date: DateStringSchema,
   roomIds: z
-    .array(z.coerce.number().int().positive("Kamar tidak valid"))
-    .min(1, "Pilih minimal satu kamar"),
+    .array(z.coerce.number().int().positive("Invalid room"))
+    .min(1, "Select at least one room"),
 });
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Input tidak valid";
+  return error.issues[0]?.message ?? "Invalid input";
 }
 
 function assignmentErrorMessage(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2021") {
-      return "Database belum menerapkan migration notifikasi housekeeping. Jalankan prisma migrate deploy.";
+      return "The housekeeping notification database migration has not been applied. Run prisma migrate deploy.";
     }
 
     if (error.code === "P2002") {
-      return "Penugasan sedang diproses. Muat ulang halaman dan coba lagi.";
+      return "The assignment is being updated. Refresh the page and try again.";
     }
   }
 
   return error instanceof Error && error.message
-    ? `Gagal mengatur penugasan HK: ${error.message}`
-    : "Gagal mengatur penugasan HK";
+    ? `Unable to save housekeeping assignments: ${error.message}`
+    : "Unable to save housekeeping assignments";
 }
 
 function dateOnlyFromISO(value: string) {
@@ -88,7 +88,7 @@ export async function assignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await authorizeHousekeeping())) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = AssignmentSchema.safeParse({
@@ -105,7 +105,7 @@ export async function assignHousekeepingRooms(
   const roomIds = [...new Set(parsed.data.roomIds)];
 
   if (!date) {
-    return { ok: false, error: "Tanggal tidak valid" };
+    return { ok: false, error: "Invalid date" };
   }
 
   try {
@@ -129,12 +129,12 @@ export async function assignHousekeepingRooms(
         if (!housekeeper) {
           return {
             ok: false as const,
-            error: "Petugas HK tidak ditemukan atau tidak aktif",
+            error: "Room attendant not found or inactive",
           };
         }
 
         if (rooms.length !== roomIds.length) {
-          return { ok: false as const, error: "Sebagian kamar tidak ditemukan" };
+          return { ok: false as const, error: "Some rooms were not found" };
         }
 
         for (const roomId of roomIds) {
@@ -184,7 +184,7 @@ export async function unassignHousekeepingRooms(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await authorizeHousekeeping())) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
 
   const parsed = UnassignmentSchema.safeParse({
@@ -200,7 +200,7 @@ export async function unassignHousekeepingRooms(
   const roomIds = [...new Set(parsed.data.roomIds)];
 
   if (!date) {
-    return { ok: false, error: "Tanggal tidak valid" };
+    return { ok: false, error: "Invalid date" };
   }
 
   try {
@@ -212,7 +212,7 @@ export async function unassignHousekeepingRooms(
         });
 
         if (rooms.length !== roomIds.length) {
-          return { ok: false as const, error: "Sebagian kamar tidak ditemukan" };
+          return { ok: false as const, error: "Some rooms were not found" };
         }
 
         const deleted = await tx.housekeepingAssignment.deleteMany({
@@ -236,6 +236,6 @@ export async function unassignHousekeepingRooms(
 
     return result;
   } catch {
-    return { ok: false, error: "Gagal menghapus penugasan HK" };
+    return { ok: false, error: "Unable to remove housekeeping assignments" };
   }
 }

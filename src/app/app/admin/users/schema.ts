@@ -15,8 +15,8 @@ const OptionalEmailSchema = z
     z
       .string()
       .trim()
-      .max(100, "Email maksimal 100 karakter")
-      .email("Format email tidak valid")
+      .max(100, "Email must not exceed 100 characters")
+      .email("Invalid email format")
       .nullable(),
   )
   .transform((value) => value ?? null);
@@ -25,40 +25,40 @@ const UserBaseSchema = z.object({
   username: z
     .string()
     .trim()
-    .min(1, "Username wajib diisi")
-    .min(3, "Username minimal 3 karakter")
-    .max(50, "Username maksimal 50 karakter")
-    .regex(/^[A-Za-z0-9_]+$/, "Username hanya boleh huruf, angka, dan underscore"),
+    .min(1, "Username is required")
+    .min(3, "Username must contain at least 3 characters")
+    .max(50, "Username must not exceed 50 characters")
+    .regex(/^[A-Za-z0-9_]+$/, "Username may contain only letters, numbers and underscores"),
   fullName: z
     .string()
     .trim()
-    .min(1, "Nama lengkap wajib diisi")
-    .min(2, "Nama lengkap minimal 2 karakter")
-    .max(100, "Nama lengkap maksimal 100 karakter"),
+    .min(1, "Full name is required")
+    .min(2, "Full name must contain at least 2 characters")
+    .max(100, "Full name must not exceed 100 characters"),
   email: OptionalEmailSchema,
-  role: z.enum(roleCodes, { error: "Pilih role yang valid" }),
+  role: z.enum(roleCodes, { error: "Select a valid role" }),
 });
 
 const PasswordSchema = z
   .string()
-  .min(1, "Password wajib diisi")
-  .min(8, "Password minimal 8 karakter")
-  .max(100, "Password maksimal 100 karakter");
+  .min(1, "Password is required")
+  .min(8, "Password must contain at least 8 characters")
+  .max(100, "Password must not exceed 100 characters");
 
 export const UserCreateSchema = UserBaseSchema.extend({
   password: PasswordSchema,
 });
 
 export const UserUpdateSchema = UserBaseSchema.extend({
-  id: z.coerce.number().int().positive("Pengguna wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a user"),
   password: z.union([PasswordSchema, z.literal("")]).optional(),
 });
 
 export const UserIdSchema = z.object({
-  id: z.coerce.number().int().positive("Pengguna wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a user"),
 });
 
 export const UserPasswordResetSchema = z.object({
-  id: z.coerce.number().int().positive("Pengguna wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a user"),
   password: PasswordSchema,
 });

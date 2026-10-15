@@ -52,7 +52,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
     expect(mocks.transaction.mock.calls[0][1]).toMatchObject({ isolationLevel: "Serializable" });
     expect(tx.roomBlock.create).toHaveBeenCalledWith({ data: {
       roomId: 10, startDate: new Date("2026-09-14"), endDate: new Date("2026-09-15"),
-      reason: "MAINTENANCE", note: "Blokir OOO manual dari Housekeeping", createdById: 7,
+      reason: "MAINTENANCE", note: "Manual OOO block from Housekeeping", createdById: 7,
     } });
     expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VC" }, data: { status: "OOO" } });
     expect(tx.housekeepingLog.create).toHaveBeenCalledOnce();
@@ -96,7 +96,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
   it.each(["VC", "OOO"])("rejects unfinished cleaning from %s before changing blocks", async (currentStatus) => {
     tx.room.findUnique.mockResolvedValue({ id: 10, roomTypeId: 2, status: currentStatus });
     tx.cleaningSession.findFirst.mockResolvedValue({ id: 9 });
-    expect(await change(currentStatus === "OOO" ? "VD" : "OOO")).toEqual({ ok: false, error: "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja petugas HK terlebih dahulu." });
+    expect(await change(currentStatus === "OOO" ? "VD" : "OOO")).toEqual({ ok: false, error: "Room cleaning is in progress. Complete it from the HK staff task list first." });
     expect(tx.roomBlock.create).not.toHaveBeenCalled();
     expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
     expect(tx.room.updateMany).not.toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
   it.each(["VC", "OOO"])("rejects physical occupancy during an OOO transition from %s", async (currentStatus) => {
     tx.room.findUnique.mockResolvedValue({ id: 10, number: "101", roomTypeId: 2, status: currentStatus });
     tx.reservation.findFirst.mockResolvedValue({ id: 4 });
-    expect(await change(currentStatus === "OOO" ? "OC" : "OOO")).toMatchObject({ ok: false, error: expect.stringContaining("belum check-out") });
+    expect(await change(currentStatus === "OOO" ? "OC" : "OOO")).toMatchObject({ ok: false, error: expect.stringContaining("has not checked out") });
     expect(tx.roomBlock.updateMany).not.toHaveBeenCalled();
     expect(tx.room.updateMany).not.toHaveBeenCalled();
   });
@@ -119,7 +119,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
   it("rejects a block that consumes unallocated capacity", async () => {
     tx.roomType.findUnique.mockResolvedValue({ name: "Standar", _count: { rooms: 1 } });
     tx.reservation.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([{ arrivalDate: new Date(input.startDate), departureDate: new Date(input.endDate) }]);
-    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("Blokir tidak dapat dibuat") });
+    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("The block cannot be created") });
     expect(tx.room.updateMany).not.toHaveBeenCalled();
   });
 
@@ -152,7 +152,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
   it("rechecks cleaning after a serialization retry", async () => {
     mocks.transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("retry", { code: "P2034", clientVersion: "6" }));
     tx.cleaningSession.findFirst.mockResolvedValue({ id: 9 });
-    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("Pembersihan") });
+    expect(await change("OOO")).toMatchObject({ ok: false, error: expect.stringContaining("Room cleaning") });
     expect(mocks.transaction).toHaveBeenCalledTimes(2);
     expect(tx.roomBlock.create).not.toHaveBeenCalled();
   });
@@ -167,7 +167,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
   it("retains board occupancy validation and the explicit override policy", async () => {
     const result = await change("OC");
     if (source === "board") {
-      expect(result).toEqual({ ok: false, error: "Kamar tanpa tamu check-in hanya bisa memakai status VC, VD, VCU, atau OOO." });
+      expect(result).toEqual({ ok: false, error: "A room without a checked-in guest can only use status VC, VD, VCU, or OOO." });
       expect(tx.room.updateMany).not.toHaveBeenCalled();
     } else {
       expect(result).toEqual({ ok: true });
@@ -179,7 +179,7 @@ describe.each(["board", "override"] as const)("atomic HK %s transitions", (sourc
 
   it("rejects unauthorized requests before a transaction", async () => {
     mocks.auth.mockResolvedValue({ user: { id: "7", role: "FO" } });
-    expect(await change("OOO")).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(await change("OOO")).toEqual({ ok: false, error: "Not authorised" });
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });
@@ -268,7 +268,7 @@ describe("room block actions and atomic operations", () => {
     expect(await createRoomBlockAction(input)).toMatchObject({
       ok: false,
       code: "CLEANING_IN_PROGRESS",
-      error: "Pembersihan kamar sedang berjalan. Selesaikan dari daftar kerja housekeeper terlebih dahulu.",
+      error: "Room cleaning is in progress. Complete it from the housekeeper task list first.",
     });
     expect(tx.cleaningSession.findFirst).toHaveBeenCalledWith({
       where: { roomId: 10, startedAt: { not: null }, finishedAt: null },

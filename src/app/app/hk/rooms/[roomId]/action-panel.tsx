@@ -53,10 +53,10 @@ export function ActionPanel({
 
   if (status === RoomStatus.VD || status === RoomStatus.OD) {
     return (
-      <InfoCard title="Menunggu Pembersihan">
+      <InfoCard title="Awaiting Cleaning">
         {assignedHousekeeperName
-          ? `Kamar masuk antrean pembersihan dan ditugaskan ke ${assignedHousekeeperName}.`
-          : "Kamar masuk antrean pembersihan dan belum memiliki petugas hari ini."}
+          ? `This room is awaiting cleaning and is assigned to ${assignedHousekeeperName}.`
+          : "This room is awaiting cleaning and has no attendant assigned today."}
       </InfoCard>
     );
   }
@@ -72,15 +72,15 @@ export function ActionPanel({
 
   if (status === RoomStatus.OOO) {
     return (
-      <InfoCard title="Aksi">
-        Kamar sedang diperbaiki. Hubungi admin untuk mengembalikan status.
+      <InfoCard title="Actions">
+        This room is under maintenance. Contact an administrator to restore its status.
       </InfoCard>
     );
   }
 
   return (
-    <InfoCard title="Aksi">
-      Kamar dalam kondisi baik. Tidak ada aksi yang diperlukan.
+    <InfoCard title="Actions">
+      This room is in good condition. No action is required.
     </InfoCard>
   );
 }

@@ -18,16 +18,16 @@ export type RunningTablesSidebarProps = {
 };
 
 const locations: { value: TableLocation; label: string }[] = [
-  { value: "INDOOR", label: "Dalam ruangan" },
-  { value: "OUTDOOR", label: "Luar ruangan" },
-  { value: "PRIVATE", label: "Ruang privat" },
+  { value: "INDOOR", label: "Indoor" },
+  { value: "OUTDOOR", label: "Outdoor" },
+  { value: "PRIVATE", label: "Private Room" },
 ];
 
 const tableStatuses: Record<TableStatus, { label: string; className: string }> = {
-  AVAILABLE: { label: "Tersedia", className: "bg-status-vc-bg text-status-vc-fg" },
-  OCCUPIED: { label: "Terisi", className: "bg-status-oc-bg text-status-oc-fg" },
-  RESERVED: { label: "Dipesan", className: "bg-status-vd-bg text-status-vd-fg" },
-  OUT_OF_SERVICE: { label: "Tidak tersedia (OOS)", className: "bg-status-oos-bg text-status-oos-fg" },
+  AVAILABLE: { label: "Available", className: "bg-status-vc-bg text-status-vc-fg" },
+  OCCUPIED: { label: "Occupied", className: "bg-status-oc-bg text-status-oc-fg" },
+  RESERVED: { label: "Reserved", className: "bg-status-vd-bg text-status-vd-fg" },
+  OUT_OF_SERVICE: { label: "Out of Service (OOS)", className: "bg-status-oos-bg text-status-oos-fg" },
 };
 
 const selectionClassName = "min-h-11 w-full rounded-md border border-border p-3 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:border-ring aria-pressed:bg-accent";
@@ -40,33 +40,33 @@ export function RunningTablesSidebar({ tables, orders, activeOrderId, serviceTyp
   const roomOrders = runningOrders.filter((order) => order.serviceType === "ROOM_SERVICE");
 
   return (
-    <aside aria-label="Meja dan layanan kamar" className="min-w-0 space-y-5 rounded-lg border border-border bg-card p-4 shadow-sm">
+    <aside aria-label="Tables and room service" className="min-w-0 space-y-5 rounded-lg border border-border bg-card p-4 shadow-sm">
       <div>
-        <h2 className="mb-3 text-base font-semibold">Layanan</h2>
-        <div role="group" aria-label="Jenis layanan" className="grid grid-cols-2 gap-2">
+        <h2 className="mb-3 text-base font-semibold">Service</h2>
+        <div role="group" aria-label="Service type" className="grid grid-cols-2 gap-2">
           <button type="button" className={selectionClassName} disabled={disabled} aria-pressed={serviceType === "DINE_IN"} onClick={() => onServiceTypeChange("DINE_IN")}>
             <Utensils aria-hidden="true" className="mb-1 size-4" />
-            <span className="text-sm font-medium">Meja Berjalan</span>
+            <span className="text-sm font-medium">Active Tables</span>
           </button>
           <button type="button" className={selectionClassName} disabled={disabled} aria-pressed={serviceType === "ROOM_SERVICE"} onClick={() => onServiceTypeChange("ROOM_SERVICE")}>
             <BedDouble aria-hidden="true" className="mb-1 size-4" />
-            <span className="text-sm font-medium">Layanan Kamar / Antrean</span>
+            <span className="text-sm font-medium">Room Service / Queue</span>
           </button>
         </div>
       </div>
 
       {serviceType === "DINE_IN" && (
-        <section aria-label="Daftar meja" className="space-y-3">
-          <h2 className="text-base font-semibold">Meja Berjalan</h2>
+        <section aria-label="Table list" className="space-y-3">
+          <h2 className="text-base font-semibold">Active Tables</h2>
           <div className="space-y-1.5">
-            <label htmlFor={locationId} className="block text-sm font-medium">Lokasi</label>
+            <label htmlFor={locationId} className="block text-sm font-medium">Location</label>
             <select id={locationId} value={location} disabled={disabled} onChange={(event) => setLocation(event.target.value)} className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
-              <option value="all">Semua lokasi</option>
+              <option value="all">All locations</option>
               {locations.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </div>
           {tables.filter((table) => location === "all" || table.location === location).length === 0 && (
-            <p className="text-sm text-muted-foreground">Belum ada meja di lokasi ini. Pilih lokasi lain atau hubungi admin.</p>
+            <p className="text-sm text-muted-foreground">No tables at this location yet. Select another location or contact an administrator.</p>
           )}
           {locations.filter((item) => location === "all" || item.value === location).map((item) => {
             const locationTables = tables.filter((table) => table.location === item.value);
@@ -90,11 +90,11 @@ export function RunningTablesSidebar({ tables, orders, activeOrderId, serviceTyp
                           onClick={() => { if (tableOrder) onSelectOrder(tableOrder.id); else onSelectTable(table); }}
                         >
                           <span className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="break-words text-sm font-semibold">Meja {table.number}</span>
-                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${status.className}`}>{!unavailable && tableOrder?.status === "BILLED" ? "Ditagihkan" : status.label}</span>
+                            <span className="break-words text-sm font-semibold">Table {table.number}</span>
+                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${status.className}`}>{!unavailable && tableOrder?.status === "BILLED" ? "Billed" : status.label}</span>
                           </span>
-                          <span className="mt-1 block text-xs text-muted-foreground">{table.capacity} kursi{tableOrder ? ` · ${tableOrder.orderNo}` : ""}</span>
-                          {table.status === "OCCUPIED" && !tableOrder && <span className="mt-1 block text-xs text-muted-foreground">Pesanan aktif tidak tersedia.</span>}
+                          <span className="mt-1 block text-xs text-muted-foreground">{table.capacity} seats{tableOrder ? ` · ${tableOrder.orderNo}` : ""}</span>
+                          {table.status === "OCCUPIED" && !tableOrder && <span className="mt-1 block text-xs text-muted-foreground">Active order unavailable.</span>}
                         </button>
                       </li>
                     );
@@ -106,10 +106,10 @@ export function RunningTablesSidebar({ tables, orders, activeOrderId, serviceTyp
         </section>
       )}
 
-      <section aria-label="Antrean layanan kamar" className="space-y-3">
-        <h2 className="text-base font-semibold">Antrean layanan kamar <span className="text-sm font-normal text-muted-foreground">({roomOrders.length})</span></h2>
+      <section aria-label="Room service queue" className="space-y-3">
+        <h2 className="text-base font-semibold">Room service queue <span className="text-sm font-normal text-muted-foreground">({roomOrders.length})</span></h2>
         {roomOrders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Belum ada pesanan layanan kamar. Buat pesanan baru untuk memulai.</p>
+          <p className="text-sm text-muted-foreground">No room service orders yet. Create a new order to get started.</p>
         ) : (
           <ul className="space-y-2">
             {roomOrders.map((order) => (
@@ -117,7 +117,7 @@ export function RunningTablesSidebar({ tables, orders, activeOrderId, serviceTyp
                 <button type="button" className={selectionClassName} disabled={disabled} aria-pressed={activeOrder?.id === order.id} onClick={() => onSelectOrder(order.id)}>
                   <span className="block break-words text-sm font-semibold">{order.destination}</span>
                   <span className="mt-1 block break-all text-xs text-muted-foreground">KOT · {order.orderNo}</span>
-                  <span className="mt-2 inline-block rounded-full bg-status-oc-bg px-2 py-1 text-xs font-semibold text-status-oc-fg">{order.status === "BILLED" ? "Ditagihkan" : "Pesanan aktif"}</span>
+                  <span className="mt-2 inline-block rounded-full bg-status-oc-bg px-2 py-1 text-xs font-semibold text-status-oc-fg">{order.status === "BILLED" ? "Billed" : "Active orders"}</span>
                 </button>
               </li>
             ))}

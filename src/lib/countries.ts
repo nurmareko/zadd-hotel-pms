@@ -16,7 +16,7 @@ const indonesia = allCountries.find(
 );
 
 if (!indonesia) {
-  throw new Error("Data negara Indonesia tidak ditemukan");
+  throw new Error("Country data for Indonesia was not found");
 }
 
 export const countries: Country[] = [

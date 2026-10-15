@@ -22,7 +22,7 @@ export function LaundryFilters({ filters }: { filters: LaundryFilterValues }) {
   const invalidRange = !!startDate && !!endDate && startDate > endDate;
 
   return (
-    <form aria-label="Filter batch linen" aria-busy={pending} className="space-y-3" onSubmit={(event) => {
+    <form aria-label="Filter linen batches" aria-busy={pending} className="space-y-3" onSubmit={(event) => {
       event.preventDefault();
       if (pending || invalidRange) return;
       const params = new URLSearchParams();
@@ -32,34 +32,34 @@ export function LaundryFilters({ filters }: { filters: LaundryFilterValues }) {
       startTransition(() => router.push(`/app/hk/laundry?${params.toString()}`));
     }}>
       <fieldset disabled={pending} className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <legend className="sr-only">Cari dan saring batch</legend>
-        <label className="min-w-0 text-sm font-medium">Cari batch
-          <input name="q" type="search" maxLength={200} defaultValue={filters.q} placeholder="Kode, vendor, atau catatan" className={controlClass} />
+        <legend className="sr-only">Search and filter batches</legend>
+        <label className="min-w-0 text-sm font-medium">Search batches
+          <input name="q" type="search" maxLength={200} defaultValue={filters.q} placeholder="Code, supplier or notes" className={controlClass} />
         </label>
         <label className="min-w-0 text-sm font-medium">Status
           <select name="status" defaultValue={filters.status} className={controlClass}>
-            <option value="">Semua status</option>
+            <option value="">All statuses</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <label className="min-w-0 text-sm font-medium">Tipe linen
+        <label className="min-w-0 text-sm font-medium">Linen type
           <select name="itemType" defaultValue={filters.itemType} className={controlClass}>
-            <option value="">Semua tipe linen</option>
+            <option value="">All linen types</option>
             {Object.entries(ITEM_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <label className="min-w-0 text-sm font-medium">Dikirim mulai
+        <label className="min-w-0 text-sm font-medium">Sent from
           <input name="startDate" type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} className={controlClass} />
         </label>
-        <label className="min-w-0 text-sm font-medium">Dikirim sampai
+        <label className="min-w-0 text-sm font-medium">Sent to
           <input name="endDate" type="date" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} className={controlClass} />
         </label>
       </fieldset>
-      {invalidRange && <p role="alert" className="text-sm text-destructive">Tanggal akhir tidak boleh sebelum tanggal mulai.</p>}
+      {invalidRange && <p role="alert" className="text-sm text-destructive">The end date cannot be before the start date.</p>}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" variant="outline" disabled={pending || invalidRange}><Search className="size-4" aria-hidden="true" />{pending ? "Memuat..." : "Terapkan Filter"}</Button>
-        <Button type="button" variant="ghost" disabled={pending} onClick={() => startTransition(() => router.push("/app/hk/laundry"))}>Reset Filter</Button>
-        <p className="text-xs text-muted-foreground">Tanggal pengiriman mengikuti waktu hotel (WIB). Ringkasan mencakup seluruh batch.</p>
+        <Button type="submit" variant="outline" disabled={pending || invalidRange}><Search className="size-4" aria-hidden="true" />{pending ? "Loading..." : "Apply Filters"}</Button>
+        <Button type="button" variant="ghost" disabled={pending} onClick={() => startTransition(() => router.push("/app/hk/laundry"))}>Reset Filters</Button>
+        <p className="text-xs text-muted-foreground">Dispatch dates use hotel time (WIB). The summary includes all batches.</p>
       </div>
     </form>
   );

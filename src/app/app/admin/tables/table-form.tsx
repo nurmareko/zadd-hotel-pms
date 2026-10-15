@@ -116,7 +116,7 @@ export function RestaurantTableForm({
       : await createRestaurantTable(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Meja diperbarui" : "Meja dibuat");
+      toast.success(isEditing ? "Table updated" : "Table created");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -148,7 +148,7 @@ export function RestaurantTableForm({
             name="number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Nomor Meja</FormLabel>
+                <FormLabel className={labelClassName}>Table Number</FormLabel>
                 <FormControl>
                   <Input placeholder="T01" {...field} className={inputClassName} />
                 </FormControl>
@@ -162,7 +162,7 @@ export function RestaurantTableForm({
             name="capacity"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Kapasitas</FormLabel>
+                <FormLabel className={labelClassName}>Capacity</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -191,7 +191,7 @@ export function RestaurantTableForm({
             name="location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Lokasi</FormLabel>
+                <FormLabel className={labelClassName}>Location</FormLabel>
                 <Select
                   items={locationItems}
                   value={field.value}
@@ -203,7 +203,7 @@ export function RestaurantTableForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih lokasi" />
+                      <SelectValue placeholder="Select a location" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
@@ -236,7 +236,7 @@ export function RestaurantTableForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih status" />
+                      <SelectValue placeholder="Select a status" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent align="start">
@@ -258,10 +258,10 @@ export function RestaurantTableForm({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Catatan</FormLabel>
+              <FormLabel className={labelClassName}>Notes</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Catatan meja (opsional)"
+                  placeholder="Table notes (optional)"
                   {...field}
                   value={field.value ?? ""}
                   className={textareaClassName}
@@ -278,17 +278,17 @@ export function RestaurantTableForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Meja"}
+                ? "Save Changes"
+                : "Add Table"}
           </Button>
         </div>
       </form>

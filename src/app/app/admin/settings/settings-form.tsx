@@ -109,7 +109,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
     const result = await updateHotelSettings(values);
 
     if (result.ok) {
-      toast.success("Pengaturan diperbarui");
+      toast.success("Settings updated");
       form.reset({
         ...values,
         address: values.address ?? "",
@@ -127,7 +127,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
         className="grid max-w-[1100px] gap-4 lg:grid-cols-[1fr_320px]"
       >
         <div className="space-y-3">
-          <Section title="Informasi Hotel">
+          <Section title="Hotel Information">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -135,7 +135,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={labelClassName}>
-                      Nama Hotel
+                      Hotel Name
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -154,7 +154,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 name="currency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className={labelClassName}>Mata Uang</FormLabel>
+                    <FormLabel className={labelClassName}>Currency</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="IDR"
@@ -173,7 +173,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
               name="address"
               render={({ field }) => (
                 <FormItem className="mt-4">
-                  <FormLabel className={labelClassName}>Alamat</FormLabel>
+                  <FormLabel className={labelClassName}>Address</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Bandung, Indonesia"
@@ -196,7 +196,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={labelClassName}>
-                      Tax (PPN) %
+                      Tax (VAT) %
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -209,7 +209,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                       />
                     </FormControl>
                     <p className="text-[10px] leading-4 text-slate-500">
-                      Diaplikasikan ke subtotal + service charge.
+                      Applied to the subtotal + service charge.
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +235,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                       />
                     </FormControl>
                     <p className="text-[10px] leading-4 text-slate-500">
-                      Diaplikasikan ke subtotal F&amp;B.
+                      Applied to the F&amp;B subtotal.
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -261,7 +261,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                     />
                   </FormControl>
                   <p className="text-[10px] leading-4 text-slate-500">
-                    Waktu paling awal Night Audit dapat dijalankan.
+                    The earliest time Night Audit can run.
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -278,7 +278,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
             <div className="p-3.5 text-sm">
               <div className="border border-border/60 bg-slate-50 p-2.5">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Contoh perhitungan F&amp;B
+                  Sample F&amp;B calculation
                 </div>
                 <div className="mt-2">
                   <PreviewRow
@@ -291,7 +291,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                     muted
                   />
                   <PreviewRow
-                    label={`+ PPN ${watchedTax}%`}
+                    label={`+ VAT ${watchedTax}%`}
                     value={formatIDR(previewTax.toString())}
                     muted
                   />
@@ -312,13 +312,13 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
               variant="outline"
               onClick={() => form.reset(defaultValues)}
             >
-              Batal
+              Cancel
             </Button>
             <Button
               type="submit"
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
+              {form.formState.isSubmitting ? "Saving..." : "Save"}
             </Button>
           </div>
         </aside>

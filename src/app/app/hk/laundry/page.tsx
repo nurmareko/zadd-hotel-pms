@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = Record<string, string | string[] | undefined>;
 const headerClass = "border-b border-border px-4 py-3 text-left text-xs font-medium text-muted-foreground";
 const cellClass = "border-b border-border/60 px-4 py-3 align-top";
-const hotelDateTime = new Intl.DateTimeFormat("id-ID", {
+const hotelDateTime = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
 });
 
@@ -37,12 +37,12 @@ export default async function LaundryPage({ searchParams }: { searchParams: Prom
   return (
     <main className="min-w-0 max-w-full space-y-4 p-4 md:space-y-6 md:p-6">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Manajemen Binatu / Laundry</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">{guestTab ? "Catat cucian tamu dan pilih pembayaran langsung atau beban ke folio kamar." : "Pantau pengiriman, pencucian, dan penerimaan linen hotel."}</p>
+        <h1 className="text-3xl font-bold tracking-tight">Laundry Management</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">{guestTab ? "Record guest laundry and choose direct payment or a charge to the room folio." : "Track hotel linen dispatch, washing and receipt."}</p>
       </header>
-      <nav aria-label="Jenis laundry" className="flex flex-wrap gap-2">
-        <Link href={tabHref("linen")} aria-current={!guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "outline" : "default", className: "min-h-11" })}>Linen Hotel</Link>
-        <Link href={tabHref("guest")} aria-current={guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "default" : "outline", className: "min-h-11" })}>Laundry Tamu</Link>
+      <nav aria-label="Laundry type" className="flex flex-wrap gap-2">
+        <Link href={tabHref("linen")} aria-current={!guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "outline" : "default", className: "min-h-11" })}>Hotel Linen</Link>
+        <Link href={tabHref("guest")} aria-current={guestTab ? "page" : undefined} className={buttonVariants({ variant: guestTab ? "default" : "outline", className: "min-h-11" })}>Guest Laundry</Link>
       </nav>
       {guestTab ? <GuestLaundryView /> : <LinenLaundryView params={params} />}
     </main>
@@ -74,8 +74,8 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
       <Card className="min-w-0 max-w-full gap-4 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Daftar Batch Linen</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Kirim linen, mulai pencucian, lalu cocokkan hasil penerimaan.</p>
+            <h2 className="text-lg font-semibold">Linen Batches</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Send linen, start washing, then reconcile the received quantities.</p>
           </div>
           <CreateBatchDialog />
         </div>
@@ -83,49 +83,49 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
       </Card>
       {!parsed.success ? (
         <Card className="min-w-0 max-w-full p-4" role="alert">
-          <h2 className="font-semibold">Filter belum dapat diterapkan</h2>
-          <p className="text-sm text-destructive">{parsed.error.issues[0]?.message} Perbaiki filter atau pilih Reset Filter.</p>
+          <h2 className="font-semibold">Unable to apply filters</h2>
+          <p className="text-sm text-destructive">{parsed.error.issues[0]?.message} Correct the filters or select Reset Filters.</p>
         </Card>
       ) : batches.length === 0 ? (
         <Card className="min-w-0 max-w-full items-center gap-3 px-4 py-12 text-center">
           <Shirt className="size-10 text-muted-foreground" aria-hidden="true" />
-          <h2 className="text-lg font-semibold">{hasFilters ? "Tidak ada batch yang sesuai" : "Belum ada pengiriman linen"}</h2>
-          <p className="max-w-md text-sm text-muted-foreground">{hasFilters ? "Ubah pencarian atau reset filter untuk melihat batch lainnya." : "Pilih + Catat Batch Cucian untuk mencatat pengiriman pertama dan memantau proses pencuciannya."}</p>
+          <h2 className="text-lg font-semibold">{hasFilters ? "No matching batches" : "No linen dispatched yet"}</h2>
+          <p className="max-w-md text-sm text-muted-foreground">{hasFilters ? "Change your search or reset the filters to see other batches." : "Select + Record Laundry Batch to record the first dispatch and track its progress."}</p>
         </Card>
       ) : (
         <Card className="min-w-0 max-w-full gap-0 overflow-hidden py-0">
-          <div className="border-b px-4 py-3 text-sm text-muted-foreground"><span className="num font-semibold text-foreground">{batches.length.toLocaleString("id-ID")}</span> batch ditampilkan · Waktu dalam WIB</div>
+          <div className="border-b px-4 py-3 text-sm text-muted-foreground"><span className="num font-semibold text-foreground">{batches.length.toLocaleString("id-ID")}</span> batches shown · Times in WIB</div>
           
           {/* Tampilan Desktop: Tabel Lengkap */}
-          <div className="hidden overflow-x-auto focus-visible:outline-ring desktop:block relative w-full min-w-0 max-w-full" tabIndex={0} role="region" aria-label="Tabel batch linen, geser untuk melihat seluruh kolom">
+          <div className="hidden overflow-x-auto focus-visible:outline-ring desktop:block relative w-full min-w-0 max-w-full" tabIndex={0} role="region" aria-label="Linen batch table, scroll to view all columns">
             <table className="w-full min-w-[1050px] text-sm">
-              <caption className="sr-only">Pengiriman dan hasil penerimaan batch linen</caption>
-              <thead><tr>{["Kode Batch", "Tipe Linen", "Jumlah Dikirim", "Status", "Hasil Penerimaan", "Vendor", "Petugas", "Aksi"].map((label) => <th key={label} scope="col" className={headerClass}>{label}</th>)}</tr></thead>
+              <caption className="sr-only">Linen batch dispatch and receipt results</caption>
+              <thead><tr>{["Batch Code", "Linen Type", "Quantity Sent", "Status", "Receipt Results", "Vendor", "Staff", "Actions"].map((label) => <th key={label} scope="col" className={headerClass}>{label}</th>)}</tr></thead>
               <tbody>
                 {batches.map((batch) => (
                   <tr key={batch.id} className="hover:bg-muted/30">
                     <th scope="row" className={`${cellClass} text-left font-normal`}>
                       <span className="font-semibold">{batch.batchCode}</span>
                       <p className="num mt-1 whitespace-nowrap text-xs text-muted-foreground">{hotelDateTime.format(new Date(batch.sentAt))}</p>
-                      {batch.notes && <details className="mt-2 max-w-56 text-xs text-muted-foreground"><summary className="cursor-pointer">Catatan</summary><p className="mt-1 whitespace-pre-wrap break-words">{batch.notes}</p></details>}
+                      {batch.notes && <details className="mt-2 max-w-56 text-xs text-muted-foreground"><summary className="cursor-pointer">Notes</summary><p className="mt-1 whitespace-pre-wrap break-words">{batch.notes}</p></details>}
                     </th>
                     <td className={cellClass}>{ITEM_LABELS[batch.itemType]}</td>
                     <td className={`${cellClass} num whitespace-nowrap`}>{batch.sentQuantity.toLocaleString("id-ID")} unit</td>
                     <td className={cellClass}><span className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_CLASSES[batch.status]}`}>{STATUS_LABELS[batch.status]}</span></td>
                     <td className={cellClass}>
-                      {batch.receivedQuantity === null ? <span className="text-xs text-muted-foreground">Belum diterima</span> : (
+                      {batch.receivedQuantity === null ? <span className="text-xs text-muted-foreground">Not yet received</span> : (
                         <div className="num space-y-1 whitespace-nowrap text-xs">
-                          <p className="font-medium text-emerald-700">Bersih: {batch.receivedQuantity.toLocaleString("id-ID")} unit</p>
-                          <p className={batch.damagedQuantity > 0 ? "text-rose-700" : "text-muted-foreground"}>Rusak: {batch.damagedQuantity.toLocaleString("id-ID")} unit</p>
-                          <p className={(batch.lostQuantity ?? 0) > 0 ? "text-amber-800" : "text-muted-foreground"}>Hilang: {(batch.lostQuantity ?? 0).toLocaleString("id-ID")} unit</p>
+                          <p className="font-medium text-emerald-700">Clean: {batch.receivedQuantity.toLocaleString("id-ID")} unit</p>
+                          <p className={batch.damagedQuantity > 0 ? "text-rose-700" : "text-muted-foreground"}>Damaged: {batch.damagedQuantity.toLocaleString("id-ID")} unit</p>
+                          <p className={(batch.lostQuantity ?? 0) > 0 ? "text-amber-800" : "text-muted-foreground"}>Missing: {(batch.lostQuantity ?? 0).toLocaleString("id-ID")} unit</p>
                           {batch.completedAt && <p className="text-muted-foreground">{hotelDateTime.format(new Date(batch.completedAt))}</p>}
                         </div>
                       )}
                     </td>
                     <td className={cellClass}>{batch.vendor ?? "—"}</td>
                     <td className={cellClass}>
-                      <p className="text-xs"><span className="text-muted-foreground">Kirim: </span>{batch.recordedBy.fullName}</p>
-                      {batch.receivedBy && <p className="mt-1 text-xs"><span className="text-muted-foreground">Terima: </span>{batch.receivedBy.fullName}</p>}
+                      <p className="text-xs"><span className="text-muted-foreground">Sent: </span>{batch.recordedBy.fullName}</p>
+                      {batch.receivedBy && <p className="mt-1 text-xs"><span className="text-muted-foreground">Received: </span>{batch.receivedBy.fullName}</p>}
                     </td>
                     <td className={cellClass}>
                       {batch.status === "SENT" || batch.status === "WASHING" ? (
@@ -133,7 +133,7 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
                           {batch.status === "SENT" && <StartWashingButton id={batch.id} batchCode={batch.batchCode} />}
                           <ReceiveBatchDialog batch={{ id: batch.id, batchCode: batch.batchCode, itemType: batch.itemType, sentQuantity: batch.sentQuantity }} />
                         </div>
-                      ) : <span className="text-xs text-muted-foreground">Selesai</span>}
+                      ) : <span className="text-xs text-muted-foreground">Completed</span>}
                     </td>
                   </tr>
                 ))}
@@ -159,27 +159,27 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <p className="text-muted-foreground">Tipe Linen</p>
+                    <p className="text-muted-foreground">Linen Type</p>
                     <p className="font-medium text-foreground">{ITEM_LABELS[batch.itemType]}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Jumlah Dikirim</p>
+                    <p className="text-muted-foreground">Quantity Sent</p>
                     <p className="num font-medium text-foreground">{batch.sentQuantity.toLocaleString("id-ID")} unit</p>
                   </div>
                 </div>
 
                 <div className="rounded-md border bg-muted/30 p-2.5 text-xs">
-                  <p className="font-semibold text-foreground">Hasil Penerimaan</p>
+                  <p className="font-semibold text-foreground">Receipt Results</p>
                   {batch.receivedQuantity === null ? (
-                    <p className="mt-1 text-muted-foreground">Belum diterima</p>
+                    <p className="mt-1 text-muted-foreground">Not yet received</p>
                   ) : (
                     <div className="num mt-1 space-y-0.5">
-                      <p className="font-medium text-emerald-700">Bersih: {batch.receivedQuantity.toLocaleString("id-ID")} unit</p>
+                      <p className="font-medium text-emerald-700">Clean: {batch.receivedQuantity.toLocaleString("id-ID")} unit</p>
                       <p className={batch.damagedQuantity > 0 ? "text-rose-700" : "text-muted-foreground"}>
-                        Rusak: {batch.damagedQuantity.toLocaleString("id-ID")} unit
+                        Damaged: {batch.damagedQuantity.toLocaleString("id-ID")} unit
                       </p>
                       <p className={(batch.lostQuantity ?? 0) > 0 ? "text-amber-800" : "text-muted-foreground"}>
-                        Hilang: {(batch.lostQuantity ?? 0).toLocaleString("id-ID")} unit
+                        Missing: {(batch.lostQuantity ?? 0).toLocaleString("id-ID")} unit
                       </p>
                       {batch.completedAt && (
                         <p className="text-muted-foreground">{hotelDateTime.format(new Date(batch.completedAt))}</p>
@@ -194,11 +194,11 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
                     <span className="font-medium text-foreground">{batch.vendor ?? "—"}</span>
                   </div>
                   <div>
-                    <span>Kirim: </span>
+                    <span>Sent: </span>
                     <span className="font-medium text-foreground">{batch.recordedBy.fullName}</span>
                     {batch.receivedBy && (
                       <>
-                        <span> · Terima: </span>
+                        <span> · Received: </span>
                         <span className="font-medium text-foreground">{batch.receivedBy.fullName}</span>
                       </>
                     )}
@@ -207,7 +207,7 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
 
                 {batch.notes && (
                   <details className="text-xs text-muted-foreground">
-                    <summary className="cursor-pointer font-medium hover:text-foreground">Catatan</summary>
+                    <summary className="cursor-pointer font-medium hover:text-foreground">Notes</summary>
                     <p className="mt-1 whitespace-pre-wrap break-words rounded bg-muted/20 p-2">{batch.notes}</p>
                   </details>
                 )}
@@ -218,7 +218,7 @@ async function LinenLaundryView({ params }: { params: SearchParams }) {
                     <ReceiveBatchDialog batch={{ id: batch.id, batchCode: batch.batchCode, itemType: batch.itemType, sentQuantity: batch.sentQuantity }} />
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Proses cuci dan penerimaan selesai</p>
+                  <p className="text-xs text-muted-foreground">Washing and receipt complete</p>
                 )}
               </article>
             ))}

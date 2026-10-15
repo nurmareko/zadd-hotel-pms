@@ -48,7 +48,7 @@ const selectClassName =
   "h-11 desktop:h-10 w-full rounded-md border border-input bg-white px-3 text-sm shadow-sm outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20";
 
 function formatPreviewDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -92,19 +92,17 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Pratinjau bayangan tarif
+              Rate Simulation
             </h2>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Simulasikan tarif untuk interval menginap [kedatangan,
-              keberangkatan).
+              Simulate rates for a stay, including the arrival date and excluding the departure date.
             </p>
           </div>
         </div>
         <div className="mt-3 flex gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm leading-5 text-blue-800">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <p>
-            Ini hanya mode pratinjau dan tidak digunakan untuk membuat atau
-            mengubah reservasi.
+            This is a preview only and does not create or modify reservations.
           </p>
         </div>
       </div>
@@ -123,14 +121,14 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
             name="roomTypeId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipe kamar</FormLabel>
+                <FormLabel>Room type</FormLabel>
                 <FormControl>
                   <select
                     {...field}
                     value={field.value ?? ""}
                     className={selectClassName}
                   >
-                    <option value="">Pilih tipe kamar</option>
+                    <option value="">Select a room type</option>
                     {roomTypes.map((roomType) => (
                       <option key={roomType.id} value={roomType.id}>
                         {roomType.code} — {roomType.name}
@@ -147,7 +145,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
             name="arrivalDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kedatangan</FormLabel>
+                <FormLabel>Arrival</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} className={controlClassName} />
                 </FormControl>
@@ -160,7 +158,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
             name="departureDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Keberangkatan</FormLabel>
+                <FormLabel>Departure</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} className={controlClassName} />
                 </FormControl>
@@ -170,7 +168,7 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
           />
           <Button type="submit" disabled={form.formState.isSubmitting}>
             <Calculator aria-hidden="true" />
-            {form.formState.isSubmitting ? "Menghitung..." : "Hitung pratinjau"}
+            {form.formState.isSubmitting ? "Calculating..." : "Calculate Preview"}
           </Button>
         </form>
       </Form>
@@ -185,20 +183,20 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
         <div className="border-t border-border">
           <div className="grid gap-px bg-border sm:grid-cols-3">
             <div className="bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">Tarif dasar / malam</p>
+              <p className="text-xs font-semibold text-slate-500">Base rate / night</p>
               <p className="num mt-1 text-lg font-bold">{formatIDR(result.baseRate)}</p>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">Total tarif dasar</p>
+              <p className="text-xs font-semibold text-slate-500">Total base rate</p>
               <p className="num mt-1 text-lg font-bold">{formatIDR(result.flatTotal)}</p>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500">Total setelah musim</p>
+              <p className="text-xs font-semibold text-slate-500">Total after seasonal adjustments</p>
               <p className="num mt-1 text-lg font-bold text-blue-700">
                 {formatIDR(result.resolvedTotal)}
               </p>
               <p className="num mt-1 text-xs text-slate-500">
-                Selisih {formatIDR(Number(result.resolvedTotal) - Number(result.flatTotal))}
+                Difference {formatIDR(Number(result.resolvedTotal) - Number(result.flatTotal))}
               </p>
             </div>
           </div>
@@ -207,10 +205,10 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
             <Table className="min-w-170">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4">Malam</TableHead>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Musim diterapkan</TableHead>
-                  <TableHead className="px-4 text-right">Tarif</TableHead>
+                  <TableHead className="px-4">Night</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Applied Season</TableHead>
+                  <TableHead className="px-4 text-right">Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -224,12 +222,12 @@ export function PricingPreview({ roomTypes }: PricingPreviewProps) {
                           <p className="font-medium text-foreground">{night.sourceRule.name}</p>
                           <p className="text-xs text-slate-500">
                             {night.sourceRule.selectorKind === "DATE_RANGE"
-                              ? "Rentang tanggal"
-                              : "Hari dalam minggu"}
+                              ? "Date range"
+                              : "Day of week"}
                           </p>
                         </div>
                       ) : (
-                        <span className="text-slate-500">Tarif dasar (tanpa musim)</span>
+                        <span className="text-slate-500">Base rate (no season)</span>
                       )}
                     </TableCell>
                     <TableCell className="num px-4 text-right font-semibold">

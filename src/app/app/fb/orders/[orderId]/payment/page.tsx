@@ -57,11 +57,11 @@ function SummaryRow({
 
 function methodLabel(method: PaymentMethod | null) {
   if (method === PaymentMethod.CASH) {
-    return "Tunai";
+    return "Cash";
   }
 
   if (method === PaymentMethod.CARD) {
-    return "Kartu";
+    return "Card";
   }
 
   if (method === PaymentMethod.TRANSFER) {
@@ -119,13 +119,13 @@ function ClosedState({
     <section className="overflow-hidden rounded-lg border border-status-vc-pip bg-status-vc-bg shadow-sm">
       <div className="border-b border-status-vc-pip/60 bg-white/70 px-5 py-4">
         <div className="text-base font-semibold text-status-vc-fg">
-          Sudah Dibayar
+          Paid
         </div>
       </div>
       <div className="grid gap-3 p-5 text-sm text-status-vc-fg">
         <div>
           <div className="text-base font-bold">
-            Order sudah ditutup
+            Order already closed
           </div>
           <div className="mt-1 leading-5">
             {methodLabel(paymentMethod)} · Total{" "}
@@ -146,13 +146,13 @@ function ClosedState({
         {paymentMethod === PaymentMethod.CASH && cashDetails ? (
           <div className="grid gap-2 rounded-lg border border-status-vc-pip bg-white px-4 py-3 text-slate-900 shadow-sm sm:grid-cols-2">
             <div>
-              <span className="text-slate-500">Uang diterima</span>{" "}
+              <span className="text-slate-500">Amount received</span>{" "}
               <span className="num font-semibold">
                 {formatIDR(cashDetails.amountTendered)}
               </span>
             </div>
             <div>
-              <span className="text-slate-500">Kembalian</span>{" "}
+              <span className="text-slate-500">Change</span>{" "}
               <span className="num font-semibold">
                 {formatIDR(cashDetails.change)}
               </span>
@@ -164,13 +164,13 @@ function ClosedState({
             className={buttonVariants()}
             href={`/api/fb-orders/${orderId}/receipt`}
           >
-            Cetak Struk
+            Print Receipt
           </a>
           <Link
             className={buttonVariants({ variant: "outline" })}
             href="/app/fb"
           >
-            Kembali ke Daftar Meja
+            Back to Table List
           </Link>
         </div>
       </div>
@@ -238,8 +238,8 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
         }
       : null;
   const locationLabel = attachedRoomFolio
-    ? `Room Service · Kamar ${attachedRoomFolio.roomNumber} · ${attachedRoomFolio.guestName}`
-    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
+    ? `Room Service · Room ${attachedRoomFolio.roomNumber} · ${attachedRoomFolio.guestName}`
+    : `Table ${order.table?.number ?? order.tableNo ?? "-"}`;
   const openedAtLabel = formatDateTimeID(order.openedAt);
   const serviceChargePercent = settings.serviceChargePercent.toString();
   const taxPercent = settings.taxPercent.toString();
@@ -251,11 +251,11 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold leading-tight text-slate-900">
-            Pembayaran · {order.orderNo}
+            Payment · {order.orderNo}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {locationLabel} · <span className="num">{order.guestCount}</span>{" "}
-            pax · Dibuka {openedAtLabel}
+            pax · Opened {openedAtLabel}
           </p>
         </div>
         <OrderStatusBadge status={order.status} />
@@ -263,8 +263,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
 
       {order.status === FBOrderStatus.VOIDED ? (
         <div className="mb-4 rounded-lg border border-status-od-pip bg-status-od-bg px-4 py-3 text-sm font-medium text-status-od-fg shadow-sm">
-          Order ini sudah dibatalkan. Pembayaran tidak tersedia untuk order
-          voided.
+          This order has been voided. Payment is not available for voided orders.
         </div>
       ) : null}
 
@@ -311,8 +310,8 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
           {order.status === FBOrderStatus.VOIDED ? (
             <EmptyState
               icon={CircleSlash}
-              title="Tidak ada aksi pembayaran"
-              description="Order voided tidak memiliki aksi pembayaran. Gunakan daftar order untuk kembali ke area F&B."
+              title="No payment actions available"
+              description="Voided orders cannot be paid. Use the order list to return to F&B."
               className="rounded-lg border border-gray-200 bg-white shadow-sm"
             />
           ) : null}
@@ -321,10 +320,10 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
         <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm desktop:xl:sticky desktop:xl:top-4 desktop:xl:self-start">
           <div className="border-b border-gray-100 px-5 py-4">
             <div className="text-base font-semibold text-slate-900">
-              Ringkasan Bill
+              Bill Summary
             </div>
             <div className="mt-1 text-sm text-slate-500">
-              Total tagihan untuk penyelesaian pembayaran.
+              Bill total for settlement.
             </div>
           </div>
           <div className="p-5">
@@ -340,7 +339,7 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
             ) : null}
             {shouldShowPercentRow(taxPercent) ? (
               <SummaryRow
-                label={`Pajak (${percentLabel(taxPercent)}%)`}
+                label={`Tax (${percentLabel(taxPercent)}%)`}
                 value={formatIDR(totals.tax.toString())}
               />
             ) : null}
@@ -351,13 +350,13 @@ export default async function FbPaymentPage({ params }: PaymentPageProps) {
             />
             <div className="mt-4 rounded-lg border border-gray-200 bg-slate-50 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">Jumlah tagihan</span>
+                <span className="text-slate-500">Bill amount</span>
                 <span className="num font-bold text-slate-900">
                   {formatIDR(totals.total.toString())}
                 </span>
               </div>
               <div className="mt-1 text-xs text-slate-500">
-                {order.items.length} item · Kasir {order.waitedBy.fullName}
+                {order.items.length} items · Cashier {order.waitedBy.fullName}
               </div>
             </div>
           </div>

@@ -48,7 +48,7 @@ function AddRoomTypeButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Tipe
+      Add Type
     </Button>
   );
 }
@@ -70,7 +70,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       const result = await deleteRoomType(deletingRoomType.id);
 
       if (result.ok) {
-        toast.success("Tipe kamar dihapus");
+        toast.success("Room type deleted");
         setDeletingRoomType(null);
         return;
       }
@@ -88,7 +88,7 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       <section className="rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-3 bg-card px-3.5 py-3 text-primary sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-bold uppercase tracking-[0.08em]">
-            {"Tipe Kamar"}
+            {"Room Types"}
           </h2>
           <AddRoomTypeButton onClick={() => setCreateOpen(true)} />
         </div>
@@ -96,8 +96,8 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         {roomTypes.length === 0 ? (
           <EmptyState
             icon={Tags}
-            title="Belum ada tipe kamar"
-            description="Buat tipe kamar sebagai dasar tarif, kapasitas, dan inventory."
+            title="No room types yet"
+            description="Create room types to define rates, capacity and inventory."
             action={<AddRoomTypeButton onClick={() => setCreateOpen(true)} />}
             className="m-3.5 min-h-56"
           />
@@ -135,19 +135,19 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
 
                   <div className="grid gap-1 text-[13px]">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-slate-500">Kapasitas</span>
+                      <span className="text-slate-500">Capacity</span>
                       <span className="num font-medium">
                         {roomType.capacity} pax
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-slate-500">Base rate / malam</span>
+                      <span className="text-slate-500">Base rate / night</span>
                       <span className="num font-semibold">
                         {formatIDR(roomType.baseRate)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-slate-500">Jumlah kamar</span>
+                      <span className="text-slate-500">Room count</span>
                       <span className="num font-medium">
                         {roomCount(roomType.id)}
                       </span>
@@ -164,10 +164,10 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Tipe Kamar"}
+              {"Add Room Type"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat tipe kamar untuk inventory dan reservasi.
+              Create a room type for inventory and reservations.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -190,10 +190,10 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Tipe Kamar"}
+              {"Edit Room Type"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui detail tipe kamar dan tarif default.
+              Update the room type details and default rate.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -221,21 +221,20 @@ export function RoomTypeTable({ roomTypes, rooms = [] }: RoomTypeTableProps) {
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus tipe kamar?</AlertDialogTitle>
+            <AlertDialogTitle>Delete room type?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus {deletingRoomType?.name ?? "tipe kamar ini"} dari master
-              data. Tindakan ini tidak dapat dibatalkan.
+              Delete {deletingRoomType?.name ?? "this room type"} from the master data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

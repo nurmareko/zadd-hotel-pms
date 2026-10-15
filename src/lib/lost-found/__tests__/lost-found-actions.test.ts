@@ -73,7 +73,7 @@ describe("canonical lost-found actions", () => {
   });
   it("rejects a missing room inside the transaction", async () => {
     mocks.tx.room.findUnique.mockResolvedValue(null);
-    expect(await createLostFoundItem(form({ description: "Dompet", roomId: "10" }))).toEqual({ ok: false, error: "Kamar tidak ditemukan. Pilih kamar lain atau kosongkan pilihan kamar." });
+    expect(await createLostFoundItem(form({ description: "Dompet", roomId: "10" }))).toEqual({ ok: false, error: "Room not found. Select another room or clear the room selection." });
     expect(mocks.tx.lostFoundItem.create).not.toHaveBeenCalled();
   });
   it.each([["3", "10000", "LF-2609-10001"], ["20", "5", "LF-2609-0021"]])("allocates above count %s and historical maximum %s", async (count, maximum, code) => {
@@ -86,9 +86,9 @@ describe("canonical lost-found actions", () => {
     expect(mocks.transaction).toHaveBeenCalledTimes(2);
     expect(mocks.tx.user.findFirst).toHaveBeenCalledTimes(2);
   });
-  it("bounds contention retries and returns an Indonesian error", async () => {
+  it("bounds contention retries and returns an English error", async () => {
     mocks.tx.lostFoundItem.create.mockRejectedValue(conflict("P2034"));
-    expect(await createLostFoundItem(form({ description: "Dompet" }))).toMatchObject({ ok: false, error: expect.stringContaining("petugas lain") });
+    expect(await createLostFoundItem(form({ description: "Dompet" }))).toMatchObject({ ok: false, error: expect.stringContaining("another staff member") });
     expect(mocks.transaction).toHaveBeenCalledTimes(3);
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
@@ -98,7 +98,7 @@ describe("canonical lost-found actions", () => {
   });
   it("combines disposal notes without overwriting return audit fields", async () => {
     expect((await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak", notes: "Disetujui petugas" }))).ok).toBe(true);
-    expect(mocks.tx.lostFoundItem.updateMany).toHaveBeenCalledWith({ where: { id: 1, status: "UNCLAIMED" }, data: { status: "DISPOSED", disposedById: 7, disposedAt: now, disposalReason: "Rusak\nCatatan: Disetujui petugas" } });
+    expect(mocks.tx.lostFoundItem.updateMany).toHaveBeenCalledWith({ where: { id: 1, status: "UNCLAIMED" }, data: { status: "DISPOSED", disposedById: 7, disposedAt: now, disposalReason: "Rusak\nNotes: Disetujui petugas" } });
   });
   it.each(["RETURNED", "DISPOSED"])("blocks both terminal transitions from %s", async (status) => {
     mocks.tx.lostFoundItem.findUnique.mockResolvedValue({ id: 1, status });
@@ -108,13 +108,13 @@ describe("canonical lost-found actions", () => {
   });
   it("uses pemusnahan/hibah wording for disposed-state and persistence errors", async () => {
     mocks.tx.lostFoundItem.findUnique.mockResolvedValueOnce({ id: 1, status: "DISPOSED" });
-    expect(await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak" }))).toEqual({ ok: false, error: "Barang sudah dimusnahkan atau dihibahkan dan tidak dapat diproses lagi." });
+    expect(await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak" }))).toEqual({ ok: false, error: "The item has been disposed of or donated and cannot be processed again." });
     mocks.tx.lostFoundItem.updateMany.mockRejectedValueOnce(new Error("Database unavailable"));
-    expect(await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak" }))).toEqual({ ok: false, error: "Gagal mencatat pemusnahan/hibah barang. Silakan coba lagi." });
+    expect(await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak" }))).toEqual({ ok: false, error: "Failed to record the item disposal/donation. Please try again." });
   });
   it("rejects missing items and conditional-write races", async () => {
     mocks.tx.lostFoundItem.findUnique.mockResolvedValueOnce(null);
-    expect(await claimLostFoundItem(form({ itemId: "1", claimantName: "Sari" }))).toEqual({ ok: false, error: "Barang temuan tidak ditemukan." });
+    expect(await claimLostFoundItem(form({ itemId: "1", claimantName: "Sari" }))).toEqual({ ok: false, error: "Found item not found." });
     mocks.tx.lostFoundItem.updateMany.mockResolvedValue({ count: 0 });
     expect((await disposeLostFoundItem(form({ itemId: "1", disposalReason: "Rusak" }))).ok).toBe(false);
     expect(mocks.revalidate).not.toHaveBeenCalled();
@@ -135,7 +135,7 @@ describe("existing room and mobile writers", () => {
   });
   it("preserves the room assignment guard", async () => {
     mocks.tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
-    expect(await logFoundItem(form({ roomId: "10", description: "Dompet" }))).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    expect(await logFoundItem(form({ roomId: "10", description: "Dompet" }))).toEqual({ ok: false, error: "This room is not assigned to you" });
     expect(mocks.tx.lostFoundItem.create).not.toHaveBeenCalled();
   });
   it.each(["room", "mobile"])("retries reference collisions in the %s writer without nesting transactions", async (writer) => {

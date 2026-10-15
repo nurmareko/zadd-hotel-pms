@@ -114,7 +114,7 @@ export function RoomForm({
       : await createRoom(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Kamar diperbarui" : "Kamar dibuat");
+      toast.success(isEditing ? "Room updated" : "Room created");
       form.reset(blankValues);
       onSaved();
       return;
@@ -146,7 +146,7 @@ export function RoomForm({
             name="number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Nomor Kamar</FormLabel>
+                <FormLabel className={labelClassName}>Room Number</FormLabel>
                 <FormControl>
                   <Input placeholder="101" {...field} className={inputClassName} />
                 </FormControl>
@@ -160,7 +160,7 @@ export function RoomForm({
             name="floor"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Lantai</FormLabel>
+                <FormLabel className={labelClassName}>Floor</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -182,7 +182,7 @@ export function RoomForm({
           name="roomTypeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Tipe Kamar</FormLabel>
+              <FormLabel className={labelClassName}>Room Type</FormLabel>
               <Select
                 items={roomTypeItems}
                 value={field.value ? String(field.value) : null}
@@ -194,7 +194,7 @@ export function RoomForm({
               >
                 <FormControl>
                   <SelectTrigger className={`${inputClassName} w-full`}>
-                    <SelectValue placeholder="Pilih tipe kamar" />
+                    <SelectValue placeholder="Select a room type" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent align="start">
@@ -226,7 +226,7 @@ export function RoomForm({
               >
                 <FormControl>
                   <SelectTrigger className={`${inputClassName} w-full`}>
-                    <SelectValue placeholder="Pilih status" />
+                    <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent align="start">
@@ -248,17 +248,17 @@ export function RoomForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting || roomTypes.length === 0}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Kamar"}
+                ? "Save Changes"
+                : "Add Room"}
           </Button>
         </div>
       </form>

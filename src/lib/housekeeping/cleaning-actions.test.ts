@@ -52,7 +52,7 @@ describe("mobile action boundaries", () => {
   });
   it.each([null, { user: { id: "7", role: "FO" } }, { user: { id: "7", role: "FB" } }, { user: { id: "7", role: "ACC" } }])("denies unauthenticated or unrelated roles on every action", async (session) => {
     mocks.auth.mockResolvedValue(session);
-    for (const call of mobileCalls) expect(await call()).toEqual({ ok: false, error: "Tidak berwenang" });
+    for (const call of mobileCalls) expect(await call()).toEqual({ ok: false, error: "Not authorised" });
     for (const operation of [mocks.start, mocks.finish, mocks.inspect, mocks.claim, mocks.report]) expect(operation).not.toHaveBeenCalled();
   });
 
@@ -112,7 +112,7 @@ describe("mobile action boundaries", () => {
   });
 
   it("passes canonical failure through and never revalidates failed operations", async () => {
-    const failure = { ok: false, error: "Kamar ini bukan tugas Anda" };
+    const failure = { ok: false, error: "This room is not assigned to you" };
     mocks.start.mockResolvedValue(failure);
     expect(await startMobileCleaning(10)).toEqual(failure);
     expect(mocks.revalidateRoomStatusViews).not.toHaveBeenCalled();
@@ -135,7 +135,7 @@ describe.each([
     const note = "x".repeat(500);
     expect(await finish(form({ roomId: "10", note, towels: "2", soap: "0", bottledWater: "2" }))).toEqual({ ok: true });
     expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({
-      note: `${note}\n[Amenities: 2 Handuk Mandi, 0 Sabun, 2 Air Mineral]`,
+      note: `${note}\n[Amenities: 2 Bath Towel, 0 Soap, 2 Bottled Water]`,
     }));
   });
   it("does not record blank counts as zero", async () => {
@@ -144,7 +144,7 @@ describe.each([
   });
   it("records amenities even without operator notes", async () => {
     await finish(form({ roomId: "10", dentalKit: "1" }));
-    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ note: "[Amenities: 1 Sikat Gigi / Dental Kit]" }));
+    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ note: "[Amenities: 1 Toothbrush / Dental Kit]" }));
   });
   it("rejects invalid amenities before entering the operation", async () => {
     expect((await finish(form({ roomId: "10", towels: "100" }))).ok).toBe(false);
@@ -156,7 +156,7 @@ describe("desktop delegation", () => {
   it.each([null, "FO", "FB", "ACC"])("denies %s before desktop operations or database access", async (role) => {
     mocks.auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
     for (const call of [startCleaning, finishCleaning, inspectRoom, logFoundItem]) {
-      expect(await call(form({ roomId: "10", passed: "true", description: "Dompet" }))).toEqual({ ok: false, error: "Tidak berwenang" });
+      expect(await call(form({ roomId: "10", passed: "true", description: "Dompet" }))).toEqual({ ok: false, error: "Not authorised" });
     }
     for (const operation of [mocks.start, mocks.finish, mocks.inspect, mocks.transaction]) expect(operation).not.toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe("desktop delegation", () => {
       lostFoundItem: { create: vi.fn() },
     };
     mocks.transaction.mockImplementation((operation) => operation(tx));
-    expect(await logFoundItem(form({ roomId: "10", description: "Dompet" }))).toEqual({ ok: false, error: "Kamar ini bukan tugas Anda" });
+    expect(await logFoundItem(form({ roomId: "10", description: "Dompet" }))).toEqual({ ok: false, error: "This room is not assigned to you" });
     expect(tx.housekeepingAssignment.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { roomId: 10, housekeeperId: 7, date: expect.any(Date) } }));
     expect(tx.lostFoundItem.create).not.toHaveBeenCalled();
     expect(mocks.report).not.toHaveBeenCalled();

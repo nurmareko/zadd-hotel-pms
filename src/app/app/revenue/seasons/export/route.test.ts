@@ -6,7 +6,7 @@ vi.mock("@/auth", () => ({ auth }));
 vi.mock("@/lib/prisma", () => ({ prisma: { pricingRule: { findMany } } }));
 import { GET } from "./route";
 
-const header = "Nama Aturan,Kode Tipe Kamar,Tipe Kamar,Tarif Dasar (Rp),Jenis Periode,Hari,Tanggal Mulai,Tanggal Selesai (Eksklusif),Jenis Penyesuaian,Nilai Penyesuaian,Status";
+const header = "Rule Name,Room Type Code,Room Type,Base Rate (IDR),Period Type,Day,Start Date,End Date (Exclusive),Adjustment Type,Adjustment Value,Status";
 const rule = {
   name: "Akhir pekan",
   roomType: { code: "DLX", name: "Deluxe", baseRate: new Prisma.Decimal(500000) },
@@ -28,7 +28,7 @@ describe("season CSV export", () => {
     auth.mockResolvedValue(session);
     const response = await GET();
     expect(response.status).toBe(401);
-    expect(await response.text()).toBe("Silakan masuk terlebih dahulu.");
+    expect(await response.text()).toBe("Please sign in first.");
     expect(findMany).not.toHaveBeenCalled();
   });
 
@@ -36,19 +36,19 @@ describe("season CSV export", () => {
     auth.mockResolvedValue({ user: { role } });
     const response = await GET();
     expect(response.status).toBe(403);
-    expect(await response.text()).toBe("Anda tidak memiliki akses untuk mengekspor data pendapatan.");
+    expect(await response.text()).toBe("You do not have permission to export revenue data.");
     expect(findMany).not.toHaveBeenCalled();
   });
 
-  it.each(["ADMIN", "GM"])("exports all rules for %s with Indonesian columns and hotel-date filename", async (role) => {
+  it.each(["ADMIN", "GM"])("exports all rules for %s with English columns and hotel-date filename", async (role) => {
     auth.mockResolvedValue({ user: { role } });
     const response = await GET();
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
-    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="musim-tarif-2026-09-29.csv"');
+    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="seasons-rates-2026-09-29.csv"');
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     expect(findMany).toHaveBeenCalledWith({ include: { roomType: true }, orderBy: [{ roomType: { name: "asc" } }, { name: "asc" }] });
-    expect(await response.text()).toBe(`${header}\r\nAkhir pekan,DLX,Deluxe,500000,Hari mingguan,Sabtu,-,-,Nominal (Rp),'+Rp 50.000,Aktif`);
+    expect(await response.text()).toBe(`${header}\r\nAkhir pekan,DLX,Deluxe,500000,Weekday,Saturday,-,-,Amount (IDR),'+Rp 50.000,Active`);
   });
 
   it("includes the UTF-8 BOM bytes", async () => {
@@ -61,17 +61,17 @@ describe("season CSV export", () => {
     findMany.mockResolvedValue([{ ...rule, selectorKind: "DATE_RANGE", dayOfWeek: null,
       startsOn: new Date("2026-10-01T00:00:00Z"), endsBefore: new Date("2026-10-05T00:00:00Z"),
       adjustmentKind: "PERCENT_DELTA", adjustmentValue: new Prisma.Decimal(15), isActive: false }]);
-    expect(await (await GET()).text()).toContain("Rentang tanggal,-,2026-10-01,2026-10-05,Persentase (%),'+15%,Nonaktif");
+    expect(await (await GET()).text()).toContain("Date range,-,2026-10-01,2026-10-05,Percentage (%),'+15%,Inactive");
   });
 
-  it.each([["MONDAY", "Senin"], ["TUESDAY", "Selasa"], ["WEDNESDAY", "Rabu"], ["THURSDAY", "Kamis"], ["FRIDAY", "Jumat"], ["SUNDAY", "Minggu"]])("translates %s", async (dayOfWeek, label) => {
+  it.each([["MONDAY", "Monday"], ["TUESDAY", "Tuesday"], ["WEDNESDAY", "Wednesday"], ["THURSDAY", "Thursday"], ["FRIDAY", "Friday"], ["SUNDAY", "Sunday"]])("translates %s", async (dayOfWeek, label) => {
     findMany.mockResolvedValue([{ ...rule, dayOfWeek }]);
-    expect(await (await GET()).text()).toContain(`Hari mingguan,${label},-,-`);
+    expect(await (await GET()).text()).toContain(`Weekday,${label},-,-`);
   });
 
   it.each([[0, "0%"], [-12.5, '"\'-12,5%"']])("formats %s percent without a positive sign", async (value, expected) => {
     findMany.mockResolvedValue([{ ...rule, adjustmentKind: "PERCENT_DELTA", adjustmentValue: new Prisma.Decimal(value) }]);
-    expect(await (await GET()).text()).toContain(`Persentase (%),${expected},Aktif`);
+    expect(await (await GET()).text()).toContain(`Percentage (%),${expected},Active`);
   });
 
   it("escapes formula injection, quotes, commas and newlines in data", async () => {

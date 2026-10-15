@@ -152,8 +152,7 @@ function ZeroBalanceNotice({ balance }: { balance: number }) {
         <div>
           <div className="font-semibold text-sm">{checkoutBalanceHeading(balance)}</div>
           <div className="mt-1 text-xs text-red-600">
-            Lakukan pembayaran akhir di langkah 2 sebelum check-out dapat
-            diselesaikan.
+            Record the final payment in step 2 before completing check-out.
           </div>
         </div>
       </div>
@@ -168,7 +167,7 @@ function ZeroBalanceNotice({ balance }: { balance: number }) {
           <div className="font-semibold text-sm">{checkoutBalanceHeading(balance)}</div>
           <div className="mt-1 text-xs text-amber-700">{refundDueNote(balance)}</div>
           <div className="mt-1 text-xs text-amber-700">
-            Check-out dapat dikonfirmasi di langkah 3.
+            Check-out can be confirmed in step 3.
           </div>
         </div>
       </div>
@@ -181,7 +180,7 @@ function ZeroBalanceNotice({ balance }: { balance: number }) {
       <div>
         <div className="font-semibold text-sm">{checkoutBalanceHeading(balance)}</div>
         <div className="mt-1 text-xs text-emerald-700">
-          Check-out dapat dikonfirmasi di langkah 3.
+          Check-out can be confirmed in step 3.
         </div>
       </div>
     </div>
@@ -216,13 +215,13 @@ function PreviewBill({
 
         <div className="space-y-1 py-3">
           <SummaryRow label="Folio" value={folio.folioNo} />
-          <SummaryRow label="Tamu" value={folio.reservation.guest.fullName} />
+          <SummaryRow label="Guest" value={folio.reservation.guest.fullName} />
           <SummaryRow
-            label="Kamar"
+            label="Room"
             value={`${folio.reservation.room?.number ?? "-"} / ${folio.reservation.roomType.name}`}
           />
           <SummaryRow
-            label="Periode"
+            label="Period"
             value={`${dateLabel(folio.reservation.arrivalDate)} - ${dateLabel(
               folio.reservation.departureDate,
             )}`}
@@ -240,7 +239,7 @@ function PreviewBill({
           {pendingLines.map((line, index) => (
             <SummaryRow
               key={`pending-${index}`}
-              label={`${line.description} (belum diposting)`}
+              label={`${line.description} (not yet posted)`}
               value={formatIDR(line.amount.toString())}
             />
           ))}
@@ -256,7 +255,7 @@ function PreviewBill({
 
         <div className="mt-2 border-t border-slate-200 pt-3">
           <SummaryRow label="TOTAL" value={formatIDR(totals.totalCharges)} strong />
-          <SummaryRow label="Dibayar" value={`-${formatIDR(totals.totalPaid)}`} />
+          <SummaryRow label="Paid" value={`-${formatIDR(totals.totalPaid)}`} />
           <div className="flex items-center justify-between gap-3 py-1.5 font-semibold text-slate-900">
             <span>{billBalanceLabel(totals.balance)}</span>
             <span className="text-right">{billBalanceAmountLabel(totals.balance)}</span>
@@ -275,7 +274,7 @@ function PreviewBill({
 function ErrorState({ message }: { message: string }) {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <StepCard title="Check-out diblokir">
+      <StepCard title="Check-out blocked">
         <div className="p-5 text-sm text-red-600" role="alert">
           {message}
         </div>
@@ -404,21 +403,21 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
           href={reservationTagihanUrl}
           className={buttonVariants({ variant: "outline" })}
         >
-          Batal
+          Cancel
         </Link>
       </div>
 
       <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-3">
-          <StepCard title="1. Verifikasi Sisa Tagihan Nol">
+          <StepCard title="1. Verify Zero Balance Due">
             <div className="p-5 text-sm">
               <div className="grid overflow-hidden border border-slate-200 rounded-lg sm:grid-cols-2">
                 <MetricBox
-                  label="Total Tagihan"
+                  label="Total Charges"
                   value={formatIDR(totals.totalCharges)}
                 />
                 <MetricBox
-                  label="Total Pembayaran"
+                  label="Total Payments"
                   value={formatIDR(totals.totalPaid)}
                 />
               </div>
@@ -428,7 +427,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
 
           {!isClosed && isCheckoutAllowed && hasBalanceDue ? (
             <StepCard
-              title="2. Pembayaran Akhir"
+              title="2. Final Payment"
               meta={checkoutBalanceHeading(totals.balance)}
             >
               <FinalPaymentForm
@@ -438,26 +437,26 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
               />
             </StepCard>
           ) : (
-            <StepCard title="2. Pembayaran Akhir">
+            <StepCard title="2. Final Payment">
               <div className="p-5 text-sm text-slate-500">
                 {balanceState === "credit"
-                  ? `Tidak ada pembayaran akhir yang perlu dicatat. Kembalikan kelebihan ${absoluteBalanceLabel(
+                  ? `No final payment is required. Refund the credit of ${absoluteBalanceLabel(
                       totals.balance,
-                    )} kepada tamu.`
-                  : "Tidak ada pembayaran akhir yang perlu dicatat."}
+                    )} to the guest.`
+                  : "No final payment is required."}
               </div>
             </StepCard>
           )}
 
-          <StepCard title="3. Aksi Setelah Check-out">
+          <StepCard title="3. Post Check-out Actions">
             {isClosed ? (
               <div className="space-y-4 p-5">
                 <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-semibold">Check-out selesai</p>
+                    <p className="text-sm font-semibold">Check-out completed</p>
                     <p className="mt-1 text-xs text-emerald-600">
-                      Waktu check-out:{" "}
+                      Check-out time:{" "}
                       {folio.closedAt ? dateTimeLabel(folio.closedAt) : "-"}
                     </p>
                   </div>
@@ -470,14 +469,14 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
                                       className={buttonVariants({ variant: "default" })}
                                     >
                     <Download className="h-4 w-4" aria-hidden="true" />
-                    Unduh Tagihan
+                    Download Bill
                   </a>
                   <Link
                                       href="/app/fo/reservasi/kalender"
                                       className={buttonVariants({ variant: "outline" })}
                                     >
                     <Undo2 className="h-4 w-4" aria-hidden="true" />
-                    Kembali ke Kalender Reservasi
+                    Back to Reservation Calendar
                   </Link>
                 </div>
               </div>
@@ -489,7 +488,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
               />
             ) : (
               <div className="p-5 text-sm text-red-600">
-                Folio ini belum siap untuk check-out.
+                This folio is not ready for check-out.
               </div>
             )}
           </StepCard>

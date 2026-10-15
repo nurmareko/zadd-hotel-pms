@@ -24,7 +24,7 @@ async function requireOperator(): Promise<CleaningOperator | null> {
 }
 
 function validationError(error: { issues: { message: string }[] }): CleaningResult {
-  return { ok: false, error: error.issues[0]?.message ?? "Input tidak valid" };
+  return { ok: false, error: error.issues[0]?.message ?? "Invalid input" };
 }
 
 function revalidateRoom(roomId?: number) {
@@ -34,7 +34,7 @@ function revalidateRoom(roomId?: number) {
 
 export async function startMobileCleaning(roomId: number): Promise<CleaningResult> {
   const operator = await requireOperator();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = MobileRoomIdSchema.safeParse(roomId);
   if (!parsed.success) return validationError(parsed.error);
   const result = await startCleaningOperation({ ...operator, roomId: parsed.data });
@@ -44,8 +44,8 @@ export async function startMobileCleaning(roomId: number): Promise<CleaningResul
 
 export async function finishMobileCleaning(formData: FormData): Promise<CleaningResult> {
   const operator = await requireOperator();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
-  if (!(formData instanceof FormData)) return { ok: false, error: "Input tidak valid" };
+  if (!operator) return { ok: false, error: "Not authorised" };
+  if (!(formData instanceof FormData)) return { ok: false, error: "Invalid input" };
   const parsed = MobileFinishSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return validationError(parsed.error);
   const { roomId, linenChanged, towelChanged, note, ...counts } = parsed.data;
@@ -63,7 +63,7 @@ export async function finishMobileCleaning(formData: FormData): Promise<Cleaning
 
 export async function inspectMobileRoom(roomId: number, passed: boolean, notes?: string): Promise<CleaningResult> {
   const operator = await requireOperator();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = MobileInspectSchema.safeParse({ roomId, passed, notes });
   if (!parsed.success) return validationError(parsed.error);
   const result = await inspectRoomOperation({ ...operator, ...parsed.data });
@@ -73,7 +73,7 @@ export async function inspectMobileRoom(roomId: number, passed: boolean, notes?:
 
 export async function claimAvailableRoom(roomId: number): Promise<CleaningResult> {
   const operator = await requireOperator();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
+  if (!operator) return { ok: false, error: "Not authorised" };
   const parsed = MobileRoomIdSchema.safeParse(roomId);
   if (!parsed.success) return validationError(parsed.error);
   const result = await claimAvailableRoomOperation({ ...operator, roomId: parsed.data });
@@ -83,8 +83,8 @@ export async function claimAvailableRoom(roomId: number): Promise<CleaningResult
 
 export async function reportFloorLostFound(formData: FormData): Promise<CleaningResult> {
   const operator = await requireOperator();
-  if (!operator) return { ok: false, error: "Tidak berwenang" };
-  if (!(formData instanceof FormData)) return { ok: false, error: "Input tidak valid" };
+  if (!operator) return { ok: false, error: "Not authorised" };
+  if (!(formData instanceof FormData)) return { ok: false, error: "Invalid input" };
   const parsed = FloorLostFoundSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return validationError(parsed.error);
   const result = await reportFloorLostFoundOperation({ ...operator, ...parsed.data });

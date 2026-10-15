@@ -78,7 +78,7 @@ function AddTableButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Meja
+      Add Table
     </Button>
   );
 }
@@ -162,7 +162,7 @@ export function RestaurantTableList({
       const result = await deleteRestaurantTable(deletingTable.id);
 
       if (result.ok) {
-        toast.success("Meja dihapus");
+        toast.success("Table deleted");
         setDeletingTable(null);
         return;
       }
@@ -181,7 +181,7 @@ export function RestaurantTableList({
               Restaurant Tables
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Master meja untuk floor plan F&amp;B Hotel Restaurant.
+              {"Manage tables for the hotel restaurant's F&B floor plan."}
             </p>
           </div>
           <AddTableButton onClick={() => setCreateOpen(true)} />
@@ -194,27 +194,27 @@ export function RestaurantTableList({
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <KpiCard
-          label="Total Meja"
+          label="Total Tables"
           value={tables.length}
           delta={`${activeCount} available / occupied`}
         />
         <KpiCard
-          label="Total Kapasitas"
+          label="Total Capacity"
           value={totalCapacity}
           delta="Seat capacity"
         />
         <KpiCard
           label="Open Orders"
           value={tables.reduce((sum, table) => sum + table.openOrderCount, 0)}
-          delta="Order aktif di meja"
+          delta="Active table orders"
         />
       </div>
 
       {tables.length === 0 ? (
         <EmptyState
           icon={Table2}
-          title="Belum ada meja"
-          description="Tambahkan meja restoran untuk floor plan dan order F&B."
+          title="No tables yet"
+          description="Add restaurant tables for the floor plan and F&B orders."
           action={<AddTableButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -225,7 +225,7 @@ export function RestaurantTableList({
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
-                placeholder="Cari nomor meja..."
+                placeholder="Search by table number..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -237,7 +237,7 @@ export function RestaurantTableList({
                 setLocationFilter(event.target.value as TableLocation | "")
               }
             >
-              <option value="">Semua Lokasi</option>
+              <option value="">All Locations</option>
               {Object.values(TableLocation).map((location) => (
                 <option key={location} value={location}>
                   {locationLabels[location]}
@@ -251,7 +251,7 @@ export function RestaurantTableList({
                 setStatusFilter(event.target.value as TableStatus | "")
               }
             >
-              <option value="">Semua Status</option>
+              <option value="">All Statuses</option>
               {Object.values(TableStatus).map((status) => (
                 <option key={status} value={status}>
                   {statusLabels[status]}
@@ -259,7 +259,7 @@ export function RestaurantTableList({
               ))}
             </select>
             <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
-              <span className="num">{filteredTables.length}</span> meja
+              <span className="num">{filteredTables.length}</span> tables
             </span>
           </div>
           <div className="overflow-auto">
@@ -267,13 +267,13 @@ export function RestaurantTableList({
               <TableHeader>
                 <TableRow>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Nomor
+                    Number
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Kapasitas
+                    Capacity
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Lokasi
+                    Location
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
                     Status
@@ -282,10 +282,10 @@ export function RestaurantTableList({
                     Orders
                   </TableHead>
                   <TableHead className="bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Catatan
+                    Notes
                   </TableHead>
                   <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Aksi
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -330,8 +330,8 @@ export function RestaurantTableList({
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada meja"
-                        description="Tidak ada meja yang cocok dengan filter."
+                        title="No tables found"
+                        description="No tables match the filters."
                       />
                     </TableCell>
                   </TableRow>
@@ -346,10 +346,10 @@ export function RestaurantTableList({
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Meja"}
+              {"Add Table"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat meja restoran untuk floor plan F&amp;B.
+              Create a restaurant table for the F&amp;B floor plan.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -372,10 +372,10 @@ export function RestaurantTableList({
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Meja"}
+              {"Edit Table"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui detail meja dan status operasionalnya.
+              Update the table details and operational status.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -407,21 +407,20 @@ export function RestaurantTableList({
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus meja?</AlertDialogTitle>
+            <AlertDialogTitle>Delete table?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus meja {deletingTable?.number ?? ""} dari floor plan
-              F&amp;B. Meja dengan riwayat order tidak dapat dihapus.
+              Delete table {deletingTable?.number ?? ""} from the F&amp;B floor plan. Tables with order history cannot be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

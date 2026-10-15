@@ -80,13 +80,13 @@ const actions = [
 describe.each(actions)("group inclusions: $name", ({ run }) => {
   it.each(["FO", "ADMIN", "GM"])("allows %s to resolve group candidates", async (role) => {
     mocks.auth.mockResolvedValue({ user: { role } });
-    await expect(run()).resolves.toEqual({ ok: false, error: "Tidak ada reservasi dalam booking grup ini." });
+    await expect(run()).resolves.toEqual({ ok: false, error: "There are no reservations in this group booking." });
     expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { groupBookingId: "group-1" } }));
   });
 
   it.each([null, "HK", "FB", "ACC", "UNKNOWN"])("rejects %s before reading or writing", async (role) => {
     mocks.auth.mockResolvedValue(role ? { user: { role } } : null);
-    await expect(run()).resolves.toEqual({ ok: false, error: "Tidak diizinkan" });
+    await expect(run()).resolves.toEqual({ ok: false, error: "Not authorised" });
     expect(mocks.findMany).not.toHaveBeenCalled();
     expect(mocks.changeMealPlan).not.toHaveBeenCalled();
     expect(mocks.setStayFee).not.toHaveBeenCalled();

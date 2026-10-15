@@ -53,7 +53,7 @@ export function OrderCart({ order, settings, readOnly = false }: OrderCartProps)
     <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm desktop:xl:sticky desktop:xl:top-4 desktop:xl:max-h-[calc(100vh-6rem)] desktop:xl:self-start desktop:xl:overflow-y-auto">
       <div className="border-b border-gray-200 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
-          Keranjang Order
+          Order Cart
         </div>
         <div className="mt-1 text-sm text-slate-500">
           {order.locationLabel} · <span className="num">{order.guestCount}</span>{" "}
@@ -64,8 +64,8 @@ export function OrderCart({ order, settings, readOnly = false }: OrderCartProps)
       {order.items.length === 0 ? (
         <EmptyState
           icon={ShoppingCart}
-          title="Keranjang masih kosong"
-          description="Pilih menu dari kolom kiri untuk menambahkan item order."
+          title="The cart is empty"
+          description="Select menu items from the left column to add them to the order."
           className="m-3.5"
         />
       ) : (

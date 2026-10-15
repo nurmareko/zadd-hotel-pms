@@ -48,7 +48,7 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
   return (
     <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-4 md:px-5">
-        <nav className="flex gap-5" aria-label="Lokasi meja">
+        <nav className="flex gap-5" aria-label="Table location">
           {locationTabs.map((location) => (
             <Link
               key={location}
@@ -72,19 +72,19 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
       <div className="flex flex-col gap-3 border-b border-gray-200 p-4 md:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">
-            Denah Meja
+            Floor Plan
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             <span className="num">{RESTAURANT_FLOOR_CANVAS_WIDTH}</span>x
             <span className="num">{RESTAURANT_FLOOR_CANVAS_HEIGHT}</span> px ·{" "}
-            <span className="num">{selectedTables.length}</span> meja
+            <span className="num">{selectedTables.length}</span> tables
           </p>
         </div>
         <Link href="/app/fb/tables" className={buttonVariants({ variant: "outline" })}>
           <LayoutGrid className="size-4" aria-hidden="true" />
-          Kelola Meja & Layout
+          Manage Tables & Layout
         </Link>
-        <div className="flex flex-wrap gap-2" aria-label="Legenda status meja">
+        <div className="flex flex-wrap gap-2" aria-label="Table status legend">
           {statusLegendItems.map((status) => (
             <div
               key={status}
@@ -118,10 +118,10 @@ export function FloorPlan({ selectedLocation, tables }: FloorPlanProps) {
               <div className="absolute left-4 top-4 max-w-xs rounded-lg border border-dashed border-gray-200 bg-white px-4 py-3 text-left shadow-sm">
                 <Table2 className="h-5 w-5 text-slate-400" aria-hidden="true" />
                 <h3 className="mt-3 text-sm font-semibold text-slate-900">
-                  Belum ada meja di area ini
+                  No tables in this area yet
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Pilih area lain atau kelola meja dan layout.
+                  Select another area or manage the tables and layout.
                 </p>
               </div>
             ) : null}

@@ -78,7 +78,7 @@ describe("accounting export revenue classification", () => {
     expectBalanced(rows[0]);
     const csv = await createAccountingExportCsv(rows, "accounting.csv").text();
     const [headers, values] = csv.split("\r\n").map((row) => row.split(","));
-    expect(values[headers.indexOf("Pendapatan Housekeeping (Rp)")]).toBe("0");
+    expect(values[headers.indexOf("Housekeeping Revenue (Rp)")]).toBe("0");
   });
   it("separates multiple housekeeping lines from miscellaneous revenue and calculated service fees", async () => {
     setFolio([
@@ -141,7 +141,7 @@ describe("accounting export revenue classification", () => {
 });
 
 describe("accounting export CSV", () => {
-  const header = "Invoice,Tanggal,Tamu / Party,Kamar,Pendapatan Kamar (Rp),Pendapatan F&B (Rp),Pendapatan Housekeeping (Rp),Pendapatan Lain / Spa (Rp),Subtotal (Rp),Pajak (Rp),Total (Rp)";
+  const header = "Invoice,Date,Guest / Party,Room,Room Revenue (Rp),F&B Revenue (Rp),Housekeeping Revenue (Rp),Other / Spa Revenue (Rp),Subtotal (Rp),Tax (Rp),Total (Rp)";
 
   it("exports calculated HK and Other amounts in matching columns immediately after F&B", async () => {
     setFolio([line(1, ArticleType.SERVICE, 50_000), line(2, ArticleType.MISC, 100_000)]);

@@ -40,7 +40,7 @@ describe("meal-plan catalog action", () => {
     mocks.update.mockResolvedValueOnce({}).mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError("missing", { code: "P2025", clientVersion: "6" }),
     );
-    expect(await updateMealPlanPrices(input)).toEqual({ ok: false, error: "Artikel paket makan belum lengkap. Tidak ada harga yang disimpan." });
+    expect(await updateMealPlanPrices(input)).toEqual({ ok: false, error: "Meal plan articles are incomplete. No prices were saved." });
     expect(mocks.update).toHaveBeenCalledTimes(2);
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });

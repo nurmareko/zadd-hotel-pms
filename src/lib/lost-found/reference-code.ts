@@ -15,7 +15,7 @@ export function getLostFoundCodeMonth(now: Date = new Date()) {
 /** count is the number already allocated; padding is a minimum, not a limit. */
 export function generateLostFoundReferenceCode(now: Date, count: number): string {
   if (!Number.isSafeInteger(count) || count < 0 || count >= Number.MAX_SAFE_INTEGER) {
-    throw new RangeError("Nomor referensi barang temuan tidak valid atau telah mencapai batas.");
+    throw new RangeError("The lost-and-found reference number is invalid or has reached the limit.");
   }
   return `${getLostFoundCodeMonth(now).prefix}${String(count + 1).padStart(4, "0")}`;
 }

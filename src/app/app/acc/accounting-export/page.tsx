@@ -36,7 +36,7 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
   try {
     range = getAccountingExportRange(first(params.from), first(params.to));
   } catch {
-    rangeError = "Rentang tanggal tidak valid. Tanggal akhir harus sama atau setelah tanggal awal.";
+    rangeError = "Invalid date range. The end date must be on or after the start date.";
     range = getAccountingExportRange(undefined, undefined);
   }
 
@@ -60,48 +60,48 @@ export default async function AccountingExportPage({ searchParams }: PageProps) 
   return (
     <main className="min-h-screen min-w-0 max-w-full bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Akuntansi</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Ekspor Akuntansi</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Accounting</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Accounting Export</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Ekspor data transaksi dan pendapatan untuk kebutuhan pencatatan dan pengolahan data.
+          Export transaction and revenue data for accounting and analysis.
         </p>
       </div>
 
       <section className="mb-4 rounded-lg border border-border bg-card p-4">
         <form method="get" className="flex flex-col gap-4 lg:flex-row lg:items-end">
           <label className="grid gap-1.5 text-sm font-medium text-foreground">
-            Tanggal mulai
+            Start date
             <input className="h-10 rounded-md border border-input bg-white px-3 text-sm" type="date" name="from" defaultValue={range.from} required />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-foreground">
-            Tanggal akhir
+            End date
             <input className="h-10 rounded-md border border-input bg-white px-3 text-sm" type="date" name="to" defaultValue={range.to} required />
           </label>
-          <button className="inline-flex h-10 items-center justify-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800" type="submit">Terapkan</button>
+          <button className="inline-flex h-10 items-center justify-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800" type="submit">Apply</button>
           <div className="h-px bg-border lg:mx-2 lg:h-10 lg:w-px" />
           <a className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-900 bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800" href={exportHref} download>
             <Download aria-hidden="true" className="h-4 w-4" />
-            Ekspor CSV
+            Export CSV
           </a>
         </form>
         {rangeError ? <p className="mt-3 text-sm text-red-700">{rangeError}</p> : null}
       </section>
 
       {loadError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Data akuntansi gagal dimuat. Silakan coba lagi.</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Unable to load accounting data. Please try again.</div>
       ) : rows.length === 0 ? (
-        <EmptyState icon={FileSpreadsheet} title="Tidak ada data transaksi" description="Tidak ada data transaksi pada periode yang dipilih." />
+        <EmptyState icon={FileSpreadsheet} title="No transactions" description="No transactions in the selected period." />
       ) : (
         <>
           <p className="mb-3 text-sm text-muted-foreground">
-            {rows.length} invoice · Pendapatan Kamar {numberLabel(roomRevenue)} · Pendapatan F&B {numberLabel(fbRevenue)} · Pendapatan Housekeeping {numberLabel(hkRevenue)} · Pendapatan Lain / Spa {numberLabel(otherRevenue)} · Pajak {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
+            {rows.length} invoice · Room Revenue {numberLabel(roomRevenue)} · F&B Revenue {numberLabel(fbRevenue)} · Housekeeping Revenue {numberLabel(hkRevenue)} · Other / Spa Revenue {numberLabel(otherRevenue)} · Tax {numberLabel(tax)} · Total {numberLabel(totalRevenue)}
           </p>
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border bg-card">
             <div className="relative w-full min-w-0 max-w-full overflow-x-auto">
               <table className="w-full min-w-[1100px] border-collapse text-sm">
                 <thead>
                   <tr>
-                    {["Invoice", "Tanggal", "Tamu / Party", "Kamar", "Pendapatan Kamar", "Pendapatan F&B", "Pendapatan Housekeeping", "Pendapatan Lain / Spa", "Subtotal", "Pajak", "Total"].map((heading) => (
+                    {["Invoice", "Date", "Guest / Party", "Room", "Room Revenue", "F&B Revenue", "Housekeeping Revenue", "Other / Spa Revenue", "Subtotal", "Tax", "Total"].map((heading) => (
                       <th key={heading} className="border-b border-border bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
                     ))}
                   </tr>

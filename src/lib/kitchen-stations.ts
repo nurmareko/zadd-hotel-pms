@@ -3,11 +3,11 @@ export const KITCHEN_STATIONS = ["ALL", "KITCHEN", "BAR", "GRILL", "FRYER"] as c
 export type KitchenStation = (typeof KITCHEN_STATIONS)[number];
 
 export const KITCHEN_STATION_LABELS: Record<KitchenStation, string> = {
-  ALL: "Semua",
-  KITCHEN: "Dapur",
+  ALL: "All",
+  KITCHEN: "Kitchen",
   BAR: "Bar",
-  GRILL: "Panggangan",
-  FRYER: "Gorengan",
+  GRILL: "Grill",
+  FRYER: "Fryer",
 };
 
 const BAR_WORDS = /\b(?:beverages?|drinks?|minuman|kopi|teh|juice|water)\b/i;

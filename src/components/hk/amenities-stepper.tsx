@@ -20,17 +20,17 @@ export function AmenitiesStepper({ label, value, onChange, min = 0, max = 99 }: 
       <div className="flex shrink-0 items-center gap-1">
         <button
           type="button"
-          aria-label={`Kurangi ${label}`}
+          aria-label={`Decrease ${label}`}
           disabled={value === null}
           className={buttonClass}
           onClick={() => onChange(value === null || value <= Math.max(1, min) ? null : Math.max(min, value - 1))}
         >−</button>
-        <output aria-live="polite" aria-atomic="true" aria-label={`Jumlah ${label}`} className="w-10 text-center text-sm tabular-nums">
+        <output aria-live="polite" aria-atomic="true" aria-label={`Quantity ${label}`} className="w-10 text-center text-sm tabular-nums">
           {value === null ? "–" : value}
         </output>
         <button
           type="button"
-          aria-label={`Tambah ${label}`}
+          aria-label={`Increase ${label}`}
           disabled={value !== null && value >= max}
           className={buttonClass}
           onClick={() => onChange(Math.min(max, value === null ? Math.max(1, min) : value + 1))}

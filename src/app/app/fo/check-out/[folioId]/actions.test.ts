@@ -32,7 +32,7 @@ describe.each([
   it("preserves structured failures and field errors", async () => {
     const formData = new FormData();
     const result = checkoutFailure("INVALID_INPUT", {
-      fieldErrors: { folioId: ["Folio wajib dipilih."] },
+      fieldErrors: { folioId: ["Select a folio."] },
     });
     domainAction.mockResolvedValueOnce(result);
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
 import { createHousekeepingTaskNote } from "./actions";
-import { TASK_NOTE_CATEGORIES } from "./task-note-schema";
+import { TASK_NOTE_CATEGORIES, TASK_NOTE_CATEGORY_LABELS } from "./task-note-schema";
 import type { HousekeeperOption } from "./inline-housekeeper-select";
 
 export type TaskNoteRoomOption = {
@@ -43,13 +43,13 @@ export function RoomTaskNoteDialog({ rooms, housekeepers, todayIso, defaultRoomI
     }}>
       <DialogTrigger render={<Button variant={defaultRoomId ? "outline" : "default"} size="sm" />}>
         <Plus className="size-4" aria-hidden="true" />
-        Catat Tugas
-        {defaultRoomId && <span className="sr-only"> kamar {rooms.find((item) => item.id === defaultRoomId)?.number}</span>}
+        Record Task
+        {defaultRoomId && <span className="sr-only"> room {rooms.find((item) => item.id === defaultRoomId)?.number}</span>}
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Catat Tugas Kamar</DialogTitle>
-          <DialogDescription>Catatan dan penugasan opsional disimpan untuk hari ini ({todayIso}), bukan tanggal papan yang sedang dilihat. Prioritas dihitung otomatis dan tidak dapat diubah.</DialogDescription>
+          <DialogTitle>Record Room Task</DialogTitle>
+          <DialogDescription>Notes and optional assignments are saved for today ({todayIso}), not the date shown on the board. Priority is calculated automatically and cannot be changed.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4" aria-busy={pending} onSubmit={(event) => {
           event.preventDefault();
@@ -57,7 +57,7 @@ export function RoomTaskNoteDialog({ rooms, housekeepers, todayIso, defaultRoomI
           if (!data.get("housekeeperId")) data.delete("housekeeperId");
           setError(null);
           startTransition(async () => {
-            const toastId = toast.loading("Menyimpan catatan tugas...");
+            const toastId = toast.loading("Saving task notes...");
             try {
               const result = await createHousekeepingTaskNote(data);
               if (!result.ok) {
@@ -65,11 +65,11 @@ export function RoomTaskNoteDialog({ rooms, housekeepers, todayIso, defaultRoomI
                 toast.error(result.error, { id: toastId });
                 return;
               }
-              toast.success("Catatan tugas hari ini disimpan", { id: toastId });
+              toast.success("Today's task notes saved", { id: toastId });
               setOpen(false);
               router.refresh();
             } catch {
-              const message = "Catatan tugas gagal disimpan. Silakan coba lagi.";
+              const message = "Unable to save task notes. Please try again.";
               setError(message);
               toast.error(message, { id: toastId });
             }
@@ -77,39 +77,39 @@ export function RoomTaskNoteDialog({ rooms, housekeepers, todayIso, defaultRoomI
         }}>
           <fieldset disabled={pending} className="space-y-4">
             <div>
-              <label htmlFor={`${id}-room`} className="text-sm font-medium">Kamar</label>
+              <label htmlFor={`${id}-room`} className="text-sm font-medium">Room</label>
               <select id={`${id}-room`} name="roomId" value={roomId} onChange={(event) => setRoomId(event.target.value)} required className={controlClass}>
-                <option value="">Pilih kamar</option>
+                <option value="">Select a room</option>
                 {rooms.map((item) => <option key={item.id} value={item.id}>{item.number} · {item.typeName}</option>)}
               </select>
             </div>
             <div aria-live="polite" className="rounded-md bg-muted p-3 text-sm">
-              <span className="mr-2 font-medium">Prioritas hari ini</span>
-              {priority ? <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${priority.className}`}>{room?.priority} · {priority.label}</span> : <span className="text-muted-foreground">{room ? "Belum tersedia" : "Pilih kamar terlebih dahulu"}</span>}
+              <span className="mr-2 font-medium">Today’s priority</span>
+              {priority ? <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${priority.className}`}>{room?.priority} · {priority.label}</span> : <span className="text-muted-foreground">{room ? "Not available yet" : "Select a room first"}</span>}
             </div>
             <div>
-              <label htmlFor={`${id}-category`} className="text-sm font-medium">Kategori</label>
+              <label htmlFor={`${id}-category`} className="text-sm font-medium">Category</label>
               <select id={`${id}-category`} name="category" required defaultValue="" className={controlClass}>
-                <option value="">Pilih kategori</option>
-                {TASK_NOTE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                <option value="">Select a category</option>
+                {TASK_NOTE_CATEGORIES.map((category) => <option key={category} value={category}>{TASK_NOTE_CATEGORY_LABELS[category]}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor={`${id}-note`} className="text-sm font-medium">Catatan tugas</label>
-              <textarea id={`${id}-note`} name="note" required minLength={3} maxLength={2000} rows={4} className={`${controlClass} h-auto py-3`} placeholder="Jelaskan tugas yang perlu ditangani..." />
+              <label htmlFor={`${id}-note`} className="text-sm font-medium">Task notes</label>
+              <textarea id={`${id}-note`} name="note" required minLength={3} maxLength={2000} rows={4} className={`${controlClass} h-auto py-3`} placeholder="Describe the task to be completed..." />
             </div>
             <div>
-              <label htmlFor={`${id}-housekeeper`} className="text-sm font-medium">Petugas (opsional)</label>
+              <label htmlFor={`${id}-housekeeper`} className="text-sm font-medium">Attendant (optional)</label>
               <select id={`${id}-housekeeper`} name="housekeeperId" defaultValue="" className={controlClass}>
-                <option value="">Tidak mengubah penugasan</option>
+                <option value="">Keep current assignment</option>
                 {housekeepers.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
               </select>
             </div>
           </fieldset>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2 border-t pt-4">
-            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={pending || !roomId}>{pending ? "Menyimpan..." : "Simpan"}</Button>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={pending || !roomId}>{pending ? "Saving..." : "Save"}</Button>
           </div>
         </form>
       </DialogContent>

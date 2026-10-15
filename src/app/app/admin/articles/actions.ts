@@ -28,7 +28,7 @@ function validationFailure(error: {
 
   return {
     ok: false,
-    error: issue?.message ?? "Data artikel tidak valid",
+    error: issue?.message ?? "Invalid article data",
     field,
   };
 }
@@ -42,24 +42,24 @@ async function canManageArticles() {
 function prismaErrorResult(error: unknown): ActionResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+      return { ok: false, error: "Code is already in use", field: "code" };
     }
 
     if (error.code === "P2003") {
-      return { ok: false, error: "Artikel sedang digunakan" };
+      return { ok: false, error: "Article is in use" };
     }
 
     if (error.code === "P2025") {
-      return { ok: false, error: "Artikel tidak ditemukan" };
+      return { ok: false, error: "Article not found" };
     }
   }
 
-  return { ok: false, error: "Terjadi kesalahan" };
+  return { ok: false, error: "An error occurred" };
 }
 
 export async function createArticle(input: unknown): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = ArticleCreateSchema.safeParse(input);
@@ -75,7 +75,7 @@ export async function createArticle(input: unknown): Promise<ActionResult> {
     });
 
     if (existingCode) {
-      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+      return { ok: false, error: "Code is already in use", field: "code" };
     }
 
     await prisma.article.create({
@@ -92,7 +92,7 @@ export async function createArticle(input: unknown): Promise<ActionResult> {
 
 export async function updateArticle(input: unknown): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = ArticleUpdateSchema.safeParse(input);
@@ -113,7 +113,7 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
       return {
         ok: false,
         error:
-          "Artikel biaya fleksibilitas dikelola sistem dan tidak dapat diubah.",
+          "Stay-flexibility fee articles are managed by the system and cannot be edited.",
       };
     }
 
@@ -123,7 +123,7 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
     });
 
     if (existingCode) {
-      return { ok: false, error: "Kode sudah digunakan", field: "code" };
+      return { ok: false, error: "Code is already in use", field: "code" };
     }
 
     await prisma.article.update({
@@ -141,7 +141,7 @@ export async function updateArticle(input: unknown): Promise<ActionResult> {
 
 export async function deleteArticle(id: number): Promise<ActionResult> {
   if (!(await canManageArticles())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = ArticleIdSchema.safeParse({ id });
@@ -160,7 +160,7 @@ export async function deleteArticle(id: number): Promise<ActionResult> {
       return {
         ok: false,
         error:
-          "Artikel biaya fleksibilitas dikelola sistem dan tidak dapat dihapus.",
+          "Stay-flexibility fee articles are managed by the system and cannot be deleted.",
       };
     }
 

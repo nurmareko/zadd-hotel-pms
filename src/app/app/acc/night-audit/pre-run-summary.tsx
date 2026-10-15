@@ -28,7 +28,7 @@ function ArrangementBadge({
         {count}
       </div>
       <div className="mt-1.5 text-xs font-medium text-blue-700/80">
-        reservasi menginap
+        in-house reservations
       </div>
     </div>
   );
@@ -49,7 +49,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
       {plan.warnings.length > 0 ? (
         <section className="border border-amber-200 bg-amber-50 rounded-lg p-4 text-sm text-amber-900">
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-amber-800">
-            Peringatan
+            Warnings
           </div>
           <div className="mt-2 space-y-1 leading-5">
             {plan.warnings.map((warning) => (
@@ -61,7 +61,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
               href="/app/fb"
               className="mt-2 inline-flex items-center gap-1 rounded-sm font-semibold underline underline-offset-4 hover:text-amber-950 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              Buka modul F&B
+              Open F&B
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           ) : null}
@@ -71,11 +71,10 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
       {plan.blockingErrors.length > 0 ? (
         <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
           <div className="text-xs font-bold uppercase tracking-[0.08em] text-red-800">
-            Audit belum bisa dijalankan
+            Night Audit cannot run yet
           </div>
           <p className="mt-1 leading-5">
-            Perbaiki setiap reservasi atau konfigurasi yang tercantum di bawah ini,
-            lalu muat ulang Night Audit sebelum menjalankan audit.
+            Resolve each reservation or configuration issue listed below, then reload Night Audit before running it.
           </p>
           <NightAuditBlockerList blockers={plan.blockingErrors} />
         </section>
@@ -83,7 +82,7 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-          {"RINGKASAN SEBELUM EKSEKUSI"}
+          {"PRE-AUDIT SUMMARY"}
         </div>
         <div className="grid gap-3 p-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
@@ -111,22 +110,22 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                 <thead>
                   <tr>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Reservasi
+                      Reservation
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Tamu
+                      Guest
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Kamar
+                      Room
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Arrangement saat ini
+                      Current Arrangement
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Baris
+                      Lines
                     </th>
                     <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Total Diposting
+                      Total Posted
                     </th>
                   </tr>
                 </thead>
@@ -136,8 +135,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                       <td className="px-3 py-3" colSpan={6}>
                         <EmptyState
                           icon={BedDouble}
-                          title="Tidak ada tamu menginap"
-                          description="Tidak ada reservasi berstatus CHECKED_IN untuk business date ini."
+                          title="No in-house guests"
+                          description="No checked-in reservations for this business date."
                         />
                       </td>
                     </tr>
@@ -175,31 +174,31 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
           <aside className="border border-border rounded-lg bg-slate-50 p-4 text-sm">
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.08em] text-foreground">
-              Ringkasan operasional
+              Operational summary
             </div>
             <MetricRow
-              label="Reservasi menginap"
+              label="In-house reservations"
               value={String(plan.inHouseCount)}
             />
-            <MetricRow label="Baris charge" value={String(plan.lineItemCount)} />
+            <MetricRow label="Charge lines" value={String(plan.lineItemCount)} />
             <MetricRow
-              label="Pendapatan Kamar"
+              label="Room Revenue"
               value={formatIDR(plan.roomRevenue)}
             />
             <MetricRow
-              label="Arrangement F&B"
+              label="F&B Arrangement"
               value={formatIDR(plan.fbInclusionRevenue)}
             />
             <MetricRow
-              label="Order F&B selesai"
+              label="Completed F&B orders"
               value={formatIDR(plan.closedFbRevenue)}
             />
             <MetricRow
-              label="Pendapatan folio lainnya"
+              label="Other folio revenue"
               value={formatIDR(plan.otherRevenue)}
             />
             <div className="flex items-center justify-between gap-3 pt-2 text-[13px] font-bold uppercase tracking-[0.04em]">
-              <span>Total Pendapatan</span>
+              <span>Total Revenue</span>
               <span className="num">{formatIDR(plan.totalRevenue)}</span>
             </div>
           </aside>
@@ -208,23 +207,23 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
 
       <section className="border border-border bg-card rounded-lg">
         <div className="border-b border-border px-5 py-4 text-base font-semibold tracking-tight text-foreground rounded-t-lg">
-          {"ARTIKEL YANG DIPOSTING"}
+          {"ARTICLES TO BE POSTED"}
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Kode
+                  Code
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Artikel
+                  Article
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Sumber Nilai
+                  Amount Source
                 </th>
                 <th className="bg-background border-b border-border px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Harga Artikel
+                  Article Price
                 </th>
               </tr>
             </thead>
@@ -242,8 +241,8 @@ export function PreRunSummary({ plan }: PreRunSummaryProps) {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {article.amountSource === "room-rate-snapshot"
-                      ? "Tarif paket dikurangi alokasi Arrangement"
-                      : "Data Arrangement per malam"}
+                      ? "Package rate less Arrangement allocation"
+                      : "Nightly Arrangement data"}
                   </td>
                   <td className="num px-4 py-3 text-right text-muted-foreground">
                     {article.amount ? formatIDR(article.amount) : "-"}

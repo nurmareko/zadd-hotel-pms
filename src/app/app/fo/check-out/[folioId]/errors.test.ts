@@ -26,63 +26,63 @@ const STATIC_MESSAGES: Record<
   Exclude<CheckoutFailureCode, "BALANCE_DUE">,
   string
 > = {
-  SESSION_EXPIRED: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-  FORBIDDEN: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
-  INVALID_INPUT: "Data check-out tidak valid. Periksa kembali formulir.",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  FORBIDDEN: "You do not have permission to perform this action.",
+  INVALID_INPUT: "Invalid check-out data. Please review the form.",
   FOLIO_NOT_FOUND:
-    "Folio tidak ditemukan. Kembali ke reservasi dan muat ulang data.",
+    "Folio not found. Return to the reservation and reload the data.",
   SETTINGS_UNAVAILABLE:
-    "Pengaturan hotel belum tersedia. Hubungi Administrator sebelum melanjutkan.",
+    "Hotel settings are unavailable. Contact an administrator before continuing.",
   FOLIO_NOT_OPEN:
-    "Pembayaran tidak dapat dicatat karena folio sudah tidak terbuka.",
+    "Payment cannot be recorded because the folio is no longer open.",
   FOLIO_VOIDED:
-    "Folio telah dibatalkan dan tidak dapat digunakan untuk check-out.",
+    "The folio has been voided and cannot be used for check-out.",
   RESERVATION_NOT_CHECKED_IN:
-    "Reservasi tidak lagi berstatus check-in. Muat ulang halaman dan periksa status terbaru.",
+    "The reservation is no longer checked in. Reload the page and check its current status.",
   BALANCE_ALREADY_SETTLED:
-    "Sisa Tagihan sudah lunas. Muat ulang halaman untuk melanjutkan check-out.",
+    "The outstanding balance is already settled. Reload the page to continue check-out.",
   PAYMENT_EXCEEDS_BALANCE:
-    "Jumlah pembayaran melebihi Sisa Tagihan terbaru. Muat ulang lalu periksa jumlah pembayaran.",
+    "The payment exceeds the current outstanding balance. Reload and check the payment amount.",
   FOLIO_CHANGED:
-    "Status folio berubah. Muat ulang halaman sebelum melanjutkan.",
+    "The folio status has changed. Reload the page before continuing.",
   PAYMENT_CONFLICT:
-    "Pembayaran final mengalami konflik data. Muat ulang halaman sebelum mencoba lagi.",
+    "Final payment encountered a data conflict. Reload the page before trying again.",
   CHECKOUT_CONFLICT:
-    "Check-out mengalami konflik data. Muat ulang halaman dan periksa status terbaru.",
+    "Check-out encountered a data conflict. Reload the page and check the current status.",
   FINAL_PAYMENT_UNEXPECTED:
-    "Pembayaran final tidak dapat dicatat. Silakan coba lagi.",
+    "Final payment could not be recorded. Please try again.",
   CHECKOUT_UNEXPECTED:
-    "Check-out tidak dapat diselesaikan. Silakan coba lagi.",
+    "Check-out could not be completed. Please try again.",
   STAY_SCHEDULE_INCOMPLETE:
-    "Jadwal Tarif masa inap belum lengkap. Lengkapi Tarif untuk setiap malam sebelum melanjutkan check-out.",
+    "The stay rate schedule is incomplete. Enter a rate for every night before continuing check-out.",
   STAY_SCHEDULE_OUT_OF_ORDER:
-    "Urutan tanggal Tarif masa inap tidak sesuai. Perbaiki jadwal Tarif sebelum melanjutkan check-out.",
+    "The stay rate dates are out of order. Correct the rate schedule before continuing check-out.",
   STAY_NIGHT_OWNERSHIP_INVALID:
-    "Salah satu Tarif malam terhubung ke reservasi yang tidak sesuai. Hentikan check-out dan minta pemeriksaan data.",
+    "A nightly rate belongs to a different reservation. Stop check-out and request a data review.",
   ROOM_RATE_INVALID:
-    "Tarif Kamar untuk salah satu malam tidak valid. Perbaiki Tarif sebelum melanjutkan check-out.",
+    "A nightly room rate is invalid. Correct the rate before continuing check-out.",
   INVALID_STAY_CHARGE_AMOUNT:
-    "Alokasi Arrangement untuk salah satu malam melebihi tarif paket sehingga nilai Kamar menjadi negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan check-out.",
+    "A nightly Arrangement allocation exceeds the package rate, making the room amount negative. Correct the package rate or Arrangement allocation before continuing check-out.",
   MEAL_VALUES_INCOMPLETE:
-    "Data Inklusi makan untuk salah satu malam belum lengkap. Lengkapi atau hapus Inklusi tersebut sebelum check-out.",
+    "Meal inclusion data for a night is incomplete. Complete or remove the inclusion before check-out.",
   MEAL_VALUES_INVALID:
-    "Data Inklusi makan untuk salah satu malam tidak valid. Perbaiki jumlah tamu dan nilai Inklusi sebelum check-out.",
+    "Meal inclusion data for a night is invalid. Correct the guest count and inclusion amounts before check-out.",
   STAY_NIGHT_COUNT_INVALID:
-    "Tanggal masa inap tidak dapat menghasilkan jumlah malam yang valid. Periksa tanggal reservasi.",
+    "The stay dates do not produce a valid night count. Check the reservation dates.",
   STAY_SCHEDULE_SHORTFALL:
-    "Tarif belum tersedia untuk seluruh malam yang sudah dijalani. Lengkapi jadwal Tarif sebelum check-out.",
+    "Rates are missing for some nights already stayed. Complete the rate schedule before check-out.",
   MEAL_PLAN_UNSUPPORTED:
-    "Paket Inklusi untuk salah satu malam tidak dapat diposting. Pilih paket yang tersedia atau hapus Inklusi.",
+    "A nightly inclusion package cannot be posted. Select an available package or remove the inclusion.",
   STAY_ARTICLE_MISSING:
-    "Artikel charge menginap belum tersedia. Hubungi Administrator sebelum melanjutkan check-out.",
+    "A stay-charge article is unavailable. Contact an administrator before continuing check-out.",
   STAY_POSTING_STATE_CHANGED:
-    "Status folio atau reservasi berubah saat charge menginap diposting. Muat ulang halaman sebelum melanjutkan.",
+    "The folio or reservation status changed while posting stay charges. Reload the page before continuing.",
   STAY_POSTING_CONFLICT:
-    "Posting charge menginap mengalami konflik data. Muat ulang halaman sebelum mencoba lagi.",
+    "Stay-charge posting encountered a data conflict. Reload the page before trying again.",
   STAY_POSTING_UNEXPECTED:
-    "Charge menginap tidak dapat diposting. Silakan coba lagi.",
+    "Stay charges could not be posted. Please try again.",
   RESULT_UNKNOWN:
-    "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.",
+    "The action result is uncertain. Reload the page before making another payment or attempting check-out again.",
 };
 
 const DATE = new Date("2026-08-05T00:00:00.000Z");
@@ -229,7 +229,7 @@ afterEach(() => {
 });
 
 describe("checkout failure contract", () => {
-  it("defines every stable code and exact Indonesian static message", () => {
+  it("defines every stable code and exact English static message", () => {
     expect(new Set(CHECKOUT_FAILURE_CODES)).toEqual(
       new Set([...Object.keys(STATIC_MESSAGES), "BALANCE_DUE"]),
     );
@@ -245,7 +245,7 @@ describe("checkout failure contract", () => {
       ok: false,
       code: "BALANCE_DUE",
       error:
-        "Sisa Tagihan masih belum lunas (Rp 125.000). Catat pembayaran final terlebih dahulu.",
+        "The outstanding balance is not yet settled (Rp 125.000). Record the final payment first.",
     });
   });
 
@@ -276,9 +276,9 @@ describe("checkout failure contract", () => {
       code: "INVALID_INPUT",
       error: STATIC_MESSAGES.INVALID_INPUT,
       fieldErrors: {
-        amount: ["Jumlah pembayaran tidak valid."],
-        method: ["Metode pembayaran tidak valid."],
-        reference: ["Referensi pembayaran tidak valid."],
+        amount: ["Invalid payment amount."],
+        method: ["Invalid payment method."],
+        reference: ["Invalid payment reference."],
       },
     });
   });
@@ -290,14 +290,14 @@ describe("checkout client failure state", () => {
       ok: false,
       code: "INVALID_INPUT",
       error: STATIC_MESSAGES.INVALID_INPUT,
-      fieldErrors: { amount: ["Jumlah pembayaran tidak valid."] },
+      fieldErrors: { amount: ["Invalid payment amount."] },
     });
 
     expect(state).toEqual({
       isUncertain: false,
       isCommitted: false,
       actionError: STATIC_MESSAGES.INVALID_INPUT,
-      fieldErrors: { amount: ["Jumlah pembayaran tidak valid."] },
+      fieldErrors: { amount: ["Invalid payment amount."] },
     });
   });
 
@@ -357,7 +357,7 @@ describe("checkout form orchestration", () => {
       harness.state,
       async () => ({
         ...checkoutFailure("INVALID_INPUT"),
-        fieldErrors: { amount: ["Jumlah pembayaran tidak valid."] },
+        fieldErrors: { amount: ["Invalid payment amount."] },
       }),
       harness.effects,
     );
@@ -365,7 +365,7 @@ describe("checkout form orchestration", () => {
 
     expect(outcome).toBe("applied");
     expect(harness.state.fieldErrors.amount).toEqual([
-      "Jumlah pembayaran tidak valid.",
+      "Invalid payment amount.",
     ]);
     expect(harness.notifySuccess).not.toHaveBeenCalled();
     expect(harness.refresh).not.toHaveBeenCalled();
@@ -672,7 +672,7 @@ describe("checkout stay-charge mapping", () => {
 
     expect(result).toEqual(checkoutFailure(code));
     expect(result.error).not.toMatch(
-      /123|night-secret|P2002|123456\.789|SECRET|reservation/i,
+      /123|night-secret|P2002|123456\.789|SECRET|internal reservation/i,
     );
   });
 

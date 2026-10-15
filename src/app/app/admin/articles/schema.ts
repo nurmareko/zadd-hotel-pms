@@ -24,32 +24,32 @@ export const ArticleCreateSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Kode wajib diisi")
-    .max(20, "Kode maksimal 20 karakter")
+    .min(1, "Code is required")
+    .max(20, "Code must not exceed 20 characters")
     .regex(
       /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
-      "Kode harus huruf besar, angka, dan tanda hubung",
+      "Code must contain only uppercase letters, numbers and hyphens",
     ),
   name: z
     .string()
     .trim()
-    .min(1, "Nama wajib diisi")
-    .min(2, "Nama minimal 2 karakter")
-    .max(100, "Nama maksimal 100 karakter"),
-  type: z.enum(articleTypes, { error: "Pilih kategori artikel yang valid" }),
+    .min(1, "Name is required")
+    .min(2, "Name must contain at least 2 characters")
+    .max(100, "Name must not exceed 100 characters"),
+  type: z.enum(articleTypes, { error: "Select a valid article category" }),
   defaultPrice: formNumber(
     z
-      .number({ error: "Default price wajib diisi dan harus berupa angka" })
-      .min(0, "Default price tidak boleh negatif"),
+      .number({ error: "Default price is required and must be a number" })
+      .min(0, "Default price cannot be negative"),
   ),
 });
 
 export const ArticleUpdateSchema = ArticleCreateSchema.extend({
-  id: z.coerce.number().int().positive("Artikel wajib dipilih"),
+  id: z.coerce.number().int().positive("Select an article"),
 });
 
 export const ArticleIdSchema = z.object({
-  id: z.coerce.number().int().positive("Artikel wajib dipilih"),
+  id: z.coerce.number().int().positive("Select an article"),
 });
 
 export type ArticleTypeValue = (typeof articleTypes)[number];

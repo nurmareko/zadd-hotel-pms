@@ -3,7 +3,7 @@ import { isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 import { ROOM_BLOCK_REASON_LABELS } from "@/lib/room-blocks/overlap";
 
 export const BLOCK_STATUS_LABELS: Record<RoomBlockStatus | "ALL", string> = {
-  ALL: "Semua status", ACTIVE: "Aktif", RELEASED: "Dilepas",
+  ALL: "All statuses", ACTIVE: "Active", RELEASED: "Released",
 };
 export type BlockFilters = {
   q: string;
@@ -19,7 +19,7 @@ export function parseBlockFilters(params: FilterParams):
   | { ok: false; error: string } {
   const keys = ["q", "startDate", "endDate", "reason", "status"] as const;
   if (keys.some((key) => Array.isArray(params[key]))) {
-    return { ok: false, error: "Setiap filter hanya boleh memiliki satu nilai." };
+    return { ok: false, error: "Each filter may have only one value." };
   }
   const value = (key: typeof keys[number]) => (params[key] as string | undefined)?.trim() ?? "";
   const q = value("q");
@@ -27,18 +27,18 @@ export function parseBlockFilters(params: FilterParams):
   const endDate = value("endDate");
   const reason = value("reason") || "ALL";
   const status = value("status") || "ALL";
-  if (q.length > 100) return { ok: false, error: "Pencarian kamar maksimal 100 karakter." };
+  if (q.length > 100) return { ok: false, error: "Room searches must not exceed 100 characters." };
   if ((startDate && !isValidISODateOnly(startDate)) || (endDate && !isValidISODateOnly(endDate))) {
-    return { ok: false, error: "Tanggal filter harus berupa tanggal kalender yang valid (YYYY-MM-DD)." };
+    return { ok: false, error: "Filter dates must be valid calendar dates (YYYY-MM-DD)." };
   }
   if (startDate && endDate && startDate >= endDate) {
-    return { ok: false, error: "Tanggal selesai filter harus setelah tanggal mulai." };
+    return { ok: false, error: "The filter end date must be after the start date." };
   }
   if (reason !== "ALL" && !Object.hasOwn(ROOM_BLOCK_REASON_LABELS, reason)) {
-    return { ok: false, error: "Pilih alasan blokir kamar yang valid." };
+    return { ok: false, error: "Select a valid reason for the room block." };
   }
   if (!Object.hasOwn(BLOCK_STATUS_LABELS, status)) {
-    return { ok: false, error: "Pilih status blokir kamar yang valid." };
+    return { ok: false, error: "Select a valid room block status." };
   }
   return { ok: true, filters: { q, startDate, endDate, reason: reason as BlockFilters["reason"], status: status as BlockFilters["status"] } };
 }

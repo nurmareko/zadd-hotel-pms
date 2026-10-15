@@ -32,13 +32,13 @@ export async function advanceKitchenOrder(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role as AppRole, "orders:write")) {
-    return { ok: false, error: "Anda tidak memiliki akses ke Layar Dapur." };
+    return { ok: false, error: "You do not have access to the Kitchen Display." };
   }
 
   const parsed = AdvanceKitchenOrderSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Pesanan tidak valid." };
+    return { ok: false, error: "Invalid order." };
   }
 
   const result = await prisma.$transaction(async (tx): Promise<KitchenActionResult> => {
@@ -59,32 +59,32 @@ export async function advanceKitchenOrder(
     });
 
     if (!order) {
-      return { ok: false, error: "Pesanan tidak ditemukan." };
+      return { ok: false, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN && order.status !== FBOrderStatus.BILLED) {
-      return { ok: false, error: "Hanya pesanan terbuka atau ditagihkan yang dapat diproses." };
+      return { ok: false, error: "Only open or billed orders can be processed." };
     }
 
     if (order.items.length === 0) {
-      return { ok: false, error: "Pesanan belum memiliki item untuk dimasak." };
+      return { ok: false, error: "The order has no items to prepare." };
     }
 
     if (parsed.data.transition === "START") {
       if (order.kitchenStartedAt || order.kitchenReadyAt) {
-        return { ok: false, error: "Pesanan ini sudah mulai dimasak." };
+        return { ok: false, error: "Preparation has already started for this order." };
       }
     } else {
       if (!order.kitchenStartedAt) {
-        return { ok: false, error: "Mulai memasak pesanan terlebih dahulu." };
+        return { ok: false, error: "Start preparing the order first." };
       }
       if (order.kitchenReadyAt) {
-        return { ok: false, error: "Pesanan ini sudah selesai dimasak." };
+        return { ok: false, error: "Preparation is already complete for this order." };
       }
       // Item additions reopen preparation. A stale screen must not finish the
       // replacement cycle after another operator has started it.
       if (order.kitchenStartedAt.getTime() !== new Date(parsed.data.expectedKitchenStartedAt).getTime()) {
-        return { ok: false, error: "Pesanan berubah. Muat ulang Layar Dapur sebelum melanjutkan." };
+        return { ok: false, error: "The order has changed. Refresh the Kitchen Display before continuing." };
       }
     }
 
@@ -101,7 +101,7 @@ export async function advanceKitchenOrder(
     });
 
     if (updated.count !== 1) {
-      return { ok: false, error: "Status pesanan berubah. Muat ulang Layar Dapur." };
+      return { ok: false, error: "The order status has changed. Refresh the Kitchen Display." };
     }
 
     return { ok: true, status: parsed.data.transition === "START" ? "COOKING" : "READY" };

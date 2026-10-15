@@ -61,7 +61,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
     event.preventDefault();
 
     if (!lookupResult?.ok) {
-      const message = lookupResult?.error ?? "Validasi kamar terlebih dahulu";
+      const message = lookupResult?.error ?? "Verify the room first";
       toast.error(message);
       return;
     }
@@ -69,7 +69,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
     const parsedGuestCount = Number(guestCount);
 
     if (!Number.isInteger(parsedGuestCount) || parsedGuestCount < 1) {
-      toast.error("Jumlah tamu minimal 1");
+      toast.error("At least 1 guest is required");
       return;
     }
 
@@ -91,9 +91,9 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
         <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-              Pilih Kamar In-House ({inHouseRooms.length})
+              Select In-House Room ({inHouseRooms.length})
             </span>
-            <span className="text-[11px] text-slate-500">Klik untuk memilih langsung</span>
+            <span className="text-[11px] text-slate-500">Click to select</span>
           </div>
           <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pr-1">
             {inHouseRooms.map((room, index) => {
@@ -135,7 +135,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
         </div>
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800">
-          ⚠️ Saat ini tidak ada kamar dengan tamu in-house (CHECKED_IN).
+          ⚠️ There are currently no rooms with in-house guests (CHECKED_IN).
         </div>
       )}
 
@@ -144,7 +144,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
           className="mb-1.5 block text-sm font-semibold text-slate-700"
           htmlFor="room-number"
         >
-          Nomor Kamar
+          Room Number
         </label>
         <div className="relative">
           <Input
@@ -155,7 +155,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
               setRoomNumber(event.target.value);
               setLookupResult(null);
             }}
-            placeholder="Ketik atau pilih nomor kamar (contoh: 101, 204)"
+            placeholder="Enter or select a room number (e.g. 101, 204)"
             value={roomNumber}
           />
           <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -167,7 +167,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
                 setLookupResult(null);
               }}
               className="absolute right-2.5 top-2.5 rounded p-0.5 text-xs text-slate-400 hover:text-slate-600"
-              aria-label="Hapus nomor kamar"
+              aria-label="Clear room number"
             >
               ✕
             </button>
@@ -177,13 +177,13 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
 
       {isLookupPending ? (
         <div className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
-          Mencari tamu in-house...
+          Searching for an in-house guest...
         </div>
       ) : lookupResult?.ok ? (
         <div className="rounded-lg border border-status-oc-pip bg-status-oc-bg px-3.5 py-3 text-sm text-status-oc-fg">
           <div className="flex items-center gap-1.5 font-bold">
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            Tamu In-House Terverifikasi
+            In-House Guest Verified
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             <div className="flex items-center gap-1 font-semibold text-slate-800">
@@ -191,7 +191,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
               {lookupResult.guestName}
             </div>
             <div className="text-slate-600">
-              Kamar: <span className="font-bold text-slate-900">{lookupResult.roomNumber}</span>
+              Room: <span className="font-bold text-slate-900">{lookupResult.roomNumber}</span>
             </div>
             <div className="text-slate-600">
               Folio: <span className="font-mono font-bold text-slate-900">{lookupResult.folioNo}</span>
@@ -205,8 +205,8 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
       ) : (
         <div className="rounded-lg border border-gray-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
           {inHouseRooms.length === 0
-            ? "Tidak ada kamar dengan tamu in-house dan folio terbuka."
-            : "Pilih atau ketik nomor kamar in-house di atas untuk validasi otomatis."}
+            ? "No rooms with in-house guests and open folios."
+            : "Select or enter an in-house room number above for automatic verification."}
         </div>
       )}
 
@@ -215,7 +215,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
           className="mb-1.5 block text-sm font-semibold text-slate-700"
           htmlFor="guest-count"
         >
-          Jumlah Tamu
+          Number of Guests
         </label>
         <Input
           className="h-10 rounded-md border-gray-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus-visible:border-blue-500 focus-visible:ring-blue-100"
@@ -230,7 +230,7 @@ export function RoomServiceForm({ inHouseRooms = [] }: RoomServiceFormProps) {
 
       <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
         <Button disabled={isSubmitPending || !lookupResult?.ok} type="submit">
-          {isSubmitPending ? "Memproses..." : "Lanjutkan Buat Order"}
+          {isSubmitPending ? "Processing..." : "Continue to Create Order"}
         </Button>
       </div>
     </form>

@@ -15,16 +15,16 @@ export function ActiveCleaningPanel({
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-lg px-5 py-4">
         <h2 className="text-[16px] font-semibold tracking-tight text-slate-900">
-          {"Pembersihan Berlangsung"}
+          {"Cleaning in Progress"}
         </h2>
       </div>
       <div className="space-y-3.5 p-3.5">
         <div className="text-[12px] text-slate-600">
-          Dimulai{" "}
+          Started{" "}
           <span className="font-semibold text-slate-900">
             {formatTimeID(startedAt)}
           </span>{" "}
-          oleh {housekeeperName}
+          by {housekeeperName}
         </div>
 
         <div className="border border-slate-100 bg-slate-50 p-4 text-center">
@@ -32,8 +32,7 @@ export function ActiveCleaningPanel({
         </div>
 
         <p className="border border-slate-100 bg-slate-50 px-3 py-2 text-[12px] leading-relaxed text-slate-600">
-          Pembersihan sedang berjalan oleh petugas terkait. Anda dapat memantau
-          timer di sini, dan penyelesaian tetap dilakukan oleh petugas yang bertugas.
+          The assigned attendant is cleaning this room. You can monitor the timer here; only that attendant can complete the session.
         </p>
       </div>
     </section>

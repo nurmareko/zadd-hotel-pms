@@ -48,38 +48,38 @@ const PricingRuleBaseSchema = z
     name: z
       .string()
       .trim()
-      .min(1, "Nama musim wajib diisi")
-      .max(255, "Nama musim maksimal 255 karakter"),
-    roomTypeId: z.coerce.number().int().positive("Pilih tipe kamar"),
+      .min(1, "Season name is required")
+      .max(255, "Season name must not exceed 255 characters"),
+    roomTypeId: z.coerce.number().int().positive("Select a room type"),
     selectorKind: z.enum(pricingRuleSelectorKinds, {
-      error: "Pilih jenis periode berlaku",
+      error: "Select a validity period type",
     }),
     dayOfWeek: optionalText.pipe(
-      z.enum(pricingRuleDays, { error: "Pilih hari yang valid" }).nullable().optional(),
+      z.enum(pricingRuleDays, { error: "Select a valid day" }).nullable().optional(),
     ),
     startsOn: optionalText.pipe(
       z
         .string()
-        .refine(isValidISODateOnly, "Tanggal mulai tidak valid")
+        .refine(isValidISODateOnly, "Invalid start date")
         .nullable()
         .optional(),
     ),
     endsBefore: optionalText.pipe(
       z
         .string()
-        .refine(isValidISODateOnly, "Batas akhir tidak valid")
+        .refine(isValidISODateOnly, "Invalid end date")
         .nullable()
         .optional(),
     ),
     adjustmentKind: z.enum(pricingRuleAdjustmentKinds, {
-      error: "Pilih jenis penyesuaian",
+      error: "Select an adjustment type",
     }),
     adjustmentValue: z
       .string()
       .trim()
       .regex(
         signedDecimal,
-        "Nilai penyesuaian harus angka bertanda dengan maksimal 2 desimal",
+        "Adjustment must be a signed number with at most 2 decimal places",
       ),
     isActive: booleanInput,
   })
@@ -94,7 +94,7 @@ const PricingRuleBaseSchema = z
           code: "custom",
           path: ["dayOfWeek"],
           message:
-            "Musim hari harus memiliki satu hari tanpa rentang tanggal",
+            "A weekday season must have one weekday and no date range",
         });
       }
       return;
@@ -105,7 +105,7 @@ const PricingRuleBaseSchema = z
         code: "custom",
         path: ["startsOn"],
         message:
-          "Musim rentang harus memiliki tanggal mulai dan batas akhir tanpa hari",
+          "A date-range season must have a start and end date and no weekday",
       });
       return;
     }
@@ -124,17 +124,17 @@ const PricingRuleBaseSchema = z
       context.addIssue({
         code: "custom",
         path: ["endsBefore"],
-        message: "Batas akhir harus setelah tanggal mulai",
+        message: "End date must be after the start date",
       });
     }
   });
 
 export const PricingRuleCreateSchema = PricingRuleBaseSchema;
 export const PricingRuleUpdateSchema = PricingRuleBaseSchema.and(
-  z.object({ id: z.string().cuid("Musim tidak valid") }),
+  z.object({ id: z.string().cuid("Invalid season") }),
 );
 export const PricingRuleIdSchema = z.object({
-  id: z.string().cuid("Musim tidak valid"),
+  id: z.string().cuid("Invalid season"),
 });
 export const PricingRuleToggleSchema = PricingRuleIdSchema.extend({
   isActive: booleanInput,
@@ -142,13 +142,13 @@ export const PricingRuleToggleSchema = PricingRuleIdSchema.extend({
 
 export const PricingPreviewSchema = z
   .object({
-    roomTypeId: z.coerce.number().int().positive("Pilih tipe kamar"),
+    roomTypeId: z.coerce.number().int().positive("Select a room type"),
     arrivalDate: z
       .string()
-      .refine(isValidISODateOnly, "Tanggal kedatangan tidak valid"),
+      .refine(isValidISODateOnly, "Invalid arrival date"),
     departureDate: z
       .string()
-      .refine(isValidISODateOnly, "Tanggal keberangkatan tidak valid"),
+      .refine(isValidISODateOnly, "Invalid departure date"),
   })
   .superRefine((value, context) => {
     if (
@@ -165,7 +165,7 @@ export const PricingPreviewSchema = z
       context.addIssue({
         code: "custom",
         path: ["departureDate"],
-        message: "Tanggal keberangkatan harus setelah tanggal kedatangan",
+        message: "Departure date must be after the arrival date",
       });
       return;
     }
@@ -176,7 +176,7 @@ export const PricingPreviewSchema = z
       context.addIssue({
         code: "custom",
         path: ["departureDate"],
-        message: "Pratinjau dibatasi maksimal 366 malam",
+        message: "Preview is limited to 366 nights",
       });
     }
   });

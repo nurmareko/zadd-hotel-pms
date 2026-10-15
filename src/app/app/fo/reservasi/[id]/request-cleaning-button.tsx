@@ -30,7 +30,7 @@ export function RequestCleaningButton({
         return;
       }
 
-      toast.success("Permintaan pembersihan kamar dikirim");
+      toast.success("Room cleaning request sent");
       router.refresh();
     });
   }
@@ -43,16 +43,16 @@ export function RequestCleaningButton({
       title={
         canRequest
           ? undefined
-          : "Permintaan pembersihan hanya tersedia untuk kamar berstatus OC."
+          : "Cleaning requests are only available for rooms in OC status."
       }
       variant="outline"
     >
       <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
       {isPending
-        ? "Mengirim..."
+        ? "Sending..."
         : alreadyRequested
-          ? "Pembersihan Diminta"
-          : "Minta Pembersihan Kamar"}
+          ? "Cleaning Requested"
+          : "Request Room Cleaning"}
     </Button>
   );
 }

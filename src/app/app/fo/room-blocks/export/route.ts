@@ -10,22 +10,22 @@ import { findRoomBlocks, type RoomBlockRow } from "../queries";
 export const dynamic = "force-dynamic";
 
 const columns: CsvColumn<RoomBlockRow>[] = [
-  { header: "Kamar", accessor: (row) => row.room.number },
-  { header: "Tipe Kamar", accessor: (row) => row.room.roomType.name },
-  { header: "Alasan", accessor: (row) => ROOM_BLOCK_REASON_LABELS[row.reason] },
-  { header: "Tanggal Mulai", accessor: (row) => row.startDate },
-  { header: "Tanggal Selesai (Eksklusif)", accessor: (row) => row.endDate },
-  { header: "Jumlah Malam", accessor: (row) => row.nights },
+  { header: "Room", accessor: (row) => row.room.number },
+  { header: "Room Type", accessor: (row) => row.room.roomType.name },
+  { header: "Reason", accessor: (row) => ROOM_BLOCK_REASON_LABELS[row.reason] },
+  { header: "Start Date", accessor: (row) => row.startDate },
+  { header: "End Date (Exclusive)", accessor: (row) => row.endDate },
+  { header: "Number of Nights", accessor: (row) => row.nights },
   { header: "Status", accessor: (row) => BLOCK_STATUS_LABELS[row.status] },
-  { header: "Catatan", accessor: (row) => row.note },
-  { header: "Dibuat Oleh", accessor: (row) => row.createdBy.fullName },
+  { header: "Notes", accessor: (row) => row.note },
+  { header: "Created By", accessor: (row) => row.createdBy.fullName },
 ];
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user) return new Response("Silakan masuk terlebih dahulu.", { status: 401 });
+  if (!session?.user) return new Response("Please sign in first.", { status: 401 });
   if (!can(session.user.role as AppRole, "room_blocks:manage")) {
-    return new Response("Anda tidak memiliki akses untuk mengekspor blokir kamar.", { status: 403 });
+    return new Response("You do not have permission to export room blocks.", { status: 403 });
   }
   const search = new URL(request.url).searchParams;
   const params: FilterParams = {};

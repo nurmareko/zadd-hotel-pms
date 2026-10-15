@@ -28,14 +28,14 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
         // Match the room → folio lock order used by in-house room-charge flows.
         await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${input.roomId} FOR UPDATE`;
         const room = await tx.room.findUnique({ where: { id: input.roomId }, select: { id: true } });
-        if (!room) throw new GuestLaundryError("Kamar tidak ditemukan.");
+        if (!room) throw new GuestLaundryError("Room not found.");
         const candidate = await tx.reservation.findFirst({
           where: { roomId: input.roomId, status: "CHECKED_IN" },
           select: { id: true, folio: { select: { id: true } } },
           orderBy: { id: "desc" },
         });
-        if (!candidate) throw new GuestLaundryError("Kamar tidak memiliki tamu yang sedang menginap.");
-        if (!candidate.folio) throw new GuestLaundryError("Folio tidak ditemukan.");
+        if (!candidate) throw new GuestLaundryError("The room has no in-house guest.");
+        if (!candidate.folio) throw new GuestLaundryError("Folio not found.");
 
         await tx.$queryRaw`SELECT id FROM "folio" WHERE id = ${candidate.folio.id} FOR UPDATE`;
         const currentRoom = await tx.room.findUnique({
@@ -47,16 +47,16 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
         const folio = await tx.folio.findUnique({
           where: { id: candidate.folio.id }, select: { id: true, reservationId: true, status: true },
         });
-        if (!currentRoom) throw new GuestLaundryError("Kamar tidak ditemukan.");
+        if (!currentRoom) throw new GuestLaundryError("Room not found.");
         if (currentRoom.status !== "OC" && currentRoom.status !== "OD") {
-          throw new GuestLaundryError("Laundry tamu hanya dapat dicatat untuk kamar yang dihuni.");
+          throw new GuestLaundryError("Guest laundry can only be recorded for occupied rooms.");
         }
         if (!reservation || reservation.status !== "CHECKED_IN" || reservation.roomId !== input.roomId) {
-          throw new GuestLaundryError("Tamu sudah tidak menginap di kamar ini. Muat ulang halaman.");
+          throw new GuestLaundryError("The guest is no longer staying in this room. Reload the page.");
         }
-        if (!folio) throw new GuestLaundryError("Folio tidak ditemukan.");
-        if (folio.reservationId !== reservation.id) throw new GuestLaundryError("Folio tidak sesuai dengan reservasi kamar.");
-        if (folio.status !== "OPEN") throw new GuestLaundryError("Folio sudah ditutup. Laundry tidak dapat dicatat.");
+        if (!folio) throw new GuestLaundryError("Folio not found.");
+        if (folio.reservationId !== reservation.id) throw new GuestLaundryError("The folio does not match the room reservation.");
+        if (folio.status !== "OPEN") throw new GuestLaundryError("The folio is closed. Laundry cannot be recorded.");
         const currentOperator = await tx.user.findFirst({
           where: { id: operator.userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
           select: { id: true },
@@ -70,9 +70,9 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
         const articleById = new Map(articles.map((article) => [article.id, article]));
         for (const item of input.items) {
           const article = articleById.get(item.articleId);
-          if (!article) throw new GuestLaundryError("Artikel laundry tidak ditemukan.");
+          if (!article) throw new GuestLaundryError("Laundry article not found.");
           if (article.type !== "SERVICE" || !GUEST_LAUNDRY_CODES.has(article.code)) {
-            throw new GuestLaundryError("Artikel bukan layanan laundry tamu yang diizinkan.");
+            throw new GuestLaundryError("The article is not an allowed guest laundry service.");
           }
         }
 
@@ -85,7 +85,7 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
           const line = await tx.folioLineItem.create({
             data: {
               folioId: folio.id, articleId: article.id,
-              description: `Laundry Tamu - ${article.name} (${item.quantity} pcs)`,
+              description: `Guest Laundry - ${article.name} (${item.quantity} pcs)`,
               quantity: item.quantity, unitPrice: new Prisma.Decimal(item.unitPrice),
               amount: new Prisma.Decimal(item.unitPrice).mul(item.quantity),
               postedById: operator.userId, postedAt: now,
@@ -103,10 +103,10 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
           // PostgreSQL has no QRIS enum value; retain the intake method in the reference and audit.
           const dbPaymentMethod: PaymentMethod = method === "QRIS" ? PaymentMethod.TRANSFER : method;
           const paymentReference = method === "QRIS"
-            ? `QRIS - ${input.notes || `Kamar ${currentRoom.number}`}`
+            ? `QRIS - ${input.notes || `Room ${currentRoom.number}`}`
             : input.notes
               ? `${method} - ${input.notes}`
-              : `Pembayaran Langsung Laundry - Kamar ${currentRoom.number}`;
+              : `Laundry Direct Payment - Room ${currentRoom.number}`;
           change = method === "CASH" ? input.cashTendered! - orderTotal : 0;
           const payment = await tx.payment.create({
             data: {
@@ -147,11 +147,11 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
       );
       if (!conflict) throw error;
       if (attempt === MAX_ATTEMPTS) {
-        throw new GuestLaundryError("Data kamar atau folio sedang berubah. Muat ulang halaman dan coba lagi.");
+        throw new GuestLaundryError("Room or folio data is being changed. Reload the page and try again.");
       }
     }
   }
-  throw new GuestLaundryError("Gagal menyimpan laundry tamu. Silakan coba lagi.");
+  throw new GuestLaundryError("Failed to save guest laundry. Please try again.");
 }
 
 export async function createGuestLaundryOrder(input: unknown): Promise<GuestLaundryResult> {
@@ -164,7 +164,7 @@ export async function createGuestLaundryOrder(input: unknown): Promise<GuestLaun
       return { ok: false, error: UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED };
     }
     const parsed = GuestLaundryOrderSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Data laundry tidak valid." };
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid laundry data." };
     const result = await createGuestLaundryOperation(parsed.data, { userId, role: session!.user.role as AppRole });
     await runPostCommitSideEffects([
       `/app/fo/reservasi/${result.reservationId}`,
@@ -180,6 +180,6 @@ export async function createGuestLaundryOrder(input: unknown): Promise<GuestLaun
       return { ok: false, error: error.message };
     }
     logActionFailure("createGuestLaundryOrder", error, { stage: "pre-commit", committed: false });
-    return { ok: false, error: "Gagal menyimpan laundry tamu. Silakan coba lagi." };
+    return { ok: false, error: "Failed to save guest laundry. Please try again." };
   }
 }

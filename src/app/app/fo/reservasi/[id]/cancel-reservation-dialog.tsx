@@ -53,7 +53,7 @@ export function CancelReservationDialog({
       }
 
       setOpen(false);
-      toast.success("Reservasi dibatalkan");
+      toast.success("Reservation cancelled");
       router.refresh();
     });
   }
@@ -65,21 +65,20 @@ export function CancelReservationDialog({
         disabled={isPending}
         type="button"
       >
-        Batalkan Reservasi
+        Cancel Reservation
       </AlertDialogTrigger>
       <AlertDialogContent className="rounded-xl border border-slate-200">
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Yakin batalkan reservasi {reservationNo}?
+            Are you sure you want to cancel reservation {reservationNo}?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Status reservasi akan menjadi CANCELLED dan kamar yang dipesan akan
-            kembali tersedia. Tindakan ini tidak bisa dibatalkan.
+            The reservation will be marked as Cancelled and the reserved room will become available again. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>
-            Batal
+            Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -90,7 +89,7 @@ export function CancelReservationDialog({
             }}
             type="button"
           >
-            {isPending ? "Membatalkan..." : "Ya, Batalkan"}
+            {isPending ? "Cancelling..." : "Yes, Cancel Reservation"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

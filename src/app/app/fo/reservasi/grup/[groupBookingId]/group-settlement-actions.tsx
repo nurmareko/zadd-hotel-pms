@@ -26,6 +26,7 @@ import { formatGuestIdentity } from "@/lib/guest-id-type";
 
 import { completeCheckIn } from "@/lib/check-in/actions";
 import { GROUP_MUTATION_UNCERTAIN_MESSAGE } from "@/lib/check-in/errors";
+import { purposeOfVisitLabels } from "@/lib/check-in/schema";
 import { SignaturePadField } from "@/components/check-in/signature-pad-field";
 import {
   createMutationGuard,
@@ -116,7 +117,7 @@ export function resolvedGroupBatchOutcome(
     errorMessage: null,
     successMessage:
       completedCount > 0
-        ? `${completedCount} kamar berhasil ${successLabel}.`
+        ? `Rooms processed: ${completedCount} (${successLabel}).`
         : null,
     classification,
   };
@@ -284,9 +285,9 @@ export type GroupTerminalClassification = Exclude<
 >;
 
 export const GROUP_COMMITTED_RELOAD_MESSAGE =
-  "Tindakan berhasil diproses. Muat ulang halaman untuk melanjutkan dengan data terbaru.";
+  "The action was processed successfully. Reload the page to continue with the latest data.";
 
-export const GROUP_RELOAD_BUTTON_LABEL = "Muat ulang halaman";
+export const GROUP_RELOAD_BUTTON_LABEL = "Reload page";
 
 // The component stays mounted across router.refresh(), so a terminal guard
 // survives it. Committed work therefore needs its own visible reload path;
@@ -393,7 +394,7 @@ export function batchSummaryText(result: BatchResult) {
   ).length;
 
   if (result.variant === "deposit-check-in") {
-    return `${skipped} dilewati · ${failed} gagal`;
+    return `${skipped} skipped · ${failed} failed`;
   }
 
   const completed = result.results.filter(
@@ -402,7 +403,7 @@ export function batchSummaryText(result: BatchResult) {
   const uncertain = result.results.filter(
     (item) => item.status === "uncertain",
   ).length;
-  return `${completed} selesai · ${skipped} dilewati · ${failed} gagal · ${uncertain} belum dapat dipastikan`;
+  return `${completed} completed · ${skipped} skipped · ${failed} failed · ${uncertain} unconfirmed`;
 }
 
 export type GroupCheckInRoom = {
@@ -425,44 +426,44 @@ export type GroupCheckInRoom = {
 };
 
 function checkInSkipReason(room: GroupCheckInRoom, todayIso: string) {
-  if (room.status === ReservationStatus.CHECKED_IN) return "Sudah check-in.";
-  if (room.status === ReservationStatus.CHECKED_OUT) return "Sudah check-out.";
-  if (room.status === ReservationStatus.CANCELLED) return "Reservasi dibatalkan.";
-  if (room.status === ReservationStatus.NO_SHOW) return "Reservasi no-show.";
+  if (room.status === ReservationStatus.CHECKED_IN) return "Already checked in.";
+  if (room.status === ReservationStatus.CHECKED_OUT) return "Already checked out.";
+  if (room.status === ReservationStatus.CANCELLED) return "Reservation cancelled.";
+  if (room.status === ReservationStatus.NO_SHOW) return "Reservation marked as no-show.";
   if (room.status !== ReservationStatus.CONFIRMED) {
-    return "Reservasi tidak dalam status yang bisa check-in.";
+    return "The reservation is not in a status eligible for check-in.";
   }
   if (room.depositStatus === DepositStatus.PENDING) {
-    return "Deposit belum dibayar.";
+    return "Deposit not yet paid.";
   }
-  if (!room.roomId) return "Kamar belum ditugaskan.";
+  if (!room.roomId) return "Room not yet assigned.";
   if (room.arrivalDate > todayIso) {
-    return `Belum waktunya check-in (arrival ${room.arrivalDate}).`;
+    return `It is not yet time to check in (arrival ${room.arrivalDate}).`;
   }
 
   return null;
 }
 
 function depositSkipReason(room: GroupCheckInRoom, todayIso: string) {
-  if (room.status === ReservationStatus.CHECKED_IN) return "Sudah check-in.";
-  if (room.status === ReservationStatus.CHECKED_OUT) return "Sudah check-out.";
-  if (room.status === ReservationStatus.CANCELLED) return "Reservasi dibatalkan.";
-  if (room.status === ReservationStatus.NO_SHOW) return "Reservasi no-show.";
+  if (room.status === ReservationStatus.CHECKED_IN) return "Already checked in.";
+  if (room.status === ReservationStatus.CHECKED_OUT) return "Already checked out.";
+  if (room.status === ReservationStatus.CANCELLED) return "Reservation cancelled.";
+  if (room.status === ReservationStatus.NO_SHOW) return "Reservation marked as no-show.";
   if (room.status !== ReservationStatus.CONFIRMED) {
-    return "Reservasi tidak dapat mengumpulkan deposit.";
+    return "The reservation is not eligible for deposit collection.";
   }
   if (room.depositStatus === DepositStatus.COLLECTED) {
-    return "Deposit sudah dikumpulkan.";
+    return "Deposit already collected.";
   }
   if (room.arrivalDate > todayIso) {
-    return `Belum waktunya mengumpulkan deposit (arrival ${room.arrivalDate}).`;
+    return `It is not yet time to collect the deposit (arrival ${room.arrivalDate}).`;
   }
   if (
     room.requiredDeposit === null ||
     !Number.isFinite(Number(room.requiredDeposit)) ||
     Number(room.requiredDeposit) <= 0
   ) {
-    return "Tarif malam pertama tidak tersedia atau tidak valid.";
+    return "The first-night rate is unavailable or invalid.";
   }
 
   return null;
@@ -494,10 +495,10 @@ function resultClassName(status: GroupRoomActionResult["status"]) {
 }
 
 function statusLabel(status: GroupRoomActionResult["status"]) {
-  if (status === "failed") return "Gagal";
-  if (status === "uncertain") return "Belum dapat dipastikan";
-  if (status === "completed") return "Selesai";
-  return "Dilewati";
+  if (status === "failed") return "Failed";
+  if (status === "uncertain") return "Unconfirmed";
+  if (status === "completed") return "Completed";
+  return "Skipped";
 }
 
 export function groupResultDetailText(detail: GroupActionDetail) {
@@ -545,7 +546,7 @@ function BatchResultSummary({ result }: { result: BatchResult }) {
             <div>
               <p>
                 <span className="font-semibold">
-                  {item.roomNumber ? `Kamar ${item.roomNumber}` : item.reservationNo}
+                  {item.roomNumber ? `Room ${item.roomNumber}` : item.reservationNo}
                 </span>{" "}
                 <span className="text-xs">({item.reservationNo})</span>: {statusLabel(item.status)} — {item.reason}
               </p>
@@ -644,8 +645,8 @@ export function GroupSettlementActions({
               reference: depositReference,
             }),
           {
-            title: "Hasil pengumpulan deposit grup",
-            successLabel: "dikumpulkan depositnya",
+            title: "Group deposit collection results",
+            successLabel: "deposits collected",
           },
           groupMutationEffects,
         );
@@ -668,8 +669,8 @@ export function GroupSettlementActions({
                 reference,
               }),
             {
-              title: "Hasil pelunasan saldo grup",
-              successLabel: "dilunasi",
+              title: "Group balance settlement results",
+              successLabel: "settled",
             },
             groupMutationEffects,
           );
@@ -685,8 +686,8 @@ export function GroupSettlementActions({
           lease,
           () => checkoutEligibleGroupRooms(groupBookingId),
           {
-            title: "Hasil check-out kamar siap",
-            successLabel: "di-check-out",
+            title: "Eligible room check-out results",
+            successLabel: "checked out",
           },
           groupMutationEffects,
         );
@@ -712,7 +713,7 @@ export function GroupSettlementActions({
       const signatureDataUrl = signatures[room.reservationId];
       if (!signatureDataUrl) {
         results.push(
-          asResult(room, "skipped", "Tanda tangan GRC tamu wajib diisi."),
+          asResult(room, "skipped", "The guest's GRC signature is required."),
         );
         continue;
       }
@@ -738,7 +739,7 @@ export function GroupSettlementActions({
       });
       results.push(
         result.ok
-          ? asResult(room, "completed", "Check-in selesai.")
+          ? asResult(room, "completed", "Check-in completed.")
           : asResult(room, "failed", result.error),
       );
     }
@@ -753,8 +754,8 @@ export function GroupSettlementActions({
           lease,
           runGroupCheckInBatch,
           {
-            title: "Hasil check-in kamar siap",
-            successLabel: "di-check-in",
+            title: "Eligible room check-in results",
+            successLabel: "checked in",
           },
           checkInMutationEffects,
         );
@@ -772,9 +773,9 @@ export function GroupSettlementActions({
   return (
     <section className="mb-6 overflow-hidden rounded-lg border border-sky-200 bg-white shadow-sm">
       <div className="border-b border-sky-100 bg-sky-50 px-5 py-4">
-        <h2 className="text-base font-semibold text-sky-950">Aksi grup</h2>
+        <h2 className="text-base font-semibold text-sky-950">Group Actions</h2>
         <p className="mt-1 text-sm text-sky-800">
-          Setiap pembayaran dan check-out tetap diproses pada folio kamar masing-masing.
+          {"Each payment and check-out is processed on the individual room's folio."}
         </p>
       </div>
       {uncertaintyMessage ? (
@@ -791,7 +792,7 @@ export function GroupSettlementActions({
               className="border-red-300 text-red-800 hover:bg-red-100"
               onClick={() => window.location.reload()}
             >
-              Muat ulang halaman
+              Reload page
             </Button>
           </div>
         </div>
@@ -821,25 +822,25 @@ export function GroupSettlementActions({
             <Banknote className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
             <div>
               <h3 className="font-semibold text-slate-900">
-                Kumpulkan deposit semua kamar
+                Collect Deposits for All Rooms
               </h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Catat tarif malam pertama setiap kamar ke folionya sendiri. Deposit yang sudah terkumpul akan dilewati.
+                {"Record each room's first-night rate on its own folio. Deposits already collected will be skipped."}
               </p>
             </div>
           </div>
           <div className="mt-4 rounded-md border border-emerald-200 bg-white px-3 py-2.5">
             <p className="text-xs font-semibold text-emerald-800">
-              Total deposit kamar pending
+              Total pending room deposits
             </p>
             <p className="mt-0.5 font-bold tabular-nums text-emerald-950">
-              {formatIDR(pendingDepositTotal)} untuk {depositEligibleRooms.length} kamar
+              {formatIDR(pendingDepositTotal)} for {depositEligibleRooms.length} rooms
             </p>
           </div>
           <div className="mt-4 grid gap-3">
             <label className="block">
               <span className="text-xs font-semibold text-slate-500">
-                Metode deposit batch
+                Batch deposit method
               </span>
               <select
                 value={depositMethod}
@@ -858,7 +859,7 @@ export function GroupSettlementActions({
             </label>
             <label className="block">
               <span className="text-xs font-semibold text-slate-500">
-                Referensi {depositMethod === PaymentMethod.TRANSFER ? "(wajib)" : "(opsional)"}
+                Reference {depositMethod === PaymentMethod.TRANSFER ? "(required)" : "(optional)"}
               </span>
               <Input
                 value={depositReference}
@@ -878,10 +879,10 @@ export function GroupSettlementActions({
           >
             <Banknote className="h-4 w-4" aria-hidden="true" />
             {isCollectingDeposits
-              ? "Memproses..."
+              ? "Processing..."
               : depositEligibleRooms.length === 0
-                ? "Tidak ada deposit pending"
-                : `Kumpulkan ${formatIDR(pendingDepositTotal)} untuk ${depositEligibleRooms.length} kamar`}
+                ? "No pending deposits"
+                : `Collect ${formatIDR(pendingDepositTotal)} for ${depositEligibleRooms.length} rooms`}
           </Button>
         </div>
 
@@ -889,15 +890,15 @@ export function GroupSettlementActions({
           <div className="flex items-start gap-3">
             <CreditCard className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
             <div>
-              <h3 className="font-semibold text-slate-900">Settle saldo grup</h3>
+              <h3 className="font-semibold text-slate-900">Settle Group Balances</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Lunasi setiap folio OPEN yang masih memiliki saldo. Kamar tanpa folio atau yang sudah lunas akan dilewati.
+                Settle each open folio with an outstanding balance. Rooms without a folio or with a settled balance will be skipped.
               </p>
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-semibold text-slate-500">Metode pembayaran batch</span>
+              <span className="text-xs font-semibold text-slate-500">Batch payment method</span>
               <select
                               value={method}
                               onChange={(event) => setMethod(event.target.value as PaymentMethod)}
@@ -911,7 +912,7 @@ export function GroupSettlementActions({
             </label>
             <label className="block">
               <span className="text-xs font-semibold text-slate-500">
-                Referensi {method === PaymentMethod.TRANSFER ? "(wajib)" : "(opsional)"}
+                Reference {method === PaymentMethod.TRANSFER ? "(required)" : "(optional)"}
               </span>
               <Input
                 value={reference}
@@ -930,7 +931,7 @@ export function GroupSettlementActions({
             className="mt-4"
           >
             <CreditCard className="h-4 w-4" aria-hidden="true" />
-            {isSettling ? "Memproses..." : "Settle saldo grup"}
+            {isSettling ? "Processing..." : "Settle Group Balances"}
           </Button>
         </div>
 
@@ -938,9 +939,9 @@ export function GroupSettlementActions({
           <div className="flex items-start gap-3">
             <LogOut className="mt-0.5 h-5 w-5 text-sky-700" aria-hidden="true" />
             <div>
-              <h3 className="font-semibold text-slate-900">Check-out kamar yang siap</h3>
+              <h3 className="font-semibold text-slate-900">Check Out Eligible Rooms</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Hanya kamar yang sudah check-in, lunas, dan departure hari ini yang diproses. Kamar lain akan dilewati dan dilaporkan.
+                Only checked-in rooms with settled balances and departure today will be processed. Other rooms will be skipped and reported.
               </p>
             </div>
           </div>
@@ -952,7 +953,7 @@ export function GroupSettlementActions({
             className="mt-4 border-sky-300 text-sky-800 hover:bg-sky-50 hover:text-sky-950"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
-            {isCheckingOut ? "Memproses..." : "Check-out kamar yang siap"}
+            {isCheckingOut ? "Processing..." : "Check Out Eligible Rooms"}
           </Button>
         </div>
 
@@ -960,9 +961,9 @@ export function GroupSettlementActions({
           <div className="flex items-start gap-3">
             <LogIn className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
             <div>
-              <h3 className="font-semibold text-slate-900">Check-in kamar yang siap</h3>
+              <h3 className="font-semibold text-slate-900">Check In Eligible Rooms</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Kamar CONFIRMED yang sudah tiba, memiliki kamar, serta berstatus deposit COLLECTED dengan pembayaran DEPOSIT pada folio akan diproses satu per satu. Setiap tamu tetap wajib menandatangani GRC-nya sendiri.
+                Confirmed reservations that have reached their arrival date, have an assigned room, and have a collected deposit backed by a deposit payment on the folio will be processed individually. Each guest must still sign their own GRC.
               </p>
             </div>
           </div>
@@ -975,8 +976,8 @@ export function GroupSettlementActions({
           >
             <LogIn className="h-4 w-4" aria-hidden="true" />
             {checkInEligibleRooms.length === 0
-              ? "Tidak ada kamar siap"
-              : "Check-in kamar yang siap"}
+              ? "No eligible rooms"
+              : "Check In Eligible Rooms"}
           </Button>
         </div>
       </div>
@@ -984,24 +985,24 @@ export function GroupSettlementActions({
         <div className="border-t border-slate-100 px-5 py-5">
           <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
             <h3 className="text-sm font-semibold text-emerald-950">
-              Lengkapi GRC sebelum check-in batch
+              Complete GRCs Before Batch Check-in
             </h3>
             <p className="mt-1 text-sm leading-5 text-emerald-900">
-              Tanda tangan di bawah disimpan pada reservasi kamar masing-masing. Data kontak tamu yang ada tidak diubah. Aksi check-in batch ini tidak mengumpulkan deposit; kamar dengan deposit PENDING akan dilewati dan deposit harus dikumpulkan terlebih dahulu.
+              {"The signatures below are saved to each room's reservation. Existing guest contact details are not changed. Batch check-in does not collect deposits; rooms with pending deposits will be skipped and their deposits must be collected first."}
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-semibold text-slate-600">Tujuan kunjungan seluruh grup</span>
+                <span className="text-xs font-semibold text-slate-600">Purpose of visit for the entire group</span>
                 <select
                                   value={groupPurposeOfVisit}
                                   onChange={(event) => setGroupPurposeOfVisit(event.target.value)}
                                   disabled={isPending}
                                   className="mt-1 h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
                                 >
-                  <option value="Bisnis">Bisnis</option>
-                  <option value="Liburan">Liburan</option>
-                  <option value="Keluarga">Keluarga</option>
-                  <option value="Acara">Acara</option>
+                  <option value="Bisnis">{purposeOfVisitLabels.Bisnis}</option>
+                  <option value="Liburan">{purposeOfVisitLabels.Liburan}</option>
+                  <option value="Keluarga">{purposeOfVisitLabels.Keluarga}</option>
+                  <option value="Acara">{purposeOfVisitLabels.Acara}</option>
                 </select>
               </label>
               <label className="mt-5 flex items-start gap-2 text-sm leading-5 text-slate-700 sm:mt-6">
@@ -1012,21 +1013,21 @@ export function GroupSettlementActions({
                   disabled={isPending}
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                Saya mengonfirmasi setiap tamu yang diproses sudah hadir dan menandatangani GRC-nya sendiri.
+                I confirm that every guest being processed is physically present and has signed their own GRC.
               </label>
             </div>
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               {checkInEligibleRooms.map((room) => (
                 <div key={room.reservationId} className="rounded-lg border border-slate-200 bg-white p-4">
                   <p className="font-semibold text-slate-900">
-                    {room.roomNumber ? `Kamar ${room.roomNumber}` : room.reservationNo}
+                    {room.roomNumber ? `Room ${room.roomNumber}` : room.reservationNo}
                   </p>
                   <p className="mt-0.5 text-sm text-slate-600">{room.guest.fullName} · {room.reservationNo}</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    Identitas: {formatGuestIdentity(room.guest.idType, room.guest.idNumber)}
+                    Identification: {formatGuestIdentity(room.guest.idType, room.guest.idNumber)}
                   </p>
                   <div className="mt-3">
-                    <span className="text-xs font-semibold text-slate-600">Tanda tangan tamu</span>
+                    <span className="text-xs font-semibold text-slate-600">Guest signature</span>
                     <div className="mt-1">
                       <SignaturePadField
                         value={signatures[room.reservationId] ?? ""}
@@ -1049,7 +1050,7 @@ export function GroupSettlementActions({
               className="mt-5"
             >
               <LogIn className="h-4 w-4" aria-hidden="true" />
-              {isCheckingIn ? "Memproses..." : `Proses ${checkInEligibleRooms.length} kamar siap`}
+              {isCheckingIn ? "Processing..." : `Process ${checkInEligibleRooms.length} eligible rooms`}
             </Button>
           </div>
         </div>

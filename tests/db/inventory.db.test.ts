@@ -170,7 +170,7 @@ describe("inventory authorization", () => {
     const ingredient = await createIngredient();
     const menu = await createMenuItem();
     process.env.TEST_AUTH_ROLE = role;
-    const forbidden = { error: "Anda tidak memiliki akses untuk mengelola persediaan." };
+    const forbidden = { error: "You do not have access to manage inventory." };
 
     expect(await receiveStock({ ingredientId: ingredient.id, quantity: 1 })).toEqual(forbidden);
     expect(await recordStockTake({ ingredientId: ingredient.id, countedQuantity: 5 })).toEqual(forbidden);
@@ -215,7 +215,7 @@ describe("inventory rollback", () => {
     const ingredient = await createIngredient();
     await prisma.fBIngredient.delete({ where: { id: ingredient.id } });
 
-    expect(await run(ingredient.id)).toEqual({ error: "Bahan tidak ditemukan." });
+    expect(await run(ingredient.id)).toEqual({ error: "Ingredient not found." });
     expect(await prisma.fBStockLedger.count()).toBe(0);
     expect(await prisma.fBIngredient.count()).toBe(0);
   });
@@ -226,7 +226,7 @@ describe("inventory rollback", () => {
     await prisma.user.delete({ where: { id: user.id } });
 
     expect(await run(ingredient.id)).toEqual({
-      error: "Status penyimpanan perubahan stok belum dapat dipastikan. Periksa dan cocokkan riwayat stok sebelum mengirim ulang agar tidak tercatat dua kali.",
+      error: "The stock adjustment save result is uncertain. Check and reconcile stock history before resubmitting to avoid duplicate entries.",
       uncertain: true,
     });
 

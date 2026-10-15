@@ -21,7 +21,7 @@ export function GuestFilters({ q, resultCount }: { q: string; resultCount: numbe
     >
       <div className="relative w-full sm:w-96">
         <label htmlFor="guest-search" className="sr-only">
-          Cari nama, telepon, nomor identitas, atau email tamu
+          Search by guest name, phone, ID number, or email
         </label>
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
@@ -30,23 +30,23 @@ export function GuestFilters({ q, resultCount }: { q: string; resultCount: numbe
           type="search"
           name="q"
           defaultValue={q}
-          placeholder="Cari nama, telepon, identitas, atau email..."
+          placeholder="Search name, phone, ID, or email..."
           className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
         />
       </div>
-      <Button type="submit">Cari</Button>
+      <Button type="submit">Search</Button>
       {q ? (
         <Link href="/app/fo/tamu" className={buttonVariants({ variant: "ghost" })}>
           <RotateCcw aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
-          Atur Ulang
+          Reset
         </Link>
       ) : null}
       <span className="min-w-0 flex-1" />
       <div className="flex items-center gap-3">
-        <span className="whitespace-nowrap text-sm font-medium text-slate-500">{resultCount} hasil</span>
+        <span className="whitespace-nowrap text-sm font-medium text-slate-500">{resultCount} results</span>
         <Link href={exportHref} download prefetch={false} className={buttonVariants({ variant: "outline" })}>
           <Download aria-hidden="true" className="mr-1 h-4 w-4" />
-          Ekspor CSV
+          Export CSV
         </Link>
       </div>
     </form>

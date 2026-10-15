@@ -2,11 +2,11 @@ import type { LostFoundCategory, LostFoundStatus } from "@prisma/client";
 import { CircleHelp, FileText, Gem, Glasses, Shirt, Smartphone, type LucideIcon } from "lucide-react";
 
 export const LOST_FOUND_CATEGORY_LABELS: Record<LostFoundCategory, string> = {
-  ELECTRONICS: "Elektronik / Gadget", CLOTHING: "Pakaian / Tekstil", DOCUMENTS: "Dokumen / Identitas",
-  VALUABLES: "Barang Berharga", ACCESSORIES: "Aksesoris / Pribadi", OTHER: "Lainnya",
+  ELECTRONICS: "Electronics / Gadgets", CLOTHING: "Clothing / Textiles", DOCUMENTS: "Documents / Identification",
+  VALUABLES: "Valuables", ACCESSORIES: "Accessories / Personal Items", OTHER: "Other",
 };
 export const LOST_FOUND_STATUS_LABELS: Record<LostFoundStatus, string> = {
-  UNCLAIMED: "Disimpan", RETURNED: "Dikembalikan", DISPOSED: "Dimusnahkan / Dihibahkan",
+  UNCLAIMED: "Stored", RETURNED: "Returned", DISPOSED: "Disposed / Donated",
 };
 export const LOST_FOUND_STATUS_STYLES: Record<LostFoundStatus, { badge: string; pip: string }> = {
   UNCLAIMED: { badge: "bg-status-vd-bg text-status-vd-fg border-status-vd-pip", pip: "bg-status-vd-pip" },

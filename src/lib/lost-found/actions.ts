@@ -12,15 +12,15 @@ async function execute<T>(
   operation: (operator: LostFoundOperator, input: T) => Promise<LostFoundActionResult & { roomId?: number | null }>,
 ): Promise<LostFoundActionResult> {
   const session = await auth();
-  if (!session?.user) return { ok: false, error: "Silakan masuk terlebih dahulu." };
+  if (!session?.user) return { ok: false, error: "Please sign in first." };
   const { role } = session.user;
   const userId = Number(session.user.id);
   if ((role !== "HK" && role !== "FO" && role !== "ADMIN") || !Number.isSafeInteger(userId) || userId <= 0 || userId > 2147483647) {
-    return { ok: false, error: "Anda tidak memiliki akses untuk mengelola barang temuan." };
+    return { ok: false, error: "You do not have access to manage lost and found." };
   }
-  if (!(formData instanceof FormData)) return { ok: false, error: "Data formulir tidak valid." };
+  if (!(formData instanceof FormData)) return { ok: false, error: "Invalid form data." };
   const parsed = schema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Data formulir tidak valid." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid form data." };
   const result = await operation({ userId, role }, parsed.data);
   if (!result.ok) return result;
   revalidatePath("/app/hk/lost-found");

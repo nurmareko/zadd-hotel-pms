@@ -70,7 +70,10 @@ describe("season date-range schema", () => {
       ...range, id: "clseason000000000000000001", endsBefore: range.startsOn,
     });
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.error.issues[0].path).toEqual(["endsBefore"]);
+    if (!result.success) {
+          expect(result.error.issues[0].path).toEqual(["endsBefore"]);
+          expect(result.error.issues[0].message).toBe("End date must be after the start date");
+        }
   });
 });
 

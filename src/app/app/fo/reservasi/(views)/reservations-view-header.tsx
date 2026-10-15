@@ -36,7 +36,7 @@ const views: Array<{
   label: string;
   icon: typeof CalendarDays;
 }> = [
-  { value: "kalender", label: "Kalender", icon: CalendarDays },
+  { value: "kalender", label: "Calendar", icon: CalendarDays },
   { value: "list", label: "List", icon: List },
 ];
 
@@ -85,7 +85,7 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
             addDays(visibleStartDate, -DAY_COUNT),
             searchParams,
           )}
-          label="Tanggal sebelumnya"
+          label="Previous date"
           direction="previous"
         />
         <DateRangePickerPopover
@@ -99,7 +99,7 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
             addDays(visibleStartDate, DAY_COUNT),
             searchParams,
           )}
-          label="Tanggal berikutnya"
+          label="Next date"
           direction="next"
         />
       </div>
@@ -107,7 +107,7 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
               href={getDateHref(view, getDefaultStartDate(), searchParams)}
               className={buttonVariants({ variant: "outline" })}
             >
-        Hari ini
+        Today
       </Link>
     </div>
   );
@@ -159,10 +159,10 @@ export function ReservationsViewHeader() {
         ) : (
           <div>
             <h1 className="text-xl font-semibold text-slate-900">
-              Daftar Reservasi
+              Reservation List
             </h1>
             <p className="text-xs text-slate-500">
-              Semua reservasi aktif dan riwayat pemesanan
+              All active reservations and booking history
             </p>
           </div>
         )}
@@ -170,7 +170,7 @@ export function ReservationsViewHeader() {
 
       <div className="flex flex-wrap items-center gap-3 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
         <div
-          aria-label="Tampilan reservasi"
+          aria-label="Reservation view"
           role="group"
           className="relative grid grid-cols-2 rounded-md border border-slate-300 bg-white p-1 shadow-sm"
         >
@@ -210,7 +210,7 @@ export function ReservationsViewHeader() {
                   className={buttonVariants({ variant: "default" })}
                 >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Reservasi
+          Reservation
         </Link>
       </div>
     </div>

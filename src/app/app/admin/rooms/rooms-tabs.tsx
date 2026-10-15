@@ -61,15 +61,15 @@ export function RoomsTabs({ roomTypes, rooms }: RoomsTabsProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Kamar</BreadcrumbPage>
+              <BreadcrumbPage>Rooms</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Kamar &amp; Tipe Kamar
+          Rooms &amp; Room Types
         </h1>
         <p className="mt-1 text-sm leading-5 text-slate-500">
-          Definisikan tipe kamar dan daftarkan kamar individual.
+          Define room types and register individual rooms.
         </p>
       </div>
 
@@ -79,13 +79,13 @@ export function RoomsTabs({ roomTypes, rooms }: RoomsTabsProps) {
             className="rounded-none border-b-2 border-transparent bg-transparent px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             value="room-types"
           >
-            Tipe Kamar
+            Room Types
           </TabsTrigger>
           <TabsTrigger
             className="ml-5 rounded-none border-b-2 border-transparent bg-transparent px-0 py-2.5 text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             value="rooms"
           >
-            Daftar Kamar ({rooms.length})
+            Room List ({rooms.length})
           </TabsTrigger>
         </TabsList>
         <TabsContent value="room-types">

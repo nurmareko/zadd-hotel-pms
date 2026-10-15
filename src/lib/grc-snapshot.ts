@@ -9,14 +9,19 @@ import {
 import { differenceInCalendarDays } from "date-fns";
 import { z } from "zod";
 
+import { purposeOfVisitLabel } from "@/lib/check-in/schema";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import { PDF_BRAND_NAME } from "@/lib/pdf/styles";
 
 export const GRC_SNAPSHOT_SCHEMA_VERSION = 1;
-export const GRC_TEMPLATE_VERSION = 1;
+export const GRC_TEMPLATE_VERSION = 2;
+export const GrcTemplateVersionSchema = z.union([
+  z.literal(1),
+  z.literal(GRC_TEMPLATE_VERSION),
+]);
 
-// These labels freeze the unchanged Phase 1 GRC template. Any renderer label
-// change must intentionally bump GRC_TEMPLATE_VERSION and migrate Phase 2 reads.
+// Template 2 captures English labels. Existing template-1 signed snapshots
+// remain readable and retain their original captured text.
 const reservationTypeLabels: Record<ReservationType, string> = {
   [ReservationType.INDIVIDUAL]: "Individual",
   [ReservationType.COMPANY]: "Company",
@@ -26,10 +31,10 @@ const reservationTypeLabels: Record<ReservationType, string> = {
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO — Tanpa makan",
-  [ArrangementType.BB]: "BB — Sarapan",
-  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
-  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+  [ArrangementType.RO]: "RO — Room only",
+  [ArrangementType.BB]: "BB — Breakfast",
+  [ArrangementType.HB]: "HB — Breakfast + one main meal",
+  [ArrangementType.FB]: "FB — Breakfast, lunch, and dinner",
 };
 
 const IsoDateTimeSchema = z.string().datetime();
@@ -38,7 +43,7 @@ const DecimalStringSchema = z.string().regex(/^\d+(?:\.\d+)?$/);
 export const GrcSnapshotSchema = z
   .object({
     schemaVersion: z.literal(GRC_SNAPSHOT_SCHEMA_VERSION),
-    templateVersion: z.literal(GRC_TEMPLATE_VERSION),
+    templateVersion: GrcTemplateVersionSchema,
     capturedAt: IsoDateTimeSchema,
     header: z
       .object({
@@ -180,7 +185,7 @@ export function buildGrcSnapshot({
     },
     guest: reservation.guest,
     stay: {
-      roomNumber: reservation.room?.number ?? "belum ditentukan saat check-in",
+      roomNumber: reservation.room?.number ?? "not assigned at check-in",
       roomTypeName: reservation.roomType.name,
       adults: reservation.adults,
       children: reservation.children,
@@ -192,7 +197,9 @@ export function buildGrcSnapshot({
       })),
     },
     grcMetadata: {
-      purposeOfVisit: reservation.purposeOfVisit,
+      purposeOfVisit: reservation.purposeOfVisit === null
+              ? null
+              : purposeOfVisitLabel(reservation.purposeOfVisit),
       grcFilledAt: reservation.grcFilledAt?.toISOString() ?? null,
       filledByName,
       signedAt: reservation.signedAt?.toISOString() ?? null,

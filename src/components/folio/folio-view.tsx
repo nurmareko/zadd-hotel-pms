@@ -27,7 +27,7 @@ function ErrorState({ message }: { message: string }) {
     <>
       <section className="rounded-lg border border-red-200 bg-red-50 p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-red-800">
-          Folio tidak tersedia
+          Folio unavailable
         </h2>
         <div className="mt-2 text-sm text-red-600">{message}</div>
       </section>
@@ -96,13 +96,13 @@ export async function GuestFolioView({
 
   if (!folio) {
     return (
-      <ErrorState message="Folio tidak ditemukan. Periksa data reservasi sebelum melanjutkan." />
+      <ErrorState message="Folio not found. Check the reservation details before continuing." />
     );
   }
 
   if (!settings) {
     return (
-      <ErrorState message="Pengaturan hotel belum tersedia, sehingga total folio belum bisa dihitung." />
+      <ErrorState message="Hotel settings are unavailable, so folio totals cannot be calculated yet." />
     );
   }
 
@@ -139,7 +139,7 @@ export async function GuestFolioView({
                 Deposit
               </div>
               <div className="flex items-center justify-between gap-3 p-5 text-sm">
-                <span className="text-slate-500">Status deposit</span>
+                <span className="text-slate-500">Deposit status</span>
                 <DepositStatusBadge status={folio.reservation.depositStatus} />
               </div>
             </section>
@@ -164,14 +164,14 @@ export async function GuestFolioView({
             className={buttonVariants({ variant: "outline" })}
           >
             <Download aria-hidden="true" />
-            Tagihan PDF
+            Bill PDF
           </a>
           {canContinueToCheckout ? (
             <Link
               href={`/app/fo/check-out/${folio.id}`}
               className={`${buttonVariants({ variant: "default" })} order-first sm:order-none`}
             >
-              Lanjut ke Check-Out
+              Proceed to Check-out
             </Link>
           ) : null}
         </div>
@@ -199,7 +199,7 @@ export async function GuestFolioView({
           <summary
             className={`${buttonVariants({ variant: "outline" })} cursor-pointer list-none group-open:bg-slate-50 [&::-webkit-details-marker]:hidden`}
           >
-            Ekspor
+            Export
             <ChevronDown aria-hidden="true" />
           </summary>
           <div className="absolute right-0 z-10 mt-2 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md">
@@ -208,7 +208,7 @@ export async function GuestFolioView({
               className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-slate-900 hover:bg-slate-50 desktop:min-h-10"
             >
               <Download aria-hidden="true" />
-              Tagihan PDF
+              Bill PDF
             </a>
             <a
               href={`/api/reservations/${folio.reservationId}/grc`}
@@ -216,7 +216,7 @@ export async function GuestFolioView({
               className="flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-slate-900 hover:bg-slate-50 desktop:min-h-10"
             >
               <Download aria-hidden="true" />
-              Cetak GRC
+              Print GRC
             </a>
           </div>
         </details>
@@ -234,7 +234,7 @@ export async function GuestFolioView({
             href={`/app/fo/check-out/${folio.id}`}
             className={`${buttonVariants({ variant: "default" })} order-first sm:order-none`}
           >
-            Lanjut ke Check-Out
+            Proceed to Check-out
           </Link>
         ) : null}
       </div>

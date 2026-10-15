@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
@@ -24,6 +25,19 @@ beforeEach(() => {
   mocks.redirect.mockImplementation((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   });
+});
+
+it.each(["P2034", "P2028"])("returns English table conflict copy for %s without redirecting", async (code) => {
+  mocks.transaction.mockRejectedValue(new Prisma.PrismaClientKnownRequestError(
+    "Transaction conflict", { code, clientVersion: "6.19.3" },
+  ));
+  await expect(createOrder({ tableId: 1, guestCount: 2 }, "pos")).resolves.toEqual({
+    ok: false,
+    error: "The table status was updated by another cashier.",
+  });
+  expect(mocks.transaction).toHaveBeenCalledTimes(code === "P2034" ? 3 : 1);
+  expect(mocks.redirect).not.toHaveBeenCalled();
+  expect(mocks.revalidatePath).not.toHaveBeenCalled();
 });
 
 describe.each([

@@ -42,7 +42,7 @@ export function RoomRowActions({ room, onDelete, onEdit }: RoomRowActionsProps) 
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(room)}>
           <Trash2 aria-hidden="true" />
-          Hapus
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

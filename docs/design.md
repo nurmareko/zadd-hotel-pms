@@ -34,31 +34,33 @@ This convention is intentionally duplicated in `AGENTS.md` so both agents and
 design contributors see it. Any future change to this convention or glossary
 must update both files in the same change.
 
-- All user-facing UI copy must be in Indonesian, including labels, headings,
-  buttons, helper and hint text, validation messages, error messages, toasts,
-  empty states, table headers, badges, and confirmation dialogs.
-- Established PMS and technical terms stay in English where they are already the
-  working vocabulary: check-in, check-out, folio, deposit, extras, no-show, GRC,
-  ARR, and room-status codes such as VD, OC, and OOO.
-- Do not re-translate an already-established term. If the codebase already uses
-  an Indonesian form (for example, "Kamar"), use it; if it already uses English
-  (for example, "check-in" or "deposit"), keep it. Consistency with existing UI
-  copy takes priority over a fresh translation choice.
-- Code is not copy. Identifiers, function and variable names, database columns,
-  Prisma enum values such as `CONFIRMED`, `CHECKED_IN`, `PENDING`, `COLLECTED`,
-  and `DEPOSIT`, file names, and route paths stay in English. This rule governs
-  what the user sees, not the code.
-- Developer-facing documentation under `/docs` stays in English and is not
-  governed by the UI-copy language rule.
-- All new user-facing strings must follow this convention. Mixed-language copy
-  within a single screen should be corrected when that screen is touched.
+- All user-facing UI copy MUST use standard International Hospitality English,
+  including labels, headings, buttons, helper and hint text, validation and error
+  messages, toasts, empty states, table headers, badges, and confirmation dialogs.
+- Use established PMS terms consistently: check-in, check-out, folio, deposit,
+  extras, no-show, GRC, ARR, Arrangement, and room-status codes such as VD, OC,
+  and OOO. Prefer natural hospitality terminology over literal translations.
+- Currency remains Indonesian Rupiah (IDR / Rp), with existing numeric formatting.
+  Use English month/day names for descriptive dates; preserve hotel timezones and
+  date-only boundaries.
+- Translate display labels, not identifiers, enums, database columns, route paths,
+  query keys, or persisted values. Existing Indonesian protocol values must remain
+  compatible and use English display labels. User-entered data and historical
+  signed GRC snapshots must not be rewritten or retranslated.
+- Developer-facing documentation under `/docs` stays in English.
+- All new user-facing strings MUST follow this convention. Correct mixed-language
+  UI copy when a screen is touched.
 
 ### UI Copy Glossary
 
-- English kept: check-in, check-out, folio, deposit, extras, no-show, GRC, ARR,
-  VD, OC, OOO, Arrangement (room meal-plan packages; replaces "Inklusi").
-- Indonesian established: Kamar, Tamu, Reservasi, Tarif, Kedatangan,
-  Keberangkatan, Ringkasan, Sisa Tagihan, Simpan, Batal, Kumpulkan.
+- Entities: Room / Rooms, Guest / Guests, Reservation / Reservations, Folio,
+  Balance Due, Arrival / Arrivals, Departure / Departures, Rates, Summary.
+- Workflows: Floor Plan / Tables, Orders, Kitchen Inventory, Stock Take,
+  Meal Plans, Arrangement, Room Board, Lost & Found, Activity Log, Night Report,
+  Accounting Export, Seasons & Rates, Room Types, Users, Settings.
+- Actions: Save, Cancel, Send, Pay / Settle, Print, Edit, Delete, Add, Sign Out,
+  Back, Collect.
+- Reservation statuses: Confirmed, Checked In, Checked Out, Cancelled, No-show.
 
 ## Layout System
 
@@ -162,7 +164,7 @@ properties in `src/app/globals.css`.
 
 Empty states should explain the situation and point to the next useful action. Do not leave a blank region or only show "No data."
 
-Example: "Belum ada kamar yang ditugaskan hari ini. Periksa kembali daftar tugas nanti."
+Example: "No rooms assigned today. Check your task list again later."
 
 ## Typography
 

@@ -6,7 +6,7 @@ export async function GET() {
   const session = await auth();
 
   if (session?.user.role !== "HK") {
-    return Response.json({ error: "Tidak berwenang" }, { status: 403 });
+    return Response.json({ error: "Access denied" }, { status: 403 });
   }
 
   return Response.json(
@@ -19,14 +19,14 @@ export async function PATCH(request: Request) {
   const session = await auth();
 
   if (session?.user.role !== "HK") {
-    return Response.json({ error: "Tidak berwenang" }, { status: 403 });
+    return Response.json({ error: "Access denied" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
   const notificationId = Number(body?.notificationId);
 
   if (!Number.isInteger(notificationId) || notificationId <= 0) {
-    return Response.json({ error: "Notifikasi tidak valid" }, { status: 400 });
+    return Response.json({ error: "Invalid notification" }, { status: 400 });
   }
 
   const updated = await prisma.housekeepingNotification.updateMany({
@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
   });
 
   if (updated.count === 0) {
-    return Response.json({ error: "Notifikasi tidak ditemukan" }, { status: 404 });
+    return Response.json({ error: "Notification not found" }, { status: 404 });
   }
 
   return Response.json({ ok: true });

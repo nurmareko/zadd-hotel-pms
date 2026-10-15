@@ -24,11 +24,11 @@ export function AuditStatusBanner({
           <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
           <div>
             <div className="text-sm font-semibold tracking-wide uppercase text-emerald-800">
-              Night audit selesai
+              Night audit completed
             </div>
             <p className="mt-1 text-sm text-emerald-700">
               {formatCompactDateTimeID(todayAudit.runAt)}{" "}
-              oleh {todayAudit.runByName}
+              by {todayAudit.runByName}
             </p>
           </div>
         </div>
@@ -36,7 +36,7 @@ export function AuditStatusBanner({
           className={buttonVariants({ variant: "outline" })}
           href={`/app/acc/reports/${todayAudit.id}`}
         >
-          Lihat Laporan
+          View Report
         </Link>
       </div>
     </section>

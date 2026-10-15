@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { AmenitiesCountSchema } from "@/lib/housekeeping/amenities";
 
-export const MobileRoomIdSchema = z.number({ error: "Kamar tidak valid" })
-  .int("Kamar tidak valid").positive("Kamar tidak valid").max(2147483647, "Kamar tidak valid");
-const FormRoomIdSchema = z.string({ error: "Kamar tidak valid" })
-  .regex(/^\d+$/, "Kamar tidak valid").transform(Number).pipe(MobileRoomIdSchema);
-const NotesSchema = z.string({ error: "Catatan tidak valid" }).trim()
-  .max(500, "Catatan maksimal 500 karakter").optional();
+export const MobileRoomIdSchema = z.number({ error: "Invalid room" })
+  .int("Invalid room").positive("Invalid room").max(2147483647, "Invalid room");
+const FormRoomIdSchema = z.string({ error: "Invalid room" })
+  .regex(/^\d+$/, "Invalid room").transform(Number).pipe(MobileRoomIdSchema);
+const NotesSchema = z.string({ error: "Invalid notes" }).trim()
+  .max(500, "Notes must not exceed 500 characters").optional();
 const CheckboxSchema = z.union([
   z.enum(["on", "true", "1", "yes"]).transform(() => true),
   z.enum(["off", "false", "0", "no", ""]).transform(() => false),
-], { error: "Pilihan tidak valid" }).optional().transform((value) => value ?? false);
+], { error: "Invalid selection" }).optional().transform((value) => value ?? false);
 
 export const MobileFinishSchema = z.object({
   roomId: FormRoomIdSchema,
@@ -25,12 +25,12 @@ export const MobileFinishSchema = z.object({
 });
 export const MobileInspectSchema = z.object({
   roomId: MobileRoomIdSchema,
-  passed: z.boolean({ error: "Hasil inspeksi tidak valid" }),
+  passed: z.boolean({ error: "Invalid inspection result" }),
   notes: NotesSchema,
 });
 export const FloorLostFoundSchema = z.object({
   roomId: z.preprocess((value) => value === undefined || value === "" ? null : value,
     FormRoomIdSchema.nullable()),
-  description: z.string({ error: "Deskripsi wajib diisi" }).trim()
-    .min(3, "Deskripsi minimal 3 karakter").max(500, "Deskripsi maksimal 500 karakter"),
+  description: z.string({ error: "A description is required" }).trim()
+    .min(3, "The description must be at least 3 characters").max(500, "The description must not exceed 500 characters"),
 });

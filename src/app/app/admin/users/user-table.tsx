@@ -76,7 +76,7 @@ function AddUserButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Pengguna
+      Add User
     </Button>
   );
 }
@@ -88,7 +88,7 @@ function ActiveBadge({ isActive }: { isActive: boolean }) {
 
   return (
     <StatusBadge
-      label={isActive ? "Aktif" : "Nonaktif"}
+      label={isActive ? "Active" : "Inactive"}
       className={className}
       showPip={false}
     />
@@ -173,7 +173,7 @@ export function UserTable({ users }: UserTableProps) {
       const result = await deleteUser(deletingUser.id);
 
       if (result.ok) {
-        toast.success("Pengguna dihapus");
+        toast.success("User deleted");
         setDeletingUser(null);
         return;
       }
@@ -196,7 +196,7 @@ export function UserTable({ users }: UserTableProps) {
       });
 
       if (result.ok) {
-        toast.success("Password direset");
+        toast.success("Password reset");
         setResettingUser(null);
         setNewPassword("");
         return;
@@ -221,17 +221,17 @@ export function UserTable({ users }: UserTableProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Pengguna</BreadcrumbPage>
+              <BreadcrumbPage>Users</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Pengguna
+              Users
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Kelola akun praktikum dan penetapan role.
+              Manage training accounts and role assignments.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -243,8 +243,8 @@ export function UserTable({ users }: UserTableProps) {
       {users.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="Belum ada pengguna"
-          description="Tambahkan akun untuk role operasional dan admin."
+          title="No users yet"
+          description="Add accounts for operational and admin roles."
           action={<AddUserButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -255,7 +255,7 @@ export function UserTable({ users }: UserTableProps) {
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
-                placeholder="Cari nama, username, atau email..."
+                placeholder="Search by name, username or email..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -267,7 +267,7 @@ export function UserTable({ users }: UserTableProps) {
                 setRoleFilter(event.target.value as RoleCode | "")
               }
             >
-              <option value="">Semua Role</option>
+              <option value="">All Roles</option>
               <option value="FO">FO</option>
               <option value="HK">HK</option>
               <option value="FB">FB</option>
@@ -281,12 +281,12 @@ export function UserTable({ users }: UserTableProps) {
                 setStatusFilter(event.target.value as "active" | "inactive" | "")
               }
             >
-              <option value="">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="inactive">Nonaktif</option>
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
             <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
-              <span className="num">{filteredUsers.length}</span> pengguna
+              <span className="num">{filteredUsers.length}</span> users
             </span>
           </div>
           <div className="overflow-auto">
@@ -307,9 +307,9 @@ export function UserTable({ users }: UserTableProps) {
                       type="button"
                       className="flex h-5 items-center gap-1.5 uppercase tracking-[0.08em] text-primary hover:text-white"
                       onClick={toggleNameSort}
-                      aria-label="Urutkan pengguna berdasarkan nama"
+                      aria-label="Sort users by name"
                     >
-                      Nama
+                      Name
                       {nameSort === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : nameSort === "desc" ? (
@@ -332,7 +332,7 @@ export function UserTable({ users }: UserTableProps) {
                     Status
                   </TableHead>
                   <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground text-primary">
-                    Aksi
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -382,8 +382,8 @@ export function UserTable({ users }: UserTableProps) {
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada pengguna"
-                        description="Tidak ada pengguna yang cocok dengan filter."
+                        title="No users found"
+                        description="No users match the filters."
                       />
                     </TableCell>
                   </TableRow>
@@ -398,10 +398,10 @@ export function UserTable({ users }: UserTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Pengguna"}
+              {"Add User"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat akun pengguna dan tetapkan satu role modul.
+              Create a user account and assign one module role.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -424,10 +424,10 @@ export function UserTable({ users }: UserTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Edit Pengguna"}
+              {"Edit User"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui detail akun dan role yang ditetapkan.
+              Update the account details and assigned role.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -456,8 +456,8 @@ export function UserTable({ users }: UserTableProps) {
               {"Reset Password"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Atur password baru untuk{" "}
-              {resettingUser?.username ?? "pengguna ini"}.
+              Set a new password for{" "}
+              {resettingUser?.username ?? "this user"}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4 p-3.5">
@@ -466,14 +466,14 @@ export function UserTable({ users }: UserTableProps) {
                 htmlFor="new-password"
                 className="text-[10px] font-semibold uppercase tracking-[0.06em]"
               >
-                Password Baru
+                New Password
               </Label>
               <Input
                 id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Minimal 6 karakter"
+                placeholder="At least 6 characters"
                 className="h-11 desktop:h-10 rounded-none border-border bg-card text-sm"
               />
             </div>
@@ -484,13 +484,13 @@ export function UserTable({ users }: UserTableProps) {
                 disabled={isResetting}
                 onClick={closeResetDialog}
               >
-                Batal
+                Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isResetting}
               >
-              {isResetting ? "Menyimpan..." : "Reset Password"}
+              {isResetting ? "Saving..." : "Reset Password"}
               </Button>
             </div>
           </form>
@@ -507,21 +507,20 @@ export function UserTable({ users }: UserTableProps) {
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus pengguna?</AlertDialogTitle>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus {deletingUser?.username ?? "pengguna ini"} dari
-              sistem. Tindakan ini tidak dapat dibatalkan.
+              Delete {deletingUser?.username ?? "this user"} from the system. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

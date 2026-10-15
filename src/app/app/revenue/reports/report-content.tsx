@@ -4,13 +4,13 @@ import { formatDecimalID, formatIDR } from "@/lib/format";
 import type { RevenueReportData } from "@/lib/revenue-reports";
 
 const arrExplanations: Record<Exclude<ArrStatus, "AUTHORITATIVE">, string> = {
-  UNAVAILABLE: "ARR belum tersedia untuk periode sebelum tanggal mulai pencatatan ARR.",
-  NO_RECOGNIZED_NIGHTS: "Belum ada malam kamar berbayar yang diakui untuk menghitung ARR.",
-  INTEGRITY_ERROR: "ARR tidak dapat ditampilkan karena data pencatatan tidak konsisten. Hubungi administrator.",
+  UNAVAILABLE: "ARR is unavailable for periods before ARR recording began.",
+  NO_RECOGNIZED_NIGHTS: "There are no recognised paid room nights to calculate ARR.",
+  INTEGRITY_ERROR: "ARR cannot be displayed because posting data is inconsistent. Contact an administrator.",
 };
 
 export function reportDate(date: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
   }).format(parseISODateOnly(date));
 }
@@ -22,7 +22,7 @@ function ArrValue({ value, status }: { value: number; status: ArrStatus }) {
   if (status === "AUTHORITATIVE") return <span className="whitespace-nowrap">{formatIDR(value)}</span>;
   return (
     <div>
-      <span aria-label="ARR tidak tersedia">—</span>
+      <span aria-label="ARR unavailable">—</span>
       <p className="mt-1 min-w-48 text-xs font-normal leading-relaxed text-slate-600">{arrExplanations[status]}</p>
     </div>
   );
@@ -31,13 +31,13 @@ function ArrValue({ value, status }: { value: number; status: ArrStatus }) {
 export function ReportSummary({ report }: { report: RevenueReportData }) {
   const { summary } = report;
   const metrics = [
-    { label: "Total Pendapatan", value: formatIDR(summary.totalRevenue), hint: "Pendapatan kamar, makanan & minuman, serta lainnya." },
-    { label: "Okupansi", value: percent(summary.occupancyRate), hint: `${formatDecimalID(summary.occupiedRooms)} dari ${formatDecimalID(summary.totalRooms)} malam kamar tersedia.` },
-    { label: "ARR", value: <ArrValue value={summary.arr} status={summary.arrStatus} />, hint: "Rata-rata pendapatan per malam kamar berbayar yang diakui." },
-    { label: "RevPAR", value: formatIDR(summary.revPar), hint: "Pendapatan kamar per malam kamar tersedia." },
+    { label: "Total Revenue", value: formatIDR(summary.totalRevenue), hint: "Room, food & beverage and other revenue." },
+    { label: "Occupancy", value: percent(summary.occupancyRate), hint: `${formatDecimalID(summary.occupiedRooms)} of ${formatDecimalID(summary.totalRooms)} available room nights.` },
+    { label: "ARR", value: <ArrValue value={summary.arr} status={summary.arrStatus} />, hint: "Average revenue per recognised paid room night." },
+    { label: "RevPAR", value: formatIDR(summary.revPar), hint: "Room revenue per available room night." },
   ];
   return (
-    <section aria-label="Ringkasan pendapatan" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Revenue summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => (
         <div key={metric.label} className={`${surface} min-w-0 p-4 md:p-5`}>
           <h2 className="text-sm font-medium text-slate-600">{metric.label}</h2>
@@ -52,16 +52,16 @@ export function ReportSummary({ report }: { report: RevenueReportData }) {
 export function ReportBreakdown({ report }: { report: RevenueReportData }) {
   const { summary, sources } = report;
   const categories = [
-    { label: "Kamar", amount: summary.roomRevenue },
-    { label: "Makanan & Minuman", amount: summary.fbRevenue },
-    { label: "Lainnya", amount: summary.otherRevenue },
+    { label: "Room", amount: summary.roomRevenue },
+    { label: "Food & Beverage", amount: summary.fbRevenue },
+    { label: "Other", amount: summary.otherRevenue },
   ];
 
   return (
     <div className="grid items-start gap-4 xl:grid-cols-3">
       <section aria-labelledby="breakdown-heading" className={`${surface} p-4 md:p-5`}>
-        <h2 id="breakdown-heading" className="text-lg font-semibold">Ringkasan Pendapatan</h2>
-        <p className="mt-1 text-sm text-slate-600">Persentase terhadap total pendapatan periode ini.</p>
+        <h2 id="breakdown-heading" className="text-lg font-semibold">Revenue Summary</h2>
+        <p className="mt-1 text-sm text-slate-600">Percentage of total revenue for this period.</p>
         <dl className="mt-4 divide-y divide-slate-100">
           {categories.map(({ label, amount }) => (
             <div key={label} className="flex flex-wrap items-center justify-between gap-2 py-4">
@@ -76,13 +76,13 @@ export function ReportBreakdown({ report }: { report: RevenueReportData }) {
       </section>
       <section aria-labelledby="sources-heading" className={`${surface} min-w-0 xl:col-span-2`}>
         <div className="p-4 md:p-5">
-          <h2 id="sources-heading" className="text-lg font-semibold">Kontribusi Sumber Pemesanan</h2>
-          <p id="sources-note" className="mt-1 text-sm leading-relaxed text-slate-600">Persentase hanya dihitung dari pendapatan yang terhubung ke reservasi, bukan total pendapatan laporan. Malam kamar mencakup malam gratis; reservasi dibatalkan dan no-show tidak masuk hitungan reservasi maupun malam kamar.</p>
+          <h2 id="sources-heading" className="text-lg font-semibold">Booking Source Contributions</h2>
+          <p id="sources-note" className="mt-1 text-sm leading-relaxed text-slate-600">Percentages are based only on revenue linked to reservations, not total report revenue. Room nights include complimentary nights; cancelled and no-show reservations are excluded from both reservation and room night counts.</p>
         </div>
-        <div role="region" aria-label="Tabel sumber reservasi" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-blue-600">
+        <div role="region" aria-label="Booking source table" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-blue-600">
           <table className="w-full text-sm" aria-describedby="sources-note">
             <thead className="bg-slate-50 text-slate-600">
-              <tr>{["Sumber", "Reservasi", "Malam Kamar", "Pendapatan", "Kontribusi"].map((label, index) => <th key={label} scope="col" className={`whitespace-nowrap px-4 py-3 font-medium ${index === 0 ? "text-left" : "text-right"}`}>{label}</th>)}</tr>
+              <tr>{["Source", "Reservations", "Room Nights", "Revenue", "Contribution"].map((label, index) => <th key={label} scope="col" className={`whitespace-nowrap px-4 py-3 font-medium ${index === 0 ? "text-left" : "text-right"}`}>{label}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {sources.map((source) => (
@@ -94,13 +94,13 @@ export function ReportBreakdown({ report }: { report: RevenueReportData }) {
                   <td className="px-4 py-3 text-right tabular-nums">{percent(source.percentage)}</td>
                 </tr>
               ))}
-              {sources.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-600">Belum ada kontribusi sumber reservasi pada periode ini. Pilih periode lain untuk melihat data.</td></tr>}
+              {sources.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-600">No booking source contributions for this period. Select another period to view data.</td></tr>}
             </tbody>
           </table>
         </div>
         <div className="m-4 rounded-md bg-slate-50 p-4 md:m-5">
-          <div className="flex flex-wrap justify-between gap-2 text-sm font-semibold"><span>Pendapatan Tanpa Atribusi</span><span className="tabular-nums">{formatIDR(report.unattributedRevenue)}</span></div>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">Pesanan makanan & minuman selesai tanpa folio tertaut. Tidak dimasukkan ke sumber Tamu Datang Langsung atau penyebut persentase kontribusi.</p>
+          <div className="flex flex-wrap justify-between gap-2 text-sm font-semibold"><span>Unattributed Revenue</span><span className="tabular-nums">{formatIDR(report.unattributedRevenue)}</span></div>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">Completed food & beverage orders without a linked folio. Excluded from the Walk-in source and the contribution percentage denominator.</p>
         </div>
       </section>
     </div>
@@ -108,14 +108,14 @@ export function ReportBreakdown({ report }: { report: RevenueReportData }) {
 }
 
 export function ReportDaily({ report }: { report: RevenueReportData }) {
-  const columns = ["Tanggal", "Kamar Tersedia", "Kamar Terjual", "Okupansi", "Pendapatan Kamar", "Pendapatan F&B", "Pendapatan Lain", "Total Pendapatan", "ARR", "RevPAR"];
+  const columns = ["Date", "Available Rooms", "Rooms Sold", "Occupancy", "Room Revenue", "F&B Revenue", "Other Revenue", "Total Revenue", "ARR", "RevPAR"];
   return (
     <section aria-labelledby="daily-heading" className={`${surface} min-w-0`}>
       <div className="p-4 md:p-5">
-        <h2 id="daily-heading" className="text-lg font-semibold">Rincian Harian</h2>
-        <p className="mt-1 text-sm text-slate-600">{report.dailyRows.length} hari · {reportDate(report.from)} – {reportDate(report.to)}. Geser tabel untuk melihat seluruh metrik.</p>
+        <h2 id="daily-heading" className="text-lg font-semibold">Daily Breakdown</h2>
+        <p className="mt-1 text-sm text-slate-600">{report.dailyRows.length} days · {reportDate(report.from)} – {reportDate(report.to)}. Scroll the table to view all metrics.</p>
       </div>
-      <div role="region" aria-label="Tabel pendapatan harian" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-blue-600">
+      <div role="region" aria-label="Daily revenue table" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-blue-600">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600"><tr>{columns.map((label, index) => <th key={label} scope="col" className={`whitespace-nowrap px-4 py-3 font-medium ${index === 0 ? "text-left" : "text-right"}`}>{label}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">
@@ -127,7 +127,7 @@ export function ReportDaily({ report }: { report: RevenueReportData }) {
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatIDR(row.revPar)}</td>
               </tr>
             ))}
-            {report.dailyRows.length === 0 && <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-slate-600">Belum ada data harian. Pilih periode lain untuk melihat laporan.</td></tr>}
+            {report.dailyRows.length === 0 && <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-slate-600">No daily data yet. Select another period to view the report.</td></tr>}
           </tbody>
         </table>
       </div>

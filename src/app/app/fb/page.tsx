@@ -34,14 +34,14 @@ function shiftLabel(date: Date) {
   const hour = date.getHours();
 
   if (hour < 14) {
-    return "Shift Pagi";
+    return "Morning Shift";
   }
 
   if (hour < 22) {
-    return "Shift Siang";
+    return "Afternoon Shift";
   }
 
-  return "Shift Malam";
+  return "Night Shift";
 }
 
 function isOrderStatus(value: string | undefined): value is FBOrderStatus {
@@ -61,11 +61,11 @@ export default async function FBLandingPage({
   const tab = firstParam(params.tab);
   const activeTab = tab === "floor" || tab === "orders" ? tab : "dashboard";
   const tabs = (
-    <nav className="flex gap-5 border-b border-gray-200" aria-label="Tampilan F&B">
+    <nav className="flex gap-5 border-b border-gray-200" aria-label="F&B view">
       {[
-        { value: "dashboard", label: "Dasbor F&B" },
-        { value: "floor", label: "Denah Meja" },
-        { value: "orders", label: "Daftar Pesanan" },
+        { value: "dashboard", label: "F&B Dashboard" },
+        { value: "floor", label: "Floor Plan" },
+        { value: "orders", label: "Order List" },
       ].map(({ value, label }) => (
         <Link
           key={value}
@@ -93,11 +93,11 @@ export default async function FBLandingPage({
   const kitchenShortcut = !isReadOnly ? (
     <Link className={buttonVariants({ variant: "outline" })} href="/app/fb/kitchen">
       <ChefHat className="size-4" aria-hidden="true" />
-      Layar Dapur
+      Kitchen Display
       {activeKitchenOrderCount > 0 ? (
         <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-700">
           {activeKitchenOrderCount}
-          <span className="sr-only"> pesanan dapur aktif</span>
+          <span className="sr-only"> active kitchen orders</span>
         </span>
       ) : null}
     </Link>
@@ -195,30 +195,30 @@ export default async function FBLandingPage({
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold leading-tight text-slate-900">
-            Daftar Meja
+            Table List
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {shiftLabel(now)} · <span className="num">{activeGuestCount}</span>{" "}
-            tamu aktif
+            active guests
           </p>
         </div>
         {!isReadOnly ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link className={buttonVariants()} href="/app/fb/pos">
-              Buka POS Restoran
+              Open Restaurant POS
             </Link>
             {kitchenShortcut}
             <Link
               className={buttonVariants({ variant: "outline" })}
               href="/app/fb/orders/new?service=room-service"
             >
-              Pesanan Layanan Kamar Baru
+              New Room Service Order
             </Link>
             <Link
               className={buttonVariants({ variant: "outline" })}
               href="/app/fb/orders/new"
             >
-              Mulai Pesanan Baru
+              Start New Order
             </Link>
           </div>
         ) : null}
@@ -226,24 +226,24 @@ export default async function FBLandingPage({
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label="Aktif"
+          label="Active"
           value={activeTableCount}
-          sub={`${activeTableCount} meja terisi`}
+          sub={`${activeTableCount} occupied tables`}
         />
         <KpiCard
-          label="Tersedia"
+          label="Available"
           value={availableTableCount}
-          sub={`${availableTableCount} meja siap pakai`}
+          sub={`${availableTableCount} tables available`}
         />
         <KpiCard
-          label="Pesanan Berjalan"
+          label="Active Orders"
           value={openOrderCount}
-          sub={`${activeGuestCount} tamu dalam pesanan aktif`}
+          sub={`${activeGuestCount} guests with active orders`}
         />
         <KpiCard
-          label="Pendapatan Hari Ini"
+          label="Today's Revenue"
           value={formatIDR(todayRevenue)}
-          sub="Pesanan selesai hari ini"
+          sub="Orders completed today"
         />
       </div>
 

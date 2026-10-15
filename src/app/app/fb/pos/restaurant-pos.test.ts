@@ -9,7 +9,7 @@ function menuItem(category: string, id = 1, name = "Nasi Goreng"): PosMenuItem {
 function order(id: number, status: PosOrder["status"] = "OPEN"): PosOrder {
   return {
     id, orderNo: `KOT-${id}`, tableId: id, serviceType: "DINE_IN", status,
-    destination: `Meja ${id}`, guestCount: 2, waiterName: "Sari",
+    destination: `Table ${id}`, guestCount: 2, waiterName: "Sari",
     kitchenStartedAt: null, kitchenReadyAt: null, items: [],
     totals: { subtotal: "10000", serviceCharge: "1000", tax: "1100", total: "12100" },
     attachedRoomFolio: null,
@@ -17,13 +17,13 @@ function order(id: number, status: PosOrder["status"] = "OPEN"): PosOrder {
 }
 
 describe("filterMenuItems", () => {
-  it("exports the five stable categories with Indonesian labels", () => {
+  it("exports the five stable categories with English labels", () => {
     expect(POS_CATEGORIES).toEqual([
-      { value: "all", label: "Semua" },
-      { value: "main", label: "Makanan Utama" },
-      { value: "beverage", label: "Minuman" },
-      { value: "snack", label: "Camilan" },
-      { value: "dessert", label: "Hidangan Penutup" },
+      { value: "all", label: "All" },
+      { value: "main", label: "Main Courses" },
+      { value: "beverage", label: "Beverages" },
+      { value: "snack", label: "Snacks" },
+      { value: "dessert", label: "Desserts" },
     ]);
   });
 

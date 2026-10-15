@@ -21,7 +21,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base font-semibold">
-            Menunggu Inspeksi
+            Awaiting Inspection
           </CardTitle>
           <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-semibold">
             {rooms.length}
@@ -31,7 +31,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
       <CardContent className="p-0">
         {rooms.length === 0 ? (
           <p className="px-5 py-4 text-sm text-muted-foreground">
-            Tidak ada kamar menunggu inspeksi.
+            No rooms are awaiting inspection.
           </p>
         ) : (
           <ul className="divide-y divide-border/60">
@@ -57,7 +57,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
                         ) : null}
                         {room.towelChanged ? (
                           <Badge variant="secondary" className="text-xs rounded-full py-0 h-5">
-                            Handuk
+                            Towels
                           </Badge>
                         ) : null}
                       </span>
@@ -72,7 +72,7 @@ export function InspectionInbox({ rooms }: { rooms: InspectionInboxRow[] }) {
                         ) : null}
                       </>
                     ) : (
-                      <span>Petugas tidak diketahui</span>
+                      <span>Unknown attendant</span>
                     )}
                   </div>
                 </Link>

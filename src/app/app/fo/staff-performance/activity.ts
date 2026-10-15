@@ -113,18 +113,18 @@ export function buildMetrics(
 export function actionLabel(action: ActivityAction) {
   switch (action) {
     case ActivityAction.RESERVATION_CREATED:
-      return "Reservasi dibuat";
+      return "Reservation created";
     case ActivityAction.RESERVATION_UPDATED:
-      return "Reservasi diperbarui";
+      return "Reservation updated";
     case ActivityAction.RESERVATION_CANCELLED:
-      return "Reservasi dibatalkan";
+      return "Reservation cancelled";
     case ActivityAction.CHECK_IN_COMPLETED:
-      return "Check-in selesai";
+      return "Check-in completed";
     case ActivityAction.CHECK_OUT_COMPLETED:
-      return "Check-out selesai";
+      return "Check-out completed";
     case ActivityAction.PAYMENT_RECORDED:
-      return "Pembayaran dicatat";
+      return "Payment recorded";
     case ActivityAction.FOLIO_CHARGE_POSTED:
-      return "Charge folio diposting";
+      return "Folio charge posted";
   }
 }

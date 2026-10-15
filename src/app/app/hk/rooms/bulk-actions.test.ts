@@ -45,15 +45,15 @@ describe("bulk HK authorization", () => {
 
   it.each([null, "FO", "FB", "ACC"])("denies %s before database access", async (role) => {
     auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
-    expect(await assignHousekeepingRooms(form())).toEqual({ ok: false, error: "Tidak berwenang" });
-    expect(await unassignHousekeepingRooms(form())).toEqual({ ok: false, error: "Tidak berwenang" });
+    expect(await assignHousekeepingRooms(form())).toEqual({ ok: false, error: "Not authorised" });
+    expect(await unassignHousekeepingRooms(form())).toEqual({ ok: false, error: "Not authorised" });
     expect(transaction).not.toHaveBeenCalled();
   });
 
   it("does not let GM assign inactive or non-HK staff", async () => {
     auth.mockResolvedValue({ user: { id: "7", role: "GM" } });
     tx.user.findFirst.mockResolvedValue(null);
-    expect(await assignHousekeepingRooms(form())).toEqual({ ok: false, error: "Petugas HK tidak ditemukan atau tidak aktif" });
+    expect(await assignHousekeepingRooms(form())).toEqual({ ok: false, error: "Room attendant not found or inactive" });
     expect(tx.housekeepingAssignment.upsert).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });

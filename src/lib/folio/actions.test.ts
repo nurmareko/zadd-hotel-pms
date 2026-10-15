@@ -375,7 +375,7 @@ describe("folio server actions", () => {
       expect(mocks.folioFindUnique).not.toHaveBeenCalled();
     });
 
-    it("returns INVALID_INPUT without leaking Zod English error messages", async () => {
+    it("returns INVALID_INPUT without leaking raw Zod error details", async () => {
       const result = await postCharge(
         createChargeFormData({ quantity: "-1" }),
       );
@@ -386,7 +386,7 @@ describe("folio server actions", () => {
         error: FOLIO_FAILURE_MESSAGES.INVALID_INPUT,
       });
       if (!result.ok) {
-        expect(result.error).not.toMatch(/greater than|expected|number|invalid/i);
+        expect(result.error).not.toMatch(/greater than|expected|number/i);
       }
     });
 

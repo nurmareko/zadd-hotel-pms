@@ -37,7 +37,7 @@ import {
   type CheckoutFailureCode,
 } from "@/lib/check-out/errors";
 
-const GroupBookingIdSchema = z.string().trim().min(1, "Booking grup tidak valid");
+const GroupBookingIdSchema = z.string().trim().min(1, "Invalid group booking");
 
 const GroupDepositSchema = z
   .object({
@@ -63,7 +63,7 @@ function requireTransferReference(
     ctx.addIssue({
       code: "custom",
       path: ["reference"],
-      message: "Referensi wajib diisi untuk pembayaran transfer",
+      message: "A reference is required for bank transfer payments",
     });
   }
 }
@@ -117,13 +117,13 @@ function resultFor(
 }
 
 const SETTLEMENT_STATUS_UNCERTAIN_MESSAGE =
-  "Pembayaran berhasil dicatat, tetapi status pelunasan akhir belum dapat dipastikan. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.";
+  "Payment was recorded, but final settlement could not be confirmed. Reload the page before making another payment or checking out.";
 
 function completedPaymentDetail(label: string, amount: number): GroupActionDetail {
   return {
     label,
     status: "completed",
-    reason: `Pembayaran ${formatIDR(amount)} berhasil dicatat.`,
+    reason: `Payment of ${formatIDR(amount)} recorded successfully.`,
   };
 }
 
@@ -217,7 +217,7 @@ export async function collectGroupDeposits(input: {
   }
 
   if (reservations.length === 0) {
-    return { ok: false, error: "Tidak ada reservasi dalam booking grup ini." };
+    return { ok: false, error: "There are no reservations in this group booking." };
   }
 
   const results: GroupRoomActionResult[] = [];
@@ -230,12 +230,12 @@ export async function collectGroupDeposits(input: {
     if (reservation.status !== ReservationStatus.CONFIRMED) {
       const reason =
         reservation.status === ReservationStatus.CHECKED_IN
-          ? "Sudah check-in."
+          ? "Already checked in."
           : reservation.status === ReservationStatus.CHECKED_OUT
-            ? "Sudah check-out."
+            ? "Already checked out."
             : reservation.status === ReservationStatus.CANCELLED
-              ? "Reservasi dibatalkan."
-              : "Reservasi no-show.";
+              ? "Reservation cancelled."
+              : "Reservation marked as no-show.";
       results.push(resultFor(reservation, "skipped", reason));
       continue;
     }
@@ -244,7 +244,7 @@ export async function collectGroupDeposits(input: {
       reservation.depositStatus === DepositStatus.COLLECTED &&
       reservation.folio?.payments.length
     ) {
-      results.push(resultFor(reservation, "skipped", "Deposit sudah dikumpulkan."));
+      results.push(resultFor(reservation, "skipped", "Deposit already collected."));
       continue;
     }
 
@@ -256,7 +256,7 @@ export async function collectGroupDeposits(input: {
         resultFor(
           reservation,
           "skipped",
-          `Belum waktunya mengumpulkan deposit (arrival ${formatDateID(reservation.arrivalDate)}).`,
+          `It is not yet time to collect the deposit (arrival ${formatDateID(reservation.arrivalDate)}).`,
         ),
       );
       continue;
@@ -288,11 +288,11 @@ export async function collectGroupDeposits(input: {
       !deposit.ok
         ? resultFor(reservation, "failed", deposit.error)
         : deposit.alreadyCollected
-          ? resultFor(reservation, "skipped", "Deposit sudah dikumpulkan.")
+          ? resultFor(reservation, "skipped", "Deposit already collected.")
           : resultFor(
               reservation,
               "completed",
-              `Deposit ${deposit.payment.amount} dicatat pada folio kamar ini.`,
+              `Deposit ${deposit.payment.amount} recorded on this room's folio.`,
             ),
     );
   }
@@ -352,7 +352,7 @@ export async function settleGroupBalances(input: {
   // transaction: each folio's existing action owns its own consistency boundary.
   for (const reservation of reservations) {
     if (!reservation.folio) {
-      results.push(resultFor(reservation, "skipped", "Belum check-in (folio belum dibuat)."));
+      results.push(resultFor(reservation, "skipped", "Not checked in (folio not yet created)."));
       continue;
     }
     const folio = reservation.folio;
@@ -363,15 +363,15 @@ export async function settleGroupBalances(input: {
           reservation,
           "skipped",
           folio.status === FolioStatus.CLOSED
-            ? "Folio sudah tertutup."
-            : "Folio dibatalkan.",
+            ? "Folio is already closed."
+            : "Folio voided.",
         ),
       );
       continue;
     }
 
     if (reservation.status !== ReservationStatus.CHECKED_IN) {
-      results.push(resultFor(reservation, "skipped", "Belum check-in."));
+      results.push(resultFor(reservation, "skipped", "Not checked in."));
       continue;
     }
 
@@ -382,7 +382,7 @@ export async function settleGroupBalances(input: {
     ).balance;
 
     if (Math.round(balance) <= 0) {
-      results.push(resultFor(reservation, "skipped", "Saldo sudah lunas."));
+      results.push(resultFor(reservation, "skipped", "Balance already settled."));
       continue;
     }
 
@@ -412,7 +412,7 @@ export async function settleGroupBalances(input: {
     }
 
     const confirmedPayments = [
-      completedPaymentDetail("Pembayaran awal", balance),
+      completedPaymentDetail("Initial payment", balance),
     ];
 
     // recordFinalPayment can post a stay-charge shortfall before creating its
@@ -472,7 +472,7 @@ export async function settleGroupBalances(input: {
         resultFor(
           reservation,
           "completed",
-          "Saldo folio dilunasi.",
+          "Folio balance settled.",
           undefined,
           confirmedPayments,
         ),
@@ -499,13 +499,13 @@ export async function settleGroupBalances(input: {
           reservation,
           catchUpPayment.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
           catchUpPayment.code === "RESULT_UNKNOWN"
-            ? `Pembayaran awal tercatat. ${catchUpPayment.error}`
-            : `Pembayaran awal tercatat, tetapi saldo belum lunas: ${catchUpPayment.error}`,
+            ? `Initial payment recorded. ${catchUpPayment.error}`
+            : `Initial payment recorded, but the balance remains outstanding: ${catchUpPayment.error}`,
           catchUpPayment.code,
           [
             ...confirmedPayments,
             {
-              label: "Pembayaran tambahan",
+              label: "Additional payment",
               status:
                 catchUpPayment.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",
               reason: catchUpPayment.error,
@@ -517,7 +517,7 @@ export async function settleGroupBalances(input: {
     }
 
     confirmedPayments.push(
-      completedPaymentDetail("Pembayaran tambahan", remainingBalance),
+      completedPaymentDetail("Additional payment", remainingBalance),
     );
 
     let finalFolio;
@@ -566,14 +566,14 @@ export async function settleGroupBalances(input: {
           ? resultFor(
               reservation,
               "completed",
-              "Saldo folio dilunasi.",
+              "Folio balance settled.",
               undefined,
               confirmedPayments,
             )
           : resultFor(
               reservation,
               "failed",
-              `Pembayaran tercatat, tetapi Sisa Tagihan masih ${formatIDR(finalBalance)}. Muat ulang halaman sebelum melakukan pembayaran atau check-out lagi.`,
+              `Payment recorded, but the balance due is still ${formatIDR(finalBalance)}. Reload the page before making another payment or checking out.`,
               undefined,
               confirmedPayments,
             ),
@@ -634,18 +634,18 @@ export async function checkoutEligibleGroupRooms(
     if (reservation.status !== ReservationStatus.CHECKED_IN) {
       const reason =
         reservation.status === ReservationStatus.CHECKED_OUT
-          ? "Sudah check-out."
+          ? "Already checked out."
           : reservation.status === ReservationStatus.CANCELLED
-            ? "Reservasi dibatalkan."
+            ? "Reservation cancelled."
             : reservation.status === ReservationStatus.NO_SHOW
-              ? "Reservasi no-show."
-              : "Belum check-in.";
+              ? "Reservation marked as no-show."
+              : "Not checked in.";
       results.push(resultFor(reservation, "skipped", reason));
       continue;
     }
 
     if (!reservation.folio) {
-      results.push(resultFor(reservation, "skipped", "Folio belum dibuat."));
+      results.push(resultFor(reservation, "skipped", "Folio not yet created."));
       continue;
     }
     const folio = reservation.folio;
@@ -656,8 +656,8 @@ export async function checkoutEligibleGroupRooms(
           reservation,
           "skipped",
           folio.status === FolioStatus.CLOSED
-            ? "Folio sudah tertutup."
-            : "Folio dibatalkan.",
+            ? "Folio is already closed."
+            : "Folio voided.",
         ),
       );
       continue;
@@ -671,7 +671,7 @@ export async function checkoutEligibleGroupRooms(
 
     if (Math.round(balance) > 0) {
       results.push(
-        resultFor(reservation, "skipped", "Belum lunas (settle dulu)."),
+        resultFor(reservation, "skipped", "Outstanding balance (settle first)."),
       );
       continue;
     }
@@ -681,7 +681,7 @@ export async function checkoutEligibleGroupRooms(
         resultFor(
           reservation,
           "skipped",
-          `Belum waktunya check-out (departure ${formatDateID(reservation.departureDate)}).`,
+          `It is not yet time to check out (departure ${formatDateID(reservation.departureDate)}).`,
         ),
       );
       continue;
@@ -700,7 +700,7 @@ export async function checkoutEligibleGroupRooms(
 
     results.push(
       checkout.ok
-        ? resultFor(reservation, "completed", "Check-out selesai.")
+        ? resultFor(reservation, "completed", "Check-out completed.")
         : resultFor(
             reservation,
             checkout.code === "RESULT_UNKNOWN" ? "uncertain" : "failed",

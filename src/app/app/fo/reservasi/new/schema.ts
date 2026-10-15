@@ -13,7 +13,7 @@ function toUtcDateOnly(value: string) {
 
 const DateInputSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal wajib diisi")
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required")
   .transform((value, context) => {
     const date = toUtcDateOnly(value);
 
@@ -23,7 +23,7 @@ const DateInputSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "Tanggal tidak valid",
+        message: "Invalid date",
       });
 
       return z.NEVER;
@@ -35,7 +35,7 @@ const DateInputSchema = z
 const OptionalTextSchema = z
   .string()
   .trim()
-  .max(500, "Maksimal 500 karakter")
+  .max(500, "Maximum 500 characters")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -43,13 +43,13 @@ const OptionalTextSchema = z
 const OptionalAddressSchema = z
   .string()
   .trim()
-  .max(500, "Alamat maksimal 500 karakter")
+  .max(500, "Address must not exceed 500 characters")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
 
 const RequiredGuestIdTypeSchema = z.nativeEnum(GuestIdType, {
-  error: "Jenis identitas wajib dipilih",
+  error: "ID type is required",
 });
 
 const OptionalGuestIdTypeSchema = z
@@ -60,7 +60,7 @@ const OptionalGuestIdTypeSchema = z
 const OptionalShortTextSchema = z
   .string()
   .trim()
-  .max(100, "Maksimal 100 karakter")
+  .max(100, "Maximum 100 characters")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -68,8 +68,8 @@ const OptionalShortTextSchema = z
 const OptionalEmailSchema = z
   .string()
   .trim()
-  .email("Format email tidak valid")
-  .max(100, "Email maksimal 100 karakter")
+  .email("Email format is invalid")
+  .max(100, "Email must not exceed 100 characters")
   .or(z.literal(""))
   .optional()
   .transform((value) => (value ? value : null));
@@ -80,9 +80,9 @@ const OptionalRoomIdSchema = z.preprocess(
       ? null
       : value,
   z.coerce
-    .number("Kamar tidak valid")
-    .int("Kamar tidak valid")
-    .positive("Kamar tidak valid")
+    .number("Invalid room")
+    .int("Invalid room")
+    .positive("Invalid room")
     .nullable(),
 );
 
@@ -92,7 +92,7 @@ export type ReservationRoomTypeCapacity = {
 };
 
 export function reservationCapacityError(totalGuests: number, capacity: number) {
-  return `Jumlah tamu (${totalGuests}) melebihi kapasitas tipe kamar (${capacity})`;
+  return `Guest count (${totalGuests}) exceeds the room type capacity (${capacity})`;
 }
 
 const CreateReservationObjectSchema = z.object({
@@ -100,14 +100,14 @@ const CreateReservationObjectSchema = z.object({
     fullName: z
       .string()
       .trim()
-      .min(1, "Nama tamu wajib diisi")
-      .max(100, "Nama tamu maksimal 100 karakter"),
+      .min(1, "Guest name is required")
+      .max(100, "Guest name must not exceed 100 characters"),
     idType: RequiredGuestIdTypeSchema,
     idNumber: OptionalShortTextSchema,
     phone: z
       .string()
       .trim()
-      .max(20, "Nomor telepon maksimal 20 karakter")
+      .max(20, "Phone number must not exceed 20 characters")
       .or(z.literal(""))
       .optional()
       .transform((value) => (value ? value : null)),
@@ -116,25 +116,25 @@ const CreateReservationObjectSchema = z.object({
     nationality: z
       .string()
       .trim()
-      .max(50, "Kewarganegaraan maksimal 50 karakter")
+      .max(50, "Nationality must not exceed 50 characters")
       .or(z.literal(""))
       .optional()
       .transform((value) => (value ? value : null)),
     roomTypeId: z.coerce
-      .number("Tipe kamar wajib dipilih")
-      .int("Tipe kamar wajib dipilih")
-      .positive("Tipe kamar wajib dipilih"),
+      .number("Room type is required")
+      .int("Room type is required")
+      .positive("Room type is required"),
     roomId: OptionalRoomIdSchema,
     arrivalDate: DateInputSchema,
     departureDate: DateInputSchema,
     adults: z.coerce
-      .number("Jumlah dewasa wajib diisi")
-      .int("Jumlah dewasa harus berupa bilangan bulat")
-      .min(1, "Minimal 1 dewasa"),
+      .number("Adult count is required")
+      .int("Adult count must be a whole number")
+      .min(1, "Minimum 1 adult"),
     children: z.coerce
-      .number("Jumlah anak wajib diisi")
-      .int("Jumlah anak harus berupa bilangan bulat")
-      .min(0, "Jumlah anak tidak boleh negatif"),
+      .number("Child count is required")
+      .int("Child count must be a whole number")
+      .min(0, "Child count cannot be negative"),
     reservationType: z.nativeEnum(ReservationType),
     arrangementType: z.nativeEnum(ArrangementType),
     notes: OptionalTextSchema,
@@ -149,7 +149,7 @@ const EditReservationObjectSchema = CreateReservationObjectSchema.extend({
 const BaseEditReservationSchema = EditReservationObjectSchema.refine(
   (value) => value.departureDate > value.arrivalDate,
   {
-    message: "Keberangkatan harus setelah kedatangan",
+    message: "Departure must be after arrival",
     path: ["departureDate"],
   },
 );
@@ -158,45 +158,45 @@ export const OptionalCustomRateSchema = z.preprocess(
   (value) => typeof value === "string"
     ? (value.trim() === "" ? undefined : Number(value))
     : value,
-  z.number("Tarif khusus harus berupa angka")
-    .int("Tarif khusus harus berupa bilangan bulat")
-    .min(0, "Tarif khusus tidak boleh negatif")
-    .max(100_000_000, "Tarif khusus maksimal 100.000.000")
+  z.number("Custom rate must be a number")
+    .int("Custom rate must be a whole number")
+    .min(0, "Custom rate cannot be negative")
+    .max(100_000_000, "Custom rate must not exceed 100,000,000")
     .optional(),
 );
 
 const ReservationRoomRowSchema = z.object({
   customRate: OptionalCustomRateSchema,
-  customRateReason: z.string("Alasan tarif khusus tidak valid").trim()
-    .max(255, "Alasan tarif khusus maksimal 255 karakter")
+  customRateReason: z.string("Custom rate reason is invalid").trim()
+    .max(255, "Custom rate reason must not exceed 255 characters")
     .optional()
     .transform((value) => value || undefined),
-  occupantName: z.string().trim().max(100, "Nama tamu maksimal 100 karakter").optional(),
+  occupantName: z.string().trim().max(100, "Guest name must not exceed 100 characters").optional(),
   roomTypeId: z.coerce
-    .number("Tipe kamar wajib dipilih")
-    .int("Tipe kamar wajib dipilih")
-    .positive("Tipe kamar wajib dipilih"),
+    .number("Room type is required")
+    .int("Room type is required")
+    .positive("Room type is required"),
   roomId: OptionalRoomIdSchema,
   adults: z.coerce
-    .number("Jumlah dewasa wajib diisi")
-    .int("Jumlah dewasa harus berupa bilangan bulat")
-    .min(1, "Minimal 1 dewasa"),
+    .number("Adult count is required")
+    .int("Adult count must be a whole number")
+    .min(1, "Minimum 1 adult"),
   children: z.coerce
-    .number("Jumlah anak wajib diisi")
-    .int("Jumlah anak harus berupa bilangan bulat")
-    .min(0, "Jumlah anak tidak boleh negatif"),
+    .number("Child count is required")
+    .int("Child count must be a whole number")
+    .min(0, "Child count cannot be negative"),
 });
 
 const UnifiedRoomFields = {
   rooms: z
     .array(ReservationRoomRowSchema)
-    .min(1, "Tambahkan minimal 1 kamar")
-    .max(20, "Maksimal 20 kamar per reservasi"),
+    .min(1, "Add at least 1 room")
+    .max(20, "Maximum 20 rooms per reservation"),
   stayFeeKinds: z
     .array(z.nativeEnum(ReservationStayFeeKind))
-    .max(2, "Maksimal dua biaya fleksibilitas")
+    .max(2, "Maximum two stay flexibility fees")
     .refine((kinds) => new Set(kinds).size === kinds.length, {
-      message: "Jenis biaya fleksibilitas tidak boleh duplikat",
+      message: "Stay flexibility fee types must not be duplicated",
     })
     .optional()
     .default([]),
@@ -210,7 +210,7 @@ const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
 })
   .extend(UnifiedRoomFields)
   .refine((value) => value.departureDate > value.arrivalDate, {
-    message: "Keberangkatan harus setelah kedatangan",
+    message: "Departure must be after arrival",
     path: ["departureDate"],
   });
 
@@ -222,7 +222,7 @@ const BaseUnifiedEditReservationSchema = EditReservationObjectSchema.omit({
 })
   .extend(UnifiedRoomFields)
   .refine((value) => value.departureDate > value.arrivalDate, {
-    message: "Keberangkatan harus setelah kedatangan",
+    message: "Departure must be after arrival",
     path: ["departureDate"],
   });
 
@@ -243,7 +243,7 @@ export function createEditReservationSchema(
       context.addIssue({
         code: "custom",
         path: ["adults"],
-        message: "Jumlah tamu minimal 1",
+        message: "Guest count must be at least 1",
       });
     }
 
@@ -252,7 +252,7 @@ export function createEditReservationSchema(
         context.addIssue({
           code: "custom",
           path: ["roomTypeId"],
-          message: "Tipe kamar tidak valid",
+          message: "Room type is invalid",
         });
       }
 
@@ -286,7 +286,7 @@ export function createUnifiedReservationSchema(
         context.addIssue({
           code: "custom",
           path: ["rooms", index, "adults"],
-          message: "Jumlah tamu minimal 1",
+          message: "Guest count must be at least 1",
         });
       }
 
@@ -297,7 +297,7 @@ export function createUnifiedReservationSchema(
           context.addIssue({
             code: "custom",
             path: ["rooms", index, "roomTypeId"],
-            message: "Tipe kamar tidak valid",
+            message: "Room type is invalid",
           });
         }
 
@@ -320,7 +320,7 @@ export function createUnifiedReservationSchema(
         context.addIssue({
           code: "custom",
           path: ["rooms", index, "roomId"],
-          message: "Kamar fisik yang sama tidak boleh dipilih dua kali",
+          message: "The same physical room cannot be selected twice",
         });
       }
 
@@ -348,7 +348,7 @@ export function createUnifiedEditReservationSchema(
         context.addIssue({
           code: "custom",
           path: ["rooms", index, "adults"],
-          message: "Jumlah tamu minimal 1",
+          message: "Guest count must be at least 1",
         });
       }
 
@@ -359,7 +359,7 @@ export function createUnifiedEditReservationSchema(
           context.addIssue({
             code: "custom",
             path: ["rooms", index, "roomTypeId"],
-            message: "Tipe kamar tidak valid",
+            message: "Room type is invalid",
           });
         }
 
@@ -382,7 +382,7 @@ export function createUnifiedEditReservationSchema(
         context.addIssue({
           code: "custom",
           path: ["rooms", index, "roomId"],
-          message: "Kamar fisik yang sama tidak boleh dipilih dua kali",
+          message: "The same physical room cannot be selected twice",
         });
       }
 

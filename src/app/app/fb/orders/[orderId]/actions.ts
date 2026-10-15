@@ -71,7 +71,7 @@ type PaymentSelectionItem = {
 class PaymentActionError extends Error { }
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Data pesanan tidak valid.";
+  return error.issues[0]?.message ?? "Invalid order details.";
 }
 
 async function canManageFbOrders(capability: "orders:write" | "orders:bill" | "pos:settle" = "orders:write") {
@@ -112,7 +112,7 @@ async function recalculateOrderTotals(
   ]);
 
   if (!settings) {
-    return { ok: false, error: "Pengaturan hotel tidak ditemukan." };
+    return { ok: false, error: "Hotel settings not found." };
   }
 
   const totals = computeFBOrderTotals(items, settings);
@@ -154,7 +154,7 @@ async function computeOrderTotalForPayment(db: OrderTotalDb, orderId: number) {
   ]);
 
   if (!settings) {
-    return { ok: false as const, error: "Pengaturan hotel tidak ditemukan." };
+    return { ok: false as const, error: "Hotel settings not found." };
   }
 
   const totals = computeFBOrderTotals(items, settings);
@@ -206,7 +206,7 @@ async function applyPaymentSelection(
   const settings = await tx.hotelSettings.findUnique({ where: { id: 1 } });
 
   if (!settings) {
-    throw new PaymentActionError("Pengaturan hotel tidak ditemukan.");
+    throw new PaymentActionError("Hotel settings not found.");
   }
 
   const selectedQuantities = aggregatePaymentSelection(selectedItems);
@@ -216,7 +216,7 @@ async function applyPaymentSelection(
   });
 
   if (currentItems.length === 0) {
-    throw new PaymentActionError("Pesanan kosong, tidak bisa dibayar.");
+    throw new PaymentActionError("An empty order cannot be paid.");
   }
 
   const selectedLines = currentItems.flatMap((item) => {
@@ -228,7 +228,7 @@ async function applyPaymentSelection(
 
     if (selectedQuantity > item.quantity) {
       throw new PaymentActionError(
-        "Jumlah item yang dibayar melebihi jumlah item pesanan.",
+        "The quantity to pay exceeds the quantity ordered.",
       );
     }
 
@@ -242,14 +242,14 @@ async function applyPaymentSelection(
   });
 
   if (selectedLines.length === 0) {
-    throw new PaymentActionError("Pilih minimal satu item untuk dibayar");
+    throw new PaymentActionError("Select at least one item to pay");
   }
 
   const selectedIds = new Set(selectedLines.map((line) => line.source.id));
 
   for (const orderItemId of selectedQuantities.keys()) {
     if (!selectedIds.has(orderItemId)) {
-      throw new PaymentActionError("Item pembayaran tidak ditemukan");
+      throw new PaymentActionError("Payment item not found");
     }
   }
 
@@ -389,7 +389,7 @@ async function resolveRoomForCharge(
   if (!room) {
     return {
       ok: false,
-      error: `Kamar ${normalizedRoomNumber} tidak ditemukan`,
+      error: `Room ${normalizedRoomNumber} not found`,
     };
   }
 
@@ -408,12 +408,12 @@ async function resolveRoomForCharge(
   if (!reservation) {
     return {
       ok: false,
-      error: `Kamar ${room.number} tidak memiliki tamu yang sedang menginap`,
+      error: `Room ${room.number} has no in-house guest`,
     };
   }
 
   if (!reservation.folio) {
-    return { ok: false, error: "Folio tidak terbuka" };
+    return { ok: false, error: "The folio is not open" };
   }
 
   if (options.lockRows && db.$queryRaw) {
@@ -428,7 +428,7 @@ async function resolveRoomForCharge(
   });
 
   if (!folio || folio.status !== FolioStatus.OPEN) {
-    return { ok: false, error: "Folio tidak terbuka" };
+    return { ok: false, error: "The folio is not open" };
   }
 
   return {
@@ -470,20 +470,20 @@ async function resolveAttachedFolioForCharge(
   });
 
   if (!folio || folio.status !== FolioStatus.OPEN) {
-    return { ok: false, error: "Folio tidak terbuka" };
+    return { ok: false, error: "The folio is not open" };
   }
 
   if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
     return {
       ok: false,
-      error: "Folio tidak terhubung ke tamu yang sedang menginap",
+      error: "The folio is not linked to an in-house guest",
     };
   }
 
   if (!folio.reservation.room) {
     return {
       ok: false,
-      error: "Reservasi tidak memiliki kamar aktif",
+      error: "The reservation has no active room",
     };
   }
 
@@ -521,7 +521,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = AddItemToOrderSchema.safeParse(input);
@@ -534,17 +534,17 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
     const order = await ensureOpenOrderLocked(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
+      return { ok: false as const, error: "Only open orders can be changed." };
     }
 
     if (parsed.data.guestNumber > order.guestCount) {
       return {
         ok: false as const,
-        error: "Nomor tamu melebihi jumlah tamu dalam pesanan ini.",
+        error: "The guest number exceeds the number of guests on this order.",
       };
     }
 
@@ -554,7 +554,7 @@ export async function addItemToOrder(input: unknown): Promise<ActionResult> {
     });
 
     if (!menuItem || !menuItem.isActive) {
-      return { ok: false as const, error: "Item menu tidak tersedia." };
+      return { ok: false as const, error: "Menu item unavailable." };
     }
 
     const notes = formatFBOrderItemNotes(
@@ -613,7 +613,7 @@ export async function removeItemFromOrder(input: unknown): Promise<ActionResult>
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = OrderItemIdSchema.safeParse(input);
@@ -629,17 +629,17 @@ export async function removeItemFromOrder(input: unknown): Promise<ActionResult>
     });
 
     if (!item) {
-      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order item not found." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
+      return { ok: false as const, error: "Only open orders can be changed." };
     }
 
     await tx.fBOrderItem.delete({ where: { id: item.id } });
@@ -660,7 +660,7 @@ export async function updateItemQuantity(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UpdateItemQuantitySchema.safeParse(input);
@@ -676,17 +676,17 @@ export async function updateItemQuantity(
     });
 
     if (!item) {
-      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order item not found." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
+      return { ok: false as const, error: "Only open orders can be changed." };
     }
 
     // The item may have changed while waiting for the order lock.
@@ -696,7 +696,7 @@ export async function updateItemQuantity(
     });
 
     if (!currentItem || currentItem.fbOrderId !== order.id) {
-      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order item not found." };
     }
 
     if (parsed.data.quantity === 0) {
@@ -732,7 +732,7 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = UpdateItemNotesSchema.safeParse(input);
@@ -748,17 +748,17 @@ export async function updateItemNotes(input: unknown): Promise<ActionResult> {
     });
 
     if (!item) {
-      return { ok: false as const, error: "Item pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order item not found." };
     }
 
     const order = await ensureOpenOrderLocked(tx, item.fbOrderId);
 
     if (!order) {
-      return { ok: false as const, error: "Pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat diubah." };
+      return { ok: false as const, error: "Only open orders can be changed." };
     }
 
     const parsedNotes = parseFBOrderItemNotes(item.notes);
@@ -787,7 +787,7 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = VoidOrderSchema.safeParse(input);
@@ -800,11 +800,11 @@ export async function voidOrder(input: unknown): Promise<ActionResult> {
     const order = await ensureOpenOrderLocked(tx, parsed.data.orderId);
 
     if (!order) {
-      return { ok: false as const, error: "Pesanan tidak ditemukan." };
+      return { ok: false as const, error: "Order not found." };
     }
 
     if (order.status !== FBOrderStatus.OPEN) {
-      return { ok: false as const, error: "Hanya pesanan yang masih terbuka yang dapat dibatalkan." };
+      return { ok: false as const, error: "Only open orders can be voided." };
     }
 
     await tx.fBOrder.update({
@@ -849,7 +849,7 @@ export async function payOrderDirect(
   const userId = await canManageFbOrders("pos:settle");
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = PayOrderDirectSchema.safeParse(input);
@@ -871,7 +871,7 @@ export async function payOrderDirect(
   });
 
   if (!order) {
-    return { ok: false, error: "Pesanan tidak ditemukan." };
+    return { ok: false, error: "Order not found." };
   }
 
   if (order.status === FBOrderStatus.CLOSED) {
@@ -890,8 +890,8 @@ export async function payOrderDirect(
       ok: false,
       error:
         order.status === FBOrderStatus.OPEN
-          ? "Tagihan pesanan harus dibuat terlebih dahulu sebelum pembayaran."
-          : "Pesanan yang dibatalkan tidak dapat dibayar.",
+          ? "Create the order bill before taking payment."
+          : "Voided orders cannot be paid.",
     };
   }
 
@@ -904,7 +904,7 @@ export async function payOrderDirect(
     if (amountTendered.lte(0)) {
       return {
         ok: false,
-        error: "Uang diterima kurang dari total tagihan",
+        error: "The amount received is less than the bill total",
       };
     }
   }
@@ -936,7 +936,7 @@ export async function payOrderDirect(
 
         if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
-            "Status pesanan berubah. Muat ulang halaman.",
+            "The order status has changed. Refresh the page.",
           );
         }
 
@@ -945,7 +945,7 @@ export async function payOrderDirect(
         } catch (error) {
           if (error instanceof NightAuditClosedError) {
             throw new PaymentActionError(
-              "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pembayaran pesanan tidak dapat diproses.",
+              "Night Audit for today's business date is complete. Order payments cannot be processed.",
             );
           }
           throw error;
@@ -967,7 +967,7 @@ export async function payOrderDirect(
 
         if (parsed.data.method === PaymentMethod.CASH && amountTendered) {
           if (amountTendered.lt(paidSelection.totals.total)) {
-            throw new PaymentActionError("Uang diterima kurang dari total tagihan");
+            throw new PaymentActionError("The amount received is less than the bill total");
           }
 
           change = amountTendered.minus(paidSelection.totals.total);
@@ -1031,7 +1031,7 @@ export async function chargeOrderToRoom(
   const userId = await canManageFbOrders("orders:bill");
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = ChargeOrderToRoomSchema.safeParse(input);
@@ -1052,7 +1052,7 @@ export async function chargeOrderToRoom(
   });
 
   if (!order) {
-    return { ok: false, error: "Pesanan tidak ditemukan." };
+    return { ok: false, error: "Order not found." };
   }
 
   if (order.status === FBOrderStatus.CLOSED) {
@@ -1072,8 +1072,8 @@ export async function chargeOrderToRoom(
       ok: false,
       error:
         order.status === FBOrderStatus.OPEN
-          ? "Tagihan pesanan harus dibuat terlebih dahulu sebelum dibebankan ke kamar."
-          : "Pesanan yang dibatalkan tidak dapat dibebankan ke kamar.",
+          ? "Create the order bill before charging it to a room."
+          : "Voided orders cannot be charged to a room.",
     };
   }
 
@@ -1083,7 +1083,7 @@ export async function chargeOrderToRoom(
     if (!order.chargedFolioId) {
       return {
         ok: false,
-        error: "Pesanan layanan kamar belum terhubung ke folio kamar.",
+        error: "The room service order is not linked to a room folio.",
       };
     }
 
@@ -1093,7 +1093,7 @@ export async function chargeOrderToRoom(
     );
   } else {
     if (!parsed.data.roomNumber) {
-      return { ok: false, error: "Nomor kamar harus diisi" };
+      return { ok: false, error: "A room number is required" };
     }
 
     roomLookup = await resolveRoomForCharge(prisma, parsed.data.roomNumber);
@@ -1117,7 +1117,7 @@ export async function chargeOrderToRoom(
   if (!article) {
     return {
       ok: false,
-      error: "Artikel F&B belum tersedia untuk pencatatan ke folio.",
+      error: "The F&B article is not available for posting to the folio.",
     };
   }
 
@@ -1131,7 +1131,7 @@ export async function chargeOrderToRoom(
         } catch (error) {
           if (error instanceof NightAuditClosedError) {
             throw new PaymentActionError(
-              "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pesanan tidak dapat ditagihkan ke kamar.",
+              "Night Audit for today's business date is complete. Orders cannot be charged to rooms.",
             );
           }
           throw error;
@@ -1145,7 +1145,7 @@ export async function chargeOrderToRoom(
         `;
 
         if (openFolio.length === 0) {
-          throw new PaymentActionError("Folio tidak terbuka");
+          throw new PaymentActionError("The folio is not open");
         }
 
         await tx.$queryRaw<Array<{ id: number }>>`
@@ -1169,7 +1169,7 @@ export async function chargeOrderToRoom(
 
         if (!lockedOrder || lockedOrder.status !== FBOrderStatus.BILLED) {
           throw new PaymentActionError(
-            "Status pesanan berubah. Muat ulang halaman.",
+            "The order status has changed. Refresh the page.",
           );
         }
 

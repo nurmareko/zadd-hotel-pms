@@ -12,9 +12,9 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="id">
+    <html lang="en">
       <head>
-        <title>Gangguan Sistem | ZADD Hotel Management</title>
+        <title>System Error | ZADD Hotel Management</title>
       </head>
       <body
         style={{
@@ -82,7 +82,7 @@ export default function GlobalError({
                 lineHeight: 1.2,
               }}
             >
-              Sistem tidak dapat dimuat
+              The system could not be loaded
             </h1>
             <p
               style={{
@@ -93,8 +93,8 @@ export default function GlobalError({
                 lineHeight: "24px",
               }}
             >
-              Terjadi gangguan pada tampilan utama. Muat ulang halaman untuk
-              mencoba kembali.
+              An error occurred in the main interface. Reload the page to
+              try again.
             </p>
             <button
               type="button"
@@ -115,7 +115,7 @@ export default function GlobalError({
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
               }}
             >
-              Muat ulang
+              Reload
             </button>
           </section>
         </main>

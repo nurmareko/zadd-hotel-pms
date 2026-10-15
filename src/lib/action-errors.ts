@@ -35,8 +35,8 @@ export const UNIVERSAL_ACTION_MESSAGES: Record<
   "SESSION_EXPIRED" | "FORBIDDEN",
   string
 > = {
-  SESSION_EXPIRED: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-  FORBIDDEN: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  FORBIDDEN: "You do not have permission to perform this action.",
 };
 
 export function checkActionAuthorization(

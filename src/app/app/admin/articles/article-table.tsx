@@ -85,7 +85,7 @@ function AddArticleButton({ onClick }: { onClick: () => void }) {
   return (
     <Button type="button" onClick={onClick}>
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-      Tambah Artikel
+      Add Article
     </Button>
   );
 }
@@ -172,7 +172,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       const result = await deleteArticle(deletingArticle.id);
 
       if (result.ok) {
-        toast.success("Artikel dihapus");
+        toast.success("Article deleted");
         setDeletingArticle(null);
         return;
       }
@@ -191,17 +191,17 @@ export function ArticleTable({ articles }: ArticleTableProps) {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Artikel</BreadcrumbPage>
+              <BreadcrumbPage>Article</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Artikel (Kode Tagihan)
+              Articles (Charge Codes)
             </h1>
             <p className="mt-1 text-sm leading-5 text-slate-500">
-              Daftar kode tagihan yang digunakan untuk mencatat rincian tagihan folio.
+              Charge codes used to record folio charge lines.
             </p>
           </div>
           <AddArticleButton onClick={() => setCreateOpen(true)} />
@@ -211,8 +211,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       {articles.length === 0 ? (
         <EmptyState
           icon={Newspaper}
-          title="Belum ada artikel"
-          description="Tambahkan kode tagihan untuk pencatatan tagihan folio."
+          title="No articles yet"
+          description="Add charge codes to record folio charges."
           action={<AddArticleButton onClick={() => setCreateOpen(true)} />}
           className="mt-8 min-h-56 bg-card"
         />
@@ -223,20 +223,20 @@ export function ArticleTable({ articles }: ArticleTableProps) {
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-slate-400"
-                placeholder="Cari kode atau nama..."
+                placeholder="Search by code or name..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
             <select
               className="h-11 desktop:h-10 border border-border bg-white px-2 text-sm text-foreground outline-none focus:border-primary"
-              aria-label="Filter departemen / kategori"
+              aria-label="Filter department / category"
                             value={typeFilter}
               onChange={(event) =>
                 setTypeFilter(event.target.value as ArticleType | "")
               }
             >
-              <option value="">Semua Departemen / Kategori</option>
+              <option value="">All Departments / Categories</option>
               {articleTypes.map((type) => (
                 <option key={type} value={type}>
                   {ARTICLE_DEPARTMENT_LABELS[type]}
@@ -244,7 +244,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
               ))}
             </select>
             <span className="text-sm font-semibold uppercase tracking-[0.06em] text-slate-500 lg:ml-auto">
-              <span className="num">{filteredArticles.length}</span> artikel
+              <span className="num">{filteredArticles.length}</span> articles
             </span>
           </div>
           <div className="overflow-auto">
@@ -256,9 +256,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                       type="button"
                       onClick={() => toggleSort("code")}
                       className="inline-flex items-center gap-1 hover:text-foreground"
-                      aria-label="Urutkan berdasarkan kode"
+                      aria-label="Sort by code"
                     >
-                      Kode
+                      Code
                       {sortField === "code" && sortDirection === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : sortField === "code" && sortDirection === "desc" ? (
@@ -273,9 +273,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                       type="button"
                       onClick={() => toggleSort("name")}
                       className="inline-flex items-center gap-1 hover:text-foreground"
-                      aria-label="Urutkan berdasarkan nama"
+                      aria-label="Sort by name"
                     >
-                      Nama
+                      Name
                       {sortField === "name" && sortDirection === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : sortField === "name" && sortDirection === "desc" ? (
@@ -290,9 +290,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                       type="button"
                       onClick={() => toggleSort("type")}
                       className="inline-flex items-center gap-1 hover:text-foreground"
-                      aria-label="Urutkan berdasarkan departemen / kategori"
+                      aria-label="Sort by department / category"
                     >
-                      Departemen / Kategori
+                      Department / Category
                       {sortField === "type" && sortDirection === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : sortField === "type" && sortDirection === "desc" ? (
@@ -307,9 +307,9 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                       type="button"
                       onClick={() => toggleSort("defaultPrice")}
                       className="ml-auto inline-flex items-center gap-1 hover:text-foreground"
-                      aria-label="Urutkan berdasarkan harga"
+                      aria-label="Sort by price"
                     >
-                      Harga Standar
+                      Default Price
                       {sortField === "defaultPrice" && sortDirection === "asc" ? (
                         <ArrowUp className="h-3 w-3" aria-hidden="true" />
                       ) : sortField === "defaultPrice" && sortDirection === "desc" ? (
@@ -320,7 +320,7 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                     </button>
                   </TableHead>
                   <TableHead className="w-16 bg-card px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-primary">
-                    Aksi
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -361,8 +361,8 @@ export function ArticleTable({ articles }: ArticleTableProps) {
                     >
                       <EmptyState
                         icon={SearchX}
-                        title="Tidak ada artikel"
-                        description="Tidak ada artikel yang cocok dengan filter pencarian."
+                        title="No articles found"
+                        description="No articles match the search filters."
                       />
                     </TableCell>
                   </TableRow>
@@ -377,10 +377,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Tambah Artikel"}
+              {"Add Article"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Buat kode tagihan untuk pencatatan tagihan folio.
+              Create a charge code for recording folio charges.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -403,10 +403,10 @@ export function ArticleTable({ articles }: ArticleTableProps) {
         <DialogContent className="rounded-xl border border-border bg-card p-0 text-foreground sm:max-w-lg">
           <DialogHeader className="bg-slate-50 border-b border-border px-3.5 py-3 rounded-t-xl">
             <DialogTitle className="text-sm font-bold uppercase tracking-[0.08em] text-primary">
-              {"Ubah Artikel"}
+              {"Edit Article"}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-400">
-              Perbarui kode tagihan yang digunakan dalam pencatatan tagihan folio.
+              Update the charge code used to record folio charges.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3.5">
@@ -436,21 +436,20 @@ export function ArticleTable({ articles }: ArticleTableProps) {
       >
         <AlertDialogContent className="rounded-xl border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus artikel?</AlertDialogTitle>
+            <AlertDialogTitle>Delete article?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus {deletingArticle?.name ?? "artikel ini"} dari master
-              data kode biaya. Tindakan ini tidak dapat dibatalkan.
+              Delete {deletingArticle?.name ?? "this article"} from the charge code catalogue. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               type="button"
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Menghapus..." : "Hapus"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

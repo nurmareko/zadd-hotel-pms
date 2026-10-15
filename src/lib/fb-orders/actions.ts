@@ -40,7 +40,7 @@ type RoomChargeDb = Pick<typeof prisma, "room" | "reservation" | "folio"> & {
 };
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Data pesanan tidak valid.";
+  return error.issues[0]?.message ?? "Invalid order data.";
 }
 
 function isRetryableOrderNoError(error: unknown) {
@@ -102,7 +102,7 @@ async function resolveRoomForCharge(
   if (!room) {
     return {
       ok: false,
-      error: `Kamar ${normalizedRoomNumber} tidak ditemukan`,
+      error: `Room ${normalizedRoomNumber} not found`,
     };
   }
 
@@ -121,12 +121,12 @@ async function resolveRoomForCharge(
   if (!reservation) {
     return {
       ok: false,
-      error: `Kamar ${room.number} tidak memiliki tamu yang sedang menginap`,
+      error: `Room ${room.number} has no in-house guest`,
     };
   }
 
   if (!reservation.folio) {
-    return { ok: false, error: "Folio tidak terbuka" };
+    return { ok: false, error: "The folio is not open" };
   }
 
   if (options.lockRows && db.$queryRaw) {
@@ -141,7 +141,7 @@ async function resolveRoomForCharge(
   });
 
   if (!folio || folio.status !== FolioStatus.OPEN) {
-    return { ok: false, error: "Folio tidak terbuka" };
+    return { ok: false, error: "The folio is not open" };
   }
 
   return {
@@ -170,7 +170,7 @@ async function runCreateOrderTransaction(
       });
 
       if (!table) {
-        return { ok: false as const, error: "Meja tidak ditemukan." };
+        return { ok: false as const, error: "Table not found." };
       }
 
       if (
@@ -179,14 +179,14 @@ async function runCreateOrderTransaction(
       ) {
         return {
           ok: false as const,
-          error: `Meja ${table.number} tidak tersedia untuk pesanan baru.`,
+          error: `Table ${table.number} is unavailable for new orders.`,
         };
       }
 
       if (input.guestCount > table.capacity) {
         return {
           ok: false as const,
-          error: `Jumlah tamu tidak boleh melebihi kapasitas meja ${table.capacity}.`,
+          error: `Guest count must not exceed the table capacity of ${table.capacity}.`,
         };
       }
 
@@ -198,7 +198,7 @@ async function runCreateOrderTransaction(
       if (existingOpenOrder) {
         return {
           ok: false as const,
-          error: `Meja ${table.number} sudah memiliki pesanan terbuka.`,
+          error: `Table ${table.number} already has an open order.`,
         };
       }
 
@@ -242,7 +242,7 @@ export async function createOrder(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = CreateOrderSchema.safeParse(input);
@@ -264,15 +264,15 @@ export async function createOrder(
       }
 
       if (isSerializationConflict(error)) {
-        return { ok: false, error: "Status meja telah diperbarui oleh kasir lain." };
+        return { ok: false, error: "The table status was updated by another cashier." };
       }
 
-      return { ok: false, error: "Terjadi kesalahan saat membuat pesanan." };
+      return { ok: false, error: "An error occurred while creating the order." };
     }
   }
 
   if (!result) {
-    return { ok: false, error: "Terjadi kesalahan saat membuat pesanan." };
+    return { ok: false, error: "An error occurred while creating the order." };
   }
 
   if (!result.ok) {
@@ -338,7 +338,7 @@ export async function createRoomServiceOrder(
   const userId = await canManageFbOrders();
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = CreateRoomServiceOrderSchema.safeParse(input);
@@ -363,13 +363,13 @@ export async function createRoomServiceOrder(
       if (isSerializationConflict(error)) {
         return {
           ok: false,
-          error: "Data kamar atau folio berubah. Coba lagi.",
+          error: "Room or folio data changed. Try again.",
         };
       }
 
       return {
         ok: false,
-        error: "Terjadi kesalahan saat membuat pesanan layanan kamar.",
+        error: "An error occurred while creating the room-service order.",
       };
     }
   }
@@ -377,7 +377,7 @@ export async function createRoomServiceOrder(
   if (!result) {
     return {
       ok: false,
-      error: "Terjadi kesalahan saat membuat pesanan layanan kamar.",
+      error: "An error occurred while creating the room-service order.",
     };
   }
 
@@ -399,7 +399,7 @@ export async function lookupRoomForCharge(
   const userId = await canManageFbOrders("orders:bill");
 
   if (!userId) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = LookupRoomForChargeSchema.safeParse(input);

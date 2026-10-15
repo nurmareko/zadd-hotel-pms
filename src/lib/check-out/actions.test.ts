@@ -133,7 +133,7 @@ describe("recordFinalPayment", () => {
 
     expect(result).toEqual({
       ...checkoutFailure("INVALID_INPUT"),
-      fieldErrors: { amount: ["Jumlah pembayaran tidak valid."] },
+      fieldErrors: { amount: ["Invalid payment amount."] },
     });
     expect(mocks.folioFindUnique).not.toHaveBeenCalled();
   });
@@ -257,7 +257,7 @@ describe("completeCheckout", () => {
     expect(result).toEqual({
       ...checkoutFailure("INVALID_INPUT"),
       fieldErrors: {
-        confirmed: ["Konfirmasi wajib dicentang sebelum check-out."],
+        confirmed: ["Confirmation is required before check-out."],
       },
     });
   });

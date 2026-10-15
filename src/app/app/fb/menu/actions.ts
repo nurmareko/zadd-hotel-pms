@@ -17,7 +17,7 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 const MENU_PATH = "/app/fb/menu";
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Data menu tidak valid";
+  return error.issues[0]?.message ?? "Invalid menu item details";
 }
 
 async function canManageMenuItems() {
@@ -31,24 +31,24 @@ async function canManageMenuItems() {
 function prismaErrorMessage(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      return "Kode menu sudah digunakan";
+      return "Menu item code is already in use";
     }
 
     if (error.code === "P2003") {
-      return "Menu sedang digunakan";
+      return "Menu item is in use";
     }
 
     if (error.code === "P2025") {
-      return "Menu tidak ditemukan";
+      return "Menu item not found";
     }
   }
 
-  return "Terjadi kesalahan saat memproses menu";
+  return "An error occurred while processing the menu item";
 }
 
 export async function createMenuItem(input: unknown): Promise<ActionResult> {
   if (!(await canManageMenuItems())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola menu" };
+    return { ok: false, error: "You do not have permission to manage menu items" };
   }
 
   const parsed = MenuItemCreateSchema.safeParse(input);
@@ -72,7 +72,7 @@ export async function createMenuItem(input: unknown): Promise<ActionResult> {
 
 export async function updateMenuItem(input: unknown): Promise<ActionResult> {
   if (!(await canManageMenuItems())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola menu" };
+    return { ok: false, error: "You do not have permission to manage menu items" };
   }
 
   const parsed = MenuItemUpdateSchema.safeParse(input);
@@ -99,7 +99,7 @@ export async function updateMenuItem(input: unknown): Promise<ActionResult> {
 
 export async function deleteMenuItem(id: number): Promise<ActionResult> {
   if (!(await canManageMenuItems())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola menu" };
+    return { ok: false, error: "You do not have permission to manage menu items" };
   }
 
   const parsed = MenuItemIdSchema.safeParse({ id });
@@ -123,7 +123,7 @@ export async function deleteMenuItem(id: number): Promise<ActionResult> {
 
 export async function toggleMenuItemActive(id: number): Promise<ActionResult> {
   if (!(await canManageMenuItems())) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk mengelola menu" };
+    return { ok: false, error: "You do not have permission to manage menu items" };
   }
 
   const parsed = MenuItemIdSchema.safeParse({ id });

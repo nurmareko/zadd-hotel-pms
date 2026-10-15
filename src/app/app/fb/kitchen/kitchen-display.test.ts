@@ -31,25 +31,25 @@ function renderTicket(kitchenStartedAt: string | null) {
 describe("KitchenDisplay server-owned cooking state", () => {
   it("offers START for a not-started or reset ticket", () => {
     const html = renderTicket(null);
-    expect(html).toContain("Mulai memasak");
-    expect(html).not.toContain("Tandai selesai");
-    expect(html).not.toContain("Sedang dimasak");
+    expect(html).toContain("Start Preparing");
+    expect(html).not.toContain("Mark Complete");
+    expect(html).not.toContain(">Preparing</span>");
   });
 
   it("offers READY when the server supplies a cooking timestamp", () => {
     const html = renderTicket(startedAt);
-    expect(html).toContain("Sedang dimasak");
-    expect(html).toContain("Tandai selesai");
-    expect(html).not.toContain("Mulai memasak");
+    expect(html).toContain("Preparing");
+    expect(html).toContain("Mark Complete");
+    expect(html).not.toContain("Start Preparing");
   });
 
   it("renders station filters, local readiness, and display controls", () => {
     const html = renderTicket(null);
-    for (const label of ["Semua", "Dapur", "Bar", "Panggangan", "Gorengan", "Tandai Siap", "0 dari 1 siap", "2 tamu", "Suara hening", "Layar penuh", "Hidangan utama"]) {
+    for (const label of ["All", "Kitchen", "Bar", "Grill", "Fryer", "Mark Ready", "0 of 1 ready", "2 guests", "Sound off", "Full screen", "Main courses"]) {
       expect(html).toContain(label);
     }
     expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain("hanya di layar ini");
+    expect(html).toContain("only on this screen");
   });
 
   it("highlights late tickets at the existing one-hour threshold", () => {
@@ -57,10 +57,10 @@ describe("KitchenDisplay server-owned cooking state", () => {
       initialNow: "2026-09-28T04:00:00.000Z",
       tickets: [{ id: 8, orderNo: "FB-008", destination: "Meja 4", serviceLabel: "Makan di tempat", waiterName: "Sari", openedAt: startedAt, kitchenStartedAt: null, items: [] }],
     }));
-    expect(html).toContain("TERLAMBAT");
+    expect(html).toContain("OVERDUE");
     expect(html).toContain("border-red-500");
     expect(html).toContain("motion-safe:animate-pulse");
-    expect(renderTicket(null)).not.toContain("TERLAMBAT");
+    expect(renderTicket(null)).not.toContain("OVERDUE");
   });
 
   // Server rendering cannot exercise a mounted router refresh. These source
@@ -75,12 +75,12 @@ describe("KitchenDisplay server-owned cooking state", () => {
     expect(source).toMatch(/advanceKitchenOrder\(\{\s*orderId: ticket\.id,\s*transition: isCooking \? "READY" : "START",\s*expectedKitchenStartedAt: ticket\.kitchenStartedAt,\s*\}\)/);
   });
 
-  it("uses Indonesian order copy", () => {
-    expect(renderTicket(null)).toContain('aria-label="Pesanan FB-007"');
+  it("uses English order copy", () => {
+    expect(renderTicket(null)).toContain('aria-label="Order FB-007"');
     const empty = renderToStaticMarkup(createElement(KitchenDisplay, {
       tickets: [], initialNow: startedAt,
     }));
-    expect(empty).toContain("pesanan yang masih terbuka");
+    expect(empty).toContain("an open order");
     expect(empty).not.toContain("order yang masih terbuka");
   });
 });

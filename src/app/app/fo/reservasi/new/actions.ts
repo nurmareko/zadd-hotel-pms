@@ -108,7 +108,7 @@ const ReservationQuoteSchema = z
       context.addIssue({
         code: "custom",
         path: ["departureDate"],
-        message: "Periode estimasi harus antara 1 dan 366 malam.",
+        message: "The estimate period must be between 1 and 366 nights.",
       });
     }
   });
@@ -161,26 +161,29 @@ const RESERVATION_VALIDATION_FIELDS = new Set<ReservationActionField>([
 ]);
 
 const SAFE_VALIDATION_MESSAGE_PREFIXES = [
-  "Alasan tarif khusus",
-  "Tarif khusus",
-  "Alamat maksimal",
-  "Email maksimal",
-  "Fleksibilitas menginap",
-  "Format email",
-  "Jenis biaya fleksibilitas",
-  "Jenis identitas",
-  "Jumlah",
-  "Kamar fisik",
-  "Kamar tidak valid",
-  "Keberangkatan",
-  "Kewarganegaraan maksimal",
-  "Maksimal",
-  "Minimal",
-  "Nama tamu",
-  "Nomor telepon maksimal",
-  "Tambahkan minimal",
-  "Tanggal",
-  "Tipe kamar",
+  "Custom rate reason",
+  "Custom rate",
+  "Address must not exceed",
+  "Email must not exceed",
+  "Stay flexibility",
+  "Email format",
+  "Stay flexibility fee type",
+  "ID type",
+  "Guest count",
+  "Adult count",
+  "Child count",
+  "The same physical room",
+  "Invalid room",
+  "Departure",
+  "Nationality must not exceed",
+  "Maximum",
+  "Minimum",
+  "Guest name",
+  "Phone number must not exceed",
+  "Add at least",
+  "Date",
+  "Invalid date",
+  "Room type",
 ];
 
 function reservationValidationField(path: PropertyKey[]) {
@@ -377,7 +380,7 @@ async function validateReservationRoomAssignment(
 
   if (overlappingReservation) {
     return reservationFailure("ROOM_UNAVAILABLE", {
-      message: `Kamar ${room.number} sudah tidak tersedia untuk tanggal tersebut. Pilih kamar lain.`,
+      message: `Room ${room.number} is no longer available for those dates. Select another room.`,
       field: "roomId",
     });
   }
@@ -413,7 +416,7 @@ async function createReservationNumbers(
   });
 
   if (reservationCount + count > 99_999) {
-    throw new Error("Batas nomor reservasi harian telah tercapai.");
+    throw new Error("The daily reservation number limit has been reached.");
   }
 
   return Array.from(
@@ -561,7 +564,7 @@ async function runCreateReservationTransaction(
         const standardSchedule = resolvedSchedules.get(room.roomTypeId);
 
         if (!standardSchedule?.[0]) {
-          throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
+          throw new PricingResolutionError("The reservation rate schedule is unavailable.");
         }
 
         const resolvedSchedule = applyReservationNightRateOverride(standardSchedule, room.customRate);
@@ -716,7 +719,7 @@ async function runUpdateReservationTransaction(
       ) {
         return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
           message:
-            "Reservasi yang sudah check-out, dibatalkan, atau no-show bersifat final dan tidak dapat diubah.",
+            "Checked-out, cancelled, and no-show reservations are final and cannot be changed.",
         });
       }
 
@@ -725,7 +728,7 @@ async function runUpdateReservationTransaction(
         existingReservation.status !== ReservationStatus.CONFIRMED
       ) {
         return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
-          message: "Kamar wajib dipilih untuk reservasi yang sudah check-in.",
+          message: "A room must be selected for a checked-in reservation.",
           field: "roomId",
         });
       }
@@ -753,21 +756,21 @@ async function runUpdateReservationTransaction(
         if (existingReservation.status === ReservationStatus.CHECKED_IN) {
           return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
             message:
-              "Tipe kamar dan tanggal menginap tidak dapat diubah setelah check-in.",
+              "The room type and stay dates cannot be changed after check-in.",
           });
         }
 
         if (existingReservation.status !== ReservationStatus.CONFIRMED) {
           return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
             message:
-              "Perubahan tipe kamar atau tanggal menginap hanya dapat dilakukan pada reservasi berstatus CONFIRMED.",
+              "The room type or stay dates can only be changed for Confirmed reservations.",
           });
         }
 
         if (existingReservation.folio?.lineItems.length) {
           return reservationFailure("POST_CHECK_IN_EDIT_RESTRICTED", {
             message:
-              "Tipe kamar dan tanggal menginap tidak dapat diubah setelah tagihan folio diposting.",
+              "The room type and stay dates cannot be changed after folio charges have been posted.",
           });
         }
       }
@@ -805,7 +808,7 @@ async function runUpdateReservationTransaction(
         );
 
         if (!resolvedSchedule[0]) {
-          throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
+          throw new PricingResolutionError("The reservation rate schedule is unavailable.");
         }
       }
 
@@ -941,7 +944,7 @@ export async function getReservationQuote(
 
   if (!parsed.success) {
     return reservationFailure("INVALID_RESERVATION_DATA", {
-      message: "Data ringkasan harga tidak valid. Periksa kembali formulir.",
+      message: "Invalid rate summary data. Check the form.",
     });
   }
 
@@ -979,7 +982,7 @@ export async function getReservationQuote(
       const standardFirstNight = standardSchedule?.[0];
 
       if (!standardSchedule || !standardFirstNight) {
-        throw new PricingResolutionError("Jadwal harga reservasi tidak tersedia.");
+        throw new PricingResolutionError("The reservation rate schedule is unavailable.");
       }
 
       const schedule = applyReservationNightRateOverride(standardSchedule, room.customRate);

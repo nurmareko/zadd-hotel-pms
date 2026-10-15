@@ -82,10 +82,10 @@ export function BillView({ order, settings, totals }: BillViewProps) {
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
-          Tagihan
+          Bill
         </div>
         <div className="mt-1 text-sm text-slate-500">
-          Detail bill dan ringkasan pembayaran order.
+          Bill details and order payment summary.
         </div>
       </div>
 
@@ -98,16 +98,16 @@ export function BillView({ order, settings, totals }: BillViewProps) {
             {settings.address ?? "-"}
           </div>
           <div className="mt-4 text-sm font-semibold text-slate-700">
-            Bill / Tagihan
+            Bill
           </div>
         </div>
 
         <div className="grid gap-x-5 gap-y-3 border-b border-gray-100 py-4 text-sm sm:grid-cols-2">
           <BillMeta label="Order #" value={order.orderNo} />
-          <BillMeta label="Lokasi" value={order.locationLabel} />
-          <BillMeta label="Jumlah Tamu" value={`${order.guestCount} pax`} />
-          <BillMeta label="Tanggal/Waktu" value={order.openedAtLabel} />
-          <BillMeta label="Kasir" value={order.cashierName} />
+          <BillMeta label="Location" value={order.locationLabel} />
+          <BillMeta label="Number of Guests" value={`${order.guestCount} pax`} />
+          <BillMeta label="Date/Time" value={order.openedAtLabel} />
+          <BillMeta label="Cashier" value={order.cashierName} />
         </div>
 
         <div className="mt-4 overflow-auto">
@@ -121,10 +121,10 @@ export function BillView({ order, settings, totals }: BillViewProps) {
                   Qty
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-600">
-                  Harga Satuan
+                  Unit Price
                 </th>
                 <th className="border-b border-gray-200 bg-slate-50 px-3.5 py-3 text-right text-xs font-semibold text-slate-600">
-                  Jumlah
+                  Quantity
                 </th>
               </tr>
             </thead>
@@ -134,8 +134,8 @@ export function BillView({ order, settings, totals }: BillViewProps) {
                   <td className="border-b border-gray-100 px-3 py-3" colSpan={4}>
                     <EmptyState
                       icon={ReceiptText}
-                      title="Order masih kosong"
-                      description="Tambahkan item terlebih dahulu sebelum bill dikonfirmasi."
+                      title="The order is empty"
+                      description="Add items before confirming the bill."
                     />
                   </td>
                 </tr>
@@ -193,7 +193,7 @@ export function BillView({ order, settings, totals }: BillViewProps) {
           ) : null}
           {shouldShowPercentRow(settings.taxPercent) ? (
             <SummaryRow
-              label={`Pajak (${percentLabel(settings.taxPercent)}%)`}
+              label={`Tax (${percentLabel(settings.taxPercent)}%)`}
               value={formatIDR(totals.tax)}
             />
           ) : null}

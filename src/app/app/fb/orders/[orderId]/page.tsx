@@ -77,8 +77,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const roomNumber = order.chargedFolio?.reservation.room?.number ?? "-";
   const guestName = order.chargedFolio?.reservation.guest.fullName ?? "-";
   const locationLabel = isRoomService
-    ? `Room Service untuk kamar ${roomNumber} / ${guestName}`
-    : `Meja ${order.table?.number ?? order.tableNo ?? "-"}`;
+    ? `Room Service for room ${roomNumber} / ${guestName}`
+    : `Table ${order.table?.number ?? order.tableNo ?? "-"}`;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-4 font-sans text-slate-900 md:px-6 md:py-5">
@@ -97,7 +97,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <span aria-hidden="true">·</span>
             <span>
               <span className="num">{order.guestCount}</span> pax ·{" "}
-              <span className="num">{itemCount}</span> item ·{" "}
+              <span className="num">{itemCount}</span> items ·{" "}
               {formatIDR(computedTotals.total.toString())}
             </span>
             <OrderStatusBadge status={order.status} />
@@ -136,7 +136,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 id: item.id,
                 name: item.menuItem.isActive
                   ? item.menuItem.name
-                  : "Item tidak tersedia",
+                  : "Item unavailable",
                 category: item.menuItem.category,
                 isAvailable: item.menuItem.isActive,
                 unitPrice: item.unitPrice.toString(),

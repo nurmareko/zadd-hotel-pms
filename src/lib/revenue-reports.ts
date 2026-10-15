@@ -105,11 +105,11 @@ export function resolveRevenueReportRange(
 }
 
 const sourceLabels: Record<ReservationType, string> = {
-  INDIVIDUAL: "Perorangan",
-  COMPANY: "Perusahaan",
-  GOVERNMENT: "Pemerintah",
-  OTA: "Agen Perjalanan Daring",
-  WALK_IN: "Tamu Datang Langsung",
+  INDIVIDUAL: "Individual",
+  COMPANY: "Company",
+  GOVERNMENT: "Government",
+  OTA: "Online Travel Agent",
+  WALK_IN: "Walk-in",
 };
 
 const lineSelect = {

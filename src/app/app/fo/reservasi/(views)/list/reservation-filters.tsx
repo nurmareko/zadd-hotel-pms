@@ -11,10 +11,10 @@ import {
 } from "./query";
 
 const presetOptions: Array<{ value?: ReservationListPreset; label: string }> = [
-  { label: "Semua" },
+  { label: "All" },
   { value: "in_house", label: "In-House" },
-  { value: "today_arrivals", label: "Kedatangan Hari Ini" },
-  { value: "today_departures", label: "Keberangkatan Hari Ini" },
+  { value: "today_arrivals", label: "Today's Arrivals" },
+  { value: "today_departures", label: "Today's Departures" },
 ];
 
 type ReservationFiltersProps = {
@@ -24,10 +24,10 @@ type ReservationFiltersProps = {
 
 
 const statusOptions: Array<{ value: ReservationStatus; label: string }> = [
-  { value: "CONFIRMED", label: "Terkonfirmasi" },
-  { value: "CHECKED_IN", label: "Sudah check-in" },
-  { value: "CHECKED_OUT", label: "Sudah check-out" },
-  { value: "CANCELLED", label: "Dibatalkan" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "CHECKED_IN", label: "Checked In" },
+  { value: "CHECKED_OUT", label: "Checked Out" },
+  { value: "CANCELLED", label: "Cancelled" },
   { value: "NO_SHOW", label: "No-show" },
 ];
 
@@ -50,7 +50,7 @@ export function ReservationFilters({
       key={`${exportQuery}&sort=${filters.sort}`}
       className="desktop:sticky top-0 z-20 flex flex-col gap-3 border-b border-slate-200 bg-white p-4"
     >
-      <nav aria-label="Filter cepat reservasi" className="flex w-full flex-wrap gap-2">
+      <nav aria-label="Reservation quick filters" className="flex w-full flex-wrap gap-2">
         {presetOptions.map((option) => {
           const query = buildExportQuery({ page: 1, q: filters.q, preset: option.value });
           const active = filters.preset === option.value;
@@ -76,22 +76,22 @@ export function ReservationFilters({
           <input
             type="search"
             name="q"
-            aria-label="Cari nomor reservasi, nama tamu, atau kamar"
+            aria-label="Search by reservation number, guest name, or room"
             defaultValue={filters.q}
-            placeholder="Cari nomor reservasi, nama tamu, atau kamar..."
+            placeholder="Search reservation number, guest name, or room..."
             className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
           />
         </div>
 
         <select
           name="status"
-          aria-label="Status reservasi"
+          aria-label="Reservation status"
           defaultValue={filters.preset === "in_house" ? "CHECKED_IN" : filters.status ?? ""}
           disabled={filters.preset === "in_house"}
           className={`${fieldClass} sm:w-[160px]`}
         >
-          <option value="">Aktif</option>
-          <option value="ALL">Semua Status</option>
+          <option value="">Active</option>
+          <option value="ALL">All Statuses</option>
           {statusOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -101,12 +101,12 @@ export function ReservationFilters({
 
         <select
           name="sort"
-          aria-label="Urutkan reservasi"
+          aria-label="Sort reservations"
           defaultValue={filters.sort ?? "newest"}
           className={`${fieldClass} sm:w-[180px]`}
         >
-          <option value="newest">Terbaru dibuat</option>
-          <option value="arrival">Tanggal check-in</option>
+          <option value="newest">Most Recently Created</option>
+          <option value="arrival">Check-in Date</option>
         </select>
 
         <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto">
@@ -145,27 +145,27 @@ export function ReservationFilters({
 
         {filters.preset ? (
           <p className="w-full text-xs text-slate-500">
-            Pilih Semua untuk menggunakan rentang tanggal khusus.
+            Select All to use a custom date range.
           </p>
         ) : null}
       </div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full pt-1">
         <div className="flex items-center gap-2">
-          <Button type="submit">Cari</Button>
+          <Button type="submit">Search</Button>
           {hasActiveFilters ? (
             <Link
               href="/app/fo/reservasi/list"
-              aria-label="Atur ulang semua filter"
+              aria-label="Reset all filters"
               className={buttonVariants({ variant: "ghost" })}
             >
               <RotateCcw aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
-              Atur Ulang
+              Reset
             </Link>
           ) : null}
         </div>
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <span className="whitespace-nowrap text-sm font-medium text-slate-500">
-            {resultCount} reservasi
+            {resultCount} reservations
           </span>
           <Link
             href={exportHref}
@@ -174,7 +174,7 @@ export function ReservationFilters({
             className={buttonVariants({ variant: "outline" })}
           >
             <Download aria-hidden="true" className="mr-1 h-4 w-4" />
-            Ekspor CSV
+            Export CSV
           </Link>
         </div>
       </div>

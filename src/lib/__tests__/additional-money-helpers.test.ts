@@ -74,9 +74,9 @@ describe("roundIDRPercentage", () => {
 
 describe("folio balance display", () => {
   it.each([
-    [100, "due", "Saldo Terutang", "Rp 100"],
-    [0, "settled", "Saldo Lunas", "Rp 0"],
-    [-100, "credit", "Kelebihan Pembayaran / Refund", "Rp 100"],
+    [100, "due", "Balance Due", "Rp 100"],
+    [0, "settled", "Balance Settled", "Rp 0"],
+    [-100, "credit", "Overpayment / Refund", "Rp 100"],
   ] as const)(
     "classifies and labels balance %i",
     (balance, state, label, amountLabel) => {

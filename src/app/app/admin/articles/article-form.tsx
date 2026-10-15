@@ -98,7 +98,7 @@ export function ArticleForm({
       : await createArticle(values);
 
     if (result.ok) {
-      toast.success(isEditing ? "Artikel diperbarui" : "Artikel dibuat");
+      toast.success(isEditing ? "Article updated" : "Article created");
       form.reset(emptyValues);
       onSaved();
       return;
@@ -130,7 +130,7 @@ export function ArticleForm({
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Kode</FormLabel>
+                <FormLabel className={labelClassName}>Code</FormLabel>
                 <FormControl>
                   <Input placeholder="ROOM" {...field} className={inputClassName} />
                 </FormControl>
@@ -144,7 +144,7 @@ export function ArticleForm({
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className={labelClassName}>Departemen / Kategori</FormLabel>
+                <FormLabel className={labelClassName}>Department / Category</FormLabel>
                 <Select
                   value={field.value}
                   onValueChange={(value) => {
@@ -155,7 +155,7 @@ export function ArticleForm({
                 >
                   <FormControl>
                     <SelectTrigger className={`${inputClassName} w-full`}>
-                      <SelectValue placeholder="Pilih departemen / kategori">
+                      <SelectValue placeholder="Select a department / category">
                                               {ARTICLE_DEPARTMENT_LABELS[field.value]}
                                             </SelectValue>
                     </SelectTrigger>
@@ -179,10 +179,10 @@ export function ArticleForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Nama</FormLabel>
+              <FormLabel className={labelClassName}>Name</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Tagihan Kamar"
+                  placeholder="Room Charge"
                   {...field}
                   className={inputClassName}
                 />
@@ -197,7 +197,7 @@ export function ArticleForm({
           name="defaultPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={labelClassName}>Harga Standar</FormLabel>
+              <FormLabel className={labelClassName}>Default Price</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -220,17 +220,17 @@ export function ArticleForm({
             variant="outline"
             onClick={onCancel}
           >
-            Batal
+            Cancel
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
-              ? "Menyimpan..."
+              ? "Saving..."
               : isEditing
-                ? "Simpan Perubahan"
-                : "Tambah Artikel"}
+                ? "Save Changes"
+                : "Add Article"}
           </Button>
         </div>
       </form>

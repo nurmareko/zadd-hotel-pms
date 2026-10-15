@@ -21,11 +21,11 @@ export function CreateBatchDialog() {
       setOpen(next);
       if (next) setError(null);
     }}>
-      <DialogTrigger render={<Button />}><Plus className="size-4" aria-hidden="true" />Catat Batch Cucian</DialogTrigger>
+      <DialogTrigger render={<Button />}><Plus className="size-4" aria-hidden="true" />Record Laundry Batch</DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Kirim Batch Linen</DialogTitle>
-          <DialogDescription>Catat satu tipe linen per batch. Batch baru berstatus Dikirim / Menunggu Cuci.</DialogDescription>
+          <DialogTitle>Send Linen Batch</DialogTitle>
+          <DialogDescription>Record one linen type per batch. New batches are marked Sent / Awaiting Wash.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4" aria-busy={pending} onSubmit={(event) => {
           event.preventDefault();
@@ -40,41 +40,41 @@ export function CreateBatchDialog() {
                 toast.error(result.error);
                 return;
               }
-              toast.success("Pengiriman batch linen berhasil dicatat.");
+              toast.success("Linen dispatch recorded successfully.");
               setOpen(false);
               router.refresh();
             } catch {
-              const message = "Pengiriman belum dapat disimpan. Periksa daftar batch sebelum mencoba lagi.";
+              const message = "The dispatch could not be saved. Check the batch list before trying again.";
               setError(message);
               toast.error(message);
             }
           });
         }}>
           <fieldset disabled={pending} className="min-w-0 space-y-4">
-            <legend className="sr-only">Detail pengiriman linen</legend>
-            <label className="block text-sm font-medium">Tipe linen
+            <legend className="sr-only">Linen dispatch details</legend>
+            <label className="block text-sm font-medium">Linen type
               <select name="itemType" required defaultValue="" className={controlClass}>
-                <option value="" disabled>Pilih tipe linen</option>
+                <option value="" disabled>Select a linen type</option>
                 {Object.entries(ITEM_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
-            <label className="block text-sm font-medium">Jumlah dikirim (unit)
+            <label className="block text-sm font-medium">Quantity sent (units)
               <input name="sentQuantity" type="number" min={1} max={2147483647} step={1} required className={controlClass} />
             </label>
             <label className="block text-sm font-medium">Vendor
               <select name="vendor" defaultValue="Laundry Internal" required className={controlClass}>
-                <option>Laundry Internal</option>
+                <option value="Laundry Internal">In-house Laundry</option>
                 <option>CV Mandiri</option>
               </select>
             </label>
-            <label className="block text-sm font-medium">Catatan (opsional)
-              <textarea name="notes" rows={3} maxLength={2000} className={`${controlClass} h-auto py-3`} placeholder="Catatan kondisi linen atau pengiriman" />
+            <label className="block text-sm font-medium">Notes (optional)
+              <textarea name="notes" rows={3} maxLength={2000} className={`${controlClass} h-auto py-3`} placeholder="Notes on linen condition or dispatch" />
             </label>
           </fieldset>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2 border-t pt-4">
-            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={pending}>{pending ? "Menyimpan..." : "Simpan Pengiriman"}</Button>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save Dispatch"}</Button>
           </div>
         </form>
       </DialogContent>

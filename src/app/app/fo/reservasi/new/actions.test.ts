@@ -317,7 +317,7 @@ describe("per-room custom rates", () => {
   });
 
   it("rejects oversized reasons with Indonesian action validation", async () => {
-    expect(await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], customRateReason: "a".repeat(256) }] })).toMatchObject({ ok: false, field: "rooms", error: "Alasan tarif khusus maksimal 255 karakter" });
+    expect(await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], customRateReason: "a".repeat(256) }] })).toMatchObject({ ok: false, field: "rooms", error: "Custom rate reason must not exceed 255 characters" });
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 
@@ -659,14 +659,14 @@ describe("reservation action failure boundary", () => {
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
       ok: false,
       code: "SESSION_EXPIRED",
-      error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      error: "Your session has expired. Please sign in again.",
     });
 
     mocks.auth.mockResolvedValueOnce({ user: { id: "2", role: "HK" } });
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
       ok: false,
       code: "FORBIDDEN",
-      error: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+      error: "You do not have permission to perform this action.",
     });
   });
 
@@ -676,7 +676,7 @@ describe("reservation action failure boundary", () => {
     ).resolves.toMatchObject({
       ok: false,
       code: "INVALID_RESERVATION_DATA",
-      error: "Nama tamu wajib diisi",
+      error: "Guest name is required",
       field: "fullName",
     });
 
@@ -687,7 +687,7 @@ describe("reservation action failure boundary", () => {
     expect(malformedResult).toMatchObject({
       ok: false,
       code: "INVALID_RESERVATION_DATA",
-      error: "Data reservasi tidak valid. Periksa kembali formulir.",
+      error: "Invalid reservation data. Check the form.",
       field: "fullName",
     });
     if (!malformedResult.ok) {
@@ -726,7 +726,7 @@ describe("reservation action failure boundary", () => {
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
       ok: false,
       code: "ROOM_BLOCKED",
-      error: "Kamar diblokir untuk Pemeliharaan pada 2026-10-01 hingga sebelum 2026-10-02. Pilih kamar atau tanggal lain.",
+      error: "Room blocked for Maintenance from 2026-10-01 until 2026-10-02 (exclusive). Select another room or date.",
       field: "rooms.0.roomId",
     });
 
@@ -741,7 +741,7 @@ describe("reservation action failure boundary", () => {
       ok: false,
       code: "ROOM_UNAVAILABLE",
       error:
-        "Kamar 101 sudah tidak tersedia untuk tanggal tersebut. Pilih kamar lain.",
+        "Room 101 is no longer available for those dates. Select another room.",
       field: "rooms.0.roomId",
     });
   });
@@ -760,7 +760,7 @@ describe("reservation action failure boundary", () => {
       ok: false,
       code: "STAY_FEE_UNAVAILABLE",
       error:
-        "Biaya fleksibilitas yang dipilih sedang tidak tersedia. Hapus pilihan atau hubungi admin.",
+        "The selected stay flexibility fee is unavailable. Remove the selection or contact an administrator.",
       field: "stayFeeKinds",
     });
   });
@@ -786,7 +786,7 @@ describe("reservation action failure boundary", () => {
       ok: false,
       code: "RESERVATION_CONFLICT",
       error:
-        "Reservasi berubah sejak halaman ini dibuka. Muat ulang data lalu coba lagi.",
+        "The reservation has changed since this page was opened. Reload the data and try again.",
     });
   });
 
@@ -805,7 +805,7 @@ describe("reservation action failure boundary", () => {
     expect(knownResult).toMatchObject({
       ok: false,
       code: "PRICING_QUOTE_FAILED",
-      error: "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
+      error: "Unable to calculate the rate summary. Please try again.",
     });
     expect(knownResult).not.toEqual(expect.objectContaining({ error: internalMessage }));
 
@@ -821,7 +821,7 @@ describe("reservation action failure boundary", () => {
     expect(unknownResult).toMatchObject({
       ok: false,
       code: "PRICING_QUOTE_FAILED",
-      error: "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
+      error: "Unable to calculate the rate summary. Please try again.",
     });
     expect(unknownResult).not.toEqual(expect.objectContaining({ error: internalMessage }));
   });
@@ -903,7 +903,7 @@ describe("reservation action failure boundary", () => {
     await expect(createReservation(validCreateInput)).resolves.toMatchObject({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Reservasi tidak dapat dibuat. Silakan coba lagi.",
+      error: "Unable to create the reservation. Please try again.",
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -918,7 +918,7 @@ describe("reservation action failure boundary", () => {
     expect(createResult).toMatchObject({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Reservasi tidak dapat dibuat. Silakan coba lagi.",
+      error: "Unable to create the reservation. Please try again.",
     });
 
     mocks.transaction.mockRejectedValueOnce(new Error(internalMessage));
@@ -926,7 +926,7 @@ describe("reservation action failure boundary", () => {
     expect(editResult).toMatchObject({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Perubahan reservasi tidak dapat disimpan. Silakan coba lagi.",
+      error: "Unable to save reservation changes. Please try again.",
     });
 
     mocks.transaction.mockRejectedValueOnce(new Error(internalMessage));
@@ -934,7 +934,7 @@ describe("reservation action failure boundary", () => {
     expect(cancelResult).toMatchObject({
       ok: false,
       code: "UNEXPECTED_FAILURE",
-      error: "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
+      error: "Unable to cancel the reservation. Please try again.",
     });
 
     for (const result of [createResult, editResult, cancelResult]) {

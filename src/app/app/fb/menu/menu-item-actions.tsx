@@ -33,7 +33,7 @@ export function MenuItemActions({
       const result = await toggleMenuItemActive(item.id);
 
       if (result.ok) {
-        toast.success("Status menu diperbarui");
+        toast.success("Menu item status updated");
         return;
       }
 
@@ -50,7 +50,7 @@ export function MenuItemActions({
             variant="ghost"
             size="icon"
             className="rounded-none text-foreground hover:bg-slate-50"
-            aria-label={`Aksi untuk ${item.name}`}
+            aria-label={`Actions for ${item.name}`}
           />
         }
       >
@@ -59,16 +59,16 @@ export function MenuItemActions({
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={() => onEdit(item)}>
           <Pencil aria-hidden="true" />
-          Ubah
+          Edit
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={handleToggle}>
           <Power aria-hidden="true" />
-          {item.isActive ? "Nonaktifkan" : "Aktifkan"}
+          {item.isActive ? "Disable" : "Enable"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
           <Trash2 aria-hidden="true" />
-          Hapus
+          Remove
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

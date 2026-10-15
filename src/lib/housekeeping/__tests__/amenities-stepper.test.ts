@@ -10,11 +10,11 @@ describe("formatAmenitiesNote", () => {
   });
   it("formats partial counts in canonical order", () => {
     expect(formatAmenitiesNote({ bottledWater: 2, soap: 2, towels: 2, shampoo: null }))
-      .toBe("[Amenities: 2 Handuk Mandi, 2 Sabun, 2 Air Mineral]");
+      .toBe("[Amenities: 2 Bath Towel, 2 Soap, 2 Bottled Water]");
   });
   it("formats every item and preserves an explicit zero", () => {
     expect(formatAmenitiesNote({ towels: 2, shampoo: 1, soap: 0, dentalKit: 2, bottledWater: 2 }))
-      .toBe("[Amenities: 2 Handuk Mandi, 1 Sampo, 0 Sabun, 2 Sikat Gigi / Dental Kit, 2 Air Mineral]");
+      .toBe("[Amenities: 2 Bath Towel, 1 Shampoo, 0 Soap, 2 Toothbrush / Dental Kit, 2 Bottled Water]");
   });
   it("ignores unknown keys", () => {
     expect(formatAmenitiesNote({ arbitrary: 5, towels: undefined })).toBe("");

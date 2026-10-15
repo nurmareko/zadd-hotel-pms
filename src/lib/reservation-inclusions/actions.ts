@@ -45,7 +45,7 @@ function revalidateCommittedInclusion(
       revalidatePath(`/app/fo/reservasi/grup/${groupBookingId}`);
     }
   } catch (error) {
-    console.error("Gagal menyegarkan tampilan Inklusi setelah transaksi", error);
+    console.error("Failed to refresh the inclusion display after the transaction", error);
   }
 }
 
@@ -92,7 +92,7 @@ const MealPlanChangeSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["expectedPreview"],
-        message: "Pratinjau grup wajib terikat tepat satu kali.",
+        message: "The group preview must be bound exactly once.",
       });
     }
   });
@@ -118,13 +118,13 @@ export async function changeReservationMealPlan(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role, "reservations:write")) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = MealPlanChangeSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Perubahan Arrangement tidak valid." };
+    return { ok: false, error: "Invalid Arrangement change." };
   }
 
   const {
@@ -182,7 +182,7 @@ export async function changeReservationMealPlan(
         if (!reservation) {
           return {
             ok: false as const,
-            error: "Reservasi tidak ditemukan.",
+            error: "Reservation not found.",
             disposition: "failed" as const,
           };
         }
@@ -228,7 +228,7 @@ export async function changeReservationMealPlan(
             return {
               ok: false as const,
               error:
-                "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan Arrangement.",
+                "Room data changed after the preview. Generate a new preview before applying the Arrangement.",
               disposition: "failed" as const,
             };
           }
@@ -255,7 +255,7 @@ export async function changeReservationMealPlan(
           return {
             ok: false as const,
             error:
-              "Data kamar berubah setelah pratinjau. Tampilkan pratinjau baru sebelum menerapkan Arrangement.",
+              "Room data changed after the preview. Generate a new preview before applying the Arrangement.",
             disposition: "failed" as const,
           };
         }
@@ -306,13 +306,13 @@ export async function changeReservationMealPlan(
     ) {
       return {
         ok: false,
-        error: "Jadwal Arrangement berubah saat disimpan. Muat ulang lalu coba lagi.",
+        error: "The Arrangement schedule changed while saving. Reload and try again.",
       };
     }
 
     return {
       ok: false,
-      error: "Gagal mengubah Arrangement.",
+      error: "Failed to change the Arrangement.",
       disposition: "failed",
     };
   }
@@ -324,13 +324,13 @@ export async function setReservationStayFee(
   const session = await auth();
 
   if (!session?.user || !can(session.user.role, "reservations:write")) {
-    return { ok: false, error: "Tidak diizinkan" };
+    return { ok: false, error: "Not allowed" };
   }
 
   const parsed = StayFeeSelectionSchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: "Pilihan fleksibilitas menginap tidak valid." };
+    return { ok: false, error: "Invalid stay flexibility selection." };
   }
 
   const { reservationId, kind, selected, expectedGroupBookingId } = parsed.data;
@@ -364,7 +364,7 @@ export async function setReservationStayFee(
           if (!reservation) {
             return {
               ok: false as const,
-              error: "Reservasi tidak ditemukan.",
+              error: "Reservation not found.",
               disposition: "failed" as const,
             };
           }
@@ -375,7 +375,7 @@ export async function setReservationStayFee(
           ) {
             return {
               ok: false as const,
-              error: "Reservasi bukan anggota booking grup ini.",
+              error: "The reservation does not belong to this group booking.",
               disposition: "failed" as const,
             };
           }
@@ -388,7 +388,7 @@ export async function setReservationStayFee(
             return {
               ok: false as const,
               error:
-                "Riwayat fleksibilitas reservasi terminal bersifat final dan tidak dapat diubah.",
+                "Stay flexibility history for a terminal reservation is final and cannot be changed.",
               disposition: "skipped" as const,
             };
           }
@@ -408,7 +408,7 @@ export async function setReservationStayFee(
               return {
                 ok: false as const,
                 error:
-                  "Biaya yang sudah terposting bersifat terkunci dan tidak dapat dihapus.",
+                  "Posted fees are locked and cannot be removed.",
                 disposition: "skipped" as const,
               };
             }
@@ -426,7 +426,7 @@ export async function setReservationStayFee(
 
             if (cancelled.count !== 1) {
               throw new ReservationStayFeeError(
-                "Status biaya berubah saat dihapus. Muat ulang lalu coba lagi.",
+                "The fee status changed while removing it. Reload and try again.",
               );
             }
 
@@ -440,7 +440,7 @@ export async function setReservationStayFee(
           if (existingFee?.status === ReservationStayFeeStatus.POSTED) {
             return {
               ok: false as const,
-              error: "Biaya ini sudah terposting dan terkunci.",
+              error: "This fee has already been posted and is locked.",
               disposition: "skipped" as const,
             };
           }
@@ -474,7 +474,7 @@ export async function setReservationStayFee(
           if (reservation.status === ReservationStatus.CHECKED_IN) {
             if (!reservation.folio) {
               throw new ReservationStayFeeError(
-                "Folio reservasi tidak ditemukan. Biaya tidak diposting.",
+                "Reservation folio not found. The fee was not posted.",
               );
             }
 
@@ -488,7 +488,7 @@ export async function setReservationStayFee(
 
             if (postedCount !== 1) {
               throw new ReservationStayFeeError(
-                "Biaya tidak berhasil diposting tepat satu kali.",
+                "The fee could not be posted exactly once.",
               );
             }
 
@@ -502,7 +502,7 @@ export async function setReservationStayFee(
           if (reservation.status !== ReservationStatus.CONFIRMED) {
             return {
               ok: false as const,
-              error: "Status reservasi tidak dapat menerima biaya fleksibilitas.",
+              error: "The reservation status does not allow stay flexibility fees.",
               disposition: "skipped" as const,
             };
           }
@@ -529,7 +529,7 @@ export async function setReservationStayFee(
         return {
           ok: false as const,
           error:
-            "Audit malam untuk tanggal bisnis hari ini sudah selesai. Biaya fleksibilitas tidak dapat diposting.",
+            "Night Audit for the current business date is complete. Stay flexibility fees cannot be posted.",
           disposition: "skipped" as const,
         };
       }
@@ -545,13 +545,13 @@ export async function setReservationStayFee(
       if (isSerializationConflict(error)) {
         return {
           ok: false,
-          error: "Konflik perubahan biaya berulang. Muat ulang lalu coba lagi.",
+          error: "Repeated fee update conflicts. Reload and try again.",
         };
       }
 
       return {
         ok: false,
-        error: "Gagal mengubah biaya fleksibilitas.",
+        error: "Failed to change stay flexibility fees.",
         disposition: "failed",
       };
     }
@@ -559,6 +559,6 @@ export async function setReservationStayFee(
 
   return {
     ok: false,
-    error: "Konflik perubahan biaya berulang. Muat ulang lalu coba lagi.",
+    error: "Repeated fee update conflicts. Reload and try again.",
   };
 }

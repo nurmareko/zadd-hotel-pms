@@ -38,7 +38,7 @@ describe("requestRoomCleaning authorization", () => {
 
   it.each([null, "HK", "FB", "ACC", "UNKNOWN"])("rejects %s before opening a transaction", async (role) => {
     mocks.auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
-    await expect(requestRoomCleaning(1)).resolves.toEqual({ ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." });
+    await expect(requestRoomCleaning(1)).resolves.toEqual({ ok: false, error: "You do not have permission to perform this action." });
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
@@ -46,7 +46,7 @@ describe("requestRoomCleaning authorization", () => {
   it("still rejects a non-checked-in reservation for GM inside the transaction", async () => {
     mocks.auth.mockResolvedValue({ user: { id: "7", role: "GM" } });
     mocks.reservationFindUnique.mockResolvedValue({ id: 1, roomId: 2, status: ReservationStatus.CONFIRMED });
-    await expect(requestRoomCleaning(1)).resolves.toEqual({ ok: false, error: "Pembersihan kamar hanya bisa diminta untuk tamu yang sedang check-in." });
+    await expect(requestRoomCleaning(1)).resolves.toEqual({ ok: false, error: "Room cleaning can only be requested for in-house guests." });
     expect(mocks.transaction).toHaveBeenCalled();
     expect(mocks.logCreate).not.toHaveBeenCalled();
     expect(mocks.roomUpdate).not.toHaveBeenCalled();

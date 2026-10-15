@@ -103,7 +103,7 @@ export async function cancelReservation(
         if (reservation.status !== ReservationStatus.CONFIRMED) {
           return reservationFailure("CANCELLATION_FAILED", {
             message:
-              "Hanya reservasi berstatus CONFIRMED yang dapat dibatalkan.",
+              "Only CONFIRMED reservations can be cancelled.",
           });
         }
 
@@ -112,7 +112,7 @@ export async function cancelReservation(
         if (reservation.folio) {
           return reservationFailure("CANCELLATION_FAILED", {
             message:
-              "Reservasi ini sudah memiliki folio. Periksa folio sebelum mencoba membatalkan reservasi.",
+              "This reservation already has a folio. Review the folio before attempting to cancel the reservation.",
           });
         }
 

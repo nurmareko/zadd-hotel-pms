@@ -49,7 +49,7 @@ export function RoomTypeRowActions({
           onClick={() => onDelete(roomType)}
         >
           <Trash2 aria-hidden="true" />
-          Hapus
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

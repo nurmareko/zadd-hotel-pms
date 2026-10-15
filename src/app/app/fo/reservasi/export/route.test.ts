@@ -25,8 +25,8 @@ import { GET } from "./route";
 
 const URL_BASE = "http://localhost/app/fo/reservasi/export";
 const HEADERS = [
-  "Nomor Reservasi", "Nama Tamu", "Nomor Telepon", "Email", "Status", "Kamar",
-  "Tipe Kamar", "Tamu", "Check-in", "Check-out", "Dibuat", "Total (Rp)", "Saldo (Rp)", "Grup",
+  "Reservation Number", "Guest Name", "Phone Number", "Email", "Status", "Room",
+  "Room Type", "Guest", "Check-in", "Check-out", "Created", "Total (Rp)", "Balance (Rp)", "Group",
 ];
 type CsvRow = (string | number | null)[];
 const columns = HEADERS.map((header, index) => ({
@@ -50,7 +50,7 @@ function reservation(id: number, groupBookingId: string | null = null, payment?:
   return {
     id,
     reservationNo: `RES-${id}`,
-    guest: { fullName: `Tamu ${id}`, phone: null, email: null },
+    guest: { fullName: `Guest ${id}`, phone: null, email: null },
     status: "CONFIRMED",
     room: null,
     roomType: { name: "Deluxe" },
@@ -67,7 +67,7 @@ function reservation(id: number, groupBookingId: string | null = null, payment?:
 
 function expectedRow(id: number): CsvRow {
   return [
-    `RES-${id}`, `Tamu ${id}`, null, null, "Terkonfirmasi", null, "Deluxe", "2 dewasa",
+    `RES-${id}`, `Guest ${id}`, null, null, "Confirmed", null, "Deluxe", "2 adults",
     "2026-06-01", "2026-06-03", "2026-05-20T08:00:00.000Z", 200000, null, null,
   ];
 }
@@ -162,10 +162,10 @@ describe("reservation CSV export", () => {
     }
     // 100000 + 10000 service + 12100 tax + 251 extra + 5000 inclusive = 127351.
     const due = expectedRow(1);
-    due.splice(1, 7, '=Siti, "A"', "+628123", "siti@example.test", "Terkonfirmasi", "101", "Deluxe", "2 dewasa, 1 anak");
+    due.splice(1, 7, '=Siti, "A"', "+628123", "siti@example.test", "Confirmed", "101", "Deluxe", "2 adults, 1 children");
     due[11] = 350000;
     due[12] = 107351;
-    due[13] = "GRP-A (8 kamar)";
+    due[13] = "GRP-A (8 rooms)";
     const credit = expectedRow(2);
     credit[12] = -72649;
     const settled = expectedRow(3);
@@ -187,7 +187,7 @@ describe("reservation CSV export", () => {
     const csv = await readCsv(response);
     const rows = Array.from({ length: 101 }, (_, index) => {
       const row = expectedRow(index + 1);
-      row[13] = index < 100 ? "GRP-A (120 kamar)" : "GRP-B (3 kamar)";
+      row[13] = index < 100 ? "GRP-A (120 rooms)" : "GRP-B (3 rooms)";
       return row;
     });
     expect(csv).toBe(generateCsv(columns, rows));

@@ -13,13 +13,13 @@ import {
 import { filterTicketsByStation, KITCHEN_STATIONS, KITCHEN_STATION_LABELS, resolveItemStation, type KitchenStation } from "@/lib/kitchen-stations";
 
 const categoryLabels: Record<string, string> = {
-  mains: "Hidangan utama", breakfast: "Sarapan", dessert: "Hidangan penutup",
-  soup: "Sup", beverage: "Minuman", beverages: "Minuman", drink: "Minuman",
-  drinks: "Minuman", snacks: "Camilan", grill: "Panggangan", fryer: "Gorengan",
+  mains: "Main courses", breakfast: "Breakfast", dessert: "Desserts",
+  soup: "Soups", beverage: "Beverages", beverages: "Beverages", drink: "Beverages",
+  drinks: "Beverages", snacks: "Snacks", grill: "Grill", fryer: "Fryer",
 };
 
 function categoryLabel(category?: string | null) {
-  return categoryLabels[category?.trim().toLowerCase() ?? ""] ?? (category?.trim() || "Lainnya");
+  return categoryLabels[category?.trim().toLowerCase() ?? ""] ?? (category?.trim() || "Other");
 }
 
 function playChime(context: AudioContext) {
@@ -98,7 +98,7 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
 
       startRefresh(() => router.refresh());
     } catch {
-      setActionError("Status pesanan gagal diperbarui. Coba lagi.");
+      setActionError("Unable to update the order status. Try again.");
     } finally {
       setIsPending(false);
     }
@@ -109,7 +109,7 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
       hidden={hidden}
       className={`${hidden ? "hidden" : "flex"} min-h-72 flex-col rounded-lg border-2 bg-white p-4 shadow-sm transition-colors ${isLate ? "border-red-500" : "border-slate-200"
         }`}
-      aria-label={`Pesanan ${ticket.orderNo}${isLate ? ", terlambat" : ""}`}
+      aria-label={`Order ${ticket.orderNo}${isLate ? ", overdue" : ""}`}
     >
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="min-w-0">
@@ -119,12 +119,12 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
           <h2 className="mt-1 truncate text-xl font-bold text-slate-950">
             {ticket.destination}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">{ticket.guestCount !== undefined ? `${ticket.guestCount} tamu · ` : ""}Pelayan: {ticket.waiterName}</p>
+          <p className="mt-1 text-sm text-slate-500">{ticket.guestCount !== undefined ? `${ticket.guestCount} guests · ` : ""}Server: {ticket.waiterName}</p>
                     <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{KITCHEN_STATION_LABELS[primaryStation]}</span>
         </div>
         <div className={`shrink-0 text-right ${isLate ? "text-red-600" : "text-emerald-700"}`}>
           {isLate ? (
-            <span className="block rounded bg-red-50 px-2 py-1 text-xs font-extrabold tracking-wider motion-safe:animate-pulse">TERLAMBAT</span>
+            <span className="block rounded bg-red-50 px-2 py-1 text-xs font-extrabold tracking-wider motion-safe:animate-pulse">OVERDUE</span>
           ) : null}
           <span className="mt-1 flex items-center justify-end gap-1 font-mono text-lg font-bold tabular-nums">
             <Clock3 className="size-4" aria-hidden="true" />
@@ -147,8 +147,8 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
                       <UtensilsCrossed className="mt-1 size-4 shrink-0 text-slate-400" aria-hidden="true" />
                       <div className="min-w-0 flex-1">
                         <p className={`break-words font-semibold ${ready ? "text-emerald-700" : "text-slate-900"}`}>{item.name}</p>
-                        {item.notes ? <p className="mt-0.5 break-words text-sm text-amber-800">Catatan: {item.notes}</p> : null}
-                        <button type="button" aria-pressed={ready} aria-label={`${ready ? "Batalkan kesiapan" : "Tandai Siap"}: ${item.name}`}
+                        {item.notes ? <p className="mt-0.5 break-words text-sm text-amber-800">Notes: {item.notes}</p> : null}
+                        <button type="button" aria-pressed={ready} aria-label={`${ready ? "Mark Not Ready" : "Mark Ready"}: ${item.name}`}
                           className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
                           onClick={() => setReadyItems((current) => {
                             const next = new Set(current);
@@ -156,7 +156,7 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
                             return next;
                           })}>
                           {ready ? <Check className="size-4" aria-hidden="true" /> : null}
-                          {ready ? "Siap" : "Tandai Siap"}
+                          {ready ? "Ready" : "Mark Ready"}
                         </button>
                       </div>
                     </div>
@@ -167,12 +167,12 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
           </section>
         ))}
       </div>
-      <p className="mb-3 border-t border-slate-100 pt-3 text-sm font-semibold text-slate-600" role="status">{`${readyCount} dari ${ticket.items.length} siap`}</p>
+      <p className="mb-3 border-t border-slate-100 pt-3 text-sm font-semibold text-slate-600" role="status">{`${readyCount} of ${ticket.items.length} ready`}</p>
 
       {isCooking ? (
         <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-700" role="status">
           <Flame className="size-4" aria-hidden="true" />
-          Sedang dimasak
+          Preparing
         </p>
       ) : null}
       {actionError ? (
@@ -192,10 +192,10 @@ function KitchenTicketCard({ ticket, now, hidden }: { ticket: KitchenTicket; now
           <Flame className="size-4" aria-hidden="true" />
         )}
         {isPending || isRefreshing
-          ? "Memperbarui..."
+          ? "Updating..."
           : isCooking
-            ? "Tandai selesai"
-            : "Mulai memasak"}
+            ? "Mark Complete"
+            : "Start Preparing"}
       </button>
     </article>
   );
@@ -223,7 +223,7 @@ export function KitchenDisplay({ tickets, initialNow }: KitchenDisplayProps) {
         if (audio.current === context) playChime(context);
       }).catch(() => {
         setSoundEnabled(false);
-        setControlError("Suara gagal diputar. Aktifkan kembali suara untuk mencoba lagi.");
+        setControlError("Unable to play sound. Enable sound again to retry.");
       });
     }
   }, [tickets, soundEnabled]);
@@ -257,7 +257,7 @@ export function KitchenDisplay({ tickets, initialNow }: KitchenDisplayProps) {
       playChime(context);
       setSoundEnabled(true);
     } catch {
-      setControlError("Suara tidak tersedia. Periksa izin suara pada peramban, lalu coba lagi.");
+      setControlError("Sound is unavailable. Check your browser sound permissions and try again.");
     } finally {
       setSoundPending(false);
     }
@@ -269,7 +269,7 @@ export function KitchenDisplay({ tickets, initialNow }: KitchenDisplayProps) {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await document.documentElement.requestFullscreen();
     } catch {
-      setControlError("Layar penuh tidak tersedia pada peramban ini.");
+      setControlError("Full screen is unavailable in this browser.");
     }
   }
 
@@ -284,20 +284,20 @@ export function KitchenDisplay({ tickets, initialNow }: KitchenDisplayProps) {
   }, [router]);
 
   return (
-    <section aria-label="Antrian pesanan dapur">
+    <section aria-label="Kitchen Order Queue">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Clock3 className="size-4" aria-hidden="true" />
-          <span>Waktu diperbarui setiap detik · Antrian disegarkan otomatis</span>
+          <span>Times update every second · Queue refreshes automatically</span>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
           <UtensilsCrossed className="size-4" aria-hidden="true" />
-          {tickets.length} pesanan aktif
+          {tickets.length} active orders
         </span>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter stasiun">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Station filter">
           {KITCHEN_STATIONS.map((value) => (
             <button key={value} type="button" aria-pressed={station === value} onClick={() => setStation(value)}
               className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${station === value ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"}`}>
@@ -309,23 +309,23 @@ export function KitchenDisplay({ tickets, initialNow }: KitchenDisplayProps) {
         <div className="flex flex-wrap gap-2">
           <button type="button" aria-pressed={soundEnabled} disabled={soundPending} onClick={() => void toggleSound()} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60">
             {soundEnabled ? <Volume2 className="size-4" aria-hidden="true" /> : <VolumeX className="size-4" aria-hidden="true" />}
-            {soundEnabled ? "Suara aktif" : "Suara hening"}
+            {soundEnabled ? "Sound on" : "Sound off"}
           </button>
           <button type="button" aria-pressed={fullscreen} onClick={() => void toggleFullscreen()} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold hover:bg-slate-100">
             {fullscreen ? <Minimize className="size-4" aria-hidden="true" /> : <Maximize className="size-4" aria-hidden="true" />}
-            {fullscreen ? "Keluar layar penuh" : "Layar penuh"}
+            {fullscreen ? "Exit full screen" : "Full screen"}
           </button>
         </div>
       </div>
-      <p className="mb-4 text-xs text-slate-500">Daftar kesiapan hanya di layar ini; tidak tersimpan atau dibagikan. Perubahan isi pesanan menghapus tanda siap. Selesaikan pesanan setelah semua stasiun siap.</p>
+      <p className="mb-4 text-xs text-slate-500">Readiness is tracked only on this screen; it is not saved or shared. Changes to order items clear ready marks. Complete the order once all stations are ready.</p>
       {controlError ? <p role="alert" className="mb-4 text-sm text-red-700">{controlError}</p> : null}
-      <p className="sr-only" role="status">{visibleTickets.length} pesanan di stasiun {KITCHEN_STATION_LABELS[station]}</p>
+      <p className="sr-only" role="status">{visibleTickets.length} orders at station {KITCHEN_STATION_LABELS[station]}</p>
       {visibleTickets.length === 0 ? (
         <div className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-4 text-center">
           <ChefHat className="size-8 text-slate-400" aria-hidden="true" />
-          <h2 className="mt-3 text-lg font-semibold text-slate-900">Belum ada pesanan untuk dapur</h2>
+          <h2 className="mt-3 text-lg font-semibold text-slate-900">No kitchen orders yet</h2>
           <p className="mt-1 max-w-md text-sm text-slate-500">
-            Pesanan akan muncul di sini setelah item ditambahkan ke pesanan yang masih terbuka.
+            Orders appear here once items are added to an open order.
           </p>
         </div>
       ) : null}

@@ -44,7 +44,7 @@ export function PasswordForm() {
 
     if (result.ok) {
       form.reset(emptyValues);
-      toast.success("Password berhasil diubah");
+      toast.success("Password changed successfully");
       return;
     }
 
@@ -55,10 +55,10 @@ export function PasswordForm() {
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4">
         <h2 className="text-[16px] font-semibold text-slate-900">
-          Ganti Password
+          Change Password
         </h2>
         <p className="mt-1 text-[13px] leading-5 text-slate-500">
-          Perbarui password akun untuk menjaga akses tetap aman.
+          Update your account password to keep access secure.
         </p>
       </div>
       <div className="px-5 py-5">
@@ -70,7 +70,7 @@ export function PasswordForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-[13px] font-medium text-slate-700">
-                    Password saat ini
+                    Current password
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -91,7 +91,7 @@ export function PasswordForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-[13px] font-medium text-slate-700">
-                    Password baru
+                    New password
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -112,7 +112,7 @@ export function PasswordForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-[13px] font-medium text-slate-700">
-                    Konfirmasi password baru
+                    Confirm new password
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -134,8 +134,8 @@ export function PasswordForm() {
                 className="h-10 rounded-md border border-slate-900 bg-slate-900 px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-slate-800"
               >
                 {form.formState.isSubmitting
-                  ? "Menyimpan..."
-                  : "Simpan Password"}
+                  ? "Saving..."
+                  : "Save Password"}
               </Button>
             </div>
           </form>

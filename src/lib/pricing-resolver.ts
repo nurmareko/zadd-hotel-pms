@@ -91,7 +91,7 @@ function validatePricingSet(pricingSet: RoomTypePricingSet) {
 
     if (!validWeekdayShape && !validRangeShape) {
       throw new PricingResolutionError(
-        `Aturan harga aktif “${rule.name}” memiliki selector yang tidak valid.`,
+        `Active pricing rule “${rule.name}” has an invalid selector.`,
       );
     }
   }
@@ -112,7 +112,7 @@ function resolveFromPricingSet(
 
   if (matchingRanges.length > 1) {
     throw new PricingResolutionError(
-      "Terdapat rentang tanggal aktif yang tumpang tindih untuk tipe kamar ini.",
+      "Active date ranges overlap for this room type.",
     );
   }
 
@@ -125,7 +125,7 @@ function resolveFromPricingSet(
 
   if (matchingWeekdays.length > 1) {
     throw new PricingResolutionError(
-      "Terdapat lebih dari satu aturan hari aktif untuk tipe kamar ini.",
+      "There is more than one active day rule for this room type.",
     );
   }
 
@@ -140,7 +140,7 @@ function resolveFromPricingSet(
 
   if (rate.lessThanOrEqualTo(0)) {
     throw new PricingResolutionError(
-      "Aturan harga harus menghasilkan tarif malam lebih besar dari 0.",
+      "Pricing rules must produce a nightly rate greater than 0.",
     );
   }
 
@@ -187,7 +187,7 @@ async function loadPricingSet(
   });
 
   if (!roomType) {
-    throw new PricingResolutionError("Tipe kamar tidak ditemukan.");
+    throw new PricingResolutionError("Room type not found.");
   }
 
   validatePricingSet(roomType);
@@ -212,7 +212,7 @@ export async function resolveNightlySchedule(
 
   if (arrival >= departure) {
     throw new PricingResolutionError(
-      "Tanggal keberangkatan harus setelah tanggal kedatangan.",
+      "Departure date must be after the arrival date.",
     );
   }
 

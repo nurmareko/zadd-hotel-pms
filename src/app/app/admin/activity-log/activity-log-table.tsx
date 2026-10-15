@@ -36,12 +36,12 @@ function RelatedRecords({ activity }: { activity: ActivityRow }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {activity.reservation && <Link className={linkClass} href={`/app/fo/reservasi/${activity.reservation.id}`}>Reservasi {activity.reservation.reservationNo}</Link>}
-        {activity.room && <Link className={linkClass} href={`/app/hk/rooms/${activity.room.id}`}>Kamar {activity.room.number}</Link>}
+        {activity.reservation && <Link className={linkClass} href={`/app/fo/reservasi/${activity.reservation.id}`}>Reservation {activity.reservation.reservationNo}</Link>}
+        {activity.room && <Link className={linkClass} href={`/app/hk/rooms/${activity.room.id}`}>Room {activity.room.number}</Link>}
         {activity.folio && <Link className={linkClass} href={`/app/fo/reservasi/${activity.folio.reservationId}?tab=tagihan`}>Folio {activity.folio.folioNo}</Link>}
         {!activity.reservation && !activity.room && !activity.folio && <span className="text-muted-foreground">—</span>}
       </div>
-      {activity.reservation && <p className="break-words text-xs text-muted-foreground">Tamu: {activity.reservation.guest.fullName}</p>}
+      {activity.reservation && <p className="break-words text-xs text-muted-foreground">Guest: {activity.reservation.guest.fullName}</p>}
     </div>
   );
 }
@@ -51,8 +51,8 @@ export function ActivityLogTable({ activities, filtered }: { activities: Activit
     return (
       <div role="status" className="space-y-2 px-4 py-12 text-center">
         <ClipboardList aria-hidden="true" className="mx-auto size-8 text-muted-foreground" />
-        <h2 className="font-semibold">{filtered ? "Tidak ada aktivitas yang sesuai" : "Belum ada aktivitas"}</h2>
-        <p className="text-sm text-muted-foreground">{filtered ? "Ubah atau reset filter untuk melihat aktivitas lainnya." : "Aktivitas yang tercatat akan ditampilkan di sini."}</p>
+        <h2 className="font-semibold">{filtered ? "No matching activity" : "No activity yet"}</h2>
+        <p className="text-sm text-muted-foreground">{filtered ? "Change or reset the filters to view other activity." : "Recorded activity will appear here."}</p>
       </div>
     );
   }
@@ -61,9 +61,9 @@ export function ActivityLogTable({ activities, filtered }: { activities: Activit
     <>
       <div className="hidden overflow-x-auto desktop:block">
         <table className="w-full text-left text-sm">
-          <caption className="sr-only">Log aktivitas pengguna, terbaru terlebih dahulu</caption>
+          <caption className="sr-only">User activity log, newest first</caption>
           <thead className="border-b bg-slate-50 text-xs text-muted-foreground">
-            <tr>{["Waktu", "Pengguna", "Aksi", "Terkait", "Ringkasan"].map((label) => <th scope="col" key={label} className="px-4 py-3 font-medium">{label}</th>)}</tr>
+            <tr>{["Time", "User", "Actions", "Related To", "Summary"].map((label) => <th scope="col" key={label} className="px-4 py-3 font-medium">{label}</th>)}</tr>
           </thead>
           <tbody>
             {activities.map((activity) => (

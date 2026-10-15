@@ -24,10 +24,10 @@ export default async function GuestDirectoryPage({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       <header>
-        <h1 className="text-3xl font-bold text-slate-900">Daftar Tamu</h1>
-        <p className="mt-1 text-sm text-slate-500">Cari data tamu dan gunakan kembali untuk reservasi baru.</p>
+        <h1 className="text-3xl font-bold text-slate-900">Guest List</h1>
+        <p className="mt-1 text-sm text-slate-500">Find guest records and reuse them for new reservations.</p>
       </header>
-      <section aria-label="Direktori tamu" className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section aria-label="Guest directory" className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <GuestFilters q={q} resultCount={guests.length} />
         <GuestTable guests={guests} q={q} />
       </section>

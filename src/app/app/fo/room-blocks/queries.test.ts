@@ -11,7 +11,7 @@ describe("room block management query", () => {
     findMany.mockResolvedValue([{
       id: 4, roomId: 7, reason: "INSPECTION", status: "RELEASED", note: null,
       startDate: new Date("2028-02-28T00:00:00Z"), endDate: new Date("2028-03-01T00:00:00Z"),
-      room: { number: "107", roomType: { name: "Deluxe" } }, createdBy: { fullName: "Petugas" },
+      room: { number: "107", roomType: { name: "Deluxe" } }, createdBy: { fullName: "Staff Member" },
     }]);
     const parsed = parseBlockFilters({ q: "107", startDate: "2028-02-29", endDate: "2028-03-01", reason: "INSPECTION", status: "RELEASED" });
     if (!parsed.ok) throw new Error("Expected valid filters");

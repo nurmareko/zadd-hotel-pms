@@ -203,7 +203,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "DEPOSIT_STATE_INCONSISTENT",
         error:
-          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
+          "The deposit status and folio payments are inconsistent. Stop and request a data review.",
       });
       expect(await prisma.payment.count({ where: { folioId: folio.id } })).toBe(0);
     });
@@ -226,7 +226,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "DEPOSIT_STATE_INCONSISTENT",
         error:
-          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
+          "The deposit status and folio payments are inconsistent. Stop and request a data review.",
       });
       const persisted = await prisma.reservation.findUniqueOrThrow({
         where: { id: reservation.id },
@@ -252,7 +252,7 @@ describe("check-in database actions", () => {
       expect(result).toEqual({
         ok: false,
         code: "ARRIVAL_NOT_DUE",
-        error: "Check-in baru dapat dilakukan pada tanggal kedatangan.",
+        error: "Check-in is only available from the arrival date.",
       });
       expect(await prisma.folio.count({ where: { reservationId: reservation.id } })).toBe(0);
       expect(await prisma.payment.count()).toBe(0);
@@ -304,7 +304,7 @@ describe("check-in database actions", () => {
       expect(result).toEqual({
         ok: false,
         code: "DEPOSIT_REQUIRED",
-        error: "Deposit belum dibayar. Kumpulkan deposit sebelum check-in.",
+        error: "The deposit has not been paid. Collect the deposit before check-in.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
         await Promise.all([
@@ -336,7 +336,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "DEPOSIT_FOLIO_MISSING",
         error:
-          "Folio deposit tidak ditemukan. Hentikan check-in dan periksa data reservasi.",
+          "Deposit folio not found. Stop check-in and review the reservation data.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
         await Promise.all([
@@ -368,7 +368,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "DEPOSIT_STATE_INCONSISTENT",
         error:
-          "Status deposit dan pembayaran folio tidak sesuai. Hentikan proses dan minta pemeriksaan data.",
+          "The deposit status and folio payments are inconsistent. Stop and request a data review.",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
         await Promise.all([
@@ -416,7 +416,7 @@ describe("check-in database actions", () => {
       expect(result).toEqual({
         ok: false,
         code: "ROOM_BLOCKED",
-        error: `Kamar diblokir untuk Pemeliharaan pada ${reservation.arrivalDate.toISOString().slice(0, 10)} hingga sebelum ${reservation.departureDate.toISOString().slice(0, 10)}. Pilih kamar atau tanggal lain.`,
+        error: `Room blocked for Maintenance from ${reservation.arrivalDate.toISOString().slice(0, 10)} until ${reservation.departureDate.toISOString().slice(0, 10)} (exclusive). Select another room or date.`,
         field: "roomId",
       });
       const [persistedGuest, persistedReservation, persistedRoom] =
@@ -496,7 +496,7 @@ describe("check-in database actions", () => {
       expect(persistedReservation.grcSnapshotVersion).toBe(1);
       expect(snapshot).toEqual({
         schemaVersion: 1,
-        templateVersion: 1,
+        templateVersion: 2,
         capturedAt: FROZEN_NOW.toISOString(),
         header: {
           brandName: "ZADD Hotel Management",
@@ -509,7 +509,7 @@ describe("check-in database actions", () => {
           departure: "2026-08-07T00:00:00.000Z",
           nights: 2,
           arrangementType: "RO",
-          arrangementTypeLabel: "RO — Tanpa makan",
+          arrangementTypeLabel: "RO — Room only",
           reservationType: "INDIVIDUAL",
           reservationTypeLabel: "Individual",
         },
@@ -534,7 +534,7 @@ describe("check-in database actions", () => {
           ],
         },
         grcMetadata: {
-          purposeOfVisit: "Bisnis",
+          purposeOfVisit: "Business",
           grcFilledAt: FROZEN_NOW.toISOString(),
           filledByName: checkInOperator.fullName,
           signedAt: FROZEN_NOW.toISOString(),
@@ -556,7 +556,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "RESERVATION_NOT_ELIGIBLE",
         error:
-          "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
+          "This reservation is no longer eligible for check-in. Reload the page and check its status.",
       });
 
       await prisma.guest.update({
@@ -701,7 +701,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "RESERVATION_NOT_ELIGIBLE",
         error:
-          "Reservasi tidak lagi memenuhi syarat check-in. Muat ulang halaman dan periksa statusnya.",
+          "This reservation is no longer eligible for check-in. Reload the page and check its status.",
       });
 
       const persistedFee = await prisma.reservationStayFee.findUniqueOrThrow({
@@ -751,7 +751,7 @@ describe("check-in database actions", () => {
         ok: false,
         code: "STAY_FEE_UNAVAILABLE",
         error:
-          "Biaya fleksibilitas belum dapat dicatat. Periksa konfigurasi biaya lalu coba lagi.",
+          "Stay flexibility fees could not be recorded. Check the fee settings and try again.",
       });
 
       // Verify transaction rollback

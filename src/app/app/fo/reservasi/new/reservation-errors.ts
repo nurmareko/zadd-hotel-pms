@@ -59,37 +59,37 @@ export type ReservationFailure = {
 export type ReservationActionResult = { ok: true } | ReservationFailure;
 
 const RESERVATION_FAILURE_MESSAGES: Record<ReservationFailureCode, string> = {
-  SESSION_EXPIRED: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-  FORBIDDEN: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  FORBIDDEN: "You do not have permission to perform this action.",
   INVALID_RESERVATION_DATA:
-    "Data reservasi tidak valid. Periksa kembali formulir.",
+    "Invalid reservation data. Check the form.",
   RESERVATION_NOT_FOUND:
-    "Reservasi tidak ditemukan. Muat ulang halaman atau kembali ke daftar reservasi.",
+    "Reservation not found. Reload the page or return to the reservation list.",
   RESERVATION_CONFLICT:
-    "Reservasi berubah sejak halaman ini dibuka. Muat ulang data lalu coba lagi.",
+    "The reservation has changed since this page was opened. Reload the data and try again.",
   ROOM_UNAVAILABLE:
-    "Kamar yang dipilih sudah tidak tersedia untuk tanggal tersebut. Pilih kamar lain.",
-  INVALID_ROOM_TYPE: "Tipe kamar yang dipilih tidak valid.",
-  INVALID_ROOM: "Kamar yang dipilih tidak valid.",
+    "The selected room is no longer available for those dates. Select another room.",
+  INVALID_ROOM_TYPE: "The selected room type is invalid.",
+  INVALID_ROOM: "The selected room is invalid.",
   ROOM_OOO:
-    "Kamar yang dipilih sedang berstatus OOO dan tidak dapat dipesan.",
-  ROOM_BLOCKED: "Kamar yang dipilih diblokir pada periode menginap. Pilih kamar atau tanggal lain.",
+    "The selected room is Out of Order (OOO) and cannot be reserved.",
+  ROOM_BLOCKED: "The selected room is blocked during the stay. Select another room or different dates.",
   POST_CHECK_IN_EDIT_RESTRICTED:
-    "Perubahan ini tidak dapat dilakukan setelah check-in.",
+    "This change cannot be made after check-in.",
   PRICING_QUOTE_FAILED:
-    "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
+    "Unable to calculate the rate summary. Please try again.",
   STAY_FEE_UNAVAILABLE:
-    "Biaya fleksibilitas yang dipilih sedang tidak tersedia. Hapus pilihan atau hubungi admin.",
+    "The selected stay flexibility fee is unavailable. Remove the selection or contact an administrator.",
   CANCELLATION_FAILED:
-    "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
-  UNEXPECTED_FAILURE: "Terjadi kegagalan yang tidak terduga. Silakan coba lagi.",
+    "Unable to cancel the reservation. Please try again.",
+  UNEXPECTED_FAILURE: "An unexpected error occurred. Please try again.",
 };
 
 const UNEXPECTED_OPERATION_MESSAGES = {
-  create: "Reservasi tidak dapat dibuat. Silakan coba lagi.",
-  edit: "Perubahan reservasi tidak dapat disimpan. Silakan coba lagi.",
-  quote: "Ringkasan harga tidak dapat dihitung. Silakan coba lagi.",
-  cancel: "Reservasi tidak dapat dibatalkan. Silakan coba lagi.",
+  create: "Unable to create the reservation. Please try again.",
+  edit: "Unable to save reservation changes. Please try again.",
+  quote: "Unable to calculate the rate summary. Please try again.",
+  cancel: "Unable to cancel the reservation. Please try again.",
 } as const;
 
 export function reservationFailureMessage(code: ReservationFailureCode) {

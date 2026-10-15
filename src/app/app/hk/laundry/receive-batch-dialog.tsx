@@ -38,12 +38,12 @@ export function ReceiveBatchDialog({ batch }: { batch: ReceiptBatch }) {
       }
     }}>
       <DialogTrigger render={<Button size="sm" variant="outline" />}>
-        <PackageCheck className="size-4" aria-hidden="true" />Terima Linen<span className="sr-only"> {batch.batchCode}</span>
+        <PackageCheck className="size-4" aria-hidden="true" />Receive Linen<span className="sr-only"> {batch.batchCode}</span>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Terima Batch {batch.batchCode}</DialogTitle>
-          <DialogDescription>{ITEM_LABELS[batch.itemType]} · {batch.sentQuantity.toLocaleString("id-ID")} unit dikirim. Pisahkan linen bersih siap pakai dari linen rusak.</DialogDescription>
+          <DialogTitle>Receive Batch {batch.batchCode}</DialogTitle>
+          <DialogDescription>{ITEM_LABELS[batch.itemType]} · {batch.sentQuantity.toLocaleString("id-ID")} units sent. Separate clean, ready-to-use linen from damaged linen.</DialogDescription>
         </DialogHeader>
         <form aria-busy={pending} className="space-y-4" onSubmit={(event) => {
           event.preventDefault();
@@ -58,11 +58,11 @@ export function ReceiveBatchDialog({ batch }: { batch: ReceiptBatch }) {
                 toast.error(result.error);
                 return;
               }
-              toast.success("Penerimaan linen berhasil dicatat.");
+              toast.success("Linen receipt recorded successfully.");
               setOpen(false);
               router.refresh();
             } catch {
-              const message = "Penerimaan belum dapat disimpan. Periksa status batch sebelum mencoba lagi.";
+              const message = "The receipt could not be saved. Check the batch status before trying again.";
               setError(message);
               toast.error(message);
             }
@@ -70,25 +70,25 @@ export function ReceiveBatchDialog({ batch }: { batch: ReceiptBatch }) {
         }}>
           <input type="hidden" name="batchId" value={batch.id} />
           <fieldset disabled={pending} className="min-w-0 space-y-4">
-            <legend className="sr-only">Hasil penerimaan linen</legend>
-            <label className="block text-sm font-medium">Jumlah bersih diterima (unit)
+            <legend className="sr-only">Linen receipt results</legend>
+            <label className="block text-sm font-medium">Clean quantity received (units)
               <input name="receivedQuantity" type="number" min={0} max={batch.sentQuantity} step={1} required value={received} onChange={(event) => setReceived(event.target.value)} aria-invalid={overReceipt} aria-describedby={`${id}-reconciliation`} className={controlClass} />
             </label>
-            <label className="block text-sm font-medium">Jumlah afkir / rusak (unit)
+            <label className="block text-sm font-medium">Discarded / damaged quantity (units)
               <input name="damagedQuantity" type="number" min={0} max={batch.sentQuantity} step={1} required value={damaged} onChange={(event) => setDamaged(event.target.value)} aria-invalid={overReceipt} aria-describedby={`${id}-reconciliation`} className={controlClass} />
             </label>
-            <label className="block text-sm font-medium">Catatan penerimaan (opsional)
-              <textarea name="notes" rows={3} maxLength={2000} className={`${controlClass} h-auto py-3`} placeholder="Catatan kerusakan atau selisih penerimaan" />
+            <label className="block text-sm font-medium">Receipt notes (optional)
+              <textarea name="notes" rows={3} maxLength={2000} className={`${controlClass} h-auto py-3`} placeholder="Notes on damage or receipt discrepancies" />
             </label>
           </fieldset>
           <div id={`${id}-reconciliation`} aria-live="polite" className={`rounded-md p-3 text-sm ${overReceipt ? "bg-rose-50 text-rose-800" : lost > 0 ? "bg-amber-50 text-amber-800" : "bg-muted text-muted-foreground"}`}>
-            {!validCounts ? "Masukkan jumlah unit berupa bilangan bulat nol atau lebih." : overReceipt ? "Jumlah bersih dan rusak tidak boleh melebihi jumlah yang dikirim." : lost > 0 ? `Selisih ${lost.toLocaleString("id-ID")} unit akan dicatat sebagai kehilangan. Pastikan hasil penerimaan sudah benar.` : "Seluruh linen telah terhitung. Tidak ada kehilangan."}
+            {!validCounts ? "Enter a whole number of units, zero or more." : overReceipt ? "The clean and damaged quantities must not exceed the quantity sent." : lost > 0 ? `A difference of ${lost.toLocaleString("id-ID")} units will be recorded as missing. Check that the receipt quantities are correct.` : "All linen is accounted for. No items are missing."}
           </div>
-          <p className="text-xs text-muted-foreground">Penerimaan menyelesaikan batch menjadi Bersih / Masuk Gudang dan tidak dapat diubah melalui layar ini.</p>
+          <p className="text-xs text-muted-foreground">Receiving completes the batch as Clean / In Stock and cannot be changed on this screen.</p>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2 border-t pt-4">
-            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={pending || !validCounts || overReceipt}>{pending ? "Menyimpan..." : "Simpan Penerimaan"}</Button>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={pending || !validCounts || overReceipt}>{pending ? "Saving..." : "Save Receipt"}</Button>
           </div>
         </form>
       </DialogContent>

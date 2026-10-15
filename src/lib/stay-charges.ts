@@ -153,7 +153,7 @@ function postingBlocked(
   blocker?: StayChargePostingBlocker,
 ): never {
   throw new StayChargePostingError(
-    `Posting stay charge ${reservationNo} diblokir: ${detail}`,
+    `Stay-charge posting for ${reservationNo} blocked: ${detail}`,
     blocker,
   );
 }
@@ -187,7 +187,7 @@ function validatePostingSchedule({
   if (reservationNights.length !== expectedDates.length) {
     postingBlocked(
       reservationNo,
-      `jadwal ReservationNight tidak lengkap (expected ${expectedDates.length}, actual ${reservationNights.length}).`,
+      `ReservationNight schedule is incomplete (expected ${expectedDates.length}, actual ${reservationNights.length}).`,
       {
         kind: "INCOMPLETE_STAY_SCHEDULE",
         expectedCount: expectedDates.length,
@@ -210,7 +210,7 @@ function validatePostingSchedule({
     if (!expectedDate || dateKey(night.date) !== dateKey(expectedDate)) {
       postingBlocked(
         reservationNo,
-        `jadwal ReservationNight harus berurutan dan kontigu; posisi ${index + 1} expected ${expectedDate ? dateKey(expectedDate) : "none"}, actual ${dateKey(night.date)}.`,
+        `ReservationNight schedule must be ordered and contiguous; position ${index + 1} expected ${expectedDate ? dateKey(expectedDate) : "none"}, actual ${dateKey(night.date)}.`,
         {
           kind: "OUT_OF_ORDER_STAY_SCHEDULE",
           position: index + 1,
@@ -223,7 +223,7 @@ function validatePostingSchedule({
     if (night.reservationId !== reservationId) {
       postingBlocked(
         reservationNo,
-        `snapshot ${night.id} bukan milik reservasi ini.`,
+        `Snapshot ${night.id} does not belong to this reservation.`,
         {
           kind: "NIGHT_OWNERSHIP_MISMATCH",
           nightId: night.id,
@@ -237,7 +237,7 @@ function validatePostingSchedule({
     if (!night.rateAmount.isInteger() || night.rateAmount.isNegative()) {
       postingBlocked(
         reservationNo,
-        `rate snapshot ${night.id} (${dateKey(night.date)}) harus whole-IDR dan tidak negatif.`,
+        `Rate snapshot ${night.id} (${dateKey(night.date)}) must be whole-IDR and nonnegative.`,
         {
           kind: "INVALID_ROOM_RATE",
           nightId: night.id,
@@ -259,7 +259,7 @@ function validatePostingSchedule({
     if (!mealIsEmpty && !mealIsComplete) {
       postingBlocked(
         reservationNo,
-        `meal snapshot ${night.id} (${dateKey(night.date)}) tidak lengkap.`,
+        `Meal snapshot ${night.id} (${dateKey(night.date)}) is incomplete.`,
         {
           kind: "INCOMPLETE_MEAL_VALUES",
           nightId: night.id,
@@ -283,7 +283,7 @@ function validatePostingSchedule({
       ) {
         postingBlocked(
           reservationNo,
-          `meal snapshot ${night.id} (${dateKey(night.date)}) tidak valid.`,
+          `Meal snapshot ${night.id} (${dateKey(night.date)}) is invalid.`,
           {
             kind: "INVALID_MEAL_VALUES",
             nightId: night.id,
@@ -301,7 +301,7 @@ function validatePostingSchedule({
   if (!Number.isInteger(expectedNights) || expectedNights < 1) {
     postingBlocked(
       reservationNo,
-      `expected nights tidak valid (${expectedNights}).`,
+      `Invalid expected night count (${expectedNights}).`,
       {
         kind: "INVALID_EXPECTED_NIGHT_COUNT",
         expectedCount: expectedNights,
@@ -313,7 +313,7 @@ function validatePostingSchedule({
   if (expectedNights > reservationNights.length) {
     postingBlocked(
       reservationNo,
-      `membutuhkan ${expectedNights} malam tetapi hanya memiliki ${reservationNights.length} snapshot; perpanjang masa inap / buat snapshot terlebih dahulu.`,
+      `Requires ${expectedNights} nights but has only ${reservationNights.length} snapshots; extend the stay / create snapshots first.`,
       {
         kind: "STAY_SCHEDULE_SHORTFALL",
         expectedCount: expectedNights,
@@ -424,7 +424,7 @@ export function stayChargeShortfallLines({
   if (!roomArticle) {
     postingBlocked(
       reservationNo,
-      `artikel ${ROOM_CHARGE_ARTICLE_CODE} tidak tersedia.`,
+      `Article ${ROOM_CHARGE_ARTICLE_CODE} is unavailable.`,
       {
         kind: "MISSING_STAY_CHARGE_ARTICLE",
         articleCode: ROOM_CHARGE_ARTICLE_CODE,
@@ -473,7 +473,7 @@ export function stayChargeShortfallLines({
     if (!definition) {
       postingBlocked(
         reservationNo,
-        `meal plan snapshot ${night.mealPlan} pada ${dateKey(night.date)} tidak dapat diposting.`,
+        `Meal plan snapshot ${night.mealPlan} on ${dateKey(night.date)} cannot be posted.`,
         {
           kind: "UNSUPPORTED_MEAL_PLAN",
           mealPlan: night.mealPlan,
@@ -487,7 +487,7 @@ export function stayChargeShortfallLines({
     if (!article) {
       postingBlocked(
         reservationNo,
-        `artikel ${definition.articleCode} tidak tersedia.`,
+        `Article ${definition.articleCode} is unavailable.`,
         {
           kind: "MISSING_STAY_CHARGE_ARTICLE",
           articleCode: definition.articleCode,
@@ -530,7 +530,7 @@ export function stayChargeShortfallLines({
     if (night.rateAmount.minus(mealAmount).isNegative()) {
       postingBlocked(
         reservationNo,
-        `alokasi Arrangement melebihi tarif paket untuk malam ${dateKey(night.date)}; nilai Kamar setelah dikurangi alokasi Arrangement tidak boleh negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan.`,
+        `The Arrangement allocation exceeds the package rate for ${dateKey(night.date)}; the room amount after deducting the Arrangement allocation must not be negative. Correct the package rate or Arrangement allocation before continuing.`,
         {
           kind: "INVALID_STAY_CHARGE_AMOUNT",
           nightId: night.id,
@@ -640,18 +640,18 @@ export async function postPendingStayCharges({
           });
 
           if (!folio) {
-            throw new StayChargePostingError("Folio tidak ditemukan.");
+            throw new StayChargePostingError("Folio not found.");
           }
 
           if (folio.status !== FolioStatus.OPEN) {
             throw new StayChargePostingError(
-              "Stay charge tidak dapat diposting ke folio yang tidak OPEN.",
+              "Stay charges cannot be posted to a folio that is not OPEN.",
             );
           }
 
           if (folio.reservation.status !== ReservationStatus.CHECKED_IN) {
             throw new StayChargePostingError(
-              "Stay charge hanya dapat diposting untuk reservasi CHECKED_IN.",
+              "Stay charges can only be posted for CHECKED_IN reservations.",
             );
           }
 
@@ -714,7 +714,7 @@ export async function postPendingStayCharges({
 
       if (isRetryablePostingConflict(error)) {
         throw new StayChargePostingError(
-          "Konflik posting stay charge berulang. Muat ulang dan coba lagi.",
+          "Repeated stay-charge posting conflicts. Reload and try again.",
         );
       }
 
@@ -723,6 +723,6 @@ export async function postPendingStayCharges({
   }
 
   throw new StayChargePostingError(
-    "Konflik posting stay charge berulang. Muat ulang dan coba lagi.",
+    "Repeated stay-charge posting conflicts. Reload and try again.",
   );
 }

@@ -25,8 +25,8 @@ describe("laundry data authorization", () => {
 
   it.each([null, "FB", "ACC", "UNKNOWN"])("denies %s before querying laundry", async (role) => {
     auth.mockResolvedValue(role ? { user: { id: "7", role } } : null);
-    await expect(getLaundrySummary()).rejects.toThrow("Tidak berwenang mengakses data laundry.");
-    await expect(getLinenBatches()).rejects.toThrow("Tidak berwenang mengakses data laundry.");
+    await expect(getLaundrySummary()).rejects.toThrow("Not authorized to access laundry data.");
+    await expect(getLinenBatches()).rejects.toThrow("Not authorized to access laundry data.");
     expect(groupBy).not.toHaveBeenCalled();
     expect(findMany).not.toHaveBeenCalled();
   });

@@ -41,23 +41,23 @@ type BatchReport = {
 };
 
 const mealPlanLabels: Record<ArrangementType, string> = {
-  RO: "RO — Tanpa makan",
-  BB: "BB — Sarapan",
-  HB: "HB — Sarapan + satu kali makan utama",
-  FB: "FB — Sarapan, makan siang, dan makan malam",
+  RO: "RO — Room Only",
+  BB: "BB — Bed & Breakfast",
+  HB: "HB — Breakfast + One Main Meal",
+  FB: "FB — Breakfast, Lunch & Dinner",
 };
 
 const reservationStatusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
 const feeLabels: Record<ReservationStayFeeKind, string> = {
-  EARLY_CHECK_IN: "Check-in lebih awal",
-  LATE_CHECK_OUT: "Check-out lebih lambat",
+  EARLY_CHECK_IN: "Early Check-in",
+  LATE_CHECK_OUT: "Late Check-out",
 };
 
 function resultStyles(status: GroupRoomActionResult["status"]) {
@@ -71,9 +71,9 @@ function resultStyles(status: GroupRoomActionResult["status"]) {
 }
 
 function resultLabel(status: GroupRoomActionResult["status"]) {
-  if (status === "completed") return "Selesai";
-  if (status === "failed") return "Gagal";
-  return "Dilewati";
+  if (status === "completed") return "Completed";
+  if (status === "failed") return "Failed";
+  return "Skipped";
 }
 
 function BatchReportPanel({ report }: { report: BatchReport }) {
@@ -96,7 +96,7 @@ function BatchReportPanel({ report }: { report: BatchReport }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">{report.title}</h3>
         <p className="text-xs font-semibold text-slate-500">
-          {completed} selesai · {skipped} dilewati · {failed} gagal
+          {completed} completed · {skipped} skipped · {failed} failed
         </p>
       </div>
       <ul className="mt-3 space-y-2" aria-live="polite">
@@ -108,7 +108,7 @@ function BatchReportPanel({ report }: { report: BatchReport }) {
             <p>
               <span className="font-semibold">
                 {result.roomNumber
-                  ? `Kamar ${result.roomNumber}`
+                  ? `Room ${result.roomNumber}`
                   : result.reservationNo}
               </span>{" "}
               <span className="text-xs">({result.reservationNo})</span> ·{" "}
@@ -181,7 +181,7 @@ export function GroupInclusionActions({
 
   function loadPreview() {
     if (selectedCount === 0) {
-      toast.error("Pilih setidaknya satu kamar.");
+      toast.error("Select at least one room.");
       return;
     }
 
@@ -204,14 +204,14 @@ export function GroupInclusionActions({
 
   function applyMealPlan() {
     if (!preview) {
-      toast.error("Tampilkan pratinjau server sebelum menerapkan meal plan.");
+      toast.error("Load the server preview before applying the meal plan.");
       return;
     }
 
     const eligibleCount = preview.filter((room) => room.eligible).length;
     if (
       !window.confirm(
-        `Terapkan ${mealPlanLabels[mealPlan]} ke ${eligibleCount} kamar yang memenuhi syarat? Server akan memvalidasi ulang setiap kamar.`,
+        `Apply ${mealPlanLabels[mealPlan]} to ${eligibleCount} eligible rooms? The server will revalidate each room.`,
       )
     ) {
       return;
@@ -230,12 +230,12 @@ export function GroupInclusionActions({
         return;
       }
 
-      setReport({ title: "Hasil penerapan meal plan grup", results: result.results });
+      setReport({ title: "Group meal plan results", results: result.results });
       setPreview(null);
       const completed = result.results.filter(
         (room) => room.status === "completed",
       ).length;
-      if (completed > 0) toast.success(`${completed} kamar berhasil diperbarui.`);
+      if (completed > 0) toast.success(`${completed} rooms updated successfully.`);
     });
   }
 
@@ -250,14 +250,14 @@ export function GroupInclusionActions({
 
   function applyFees() {
     if (selectedCount === 0 || feeKinds.length === 0) {
-      toast.error("Pilih kamar dan setidaknya satu biaya fleksibilitas.");
+      toast.error("Select rooms and at least one stay flexibility fee.");
       return;
     }
 
-    const feeNames = feeKinds.map((kind) => feeLabels[kind]).join(" dan ");
+    const feeNames = feeKinds.map((kind) => feeLabels[kind]).join(" and ");
     if (
       !window.confirm(
-        `Terapkan ${feeNames} ke ${selectedCount} kamar? Setiap jenis biaya bernilai Rp100.000 per kamar dan divalidasi ulang oleh server.`,
+        `Apply ${feeNames} to ${selectedCount} rooms? Each fee type costs Rp100.000 per room and is revalidated by the server.`,
       )
     ) {
       return;
@@ -276,28 +276,28 @@ export function GroupInclusionActions({
       }
 
       setReport({
-        title: "Hasil penerapan fleksibilitas menginap grup",
+        title: "Group stay flexibility results",
         results: result.results,
       });
       const completed = result.results.filter(
         (room) => room.status === "completed",
       ).length;
-      if (completed > 0) toast.success(`${completed} kamar berhasil diproses.`);
+      if (completed > 0) toast.success(`${completed} rooms processed successfully.`);
     });
   }
 
   return (
     <section className="mb-6 overflow-hidden rounded-lg border border-emerald-200 bg-white shadow-sm">
       <div className="border-b border-emerald-100 bg-emerald-50 px-5 py-4">
-        <h2 className="text-base font-semibold text-emerald-950">Aksi Inklusi grup</h2>
+        <h2 className="text-base font-semibold text-emerald-950">Group Inclusion Actions</h2>
         <p className="mt-1 text-sm text-emerald-800">
-          Pilih semua anggota grup atau sebagian kamar. Setiap kamar tetap memakai pax, perhitungan, dan folionya sendiri.
+          Select all group members or specific rooms. Each room retains its own guest count, calculations, and folio.
         </p>
       </div>
 
       <div className="border-b border-slate-200 p-5">
         <fieldset>
-          <legend className="text-sm font-semibold text-slate-900">Cakupan kamar</legend>
+          <legend className="text-sm font-semibold text-slate-900">Room selection</legend>
           <div className="mt-3 flex flex-wrap gap-4">
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -307,7 +307,7 @@ export function GroupInclusionActions({
                 onChange={() => changeScope("all")}
                 disabled={isPending}
               />
-              Semua kamar ({rooms.length})
+              All rooms ({rooms.length})
             </label>
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -317,7 +317,7 @@ export function GroupInclusionActions({
                 onChange={() => changeScope("selected")}
                 disabled={isPending}
               />
-              Kamar terpilih ({selectedIds.length})
+              Selected rooms ({selectedIds.length})
             </label>
           </div>
         </fieldset>
@@ -340,10 +340,10 @@ export function GroupInclusionActions({
                 />
                 <span>
                   <span className="font-semibold text-slate-900">
-                    {room.roomNumber ? `Kamar ${room.roomNumber}` : "Belum dialokasikan"}
+                    {room.roomNumber ? `Room ${room.roomNumber}` : "Not assigned"}
                   </span>
                   <span className="block text-xs text-slate-500">
-                    {room.reservationNo} · {room.adults} dewasa + {room.children} anak
+                    {room.reservationNo} · {room.adults} adults + {room.children} children
                   </span>
                   <span className="mt-1 block text-xs text-slate-600">
                     {mealPlanLabels[room.currentPlan]} · total {formatIDR(room.mealTotal)}
@@ -352,7 +352,7 @@ export function GroupInclusionActions({
                     {reservationStatusLabels[room.status]} · folio {room.folioStatus}
                   </span>
                   <span className="block text-xs text-slate-500">
-                    Check-in lebih awal: {room.earlyFeeStatus} · check-out lebih lambat: {room.lateFeeStatus}
+                    Early check-in: {room.earlyFeeStatus} · late check-out: {room.lateFeeStatus}
                   </span>
                 </span>
               </label>
@@ -366,9 +366,9 @@ export function GroupInclusionActions({
           <div className="flex items-start gap-3">
             <Utensils className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden="true" />
             <div>
-              <h3 className="font-semibold text-slate-900">Terapkan Paket ke Kamar</h3>
+              <h3 className="font-semibold text-slate-900">Apply Package to Rooms</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Pratinjau wajib berasal dari perhitungan server. Malam yang telah lewat atau diposting tetap terkunci.
+                The preview must use server calculations. Past or posted nights remain locked.
               </p>
             </div>
           </div>
@@ -397,7 +397,7 @@ export function GroupInclusionActions({
               onClick={loadPreview}
               disabled={isPending || selectedCount === 0}
             >
-              {isPreviewing ? "Memuat pratinjau…" : "Tampilkan Pratinjau Server"}
+              {isPreviewing ? "Loading preview…" : "Load Server Preview"}
             </Button>
             <Button
               type="button"
@@ -406,7 +406,7 @@ export function GroupInclusionActions({
                 isPending || !preview || !preview.some((room) => room.eligible)
               }
             >
-              {isApplyingMeal ? "Menerapkan…" : "Terapkan Paket ke Kamar"}
+              {isApplyingMeal ? "Applying…" : "Apply Package to Rooms"}
             </Button>
           </div>
         </article>
@@ -415,14 +415,14 @@ export function GroupInclusionActions({
           <div className="flex items-start gap-3">
             <WalletCards className="mt-0.5 h-5 w-5 text-sky-700" aria-hidden="true" />
             <div>
-              <h3 className="font-semibold text-slate-900">Fleksibilitas menginap</h3>
+              <h3 className="font-semibold text-slate-900">Stay flexibility</h3>
               <p className="mt-1 text-sm leading-5 text-slate-600">
-                Setiap jenis biaya adalah flat Rp100.000 per reservasi, bukan dibagi antar kamar.
+                Each fee type is a flat Rp100.000 per reservation, not shared across rooms.
               </p>
             </div>
           </div>
           <fieldset className="mt-4 space-y-2">
-            <legend className="text-sm font-medium text-slate-700">Biaya yang diterapkan</legend>
+            <legend className="text-sm font-medium text-slate-700">Fees to apply</legend>
             {Object.values(ReservationStayFeeKind).map((kind) => (
               <label
                 key={kind}
@@ -434,7 +434,7 @@ export function GroupInclusionActions({
                   onChange={(event) => toggleFee(kind, event.target.checked)}
                   disabled={isPending}
                 />
-                {feeLabels[kind]} · {formatIDR(100000)} per kamar
+                {feeLabels[kind]} · {formatIDR(100000)} per room
               </label>
             ))}
           </fieldset>
@@ -445,7 +445,7 @@ export function GroupInclusionActions({
             onClick={applyFees}
             disabled={isPending || selectedCount === 0 || feeKinds.length === 0}
           >
-            {isApplyingFees ? "Menerapkan…" : "Terapkan Biaya ke Kamar"}
+            {isApplyingFees ? "Applying…" : "Apply Fees to Rooms"}
           </Button>
         </article>
       </div>
@@ -458,31 +458,31 @@ export function GroupInclusionActions({
         >
           <div className="flex items-center gap-2">
             <CircleAlert className="h-4 w-4 text-amber-600" aria-hidden="true" />
-            <h3 className="text-sm font-semibold text-slate-900">Pratinjau per kamar</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Room-by-Room Preview</h3>
           </div>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-225 text-left text-sm">
               <caption className="sr-only">
-                Pratinjau meal plan per kamar dari perhitungan server
+                Room-by-room meal plan preview based on server calculations
               </caption>
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                 <tr>
-                  <th className="px-3 py-3">Kamar</th>
-                  <th className="px-3 py-3">Status / plan saat ini</th>
+                  <th className="px-3 py-3">Room</th>
+                  <th className="px-3 py-3">Current status / plan</th>
                   <th className="px-3 py-3">Pax</th>
-                  <th className="px-3 py-3 text-right">Malam terdampak</th>
-                  <th className="px-3 py-3 text-right">Harga satuan</th>
-                  <th className="px-3 py-3 text-right">Per malam</th>
-                  <th className="px-3 py-3 text-right">Perkiraan jumlah</th>
-                  <th className="px-3 py-3">Efektif</th>
-                  <th className="px-3 py-3">Validasi</th>
+                  <th className="px-3 py-3 text-right">Affected nights</th>
+                  <th className="px-3 py-3 text-right">Unit price</th>
+                  <th className="px-3 py-3 text-right">Per night</th>
+                  <th className="px-3 py-3 text-right">Estimated amount</th>
+                  <th className="px-3 py-3">Effective</th>
+                  <th className="px-3 py-3">Validation</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {preview.map((room) => (
                   <tr key={room.reservationId}>
                     <td className="px-3 py-3 font-semibold text-slate-900">
-                      {room.roomNumber ? `Kamar ${room.roomNumber}` : room.reservationNo}
+                      {room.roomNumber ? `Room ${room.roomNumber}` : room.reservationNo}
                       <span className="block text-xs font-normal text-slate-500">
                         {room.reservationNo}
                       </span>
@@ -491,18 +491,18 @@ export function GroupInclusionActions({
                       <span className="block font-medium">
                         {room.reservationStatus
                           ? reservationStatusLabels[room.reservationStatus]
-                          : "Tidak ditemukan"}
+                          : "Not found"}
                       </span>
                       <span className="block text-xs text-slate-500">
                         {room.currentPlan
                           ? mealPlanLabels[room.currentPlan]
-                          : "Plan tidak tersedia"}
+                          : "Plan unavailable"}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-slate-700">
                       {room.pax === null
                         ? "—"
-                        : `${room.pax} (${room.adults} dewasa + ${room.children} anak)`}
+                        : `${room.pax} (${room.adults} adults + ${room.children} children)`}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">
                       {room.nightsAffected}
@@ -523,7 +523,7 @@ export function GroupInclusionActions({
                       {room.eligible ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
                           <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                          Memenuhi syarat
+                          Eligible
                         </span>
                       ) : (
                         <span className="text-xs font-medium text-amber-700">

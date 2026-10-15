@@ -16,7 +16,7 @@ import {
 export type LaundryActionResult = ActionResult;
 type LaundryOperator = { userId: number; role: AppRole };
 class LaundryError extends Error {}
-const conflictMessage = "Pengiriman sedang diproses. Muat ulang halaman dan coba lagi.";
+const conflictMessage = "The shipment is being processed. Reload the page and try again.";
 
 async function requireLaundryOperator(): Promise<LaundryOperator | null> {
   const session = await auth();
@@ -31,7 +31,7 @@ async function requireCurrentOperator(tx: Prisma.TransactionClient, operator: La
     where: { id: operator.userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
     select: { id: true },
   });
-  if (!user) throw new LaundryError("Tidak berwenang mengelola laundry.");
+  if (!user) throw new LaundryError("Not authorized to manage laundry.");
 }
 
 function isRetryable(error: unknown, creating: boolean): boolean {
@@ -56,7 +56,7 @@ async function runTransaction(operation: (tx: Prisma.TransactionClient) => Promi
         }
         return { ok: false, code: "CONFLICT", error: conflictMessage };
       }
-      return { ok: false, code: "UNEXPECTED", error: "Gagal menyimpan pengiriman laundry. Silakan coba lagi." };
+      return { ok: false, code: "UNEXPECTED", error: "Failed to save the laundry shipment. Please try again." };
     }
   }
   return { ok: false, code: "CONFLICT", error: conflictMessage };
@@ -65,7 +65,7 @@ async function runTransaction(operation: (tx: Prisma.TransactionClient) => Promi
 async function lockBatch(tx: Prisma.TransactionClient, batchId: string) {
   await tx.$queryRaw`SELECT id FROM linen_batch WHERE id = ${batchId} FOR UPDATE`;
   const batch = await tx.linenBatch.findUnique({ where: { id: batchId } });
-  if (!batch) throw new LaundryError("Pengiriman laundry tidak ditemukan.");
+  if (!batch) throw new LaundryError("Laundry shipment not found.");
   return batch;
 }
 
@@ -82,7 +82,7 @@ async function createBatchOperation(input: z.infer<typeof CreateLinenBatchSchema
     const sentAt = new Date();
     const month = getLaundryCodeMonth(sentAt);
     const count = await tx.linenBatch.count({ where: { sentAt: { gte: month.start, lt: month.end } } });
-    if (count >= 9999) throw new LaundryError("Nomor pengiriman bulan ini telah mencapai batas.");
+    if (count >= 9999) throw new LaundryError("The shipment number for this month has reached the limit.");
     await tx.linenBatch.create({
       data: { ...input, batchCode: generateLinenBatchCode(sentAt, count), sentAt, status: "SENT", recordedById: operator.userId },
     });
@@ -93,7 +93,7 @@ async function advanceBatchOperation(input: z.infer<typeof AdvanceLinenBatchStat
   return runTransaction(async (tx) => {
     const batch = await lockBatch(tx, input.batchId);
     await requireCurrentOperator(tx, operator);
-    if (batch.status !== "SENT") throw new LaundryError("Hanya pengiriman berstatus Dikirim yang dapat mulai dicuci.");
+    if (batch.status !== "SENT") throw new LaundryError("Only shipments with Sent status can start washing.");
     requireOne(await tx.linenBatch.updateMany({ where: { id: batch.id, status: "SENT" }, data: { status: "WASHING" } }));
   });
 }
@@ -102,11 +102,11 @@ async function receiveBatchOperation(input: z.infer<typeof ReceiveLinenBatchSche
   return runTransaction(async (tx) => {
     const batch = await lockBatch(tx, input.batchId);
     await requireCurrentOperator(tx, operator);
-    if (batch.status !== "SENT" && batch.status !== "WASHING") throw new LaundryError("Pengiriman laundry ini sudah diterima.");
+    if (batch.status !== "SENT" && batch.status !== "WASHING") throw new LaundryError("This laundry shipment has already been received.");
     try {
       reconcileLinenBatch(batch.sentQuantity, input.receivedQuantity, input.damagedQuantity);
     } catch {
-      throw new LaundryError("Jumlah diterima dan rusak tidak boleh melebihi jumlah kirim.");
+      throw new LaundryError("Received and damaged quantities must not exceed the sent quantity.");
     }
     requireOne(await tx.linenBatch.updateMany({
       where: { id: batch.id, status: batch.status },
@@ -120,9 +120,9 @@ async function receiveBatchOperation(input: z.infer<typeof ReceiveLinenBatchSche
 
 async function submit<T>(formData: FormData, schema: z.ZodType<T>, operation: (input: T, operator: LaundryOperator) => Promise<LaundryActionResult>): Promise<LaundryActionResult> {
   const operator = await requireLaundryOperator();
-  if (!operator) return { ok: false, code: "FORBIDDEN", error: "Tidak berwenang mengelola laundry." };
+  if (!operator) return { ok: false, code: "FORBIDDEN", error: "Not authorized to manage laundry." };
   const parsed = schema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { ok: false, code: "INVALID_INPUT", error: parsed.error.issues[0]?.message ?? "Data pengiriman tidak valid." };
+  if (!parsed.success) return { ok: false, code: "INVALID_INPUT", error: parsed.error.issues[0]?.message ?? "Invalid shipment data." };
   const result = await operation(parsed.data, operator);
   if (result.ok) revalidatePath("/app/hk/laundry");
   return result;

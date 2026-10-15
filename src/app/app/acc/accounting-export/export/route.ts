@@ -22,6 +22,6 @@ export async function GET(request: Request) {
     return createAccountingExportCsv(rows, `zadd-accounting-export-${range.from}-to-${range.to}.csv`);
   } catch (error) {
     console.error("Failed to generate accounting export CSV", error);
-    return new Response("Export CSV gagal. Silakan coba lagi.", { status: 500 });
+    return new Response("CSV export failed. Please try again.", { status: 500 });
   }
 }

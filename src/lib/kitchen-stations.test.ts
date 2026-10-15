@@ -9,14 +9,14 @@ import {
 } from "./kitchen-stations";
 
 describe("kitchen station definitions", () => {
-  it("exports the stations in display order with Indonesian labels", () => {
+  it("exports the stations in display order with English labels", () => {
     expect(KITCHEN_STATIONS).toEqual(["ALL", "KITCHEN", "BAR", "GRILL", "FRYER"]);
     expect(KITCHEN_STATION_LABELS).toEqual({
-      ALL: "Semua",
-      KITCHEN: "Dapur",
+      ALL: "All",
+      KITCHEN: "Kitchen",
       BAR: "Bar",
-      GRILL: "Panggangan",
-      FRYER: "Gorengan",
+      GRILL: "Grill",
+      FRYER: "Fryer",
     });
     expectTypeOf<KitchenStation>().toEqualTypeOf<
       "ALL" | "KITCHEN" | "BAR" | "GRILL" | "FRYER"

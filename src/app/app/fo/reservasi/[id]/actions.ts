@@ -45,19 +45,19 @@ type ExtendStayResult =
 const ExtendReservationStaySchema = z.object({
   reservationId: z.coerce.number().int().positive(),
   newDepartureDate: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD")
-    .refine(isValidISODateOnly, "Tanggal keberangkatan tidak valid."),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD")
+    .refine(isValidISODateOnly, "Invalid departure date."),
 });
 
 export async function extendReservationStay(input: unknown): Promise<ExtendStayResult> {
   const session = await auth();
   if (!session?.user || !can(session.user.role, "reservations:write")) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
   const parsed = ExtendReservationStaySchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.path[0] === "newDepartureDate"
-      ? parsed.error.issues[0].message : "Reservasi tidak valid." };
+      ? parsed.error.issues[0].message : "Invalid reservation." };
   }
   const { reservationId, newDepartureDate } = parsed.data;
   const newDeparture = parseISODateOnly(newDepartureDate);
@@ -74,13 +74,13 @@ export async function extendReservationStay(input: unknown): Promise<ExtendStayR
             arrangementType: true, room: { select: { id: true, number: true } },
           },
         });
-        if (!reservation) return { ok: false, error: "Reservasi tidak ditemukan." };
+        if (!reservation) return { ok: false, error: "Reservation not found." };
         if (reservation.status !== ReservationStatus.CHECKED_IN) {
-          return { ok: false, error: "Hanya reservasi yang sedang check-in yang dapat diperpanjang masa menginapnya." };
+          return { ok: false, error: "Only in-house reservations can be extended." };
         }
-        if (reservation.roomId === null) return { ok: false, error: "Reservasi check-in belum memiliki kamar." };
+        if (reservation.roomId === null) return { ok: false, error: "The checked-in reservation has no assigned room." };
         if (newDeparture <= reservation.departureDate) {
-          return { ok: false, error: "Tanggal keberangkatan baru harus setelah tanggal keberangkatan saat ini." };
+          return { ok: false, error: "The new departure date must be after the current departure date." };
         }
         await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${reservation.roomId} FOR UPDATE`;
         const oldDepartureDate = reservation.departureDate.toISOString().slice(0, 10);
@@ -88,7 +88,7 @@ export async function extendReservationStay(input: unknown): Promise<ExtendStayR
           roomId: reservation.roomId,
           range: { startDate: oldDepartureDate, endDate: newDepartureDate },
         }, tx);
-        if (block) return { ok: false, error: `Kamar ${reservation.room?.number} terblokir pada tanggal tersebut.` };
+        if (block) return { ok: false, error: `Room ${reservation.room?.number} is blocked for those dates.` };
         const overlap = await tx.reservation.findFirst({
           where: {
             id: { not: reservation.id }, roomId: reservation.roomId,
@@ -96,7 +96,7 @@ export async function extendReservationStay(input: unknown): Promise<ExtendStayR
             arrivalDate: { lt: newDeparture }, departureDate: { gt: reservation.departureDate },
           },
         });
-        if (overlap) return { ok: false, error: `Kamar ${reservation.room?.number} sudah dipesan untuk tanggal tersebut.` };
+        if (overlap) return { ok: false, error: `Room ${reservation.room?.number} is already reserved for those dates.` };
         const capacity = await validateRoomTypeCapacity({
           roomTypeId: reservation.roomTypeId,
           // This helper accepts local calendar dates and normalizes them itself.
@@ -138,11 +138,11 @@ export async function extendReservationStay(input: unknown): Promise<ExtendStayR
     } catch (error) {
       if (isSerializationConflict(error)) {
         if (attempt < 2) continue;
-        return { ok: false, error: "Reservasi atau ketersediaan kamar berubah saat diproses. Muat ulang halaman dan coba lagi." };
+        return { ok: false, error: "The reservation or room availability changed during processing. Reload the page and try again." };
       }
       if (error instanceof PricingResolutionError) return { ok: false, error: error.message };
       console.error("Failed to extend reservation stay", error);
-      return { ok: false, error: "Gagal memperpanjang masa menginap." };
+      return { ok: false, error: "Unable to extend the stay." };
     }
   }
   if (result.ok) {
@@ -171,11 +171,11 @@ export async function requestRoomCleaning(
     session?.user.role !== "ADMIN" &&
     session?.user.role !== "GM"
   ) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
-    return { ok: false, error: "Reservasi tidak valid" };
+    return { ok: false, error: "Invalid reservation" };
   }
 
   const userId = Number(session.user.id);
@@ -193,21 +193,21 @@ export async function requestRoomCleaning(
         });
 
         if (!reservation) {
-          return { ok: false as const, error: "Reservasi tidak ditemukan" };
+          return { ok: false as const, error: "Reservation not found" };
         }
 
         if (reservation.status !== ReservationStatus.CHECKED_IN) {
           return {
             ok: false as const,
             error:
-              "Pembersihan kamar hanya bisa diminta untuk tamu yang sedang check-in.",
+              "Room cleaning can only be requested for in-house guests.",
           };
         }
 
         if (!reservation.roomId) {
           return {
             ok: false as const,
-            error: "Reservasi check-in belum memiliki kamar.",
+            error: "The checked-in reservation has no assigned room.",
           };
         }
 
@@ -221,7 +221,7 @@ export async function requestRoomCleaning(
         });
 
         if (!room) {
-          return { ok: false as const, error: "Kamar tidak ditemukan" };
+          return { ok: false as const, error: "Room not found" };
         }
 
         if (room.status === RoomStatus.OD) {
@@ -231,7 +231,7 @@ export async function requestRoomCleaning(
         if (room.status !== RoomStatus.OC) {
           return {
             ok: false as const,
-            error: `Kamar ${room.number} tidak berstatus OC. Muat ulang halaman dan periksa status kamar.`,
+            error: `Room ${room.number} is not in OC status. Reload the page and check the room status.`,
           };
         }
 
@@ -244,7 +244,7 @@ export async function requestRoomCleaning(
             newStatus: RoomStatus.OD,
             updatedById: userId,
             updatedAt: now,
-            note: "Permintaan pembersihan kamar dari Front Office",
+            note: "Room cleaning requested by Front Office",
           },
         });
 
@@ -270,10 +270,10 @@ export async function requestRoomCleaning(
     if (isSerializationConflict(error)) {
       return {
         ok: false,
-        error: "Status kamar berubah saat diproses. Muat ulang halaman.",
+        error: "The room status changed during processing. Reload the page.",
       };
     }
 
-    return { ok: false, error: "Gagal meminta pembersihan kamar" };
+    return { ok: false, error: "Unable to request room cleaning" };
   }
 }

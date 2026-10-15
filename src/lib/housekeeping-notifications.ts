@@ -55,7 +55,7 @@ function taskTypeForStatus(status: string) {
     return "Freshen-up";
   }
 
-  return "Pembersihan kamar";
+  return "Room cleaning";
 }
 
 export async function getHousekeepingNotifications(userId: number) {
@@ -126,7 +126,7 @@ export async function getHousekeepingNotifications(userId: number) {
       roomNumber: assignment.room.number,
       taskType: taskTypeForStatus(assignment.room.status),
       status,
-      assignmentInfo: "Ditugaskan kepada Anda",
+      assignmentInfo: "Assigned to you",
       createdAt: notification.createdAt.toISOString(),
       readAt: notification.readAt?.toISOString() ?? null,
       href: `/app/hk/rooms/${assignment.roomId}`,

@@ -27,16 +27,16 @@ export function StartWashingButton({ id, batchCode }: { id: string; batchCode: s
               toast.error(result.error);
               return;
             }
-            toast.success(`Batch ${batchCode} sedang dicuci.`);
+            toast.success(`Batch ${batchCode} is being washed.`);
             router.refresh();
           } catch {
-            const message = "Status belum dapat diperbarui. Periksa status batch sebelum mencoba lagi.";
+            const message = "The status update could not be confirmed. Check the batch status before trying again.";
             setError(message);
             toast.error(message);
           }
         });
       }}>
-        <WashingMachine className="size-4" aria-hidden="true" />{pending ? "Menyimpan..." : "Mulai Cuci"}<span className="sr-only"> {batchCode}</span>
+        <WashingMachine className="size-4" aria-hidden="true" />{pending ? "Saving..." : "Start Washing"}<span className="sr-only"> {batchCode}</span>
       </Button>
       {error && <p role="alert" className="max-w-56 text-xs text-destructive">{error}</p>}
     </div>

@@ -11,7 +11,7 @@ beforeEach(() => vi.resetAllMocks());
 describe("searchGuestsAction", () => {
   it.each([null, "HK", "FB", "ACC"])("rejects unauthorized role %s before querying", async (role) => {
     auth.mockResolvedValue(role ? { user: { role } } : null);
-    await expect(searchGuestsAction("Siti")).rejects.toThrow("tidak memiliki akses");
+    await expect(searchGuestsAction("Siti")).rejects.toThrow("do not have access");
     expect(findGuests).not.toHaveBeenCalled();
   });
 
@@ -35,7 +35,7 @@ describe("searchGuestsAction", () => {
 
   it("rejects invalid transport input", async () => {
     auth.mockResolvedValue({ user: { role: "FO" } });
-    await expect(searchGuestsAction(null as unknown as string)).rejects.toThrow("tidak valid");
+    await expect(searchGuestsAction(null as unknown as string)).rejects.toThrow("Invalid");
     expect(findGuests).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@ export function ArrResultSummary({ result }: { result: ArrDisplayData }) {
       <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950">
         <span className="font-semibold">ARR {formatIDR(result.arr)}</span>
         {" · "}
-        <span className="num">{result.paidRoomNights}</span> recognized paid room night
+        <span className="num">{result.paidRoomNights}</span> recognised paid room nights
         {result.paidRoomNights === 1 ? "" : "s"}
       </div>
     );
@@ -19,10 +19,10 @@ export function ArrResultSummary({ result }: { result: ArrDisplayData }) {
   );
   const message =
     result.status === "UNAVAILABLE"
-      ? `ARR tidak tersedia — sebelum cutover ${cutover}`
+      ? `ARR unavailable — before the cutover on ${cutover}`
       : result.status === "NO_RECOGNIZED_NIGHTS"
-        ? "ARR N/A — tidak ada recognized paid room night"
-        : "ARR tidak tersedia — integrity error";
+        ? "ARR N/A — no recognised paid room nights"
+        : "ARR unavailable — data integrity error";
 
   return (
     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950">

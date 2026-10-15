@@ -11,7 +11,7 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 const PASSWORD_COST = 10;
 
 function validationError(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Data kata sandi tidak valid.";
+  return error.issues[0]?.message ?? "Invalid password data.";
 }
 
 export async function changePassword(
@@ -20,7 +20,7 @@ export async function changePassword(
   const session = await auth();
 
   if (!session?.user?.id) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   const parsed = ChangePasswordSchema.safeParse({
@@ -36,7 +36,7 @@ export async function changePassword(
   const userId = Number(session.user.id);
 
   if (!Number.isInteger(userId)) {
-    return { ok: false, error: "Anda tidak memiliki izin untuk melakukan tindakan ini." };
+    return { ok: false, error: "You do not have permission to perform this action." };
   }
 
   try {
@@ -49,7 +49,7 @@ export async function changePassword(
     });
 
     if (!user) {
-      return { ok: false, error: "Pengguna tidak ditemukan." };
+      return { ok: false, error: "User not found." };
     }
 
     const valid = await compare(
@@ -58,7 +58,7 @@ export async function changePassword(
     );
 
     if (!valid) {
-      return { ok: false, error: "Kata sandi saat ini tidak benar" };
+      return { ok: false, error: "The current password is incorrect" };
     }
 
     const passwordHash = await hash(parsed.data.newPassword, PASSWORD_COST);
@@ -71,6 +71,6 @@ export async function changePassword(
 
     return { ok: true };
   } catch {
-    return { ok: false, error: "Terjadi kesalahan pada sistem." };
+    return { ok: false, error: "A system error occurred." };
   }
 }

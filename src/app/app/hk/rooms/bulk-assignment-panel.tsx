@@ -66,10 +66,10 @@ const statusClassNames: Record<
 };
 
 const reasonLabels: Record<HousekeepingForecastReason, string> = {
-  turnover: "Pembersihan setelah check-out",
-  "freshen-up": "Pembersihan selama menginap",
-  "arrival-prep": "Persiapan kedatangan",
-  "dirty-now": "Kotor saat ini",
+  turnover: "Departure cleaning",
+  "freshen-up": "Stayover cleaning",
+  "arrival-prep": "Arrival preparation",
+  "dirty-now": "Currently dirty",
 };
 
 const headerCellClass =
@@ -106,7 +106,7 @@ function FloorSelectCheckbox({
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        aria-label={`Pilih semua lantai ${floor}`}
+        aria-label={`Select all floors ${floor}`}
         className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
       />
     </label>
@@ -130,7 +130,7 @@ function AttentionCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.needsAttention) {
     return (
       <Badge variant="secondary" className="rounded-full text-xs font-normal text-muted-foreground">
-        Tidak ada kebutuhan
+        No action needed
       </Badge>
     );
   }
@@ -160,7 +160,7 @@ function AssigneeCell({ row }: { row: HousekeepingForecastRoomRow }) {
   if (!row.assignment) {
     return (
       <span className="text-xs italic text-muted-foreground">
-        Belum ditugaskan
+        Unassigned
       </span>
     );
   }
@@ -262,12 +262,12 @@ export function BulkAssignmentPanel({
 
   function assignSelected() {
     if (selectedRoomIds.size === 0) {
-      toast.error("Pilih minimal satu kamar");
+      toast.error("Select at least one room");
       return;
     }
 
     if (!housekeeperId) {
-      toast.error("Pilih petugas HK");
+      toast.error("Select a room attendant");
       return;
     }
 
@@ -285,7 +285,7 @@ export function BulkAssignmentPanel({
         return;
       }
 
-      toast.success(`${result.count} kamar ditugaskan`);
+      toast.success(`${result.count} rooms assigned`);
       setSelectedRoomIds(new Set());
       router.refresh();
     });
@@ -293,7 +293,7 @@ export function BulkAssignmentPanel({
 
   function unassignSelected() {
     if (selectedRoomIds.size === 0) {
-      toast.error("Pilih minimal satu kamar");
+      toast.error("Select at least one room");
       return;
     }
 
@@ -310,7 +310,7 @@ export function BulkAssignmentPanel({
         return;
       }
 
-      toast.success(`${result.count} penugasan dihapus`);
+      toast.success(`${result.count} assignments removed`);
       setSelectedRoomIds(new Set());
       router.refresh();
     });
@@ -327,16 +327,16 @@ export function BulkAssignmentPanel({
       <CardHeader className="border-b border-border rounded-none px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold">Penugasan Massal</CardTitle>
+            <CardTitle className="text-base font-semibold">Bulk Assignment</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              {selectedCount} dipilih · tugaskan atau kosongkan per kamar/tanggal
+              {selectedCount} selected · assign or unassign by room/date
             </p>
           </div>
 
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Petugas HK
+                Room Attendant
               </span>
               <select
                 value={housekeeperId}
@@ -345,7 +345,7 @@ export function BulkAssignmentPanel({
                 className="h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 desktop:h-10"
               >
                 {housekeepers.length === 0 ? (
-                  <option value="">Tidak ada petugas HK aktif</option>
+                  <option value="">No active room attendants</option>
                 ) : null}
                 {housekeepers.map((housekeeper) => (
                   <option key={housekeeper.id} value={housekeeper.id}>
@@ -365,8 +365,8 @@ export function BulkAssignmentPanel({
               >
                 <UserCheck className="h-4 w-4 mr-1.5" aria-hidden="true" />
                 {pendingAction === "assign"
-                  ? "Menugaskan..."
-                  : "Tugaskan terpilih"}
+                  ? "Assigning..."
+                  : "Assign selected"}
               </Button>
               <Button
                 type="button"
@@ -378,8 +378,8 @@ export function BulkAssignmentPanel({
               >
                 <Trash2 className="h-4 w-4 mr-1.5" aria-hidden="true" />
                 {pendingAction === "unassign"
-                  ? "Mengosongkan..."
-                  : "Kosongkan terpilih"}
+                  ? "Unassigning..."
+                  : "Unassign selected"}
               </Button>
             </div>
           </div>
@@ -388,32 +388,32 @@ export function BulkAssignmentPanel({
       <CardContent
         className="min-w-0 max-w-full overflow-x-auto p-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         role="region"
-        aria-label="Penugasan massal kamar"
+        aria-label="Bulk room assignment"
         tabIndex={0}
       >
         <table className="w-full min-w-[1080px] border-collapse text-[12px]">
           <caption className="sr-only">
-            Penugasan massal petugas HK per lantai
+            Bulk room attendant assignment by floor
           </caption>
           <thead>
             <tr>
               <th className={cn(headerCellClass, "w-[80px]")} scope="col">
-                Pilih
+                Select
               </th>
               <th className={headerCellClass} scope="col">
-                Kamar
+                Room
               </th>
               <th className={headerCellClass} scope="col">
-                Tipe
+                Type
               </th>
               <th className={headerCellClass} scope="col">
                 Status
               </th>
               <th className={headerCellClass} scope="col">
-                Perlu dibersihkan
+                Requires cleaning
               </th>
               <th className={headerCellClass} scope="col">
-                Petugas saat ini
+                Current attendant
               </th>
             </tr>
           </thead>
@@ -443,10 +443,10 @@ export function BulkAssignmentPanel({
                           disabled={isPending}
                           onChange={(checked) => toggleFloor(floor, checked)}
                         />
-                        <span>Lantai {floor.floor}</span>
+                        <span>Floor {floor.floor}</span>
                         <span className="font-medium normal-case tracking-normal text-slate-500">
-                          · {floor.rows.length} kamar · {floorSelectedCount}{" "}
-                          dipilih
+                          · {floor.rows.length} rooms · {floorSelectedCount}{" "}
+                          selected
                         </span>
                       </div>
                     </th>
@@ -465,7 +465,7 @@ export function BulkAssignmentPanel({
                             onChange={(event) =>
                               toggleRoom(row.room.id, event.target.checked)
                             }
-                            aria-label={`Pilih kamar ${row.room.number}`}
+                            aria-label={`Select a room ${row.room.number}`}
                             className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed"
                           />
                         </label>

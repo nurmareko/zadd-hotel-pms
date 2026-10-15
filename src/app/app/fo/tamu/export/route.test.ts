@@ -33,7 +33,7 @@ describe("guest CSV export", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const csv = await response.text();
     expect(csv.split("\r\n")).toEqual([
-      "Nama Tamu,Jenis Identitas,Nomor Identitas,Nomor Telepon,Email,Alamat,Kewarganegaraan,Total Kunjungan,Kunjungan Terakhir",
+      "Guest Name,ID Type,ID Number,Phone Number,Email,Address,Nationality,Total Visits,Last Visit",
       '\'=Siti,KTP,123,,siti@example.test,"Bandung, Jawa Barat",Indonesia,2,2026-05-20',
     ]);
   });

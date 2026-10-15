@@ -145,7 +145,7 @@ export function RecordPaymentDialog({
         return;
       }
 
-      toast.success("Pembayaran tercatat");
+      toast.success("Payment recorded");
       form.reset(formDefaults());
       setOpen(false);
       router.refresh();
@@ -160,7 +160,7 @@ export function RecordPaymentDialog({
         onClick={() => setOpen(true)}
       >
         <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
-        Catat Pembayaran
+        Record Payment
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -170,7 +170,7 @@ export function RecordPaymentDialog({
         >
           <DialogHeader className="bg-slate-50 border-b border-slate-100 px-6 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
-              Catat Pembayaran
+              Record Payment
             </DialogTitle>
           </DialogHeader>
 
@@ -187,7 +187,7 @@ export function RecordPaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Jumlah</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Amount</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -209,7 +209,7 @@ export function RecordPaymentDialog({
                 name="method"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Metode</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Method</FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
@@ -217,7 +217,7 @@ export function RecordPaymentDialog({
                     >
                       <FormControl>
                         <SelectTrigger className="h-11 desktop:h-10 w-full rounded-md border border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
-                          <SelectValue placeholder="Pilih metode" />
+                          <SelectValue placeholder="Select a method" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent
@@ -246,7 +246,7 @@ export function RecordPaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">
-                      Referensi{method === PaymentMethod.TRANSFER ? " / Wajib" : ""}
+                      Reference{method === PaymentMethod.TRANSFER ? " / Required" : ""}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -276,7 +276,7 @@ export function RecordPaymentDialog({
                         className="border-red-300 bg-white text-red-700 hover:bg-red-50 hover:text-red-800"
                         onClick={() => window.location.reload()}
                       >
-                        Muat ulang halaman
+                        Reload page
                       </Button>
                     </div>
                   ) : null}
@@ -290,7 +290,7 @@ export function RecordPaymentDialog({
                   disabled={isSubmitting}
                   onClick={() => handleOpenChange(false)}
                 >
-                  Batal
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
@@ -298,7 +298,7 @@ export function RecordPaymentDialog({
                     !form.formState.isValid || isSubmitting || uiState.isUncertain
                   }
                 >
-                  {isSubmitting ? "Mencatat..." : "Catat Pembayaran"}
+                  {isSubmitting ? "Recording..." : "Record Payment"}
                 </Button>
               </div>
             </form>

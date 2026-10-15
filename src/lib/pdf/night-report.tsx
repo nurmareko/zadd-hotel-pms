@@ -176,59 +176,59 @@ export function NightReport({ audit, settings }: NightReportProps) {
           <Text style={styles.hotelName}>{PDF_BRAND_NAME}</Text>
           <Text style={styles.muted}>{settings.address ?? "-"}</Text>
           <Text style={styles.title}>
-            Laporan Night Audit - {dateLabel(audit.businessDate)}
+            Night Audit Report - {dateLabel(audit.businessDate)}
           </Text>
         </View>
 
         <View style={styles.block}>
           <Text style={styles.blockHeader}>{"AUDIT"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="ID Audit" value={`#${audit.id}`} />
-            <Field label="Tanggal operasional" value={dateLabel(audit.businessDate)} />
-            <Field label="Dijalankan" value={dateTimeLabel(audit.runAt)} />
-            <Field label="Dijalankan Oleh" value={audit.runBy.fullName} />
+            <Field label="Audit ID" value={`#${audit.id}`} />
+            <Field label="Business date" value={dateLabel(audit.businessDate)} />
+            <Field label="Run At" value={dateTimeLabel(audit.runAt)} />
+            <Field label="Run By" value={audit.runBy.fullName} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"OKUPANSI"}</Text>
+          <Text style={styles.blockHeader}>{"OCCUPANCY"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Tingkat Okupansi" value={percentLabel(audit.occupancyRate)} />
+            <Field label="Occupancy Rate" value={percentLabel(audit.occupancyRate)} />
             <Field
-              label="Kamar Terisi / Total Kamar"
+              label="Occupied Rooms / Total Rooms"
               value={`${audit.roomsOccupied} / ${audit.totalRooms}`}
             />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"PERGERAKAN TAMU"}</Text>
+          <Text style={styles.blockHeader}>{"GUEST MOVEMENT"}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field label="Check-in" value={String(audit.checkInCount)} />
             <Field label="Check-out" value={String(audit.checkOutCount)} />
-            <Field label="Tamu Menginap" value={String(audit.inHouseCount)} />
+            <Field label="In-house Guests" value={String(audit.inHouseCount)} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"RINCIAN PENDAPATAN"}</Text>
+          <Text style={styles.blockHeader}>{"REVENUE BREAKDOWN"}</Text>
           <View style={styles.blockBody}>
             <View style={styles.table}>
               <TableRow
-                label="Pendapatan Kamar"
+                label="Room Revenue"
                 value={formatIDR(audit.roomRevenue.toString())}
                 first
               />
               <TableRow
-                label="Pendapatan F&B"
+                label="F&B Revenue"
                 value={formatIDR(audit.fbRevenue.toString())}
               />
               <TableRow
-                label="Pendapatan Lain"
+                label="Other Revenue"
                 value={formatIDR(audit.otherRevenue.toString())}
               />
               <TableRow
-                label="TOTAL PENDAPATAN"
+                label="TOTAL REVENUE"
                 value={formatIDR(audit.totalRevenue.toString())}
                 total
               />
@@ -237,8 +237,8 @@ export function NightReport({ audit, settings }: NightReportProps) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.muted}>Rekaman Night Audit yang dibekukan</Text>
-          <Text style={styles.muted}>Dibuat {dateTimeLabel(new Date())}</Text>
+          <Text style={styles.muted}>Frozen Night Audit record</Text>
+          <Text style={styles.muted}>Generated {dateTimeLabel(new Date())}</Text>
         </View>
       </Page>
     </Document>

@@ -27,7 +27,7 @@ export interface LaundrySummaryData {
 async function requireLaundryAccess() {
   const session = await auth();
   if (!session?.user || !can(session.user.role, "laundry:manage")) {
-    throw new Error("Tidak berwenang mengakses data laundry.");
+    throw new Error("Not authorized to access laundry data.");
   }
 }
 

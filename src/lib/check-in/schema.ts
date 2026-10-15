@@ -9,6 +9,21 @@ export const purposeOfVisitOptions = [
   "Lainnya",
 ] as const;
 
+// Values remain stable for stored reservations and submitted forms.
+export const purposeOfVisitLabels: Record<PurposeOfVisitValue, string> = {
+  Bisnis: "Business",
+  Liburan: "Leisure",
+  Keluarga: "Family",
+  Acara: "Event",
+  Lainnya: "Other",
+};
+
+export function purposeOfVisitLabel(value: string): string {
+  return Object.prototype.hasOwnProperty.call(purposeOfVisitLabels, value)
+    ? purposeOfVisitLabels[value as PurposeOfVisitValue]
+    : value;
+}
+
 export const checkInDepositMethods = [
   PaymentMethod.CASH,
   PaymentMethod.TRANSFER,
@@ -18,7 +33,7 @@ export const checkInDepositMethods = [
 const TextOrEmptySchema = z
   .string()
   .trim()
-  .max(100, "Teks maksimal 100 karakter")
+  .max(100, "Text must be at most 100 characters")
   .optional()
   .transform((value) => value ?? "");
 
@@ -26,7 +41,7 @@ const OptionalGuestFieldSchema = (maxLength: number) =>
   z
     .string()
     .trim()
-    .max(maxLength, `Teks maksimal ${maxLength} karakter`)
+    .max(maxLength, `Text must be at most ${maxLength} characters`)
     .optional()
     .transform((value) => value ?? "");
 
@@ -35,8 +50,8 @@ const OptionalGuestEmailSchema = z
     z
       .string()
       .trim()
-      .email("Format email tidak valid")
-      .max(100, "Email maksimal 100 karakter"),
+      .email("Invalid email format")
+      .max(100, "Email must be at most 100 characters"),
     z.literal(""),
   ])
   .optional()
@@ -45,27 +60,27 @@ const OptionalGuestEmailSchema = z
 const BooleanConfirmationSchema = z.preprocess(
   (value) => value === true || value === "true" || value === "on",
   z.boolean().refine((value) => value, {
-    message: "Konfirmasi kedatangan tamu wajib dicentang",
+    message: "Guest arrival confirmation is required",
   }),
 );
 
 const SignatureDataUrlSchema = z
   .string()
-  .min(1, "Tanda tangan tamu wajib diisi")
-  .max(2_000_000, "Ukuran tanda tangan terlalu besar. Hapus lalu coba lagi.")
+  .min(1, "Guest signature is required")
+  .max(2_000_000, "The signature is too large. Clear it and try again.")
   .regex(
     /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/,
-    "Format tanda tangan tidak valid. Hapus lalu coba lagi.",
+    "Invalid signature format. Clear it and try again.",
   );
 
 export const DepositCollectionSchema = z
   .object({
     reservationId: z.coerce
-      .number("Reservasi wajib dipilih")
-      .int("Reservasi tidak valid")
-      .positive("Reservasi wajib dipilih"),
+      .number("Select a reservation")
+      .int("Invalid reservation")
+      .positive("Select a reservation"),
     depositMethod: z.enum(checkInDepositMethods, {
-      error: "Pilih metode pembayaran deposit",
+      error: "Select a deposit payment method",
     }),
     depositReference: TextOrEmptySchema,
   })
@@ -77,7 +92,7 @@ export const DepositCollectionSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["depositReference"],
-        message: "Referensi deposit wajib diisi untuk transfer",
+        message: "A deposit reference is required for bank transfers",
       });
     }
   })
@@ -89,19 +104,19 @@ export const DepositCollectionSchema = z
 export const CheckInSchema = z
   .object({
     reservationId: z.coerce
-      .number("Reservasi wajib dipilih")
-      .int("Reservasi tidak valid")
-      .positive("Reservasi wajib dipilih"),
+      .number("Select a reservation")
+      .int("Invalid reservation")
+      .positive("Select a reservation"),
     roomId: z.coerce
-      .number("Pilih kamar untuk check-in")
-      .int("Kamar tidak valid")
-      .positive("Pilih kamar untuk check-in"),
+      .number("Select a room for check-in")
+      .int("Invalid room")
+      .positive("Select a room for check-in"),
     guestFullName: z
       .string()
       .trim()
-      .min(1, "Nama tamu wajib diisi")
-      .min(2, "Nama tamu minimal 2 karakter")
-      .max(100, "Nama tamu maksimal 100 karakter"),
+      .min(1, "Guest name is required")
+      .min(2, "Guest name must be at least 2 characters")
+      .max(100, "Guest name must be at most 100 characters"),
     guestIdType: z
       .union([z.nativeEnum(GuestIdType), z.literal("")])
       .optional()
@@ -111,14 +126,14 @@ export const CheckInSchema = z
     guestEmail: OptionalGuestEmailSchema,
     guestNationality: OptionalGuestFieldSchema(50),
     purposeOfVisit: z.enum(purposeOfVisitOptions, {
-      error: "Pilih tujuan kunjungan",
+      error: "Select a purpose of visit",
     }),
     purposeOfVisitOther: TextOrEmptySchema,
     signatureDataUrl: SignatureDataUrlSchema,
     arrivalConfirmation: BooleanConfirmationSchema,
     depositMethod: z
       .union([
-        z.enum(checkInDepositMethods, { error: "Pilih metode deposit" }),
+        z.enum(checkInDepositMethods, { error: "Select a deposit method" }),
         z.literal(""),
       ])
       .optional()
@@ -130,7 +145,7 @@ export const CheckInSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["purposeOfVisitOther"],
-        message: "Tuliskan detail tujuan kunjungan",
+        message: "Enter the purpose-of-visit details",
       });
     }
 
@@ -141,7 +156,7 @@ export const CheckInSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["depositReference"],
-        message: "Referensi deposit wajib diisi untuk transfer",
+        message: "A deposit reference is required for bank transfers",
       });
     }
   })

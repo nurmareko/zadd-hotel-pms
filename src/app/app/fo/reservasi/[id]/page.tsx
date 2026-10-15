@@ -102,7 +102,7 @@ function ReservationTabs({
 }) {
   return (
     <nav
-      aria-label="Tab detail reservasi"
+      aria-label="Reservation detail tabs"
       className="flex w-full items-center gap-3 overflow-x-auto pb-1 sm:w-auto sm:pb-0"
     >
       <Link
@@ -124,28 +124,27 @@ function ReservationTabs({
         aria-current={activeTab === "pembayaran" ? "page" : undefined}
         className={`${tabClassName(activeTab === "pembayaran")} shrink-0`}
       >
-        Pembayaran
+        Payments
       </Link>
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=tagihan`}
         aria-current={activeTab === "tagihan" ? "page" : undefined}
         className={`${tabClassName(activeTab === "tagihan")} shrink-0`}
       >
-        Tagihan
+        Charges
       </Link>
     </nav>
   );
 }
 
-function FolioPendingState({ title }: { title: "Pembayaran" | "Tagihan" }) {
+function FolioPendingState({ title }: { title: "Payments" | "Charges" }) {
   return (
     <section className="max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
         {title}
       </div>
       <p className="p-5 text-sm text-slate-500">
-        Folio dibuat saat pengumpulan deposit. Setelah folio tersedia,
-        transaksi {title.toLowerCase()} akan ditampilkan di sini.
+        The folio is created when the deposit is collected. Once available, {title.toLowerCase()} transactions will appear here.
       </p>
     </section>
   );
@@ -178,7 +177,7 @@ function GroupBookingCard({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-sky-50 px-5 py-4">
         <div>
           <h2 className="text-sm font-semibold text-sky-950">
-            Bagian dari booking grup - {siblings.length} kamar
+            Part of group booking - {siblings.length} rooms
           </h2>
           <p className="mt-1 text-xs font-medium text-sky-700">
             {groupBookingId}
@@ -191,7 +190,7 @@ function GroupBookingCard({
                       className: "border-sky-300 text-sky-800 hover:bg-sky-100",
                     })}
         >
-          Lihat ringkasan grup
+          View group summary
         </Link>
       </div>
       <div className="divide-y divide-slate-100">
@@ -209,7 +208,7 @@ function GroupBookingCard({
                   {sibling.reservationNo}
                   {isCurrent ? (
                     <span className="ml-2 text-xs font-medium text-sky-700">
-                      saat ini
+                      current
                     </span>
                   ) : null}
                 </div>
@@ -218,7 +217,7 @@ function GroupBookingCard({
                 </div>
               </div>
               <div className="text-slate-600">
-                {sibling.room?.number ?? "Belum dialokasikan"} ·{" "}
+                {sibling.room?.number ?? "Not assigned"} ·{" "}
                 {sibling.roomType.name}
               </div>
               <div className="font-medium text-slate-700">
@@ -466,10 +465,10 @@ export default async function ReservationDetailPage({
     },
   };
   const mealPlanLabels: Record<ArrangementType, string> = {
-    RO: "RO — Tanpa makan",
-    BB: "BB — Sarapan",
-    HB: "HB — Sarapan + satu kali makan utama",
-    FB: "FB — Sarapan, makan siang, dan makan malam",
+    RO: "RO — Room Only",
+    BB: "BB — Bed & Breakfast",
+    HB: "HB — Breakfast + One Main Meal",
+    FB: "FB — Breakfast, Lunch & Dinner",
   };
   const inclusionNights = reservation.reservationNights.map((night) => {
     const isPosted = night.folioLineItems.length > 0;
@@ -515,7 +514,7 @@ export default async function ReservationDetailPage({
         <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
         <div className="flex min-w-0 flex-col gap-2 sm:ml-auto sm:items-end">
           <p className="break-words text-right text-sm text-slate-500">
-            Kode Reservasi:{" "}
+            Reservation Code:{" "}
             <span className="font-semibold text-slate-900">
               {reservation.reservationNo}
             </span>
@@ -526,7 +525,7 @@ export default async function ReservationDetailPage({
                 href="/app/fo/reservasi"
                 className={buttonVariants({ variant: "outline" })}
               >
-                Kembali
+                Back
               </Link>
               {canPrintGrc ? (
                 <a
@@ -535,7 +534,7 @@ export default async function ReservationDetailPage({
                   className={buttonVariants({ variant: "outline" })}
                 >
                   <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                  Cetak GRC
+                  Print GRC
                 </a>
               ) : null}
               {canCancel ? (
@@ -582,12 +581,12 @@ export default async function ReservationDetailPage({
           <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
-                Status deposit
+                Deposit status
               </h2>
               <p className="mt-1 text-xs text-slate-500">
                 {reservation.depositStatus === DepositStatus.PENDING
-                  ? "Kumpulkan deposit di langkah check-in sebelum tamu dapat di-check-in."
-                  : "Status COLLECTED harus disertai pembayaran DEPOSIT yang sesuai pada folio. Check-in hanya dapat dilanjutkan setelah semua persyaratan terverifikasi."}
+                  ? "Collect the deposit in the check-in step before checking in the guest."
+                  : "Collected deposit status must be supported by a matching deposit payment on the folio. Check-in can only proceed after all requirements have been verified."}
               </p>
             </div>
             <DepositStatusBadge status={reservation.depositStatus} />
@@ -606,7 +605,7 @@ export default async function ReservationDetailPage({
               mode={formMode}
               reservationId={reservation.id}
               returnHref={`/app/fo/reservasi/${reservation.id}?tab=details&mode=view`}
-              submitLabel="Simpan Perubahan"
+              submitLabel="Save Changes"
               readOnlyStayTotal={stayTotal.total.toString()}
               readOnlyInclusionTotal={inclusionTotal.toString()}
               readOnlyDeposit={reservation.deposit.toString()}
@@ -624,7 +623,7 @@ export default async function ReservationDetailPage({
                           variant: canCheckIn ? "outline" : "default",
                         })}
                       >
-                        Edit Reservasi
+                        Edit Reservation
                       </Link>
                     ) : null}
                     {canCheckIn ? (
@@ -647,11 +646,11 @@ export default async function ReservationDetailPage({
                           </span>
                           <CheckInDetailAffordance
                             intent="deposit"
-                            label="Kumpulkan Deposit"
+                            label="Collect Deposit"
                             variant="outline"
                           />
                           <span className="text-xs font-medium text-amber-700 sm:max-w-40">
-                            Kumpulkan deposit terlebih dahulu.
+                            Collect the deposit first.
                           </span>
                         </div>
                       )
@@ -700,7 +699,7 @@ export default async function ReservationDetailPage({
         />
       ) : (
         <FolioPendingState
-          title={activeTab === "pembayaran" ? "Pembayaran" : "Tagihan"}
+          title={activeTab === "pembayaran" ? "Payments" : "Charges"}
         />
       )}
     </main>

@@ -140,7 +140,7 @@ describe("Night Audit Database Integration Tests", () => {
       expect(result).toEqual({
         ok: false,
         error:
-          "Audit malam untuk tanggal bisnis hari ini sudah selesai. Biaya fleksibilitas tidak dapat diposting.",
+          "Night Audit for the current business date is complete. Stay flexibility fees cannot be posted.",
         disposition: "skipped",
       });
       expect(await readState()).toEqual(before);
@@ -256,7 +256,7 @@ describe("Night Audit Database Integration Tests", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pesanan tidak dapat ditagihkan ke kamar.",
+        error: "Night Audit for today's business date is complete. Orders cannot be charged to rooms.",
       });
       expect(await readBillingState()).toEqual(before);
     });
@@ -281,7 +281,7 @@ describe("Night Audit Database Integration Tests", () => {
 
       expect(result).toEqual({
         ok: false,
-        error: "Audit malam untuk tanggal bisnis hari ini sudah selesai. Pembayaran pesanan tidak dapat diproses.",
+        error: "Night Audit for today's business date is complete. Order payments cannot be processed.",
       });
       expect(await readBillingState()).toEqual(before);
       expect(await prisma.fBOrder.findUniqueOrThrow({ where: { id: order.id } }))
@@ -696,7 +696,7 @@ describe("Night Audit Database Integration Tests", () => {
     expect(Number(audit.occupancyRate)).toBe(100);
   });
 
-  it("Test 4: Idempotency & Duplicate Prevention - rejects duplicate audit with clean Indonesian copy", async () => {
+  it("Test 4: Idempotency & Duplicate Prevention - rejects duplicate audit with clean English copy", async () => {
     const user = await createUser();
     await createHotelSettings();
     await setupStayChargeArticles();
@@ -735,7 +735,7 @@ describe("Night Audit Database Integration Tests", () => {
     });
     expect(secondResult.ok).toBe(false);
     if (!secondResult.ok) {
-      expect(secondResult.error).toContain("sudah selesai");
+      expect(secondResult.error).toContain("already complete");
     }
 
     const postAttemptLineItemCount = await prisma.folioLineItem.count({

@@ -124,27 +124,27 @@ const iconButtonClassName =
   "inline-flex size-11 desktop:size-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50";
 
 const reservationTypeOptions = [
-  { value: "INDIVIDUAL", label: "Individu" },
-  { value: "COMPANY", label: "Perusahaan" },
-  { value: "GOVERNMENT", label: "Pemerintah" },
-  { value: "OTA", label: "Agen Perjalanan Online (OTA)" },
+  { value: "INDIVIDUAL", label: "Individual" },
+  { value: "COMPANY", label: "Corporate" },
+  { value: "GOVERNMENT", label: "Government" },
+  { value: "OTA", label: "Online Travel Agency (OTA)" },
   { value: "WALK_IN", label: "Walk-in" },
 ] as const;
 
 const arrangementTypeLabels = {
-  RO: "RO — Tanpa makan",
-  BB: "BB — Sarapan",
-  HB: "HB — Sarapan + satu kali makan utama",
-  FB: "FB — Sarapan, makan siang, dan makan malam",
+  RO: "RO — Room Only",
+  BB: "BB — Bed & Breakfast",
+  HB: "HB — Breakfast + One Main Meal",
+  FB: "FB — Breakfast, Lunch & Dinner",
 } as const;
 
 const roomOperationalStatusLabels: Record<string, string> = {
-  VC: "VC - Kosong Bersih",
-  VD: "VD - Kosong Kotor",
-  OC: "OC - Terisi Bersih",
-  OD: "OD - Terisi Kotor",
-  VCU: "VCU - Menunggu Inspeksi",
-  OOO: "OOO - Rusak",
+  VC: "VC - Vacant Clean",
+  VD: "VD - Vacant Dirty",
+  OC: "OC - Occupied Clean",
+  OD: "OD - Occupied Dirty",
+  VCU: "VCU - Awaiting Inspection",
+  OOO: "OOO - Out of Order",
 };
 function dayAfter(dateValue: string) {
   const parsed = parseISO(dateValue);
@@ -189,7 +189,7 @@ function RequiredMark() {
       <span className="text-red-500" aria-hidden="true">
         *
       </span>
-      <span className="sr-only"> (wajib)</span>
+      <span className="sr-only"> (required)</span>
     </>
   );
 }
@@ -311,7 +311,7 @@ export function ReservationForm({
   reservationId,
   createOrigin = "list",
   returnHref = FO_RESERVASI_VIEW_PATHS.list,
-  submitLabel = "Simpan Reservasi",
+  submitLabel = "Save Reservation",
   viewFooterActions,
   readOnlyStayTotal,
   readOnlyInclusionTotal,
@@ -534,9 +534,9 @@ export function ReservationForm({
     reservationTotal === null ? null : reservationTotal - totalReceived;
   const summaryAmountDisplay = (amount: number | null) =>
     quoteError
-      ? "Tidak tersedia"
+      ? "Unavailable"
       : isQuotePending
-        ? "Menghitung…"
+        ? "Calculating…"
         : amount === null
           ? "-"
           : formatIDR(amount);
@@ -631,11 +631,11 @@ export function ReservationForm({
         const { reservationNumbers, guestName } = result.data;
         const resLabel =
           reservationNumbers.length > 1
-            ? `${reservationNumbers.length} reservasi (${reservationNumbers.join(", ")})`
-            : `Reservasi ${reservationNumbers[0]}`;
-        toast.success(`${resLabel} berhasil dibuat untuk ${guestName}`);
+            ? `${reservationNumbers.length} reservations (${reservationNumbers.join(", ")})`
+            : `Reservation ${reservationNumbers[0]}`;
+        toast.success(`${resLabel} created for ${guestName}`);
       } else {
-        toast.success("Perubahan reservasi berhasil disimpan");
+        toast.success("Reservation changes saved");
       }
       router.push(result.data.redirectUrl);
       return;
@@ -669,7 +669,7 @@ export function ReservationForm({
 
   const reservationActionHint = hasBlockingErrors ? (
     <p className="font-medium text-red-600">
-      Periksa kembali isian yang ditandai merah.
+      Check the fields highlighted in red.
     </p>
   ) : null;
   const reservationActions = (
@@ -682,13 +682,13 @@ export function ReservationForm({
             disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
             className="desktop:lg:h-11! desktop:lg:text-sm disabled:opacity-70"
           >
-            {isSubmitting ? "Menyimpan..." : submitLabel}
+            {isSubmitting ? "Saving..." : submitLabel}
           </Button>
           <Link
             href={returnHref}
             className={`${buttonVariants({ variant: "outline" })} border-slate-300! bg-slate-100! text-slate-900! hover:bg-slate-200! desktop:lg:h-11! desktop:lg:text-sm`}
           >
-            Batal
+            Cancel
           </Link>
         </>
       ) : null}
@@ -712,37 +712,37 @@ export function ReservationForm({
     return (
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-2">
-          <ReadOnlySection title="Data Tamu">
-            <ReadOnlyField label="Nama Lengkap" value={defaultValues.fullName} />
+          <ReadOnlySection title="Guest Details">
+            <ReadOnlyField label="Full Name" value={defaultValues.fullName} />
             <ReadOnlyField
-              label="Jenis Identitas"
+              label="ID Type"
               value={guestIdTypeLabel(defaultValues.idType || null)}
             />
             <ReadOnlyField
-              label="Nomor Identitas"
+              label="ID Number"
               value={defaultValues.idNumber}
             />
-            <ReadOnlyField label="Telepon" value={defaultValues.phone} />
+            <ReadOnlyField label="Phone" value={defaultValues.phone} />
             <ReadOnlyField label="Email" value={defaultValues.email} />
             <ReadOnlyField
-              label="Kewarganegaraan"
+              label="Nationality"
               value={defaultValues.nationality}
             />
             <ReadOnlyField
-              label="Alamat"
+              label="Address"
               value={defaultValues.address}
               wide
             />
             <ReadOnlyField
-              label="Catatan"
+              label="Notes"
               value={defaultValues.notes}
               wide
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Masa Menginap">
+          <ReadOnlySection title="Stay Dates">
             <ReadOnlyField
-              label="Tipe Reservasi"
+              label="Reservation Type"
               value={reservationTypeLabel}
             />
             <ReadOnlyField label="Arrangement" value={arrangementTypeLabel} />
@@ -755,54 +755,54 @@ export function ReservationForm({
               value={defaultValues.departureDate}
             />
             <ReadOnlyField
-              label="Durasi"
-              value={`${nights} malam`}
+              label="Length of Stay"
+              value={`${nights} nights`}
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Kamar">
+          <ReadOnlySection title="Room">
             <ReadOnlyField
-              label="Tipe Kamar"
+              label="Room Type"
               value={
-                roomType ? `${roomType.code} — ${roomType.name}` : "Belum dipilih"
+                roomType ? `${roomType.code} — ${roomType.name}` : "Not selected"
               }
             />
             <ReadOnlyField
-              label="Nomor Kamar"
+              label="Room Number"
               value={
                 allocatedRoom
-                  ? `${allocatedRoom.number} · Lantai ${allocatedRoom.floor}`
-                  : "Belum dialokasikan"
+                  ? `${allocatedRoom.number} · Floor ${allocatedRoom.floor}`
+                  : "Not assigned"
               }
             />
             <ReadOnlyField
-              label="Dewasa"
+              label="Adults"
               value={roomValue?.adults ?? defaultValues.adults}
             />
             <ReadOnlyField
-              label="Anak"
+              label="Children"
               value={roomValue?.children ?? defaultValues.children}
             />
             <ReadOnlyField
-              label="Kapasitas Tipe"
-              value={roomType ? `${roomType.capacity} tamu` : "—"}
+              label="Room Type Capacity"
+              value={roomType ? `${roomType.capacity} guests` : "—"}
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Informasi Finansial">
+          <ReadOnlySection title="Financial Information">
             <ReadOnlyField
-              label="Total Menginap"
+              label="Stay Total"
               value={
                 readOnlyStayTotal ? formatIDR(readOnlyStayTotal) : "—"
               }
             />
             <ReadOnlyField
-              label="Deposit (= tarif malam pertama)"
+              label="Deposit (= first night's rate)"
               value={formatIDR(totalDeposit)}
             />
           </ReadOnlySection>
 
-          <ReadOnlySection title="Rincian Tarif per Malam">
+          <ReadOnlySection title="Nightly Rate Breakdown">
             {readOnlyNightlySchedule.length > 0 ? (
               readOnlyNightlySchedule.map((night) => (
                 <ReadOnlyField
@@ -813,8 +813,8 @@ export function ReservationForm({
               ))
             ) : (
               <ReadOnlyField
-                label="Jadwal malam"
-                value="Rincian malam tidak tersedia; total menggunakan tarif tetap."
+                label="Nightly schedule"
+                value="Nightly details are unavailable; the total uses a fixed rate."
                 wide
               />
             )}
@@ -825,7 +825,7 @@ export function ReservationForm({
           <PinnedActionFooter
             hint={
               <p className="text-slate-500">
-                Data reservasi ditampilkan dalam mode lihat.
+                Reservation details are displayed in view mode.
               </p>
             }
             actions={viewFooterActions}
@@ -837,9 +837,9 @@ export function ReservationForm({
 
   const roomRateDisplay = (index: number) =>
     quoteError
-      ? "Tidak tersedia"
+      ? "Unavailable"
       : isQuotePending
-        ? "Menghitung…"
+        ? "Calculating…"
         : displayedDeposits[index] !== undefined
           ? formatIDR(displayedDeposits[index])
           : "—";
@@ -848,19 +848,19 @@ export function ReservationForm({
       className={`${cardClassName} desktop:lg:rounded-none desktop:lg:border-0 desktop:lg:shadow-none`}
     >
       <div className={cardHeaderClassName}>
-        <h2 className={sectionTitleClassName}>Ringkasan Reservasi</h2>
+        <h2 className={sectionTitleClassName}>Reservation Summary</h2>
       </div>
       <div className={cardContentClassName}>
-        <dl aria-label="Rincian biaya reservasi" className="text-sm">
+        <dl aria-label="Reservation cost breakdown" className="text-sm">
           <div className="space-y-3">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Total Kamar (Net)</dt>
+              <dt className="text-slate-600">Room Total (Net)</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {summaryAmountDisplay(netRoomTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Alokasi Arrangement</dt>
+              <dt className="text-slate-600">Arrangement allocation</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {summaryAmountDisplay(inclusionTotal)}
               </dd>
@@ -875,13 +875,13 @@ export function ReservationForm({
 
           <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="font-semibold text-slate-900">Total Paket</dt>
+              <dt className="font-semibold text-slate-900">Package Total</dt>
               <dd className="num text-right font-semibold text-slate-900">
                 {summaryAmountDisplay(reservationTotal)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Total Diterima</dt>
+              <dt className="text-slate-600">Total Received</dt>
               <dd className="num text-right font-medium text-slate-900">
                 {formatIDR(totalReceived)}
               </dd>
@@ -890,7 +890,7 @@ export function ReservationForm({
 
           <div className="mt-4 border-t border-slate-200 pt-4">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="font-semibold text-slate-900">Sisa Tagihan</dt>
+              <dt className="font-semibold text-slate-900">Balance Due</dt>
               <dd className="num text-right font-bold text-slate-900">
                 {summaryAmountDisplay(totalOutstanding)}
               </dd>
@@ -903,7 +903,7 @@ export function ReservationForm({
         ) : null}
         {pricingChanged && readOnlyStayTotal ? (
           <div className="mt-4 flex items-baseline justify-between gap-3 text-xs text-slate-500">
-            <span>Total terkunci sebelumnya</span>
+            <span>Previously locked total</span>
             <span className="num font-medium text-slate-700">
               {formatIDR(readOnlyStayTotal)}
             </span>
@@ -925,7 +925,7 @@ export function ReservationForm({
                 <section className={cardClassName} aria-labelledby="stay-details-title">
               <div className={cardHeaderClassName}>
                 <h2 id="stay-details-title" className={sectionTitleClassName}>
-                  Detail Menginap
+                  Stay Details
                 </h2>
               </div>
               <div className={cardContentClassName}>
@@ -936,7 +936,7 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Tipe Reservasi <RequiredMark />
+                          Reservation Type <RequiredMark />
                         </FormLabel>
                         <FormControl>
                           <select className={selectClassName} disabled={isViewMode} {...field}>
@@ -959,7 +959,7 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Kedatangan <RequiredMark />
+                          Arrival <RequiredMark />
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -996,7 +996,7 @@ export function ReservationForm({
 
                   <div className="flex h-11 items-center justify-center self-end desktop:h-10">
                     <span className="num rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-slate-600">
-                      {nights} malam
+                      {nights} nights
                     </span>
                   </div>
 
@@ -1006,7 +1006,7 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Keberangkatan <RequiredMark />
+                          Departure <RequiredMark />
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -1029,7 +1029,7 @@ export function ReservationForm({
             <section className={cardClassName} aria-labelledby="guest-data-title">
               <div className={cardHeaderClassName}>
                 <h2 id="guest-data-title" className={sectionTitleClassName}>
-                  Data Tamu
+                  Guest Details
                 </h2>
                 {isCreateMode && (
                   <GuestLookupDialog
@@ -1052,7 +1052,7 @@ export function ReservationForm({
                 {isCreateMode && guestId != null && (
                   <div className="mb-4 flex flex-wrap items-center gap-2">
                     <span role="status" className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                      Tamu terdaftar terpilih (#{guestId})
+                      Selected existing guest (#{guestId})
                     </span>
                     <Button
                       type="button"
@@ -1061,10 +1061,10 @@ export function ReservationForm({
                       disabled={isSubmitting}
                       onClick={() => form.setValue("guestId", null, { shouldDirty: true, shouldValidate: true })}
                     >
-                      Lepas tautan (buat tamu baru)
+                      Unlink (create new guest)
                     </Button>
                     <p className="w-full text-xs text-slate-600">
-                      Perubahan data di bawah akan memperbarui profil tamu terdaftar saat reservasi disimpan. Lepas tautan untuk membuat tamu baru tanpa mengubah profil tersebut.
+                      Changes below will update the existing guest profile when the reservation is saved. Unlink to create a new guest without changing that profile.
                     </p>
                   </div>
                 )}
@@ -1075,12 +1075,12 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Nama Lengkap <RequiredMark />
+                          Full Name <RequiredMark />
                         </FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
-                            placeholder="Nama sesuai identitas"
+                            placeholder="Name as shown on ID"
                             readOnly={isViewMode}
                             {...field}
                           />
@@ -1095,13 +1095,13 @@ export function ReservationForm({
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nomor Telepon</FormLabel>
+                        <FormLabel>Phone Number</FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
                             inputMode="tel"
                             autoComplete="tel"
-                            placeholder="Contoh: 0812 3456 7890"
+                            placeholder="Example: 0812 3456 7890"
                             readOnly={isViewMode}
                             {...field}
                             value={field.value ?? ""}
@@ -1118,12 +1118,12 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Jenis Identitas {isCreateMode ? <RequiredMark /> : null}
+                          ID Type {isCreateMode ? <RequiredMark /> : null}
                         </FormLabel>
                         <FormControl>
                           <select className={selectClassName} {...field}>
                             <option value="">
-                              {isCreateMode ? "Pilih jenis identitas" : "Belum dipilih"}
+                              {isCreateMode ? "Select ID type" : "Not selected"}
                             </option>
                             {guestIdTypeOptions.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -1142,11 +1142,11 @@ export function ReservationForm({
                     name="idNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nomor Identitas</FormLabel>
+                        <FormLabel>ID Number</FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
-                            placeholder="Nomor identitas"
+                            placeholder="ID number"
                             readOnly={isViewMode}
                             {...field}
                           />
@@ -1166,7 +1166,7 @@ export function ReservationForm({
                           <Input
                             type="email"
                             className={fieldClassName}
-                            placeholder="nama@email.com"
+                            placeholder="name@example.com"
                             readOnly={isViewMode}
                             {...field}
                           />
@@ -1181,10 +1181,10 @@ export function ReservationForm({
                     name="nationality"
                     render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Kewarganegaraan</FormLabel>
+                        <FormLabel>Nationality</FormLabel>
                         <FormControl>
                           <CountryCombobox
-                            ariaLabel="Kewarganegaraan"
+                            ariaLabel="Nationality"
                             countries={countries}
                             value={selectedNationality}
                             invalid={fieldState.invalid}
@@ -1202,11 +1202,11 @@ export function ReservationForm({
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Alamat</FormLabel>
+                          <FormLabel>Address</FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
-                              placeholder="Alamat sesuai identitas"
+                              placeholder="Address as shown on ID"
                               readOnly={isViewMode}
                               {...field}
                             />
@@ -1223,11 +1223,11 @@ export function ReservationForm({
                       name="notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Catatan (opsional)</FormLabel>
+                          <FormLabel>Notes (optional)</FormLabel>
                           <FormControl>
                             <Textarea
                               className={textareaClassName}
-                              placeholder="Permintaan khusus, kedatangan terlambat, atau catatan reservasi."
+                              placeholder="Special requests, late arrival, or reservation notes."
                               readOnly={isViewMode}
                               {...field}
                             />
@@ -1244,7 +1244,7 @@ export function ReservationForm({
             <section className={cardClassName} aria-labelledby="rooms-title">
               <div className={cardHeaderClassName}>
                 <h2 id="rooms-title" className={sectionTitleClassName}>
-                  Kamar
+                  Room
                 </h2>
 
               </div>
@@ -1277,10 +1277,10 @@ export function ReservationForm({
                     >
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold text-slate-800">
-                          Kamar {index + 1}
+                          Room {index + 1}
                           {rowRoomType ? (
                             <span className="ml-2 text-xs font-normal text-slate-500">
-                              {rowTotalGuests || 0}/{rowRoomType.capacity} tamu
+                              {rowTotalGuests || 0}/{rowRoomType.capacity} guests
                             </span>
                           ) : null}
                         </div>
@@ -1289,8 +1289,8 @@ export function ReservationForm({
                             type="button"
                             className={iconButtonClassName}
                             disabled={roomsFieldArray.fields.length <= 1}
-                            aria-label={`Hapus kamar ${index + 1}`}
-                            title={`Hapus kamar ${index + 1}`}
+                            aria-label={`Remove room ${index + 1}`}
+                            title={`Remove room ${index + 1}`}
                             onClick={() => {
                               if (roomsFieldArray.fields.length === 2) {
                                 const remainingIndex = index === 0 ? 1 : 0;
@@ -1313,11 +1313,11 @@ export function ReservationForm({
                           name={`rooms.${index}.occupantName`}
                           render={({ field }) => (
                             <FormItem className="mb-4">
-                              <FormLabel>Nama Tamu / Penghuni Kamar</FormLabel>
+                              <FormLabel>Guest / Room Occupant Name</FormLabel>
                               <FormControl>
                                 <Input
                                   className={fieldClassName}
-                                  placeholder="Kosongkan jika sama dengan pemesan utama"
+                                  placeholder="Leave blank if the same as the lead guest"
                                   maxLength={100}
                                   {...field}
                                   value={field.value ?? ""}
@@ -1336,7 +1336,7 @@ export function ReservationForm({
                           render={({ field }) => (
                             <FormItem className="desktop:min-[1400px]:col-span-3">
                               <FormLabel>
-                                Tipe Kamar <RequiredMark />
+                                Room Type <RequiredMark />
                               </FormLabel>
                               <FormControl>
                                 <select
@@ -1353,11 +1353,11 @@ export function ReservationForm({
                                     }
                                   }}
                                 >
-                                  <option value="">Pilih tipe kamar</option>
+                                  <option value="">Select room type</option>
                                   {roomTypes.map((roomType) => (
                                     <option key={roomType.id} value={String(roomType.id)}>
-                                      {roomType.code} - {roomType.name} - {roomType.capacity} tamu -{" "}
-                                      {formatIDR(roomType.baseRate)}/mlm
+                                      {roomType.code} - {roomType.name} - {roomType.capacity} guests -{" "}
+                                      {formatIDR(roomType.baseRate)}/night
                                     </option>
                                   ))}
                                 </select>
@@ -1377,23 +1377,23 @@ export function ReservationForm({
 
                             return (
                               <FormItem className="desktop:min-[1400px]:col-span-3">
-                                <FormLabel>Kamar</FormLabel>
+                                <FormLabel>Room</FormLabel>
                                 <FormControl>
                                   <select
                                     className={selectClassName}
                                     disabled={isViewMode || !rowRoomTypeId}
                                     {...field}
                                   >
-                                    <option value="">Belum dialokasikan</option>
+                                    <option value="">Not assigned</option>
                                     {rowRoomOptions.map((room) => {
                                       const reason = room.block
                                         ? ` / 🚫 ${roomBlockedMessage(room.block)}`
                                         : !room.isAvailable
-                                        ? " / ⚠️ Terisi reservasi lain"
+                                        ? " / ⚠️ Occupied by another reservation"
                                         : room.status === "VC"
-                                        ? " / Siap Pakai"
+                                        ? " / Ready for Use"
                                         : room.status === "VD"
-                                        ? " / Perlu Dibersihkan"
+                                        ? " / Cleaning Required"
                                         : "";
 
                                       return (
@@ -1402,7 +1402,7 @@ export function ReservationForm({
                                           value={String(room.id)}
                                           disabled={!room.isAvailable}
                                         >
-                                          Kamar {room.number} · Lt {room.floor} · [{room.status}]{reason}
+                                          Room {room.number} · Floor {room.floor} · [{room.status}]{reason}
                                         </option>
                                       );
                                     })}
@@ -1410,7 +1410,7 @@ export function ReservationForm({
                                 </FormControl>
                                 {selectedRoomOption?.status ? (
                                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-                                    <span className="text-slate-500">Status fisik:</span>
+                                    <span className="text-slate-500">Physical status:</span>
                                     <span
                                       className={cn(
                                         "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border",
@@ -1430,7 +1430,7 @@ export function ReservationForm({
                                     </span>
                                     {selectedRoomOption.status === "VD" && (
                                       <span className="text-[11px] text-amber-700">
-                                        (Perlu dibersihkan HK)
+                                        (Housekeeping cleaning required)
                                       </span>
                                     )}
                                   </div>
@@ -1447,7 +1447,7 @@ export function ReservationForm({
                           render={({ field }) => (
                             <FormItem className="desktop:min-[1400px]:col-span-2">
                               <FormLabel>
-                                Dewasa <RequiredMark />
+                                Adults <RequiredMark />
                               </FormLabel>
                               <FormControl>
                                 <Input
@@ -1470,7 +1470,7 @@ export function ReservationForm({
                           render={({ field }) => (
                             <FormItem className="desktop:min-[1400px]:col-span-2">
                               <FormLabel>
-                                Anak <RequiredMark />
+                                Children <RequiredMark />
                               </FormLabel>
                               <FormControl>
                                 <Input
@@ -1494,7 +1494,7 @@ export function ReservationForm({
                               name={`rooms.${index}.customRate`}
                               render={({ field }) => (
                                 <FormItem className="md:col-span-2 desktop:min-[1400px]:col-span-6">
-                                  <FormLabel>Kustomisasi Tarif Kamar (Rp / malam)</FormLabel>
+                                  <FormLabel>Custom Room Rate (Rp / night)</FormLabel>
                                   <FormControl>
                                     <Input
                                       {...field}
@@ -1503,7 +1503,7 @@ export function ReservationForm({
                                       min={0}
                                       max={100_000_000}
                                       step={1}
-                                      placeholder="Otomatis sesuai tarif standar"
+                                      placeholder="Automatically uses the standard rate"
                                       className={fieldClassName}
                                       aria-describedby={`custom-rate-hint-${index}`}
                                     />
@@ -1511,12 +1511,12 @@ export function ReservationForm({
                                   <p id={`custom-rate-hint-${index}`} className="text-xs text-slate-500" role="status">
                                     {activeQuote?.standardFirstNightRates[index] !== undefined ? (
                                       <>
-                                        Tarif standar malam pertama: {formatIDR(activeQuote.standardFirstNightRates[index])}.
+                                        Standard first-night rate: {formatIDR(activeQuote.standardFirstNightRates[index])}.
                                         {field.value?.trim() && Number.isFinite(Number(field.value)) ? (
-                                          <> Selisih: {formatIDR(Number(field.value) - activeQuote.standardFirstNightRates[index])} / malam dibanding malam pertama. Tarif khusus berlaku untuk seluruh malam.</>
-                                        ) : " Tarif standar dapat berbeda setiap malam."}
+                                          <> Difference: {formatIDR(Number(field.value) - activeQuote.standardFirstNightRates[index])} / night compared with the first night. The custom rate applies to all nights.</>
+                                        ) : " Standard rates may vary by night."}
                                       </>
-                                    ) : isQuotePending ? "Menghitung tarif standar…" : "Pilih tipe kamar dan tanggal untuk melihat tarif standar."}
+                                    ) : isQuotePending ? "Calculating standard rate…" : "Select a room type and dates to see the standard rate."}
                                   </p>
                                   <FormMessage />
                                 </FormItem>
@@ -1527,13 +1527,13 @@ export function ReservationForm({
                               name={`rooms.${index}.customRateReason`}
                               render={({ field }) => (
                                 <FormItem className="md:col-span-2 desktop:min-[1400px]:col-span-6">
-                                  <FormLabel>Alasan tarif khusus (opsional)</FormLabel>
+                                  <FormLabel>Custom rate reason (optional)</FormLabel>
                                   <FormControl>
                                     <Input
                                       {...field}
                                       value={field.value ?? ""}
                                       maxLength={255}
-                                      placeholder="Contoh: tarif kerja sama"
+                                      placeholder="Example: contracted rate"
                                       className={fieldClassName}
                                     />
                                   </FormControl>
@@ -1544,7 +1544,7 @@ export function ReservationForm({
                           </>
                         ) : null}
                         <div className="md:col-span-2 desktop:min-[1400px]:col-span-2">
-                          <p className="text-sm font-medium text-slate-700">Tarif kamar</p>
+                          <p className="text-sm font-medium text-slate-700">Room rate</p>
                           <div
                             role="status"
                             className="num mt-2 flex min-h-11 items-center text-sm font-semibold text-slate-900 desktop:min-h-10"
@@ -1572,7 +1572,7 @@ export function ReservationForm({
                       }
                     >
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                      Tambah Kamar
+                      Add Room
                     </Button>
                   </div>
                 ) : null}
@@ -1587,7 +1587,7 @@ export function ReservationForm({
                           Arrangement
                         </h2>
                         <p className="mt-1 text-xs font-medium text-slate-500">
-                          Satu arrangement berlaku untuk semua kamar dalam reservasi ini. Alokasi arrangement sudah termasuk dalam tarif paket kamar.
+                          One arrangement applies to all rooms in this reservation. The arrangement allocation is included in the room package rate.
                         </p>
                       </div>
                     </div>
@@ -1598,7 +1598,7 @@ export function ReservationForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Arrangement (Paket Kamar) <RequiredMark />
+                              Arrangement (Room Package) <RequiredMark />
                             </FormLabel>
                             <FormControl>
                               <div className="grid gap-3 sm:grid-cols-2">
@@ -1628,7 +1628,7 @@ export function ReservationForm({
                                         {option.label}
                                       </span>
                                       <span className="num mt-1 block text-sm text-slate-600">
-                                        Alokasi {formatIDR(option.price)} per tamu per malam
+                                        Allocation {formatIDR(option.price)} per guest per night
                                       </span>
                                     </label>
                                   );
@@ -1643,10 +1643,10 @@ export function ReservationForm({
                     <div className={cardHeaderClassName}>
                       <div>
                         <h3 id="meal-preview-title" className={sectionTitleClassName}>
-                          Estimasi Alokasi Arrangement
+                          Estimated Arrangement Allocation
                         </h3>
                         <p className="mt-1 text-xs text-slate-500">
-                          Pax berasal dari jumlah dewasa + anak pada setiap kamar.
+                          Guest count is the total number of adults and children in each room.
                         </p>
                       </div>
                       <span className="num text-sm font-bold text-slate-900">
@@ -1655,7 +1655,7 @@ export function ReservationForm({
                     </div>
                     <div className={cardContentClassName}>
                       {isQuotePending ? (
-                        <p role="status" className="text-sm text-slate-500">Menghitung estimasi…</p>
+                        <p role="status" className="text-sm text-slate-500">Calculating estimate…</p>
                       ) : quoteError ? (
                         <p className="text-sm font-medium text-red-600">{quoteError}</p>
                       ) : inclusionRooms.length > 0 ? (
@@ -1667,10 +1667,10 @@ export function ReservationForm({
                             >
                               <div>
                                 <p className="text-sm font-semibold text-slate-900">
-                                  Kamar {index + 1}
+                                  Room {index + 1}
                                 </p>
                                 <p className="num mt-0.5 text-xs text-slate-500">
-                                  {room.pax} pax × {formatIDR(room.unitPrice)} × {room.nights} malam
+                                  {room.pax} pax × {formatIDR(room.unitPrice)} × {room.nights} nights
                                 </p>
                               </div>
                               <p className="num text-sm font-semibold text-slate-900">
@@ -1681,7 +1681,7 @@ export function ReservationForm({
                         </div>
                       ) : (
                         <p className="text-sm text-slate-500">
-                          Lengkapi tanggal, tipe kamar, dan jumlah tamu untuk melihat estimasi.
+                          Enter dates, room type, and guest count to see an estimate.
                         </p>
                       )}
                     </div>

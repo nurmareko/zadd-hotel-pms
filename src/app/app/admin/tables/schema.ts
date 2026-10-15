@@ -17,7 +17,7 @@ export const tableStatuses = [
 const OptionalNotesSchema = z
   .string()
   .trim()
-  .max(500, "Catatan maksimal 500 karakter")
+  .max(500, "Notes must not exceed 500 characters")
   .or(z.literal(""))
   .nullable()
   .optional()
@@ -38,35 +38,35 @@ export const RestaurantTableCreateSchema = z.object({
   number: z
     .string()
     .trim()
-    .min(1, "Nomor meja wajib diisi")
-    .max(10, "Nomor meja maksimal 10 karakter")
-    .regex(/^[A-Za-z0-9]+$/, "Nomor meja harus alfanumerik"),
+    .min(1, "Table number is required")
+    .max(10, "Table number must not exceed 10 characters")
+    .regex(/^[A-Za-z0-9]+$/, "Table number must be alphanumeric"),
   capacity: formNumber(
     z
-      .number({ error: "Kapasitas wajib diisi dan harus berupa angka" })
-      .int("Kapasitas harus bilangan bulat")
-      .min(1, "Kapasitas minimal 1"),
+      .number({ error: "Capacity is required and must be a number" })
+      .int("Capacity must be a whole number")
+      .min(1, "Capacity must be at least 1"),
   ),
-  location: z.enum(tableLocations, { error: "Pilih lokasi yang valid" }),
-  status: z.enum(tableStatuses, { error: "Pilih status meja yang valid" }),
+  location: z.enum(tableLocations, { error: "Select a valid location" }),
+  status: z.enum(tableStatuses, { error: "Select a valid table status" }),
   notes: OptionalNotesSchema,
 });
 
 export const RestaurantTableUpdateSchema = RestaurantTableCreateSchema.extend({
-  id: z.coerce.number().int().positive("Meja wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a table"),
 });
 
 export const RestaurantTableIdSchema = z.object({
-  id: z.coerce.number().int().positive("Meja wajib dipilih"),
+  id: z.coerce.number().int().positive("Select a table"),
 });
 
 export const RestaurantTablePositionSchema = RestaurantTableIdSchema.extend({
-  posX: z.coerce.number().min(0, "Posisi X tidak valid"),
-  posY: z.coerce.number().min(0, "Posisi Y tidak valid"),
+  posX: z.coerce.number().min(0, "Invalid X position"),
+  posY: z.coerce.number().min(0, "Invalid Y position"),
 });
 
 export const RestaurantTableLocationSchema = z.object({
-  location: z.enum(tableLocations, { error: "Pilih lokasi yang valid" }),
+  location: z.enum(tableLocations, { error: "Select a valid location" }),
 });
 
 export type RestaurantTableFormInput = z.input<

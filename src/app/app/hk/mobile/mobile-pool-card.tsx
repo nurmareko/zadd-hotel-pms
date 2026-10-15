@@ -16,23 +16,23 @@ export function MobilePoolCard({ room }: MobilePoolCardProps) {
   const claimable = !room.inProgress && room.status !== "OOO";
 
   return (
-    <article aria-label={`Kamar tersedia ${room.number}`} aria-busy={isPending} className="relative min-w-0 max-w-full space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <article aria-label={`Available rooms ${room.number}`} aria-busy={isPending} className="relative min-w-0 max-w-full space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <MobileRoomSummary room={room} />
       {claimable ? (
-        <p className="text-xs text-slate-600">Ambil kamar untuk menambahkannya ke tugas Anda.</p>
+        <p className="text-xs text-slate-600">Claim a room to add it to your tasks.</p>
       ) : (
-        <p className="text-sm text-slate-600">Kamar tidak lagi tersedia untuk diambil. Muat ulang daftar untuk melihat tugas terbaru.</p>
+        <p className="text-sm text-slate-600">This room is no longer available to claim. Refresh the list to see the latest tasks.</p>
       )}
       <Button
         disabled={isPending || !claimable}
-        onClick={() => run(() => claimAvailableRoom(room.id), `Kamar ${room.number} ditambahkan ke tugas Anda`)}
+        onClick={() => run(() => claimAvailableRoom(room.id), `Room ${room.number} added to your tasks`)}
         aria-describedby={`claim-hint-${room.id}`}
                 className="min-h-12 w-full min-w-0 whitespace-normal"
       >
         {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
-        Ambil Tugas
+        Claim Task
       </Button>
-      <span id={`claim-hint-${room.id}`} className="sr-only">Tugaskan ke Saya</span>
+      <span id={`claim-hint-${room.id}`} className="sr-only">Assign to Me</span>
     </article>
   );
 }

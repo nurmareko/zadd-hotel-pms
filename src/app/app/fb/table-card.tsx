@@ -57,10 +57,10 @@ function elapsedLabel(openedAt: Date) {
   const minutes = Math.max(0, differenceInMinutes(new Date(), openedAt));
 
   if (minutes < 60) {
-    return `${minutes} menit`;
+    return `${minutes} minutes`;
   }
 
-  return `${Math.floor(minutes / 60)}j ${minutes % 60}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 function isManualFloorStatus(
@@ -92,24 +92,24 @@ export function TableCard({ table, variant = "card" }: TableCardProps) {
         />
       </div>
       <div className="mt-2 text-sm font-medium text-slate-600">
-        Kapasitas {table.capacity}
+        Capacity {table.capacity}
       </div>
       {activeOrder ? (
         <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
           <div className="font-semibold text-slate-900">{activeOrder.orderNo}</div>
           <div className="mt-1 text-slate-500">
-            <span className="num">{activeOrder.items.length}</span> item ·{" "}
-            <span className="num">{activeOrder.guestCount}</span> tamu ·{" "}
+            <span className="num">{activeOrder.items.length}</span> items ·{" "}
+            <span className="num">{activeOrder.guestCount}</span> guests ·{" "}
             {elapsedLabel(activeOrder.openedAt)}
           </div>
         </div>
       ) : table.status === TableStatus.RESERVED ? (
         <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
-          {table.notes ?? "Reservasi meja dicatat manual untuk MVP."}
+          {table.notes ?? "Table reservations are recorded manually in the MVP."}
         </div>
       ) : table.status === TableStatus.OUT_OF_SERVICE ? (
         <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-600">
-          {table.notes ?? "Meja tidak tersedia."}
+          {table.notes ?? "Table unavailable."}
         </div>
       ) : null}
     </>

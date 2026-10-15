@@ -10,11 +10,11 @@ export type RoomBlockSummary = RoomBlockDateRange & {
 };
 
 export const ROOM_BLOCK_REASON_LABELS: Record<RoomBlockReason, string> = {
-  MAINTENANCE: "Pemeliharaan",
-  RENOVATION: "Renovasi",
-  DEEP_CLEANING: "Pembersihan menyeluruh",
-  INSPECTION: "Inspeksi",
-  OTHER: "Lainnya",
+  MAINTENANCE: "Maintenance",
+  RENOVATION: "Renovation",
+  DEEP_CLEANING: "Deep Cleaning",
+  INSPECTION: "Inspection",
+  OTHER: "Other",
 };
 
 export function overlapsDateRange(a: RoomBlockDateRange, b: RoomBlockDateRange): boolean {
@@ -31,5 +31,5 @@ export function findOverlappingRoomBlock(
 }
 
 export function roomBlockedMessage(block: RoomBlockSummary): string {
-  return `Kamar diblokir untuk ${ROOM_BLOCK_REASON_LABELS[block.reason]} pada ${block.startDate} hingga sebelum ${block.endDate}. Pilih kamar atau tanggal lain.`;
+  return `Room blocked for ${ROOM_BLOCK_REASON_LABELS[block.reason]} from ${block.startDate} until ${block.endDate} (exclusive). Select another room or date.`;
 }

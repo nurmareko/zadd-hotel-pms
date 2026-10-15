@@ -42,7 +42,7 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       const field = String(issue.path[0] ?? "");
-      showFailure({ ok: false, code: "INVALID_INPUT", field, error: field === "roomId" ? "Pilih kamar yang valid." : field === "reason" ? "Pilih alasan blokir kamar yang valid." : issue.message });
+      showFailure({ ok: false, code: "INVALID_INPUT", field, error: field === "roomId" ? "Select a valid room." : field === "reason" ? "Select a valid reason for the room block." : issue.message });
       return;
     }
     const input: CreateRoomBlockInput = parsed.data;
@@ -52,12 +52,12 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
       try {
         const result = await createRoomBlockAction(input);
         if (!result.ok) return showFailure(result);
-        toast.success("Blokir kamar berhasil dibuat.");
+        toast.success("Room block created.");
         setOpen(false);
         setSelectedRoomId("");
         router.refresh();
       } catch {
-        setFailure({ ok: false, code: "UNEXPECTED", error: "Hasil penyimpanan belum dapat dikonfirmasi. Periksa daftar blokir sebelum mencoba lagi." });
+        setFailure({ ok: false, code: "UNEXPECTED", error: "The save result could not be confirmed. Check the room block list before trying again." });
       } finally {
         submitting.current = false;
       }
@@ -67,15 +67,15 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
   const invalid = (field: string) => ({ "aria-invalid": failure?.field === field || undefined, "aria-describedby": failure?.field === field ? "create-block-error" : undefined });
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting.current) { setOpen(next); setFailure(null); if (!next) setSelectedRoomId(""); } }}>
-      <DialogTrigger render={<Button disabled={rooms.length === 0} />}><Plus aria-hidden="true" />Buat Blokir</DialogTrigger>
+      <DialogTrigger render={<Button disabled={rooms.length === 0} />}><Plus aria-hidden="true" />Create Block</DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Blokir Kamar</DialogTitle>
-          <DialogDescription>Kamar tidak dapat digunakan untuk reservasi selama rentang blokir. Tanggal selesai tidak termasuk malam yang diblokir.</DialogDescription>
+          <DialogTitle>Room Blocks</DialogTitle>
+          <DialogDescription>The room cannot be reserved during the blocked period. The end date is not included in the blocked nights.</DialogDescription>
         </DialogHeader>
         <form ref={formRef} onSubmit={submit} noValidate className="space-y-4" aria-busy={pending}>
           <fieldset disabled={pending} className="space-y-4">
-            <div className="space-y-1.5"><label htmlFor="block-room" className="text-sm font-medium">Kamar</label>
+            <div className="space-y-1.5"><label htmlFor="block-room" className="text-sm font-medium">Room</label>
               <select
                 id="block-room"
                 name="roomId"
@@ -85,30 +85,30 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                 className={controlClass}
                 {...invalid("roomId")}
               >
-                <option value="" disabled>Pilih kamar...</option>
+                <option value="" disabled>Select a room...</option>
                 {rooms.map((room) => {
                   const isOccupied = room.status === "OC" || room.status === "OD";
                   const statusLabel =
                     room.status === "VC"
-                      ? "VC - Kosong Bersih"
+                      ? "VC - Vacant Clean"
                       : room.status === "VD"
-                      ? "VD - Kosong Kotor"
+                      ? "VD - Vacant Dirty"
                       : isOccupied
-                      ? `${room.status} - Terisi Tamu ⚠️`
+                      ? `${room.status} - Occupied ⚠️`
                       : room.status === "OOO"
-                      ? "OOO - Rusak"
+                      ? "OOO - Out of Order"
                       : room.status ?? "";
 
                   return (
                     <option key={room.id} value={room.id}>
-                      Kamar {room.number} · {room.roomType.name} {statusLabel ? `[${statusLabel}]` : ""}
+                      Room {room.number} · {room.roomType.name} {statusLabel ? `[${statusLabel}]` : ""}
                     </option>
                   );
                 })}
               </select>
               {selectedRoom?.status ? (
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-slate-500">Status saat ini:</span>
+                  <span className="text-slate-500">Current status:</span>
                   <span
                     className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${
                       selectedRoom.status === "VC"
@@ -122,13 +122,13 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                   >
                     {selectedRoom.status} — {
                       selectedRoom.status === "VC"
-                        ? "Kosong Bersih"
+                        ? "Vacant Clean"
                         : selectedRoom.status === "VD"
-                        ? "Kosong Kotor"
+                        ? "Vacant Dirty"
                         : selectedRoom.status === "OC"
-                        ? "Terisi Bersih"
+                        ? "Occupied Clean"
                         : selectedRoom.status === "OD"
-                        ? "Terisi Kotor"
+                        ? "Occupied Dirty"
                         : selectedRoom.status === "OOO"
                         ? "Out of Order"
                         : selectedRoom.status
@@ -136,30 +136,30 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                   </span>
                   {(selectedRoom.status === "OC" || selectedRoom.status === "OD") && (
                     <span className="text-amber-700 font-medium">
-                      ⚠️ Kamar sedang ditempati tamu. Pastikan rentang blokir tidak bentrok.
+                      ⚠️ This room is currently occupied. Make sure the blocked period does not overlap the stay.
                     </span>
                   )}
                 </div>
               ) : null}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><label htmlFor="block-start" className="text-sm font-medium">Tanggal Mulai</label><input id="block-start" name="startDate" type="date" required defaultValue={today} className={controlClass} {...invalid("startDate")} /></div>
-              <div className="space-y-1.5"><label htmlFor="block-end" className="text-sm font-medium">Tanggal Selesai</label><input id="block-end" name="endDate" type="date" required defaultValue={tomorrow} className={controlClass} {...invalid("endDate")} /></div>
+              <div className="space-y-1.5"><label htmlFor="block-start" className="text-sm font-medium">Start Date</label><input id="block-start" name="startDate" type="date" required defaultValue={today} className={controlClass} {...invalid("startDate")} /></div>
+              <div className="space-y-1.5"><label htmlFor="block-end" className="text-sm font-medium">End Date</label><input id="block-end" name="endDate" type="date" required defaultValue={tomorrow} className={controlClass} {...invalid("endDate")} /></div>
             </div>
-            <div className="space-y-1.5"><label htmlFor="block-reason" className="text-sm font-medium">Alasan</label>
+            <div className="space-y-1.5"><label htmlFor="block-reason" className="text-sm font-medium">Reason</label>
               <select id="block-reason" name="reason" defaultValue="MAINTENANCE" className={controlClass} {...invalid("reason")}>
                 {Object.entries(ROOM_BLOCK_REASON_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
-            <div className="space-y-1.5"><label htmlFor="block-note" className="text-sm font-medium">Catatan <span className="font-normal text-slate-500">(opsional)</span></label>
+            <div className="space-y-1.5"><label htmlFor="block-note" className="text-sm font-medium">Notes <span className="font-normal text-slate-500">(optional)</span></label>
               <textarea id="block-note" name="note" rows={3} maxLength={2000} className={`${controlClass} h-auto py-2 desktop:h-auto`} {...invalid("note")} aria-describedby={failure?.field === "note" ? "block-note-hint create-block-error" : "block-note-hint"} />
-              <p id="block-note-hint" className="text-xs text-slate-500">Maksimal 2.000 karakter. Sertakan rincian pekerjaan bila diperlukan.</p>
+              <p id="block-note-hint" className="text-xs text-slate-500">Maximum 2,000 characters. Include details of the work if needed.</p>
             </div>
           </fieldset>
           {failure && <p id="create-block-error" role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{failure.error}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="submit" disabled={pending}>{pending ? "Menyimpan…" : "Simpan Blokir"}</Button>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save Block"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -181,26 +181,26 @@ export function ReleaseBlockDialog({ blockId, roomNumber, startDate, endDate }: 
       try {
         const result = await releaseRoomBlockAction({ blockId });
         if (!result.ok) { setError(result.error); return; }
-        toast.success(result.alreadyReleased ? "Blokir kamar sudah dilepas sebelumnya." : "Blokir kamar berhasil dilepas.");
+        toast.success(result.alreadyReleased ? "This room block has already been released." : "Room block released.");
         setOpen(false);
         router.refresh();
       } catch {
-        setError("Hasil pelepasan belum dapat dikonfirmasi. Periksa daftar atau coba lagi.");
+        setError("The release result could not be confirmed. Check the list or try again.");
       } finally { submitting.current = false; }
     });
   }
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting.current) { setOpen(next); setError(""); } }}>
-      <DialogTrigger render={<Button variant="outline" size="sm" aria-label={`Lepas blokir kamar ${roomNumber}, ${startDate} hingga ${endDate}`} />}>Lepas Blokir</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" size="sm" aria-label={`Release room block ${roomNumber}, ${startDate} to ${endDate}`} />}>Release Block</DialogTrigger>
       <DialogContent showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Lepas Blokir Kamar {roomNumber}?</DialogTitle>
-          <DialogDescription>Blokir tanggal {startDate} hingga sebelum {endDate} akan dilepas. Riwayat tetap tersimpan. Ketersediaan kamar tetap mengikuti reservasi dan blokir aktif lainnya.</DialogDescription>
+          <DialogTitle>Release Room Block {roomNumber}?</DialogTitle>
+          <DialogDescription>The block from {startDate} up to but not including {endDate} will be released. Its history will be retained. Room availability still depends on reservations and other active blocks.</DialogDescription>
         </DialogHeader>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" disabled={pending} onClick={() => setOpen(false)}>Batal</Button>
-          <Button disabled={pending} onClick={release}>{pending ? "Melepas…" : "Ya, Lepas Blokir"}</Button>
+          <Button variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={pending} onClick={release}>{pending ? "Releasing…" : "Yes, Release Block"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

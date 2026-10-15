@@ -1,9 +1,9 @@
 const categoryLabels: Readonly<Record<string, string>> = {
-  Main: "Hidangan Utama",
-  Beverage: "Minuman",
-  Dessert: "Hidangan Penutup",
-  Appetizer: "Hidangan Pembuka",
-  Snack: "Camilan",
+  Main: "Main Courses",
+  Beverage: "Beverages",
+  Dessert: "Desserts",
+  Appetizer: "Starters",
+  Snack: "Snacks",
 };
 
 // Translate display labels without changing stored categories or custom values.

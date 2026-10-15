@@ -45,7 +45,7 @@ async function mutateRoom(input: RoomMutation, failureMessage: string): Promise<
           select: { id: true, status: true },
         });
         if (!room) {
-          return { ok: false, error: "Kamar tidak ditemukan" };
+          return { ok: false, error: "Room not found" };
         }
 
         // Anchor assignment and audit time together even if later awaits cross WIB midnight.
@@ -64,7 +64,7 @@ async function mutateRoom(input: RoomMutation, failureMessage: string): Promise<
               select: { id: true },
             });
             if (!housekeeper) {
-              return { ok: false, error: "Petugas HK tidak ditemukan atau tidak aktif" };
+              return { ok: false, error: "Room attendant not found or inactive" };
             }
           }
 
@@ -87,7 +87,7 @@ async function mutateRoom(input: RoomMutation, failureMessage: string): Promise<
           if (activeCleaner) {
             return {
               ok: false,
-              error: "Pembersihan kamar sedang berjalan. Selesaikan pembersihan sebelum mengganti atau menghapus petugas HK.",
+              error: "Room cleaning is in progress. Complete cleaning before changing or removing the assigned attendant.",
             };
           }
 
@@ -139,7 +139,7 @@ async function mutateRoom(input: RoomMutation, failureMessage: string): Promise<
         continue;
       }
       if (isConflict(error, ["P2034", "P2028", "P2002"])) {
-        return { ok: false, error: "Kamar sedang diproses. Muat ulang halaman dan coba lagi." };
+        return { ok: false, error: "The room is being updated. Refresh the page and try again." };
       }
       return { ok: false, error: failureMessage };
     }
@@ -158,17 +158,17 @@ export async function setRoomHousekeeper(
   housekeeperId: number | null,
 ): Promise<ActionResult> {
   if (!(await authorizedOperator())) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
   const parsed = SetRoomHousekeeperSchema.safeParse({ roomId, dateIso, housekeeperId });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Input tidak valid" };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
   const result = await mutateRoom({
     roomId: parsed.data.roomId,
     assignment: { dateIso: parsed.data.dateIso, housekeeperId: parsed.data.housekeeperId },
-  }, "Gagal mengatur petugas HK");
+  }, "Unable to assign the room attendant");
   if (result.ok) revalidateRoomPaths(parsed.data.roomId);
   return result;
 }
@@ -176,11 +176,11 @@ export async function setRoomHousekeeper(
 export async function createHousekeepingTaskNote(formData: FormData): Promise<ActionResult> {
   const operatorId = await authorizedOperator();
   if (!operatorId) {
-    return { ok: false, error: "Tidak berwenang" };
+    return { ok: false, error: "Not authorised" };
   }
   const fields = ["roomId", "category", "note", "housekeeperId"] as const;
   if (!(formData instanceof FormData) || fields.some((field) => formData.getAll(field).length > 1)) {
-    return { ok: false, error: "Input tidak valid" };
+    return { ok: false, error: "Invalid input" };
   }
   // Allowlist persisted fields: priority is informational; reservation notes are FO-owned.
   const parsed = TaskNoteSchema.safeParse({
@@ -190,7 +190,7 @@ export async function createHousekeepingTaskNote(formData: FormData): Promise<Ac
     housekeeperId: formData.get("housekeeperId"),
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Input tidak valid" };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
   const { roomId, housekeeperId, category, note } = parsed.data;
@@ -198,7 +198,7 @@ export async function createHousekeepingTaskNote(formData: FormData): Promise<Ac
     roomId,
     assignment: housekeeperId === undefined ? undefined : { housekeeperId },
     taskNote: { category, note, operatorId },
-  }, "Gagal menyimpan tugas kamar");
+  }, "Unable to save the room task");
   if (result.ok) revalidateRoomPaths(roomId);
   return result;
 }

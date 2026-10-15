@@ -114,7 +114,7 @@ describe("stayChargeShortfallLines", () => {
       expect(failure).toEqual({
         ok: false,
         code: "INVALID_STAY_CHARGE_AMOUNT",
-        error: "Alokasi Arrangement untuk salah satu malam melebihi tarif paket sehingga nilai Kamar menjadi negatif. Perbaiki tarif paket atau alokasi Arrangement sebelum melanjutkan check-out.",
+        error: "A nightly Arrangement allocation exceeds the package rate, making the room amount negative. Correct the package rate or Arrangement allocation before continuing check-out.",
       });
     } finally {
       log.mockRestore();
@@ -208,7 +208,7 @@ describe("stayChargeShortfallLines", () => {
     });
 
     expect(build).toThrow(StayChargePostingError);
-    expect(build).toThrow("alokasi Arrangement melebihi tarif paket");
+    expect(build).toThrow("Arrangement allocation exceeds the package rate");
     try {
       build();
     } catch (error) {

@@ -46,7 +46,7 @@ export function TableRowActions({
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(table)}>
           <Trash2 aria-hidden="true" />
-          Hapus
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -236,15 +236,15 @@ export default async function HkRoomsPage({
       <div className="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Papan Kamar
+            Room Board
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {formatDateWithWeekday(date)} · {rows.length} kamar
+            {formatDateWithWeekday(date)} · {rows.length} rooms
           </p>
         </div>
 
         <nav
-          aria-label="Navigasi papan kamar"
+          aria-label="Room board navigation"
           className="flex flex-wrap items-center gap-2"
         >
           <RoomTaskNoteDialog
@@ -260,7 +260,7 @@ export default async function HkRoomsPage({
             )}
           >
             <Download className="h-4 w-4" aria-hidden="true" />
-            Ekspor CSV
+            Export CSV
           </a>
           {canAccessMyRooms && (
             <Link
@@ -268,7 +268,7 @@ export default async function HkRoomsPage({
               className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
             >
               <Smartphone className="h-4 w-4" aria-hidden="true" />
-              Tugas Saya
+              My Tasks
             </Link>
           )}
           <Link
@@ -276,20 +276,20 @@ export default async function HkRoomsPage({
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            Sebelumnya
+            Previous
           </Link>
           <Link
             href={dateHref({ ...queryParams, date: todayDateOnly().today })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" />
-            Hari Ini
+            Today
           </Link>
           <Link
             href={dateHref({ ...queryParams, date: addDateOnlyDays(date, 1) })}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
-            Berikutnya
+            Next
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
           <Link
@@ -298,7 +298,7 @@ export default async function HkRoomsPage({
             className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-md")}
           >
             <Printer className="h-4 w-4" aria-hidden="true" />
-            Cetak Daftar Harian
+            Print Daily List
           </Link>
         </nav>
       </div>
@@ -306,9 +306,9 @@ export default async function HkRoomsPage({
       <InspectionInbox rooms={inspectionRooms} />
 
       <Tabs defaultValue="worksheet" className="min-w-0">
-        <TabsList aria-label="Tampilan papan kamar" className="max-w-full">
-          <TabsTrigger value="worksheet">Lembar Kerja</TabsTrigger>
-          <TabsTrigger value="assignment">Penugasan Massal</TabsTrigger>
+        <TabsList aria-label="Room board view" className="max-w-full">
+          <TabsTrigger value="worksheet">Worksheet</TabsTrigger>
+          <TabsTrigger value="assignment">Bulk Assignment</TabsTrigger>
         </TabsList>
         <TabsContent value="worksheet" className="min-w-0">
           <section className="mb-4 rounded-lg border border-border bg-card">
@@ -332,7 +332,7 @@ export default async function HkRoomsPage({
             />
             {(floor || assigneeId) && (
               <p className="px-3.5 pb-3.5 text-xs text-muted-foreground">
-                Filter lantai dan petugas hanya berlaku pada lembar kerja, belum pada ekspor CSV atau cetak daftar harian.
+                Floor and attendant filters apply only to the worksheet, not to CSV exports or the printed daily list.
               </p>
             )}
           </section>
@@ -340,7 +340,7 @@ export default async function HkRoomsPage({
           <Card className="rounded-lg overflow-hidden p-0">
             <CardHeader className="border-b border-border rounded-none px-5 py-4">
               <CardTitle className="text-[16px] font-semibold tracking-tight">
-                Lembar Kerja · {formatISODate(date)}
+                Worksheet · {formatISODate(date)}
               </CardTitle>
             </CardHeader>
             <CardContent className="min-w-0 p-0">
@@ -361,10 +361,10 @@ export default async function HkRoomsPage({
           <Card className="overflow-hidden rounded-lg p-0">
             <CardHeader className="border-b border-border px-5 py-4">
               <CardTitle className="text-base font-semibold">
-                Distribusi Beban Kerja
+                Workload Distribution
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Jumlah kamar yang ditugaskan pada {formatISODate(date)}.
+                Number of rooms assigned on {formatISODate(date)}.
               </p>
             </CardHeader>
             <CardContent className="grid gap-2 p-4 md:grid-cols-3">
@@ -385,13 +385,13 @@ export default async function HkRoomsPage({
                     </span>
                   </div>
                   <span className="num shrink-0 text-sm font-semibold">
-                    {housekeeper.assignedCount} kamar
+                    {housekeeper.assignedCount} rooms
                   </span>
                 </div>
               ))}
               {housekeepers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Tidak ada petugas HK aktif.
+                  No active room attendants.
                 </p>
               ) : null}
             </CardContent>

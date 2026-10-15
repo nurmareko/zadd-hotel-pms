@@ -56,7 +56,7 @@ export function BillActions({
         return;
       }
 
-      toast.success("Bill dikonfirmasi");
+      toast.success("Bill confirmed");
       downloadBillPdf(orderId, orderNo);
       router.refresh();
     });
@@ -75,7 +75,7 @@ export function BillActions({
         return;
       }
 
-      toast.success("Order dibuka kembali");
+      toast.success("Order reopened");
       router.push(`/app/fb/orders/${orderId}`);
       router.refresh();
     });
@@ -85,10 +85,10 @@ export function BillActions({
     <aside className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm desktop:xl:sticky desktop:xl:top-4 desktop:xl:self-start">
       <div className="border-b border-gray-100 px-5 py-4">
         <div className="text-base font-semibold text-slate-900">
-          Aksi Bill
+          Bill Actions
         </div>
         <div className="mt-1 text-sm text-slate-500">
-          Konfirmasi, cetak, atau buka kembali order.
+          Confirm, print or reopen the order.
         </div>
       </div>
       <div className="grid gap-2 p-5">
@@ -99,18 +99,18 @@ export function BillActions({
               onClick={handleConfirmBill}
               type="button"
             >
-              {isPending ? "Memproses..." : "Konfirmasi & Cetak Bill"}
+              {isPending ? "Processing..." : "Confirm & Print Bill"}
             </Button>
             {!hasItems ? (
               <p className="rounded-lg border border-status-od-pip bg-status-od-bg px-3 py-2 text-sm font-medium leading-5 text-status-od-fg">
-                Order kosong, tidak bisa ditagih.
+                An empty order cannot be billed.
               </p>
             ) : null}
             <Link
               className={buttonVariants({ variant: "outline" })}
               href={`/app/fb/orders/${orderId}`}
             >
-              Kembali ke Order
+              Back to Order
             </Link>
           </>
         ) : null}
@@ -121,10 +121,10 @@ export function BillActions({
               className={buttonVariants()}
               href={`/app/fb/orders/${orderId}/payment`}
             >
-              Lanjut ke Pembayaran
+              Continue to Payment
             </Link>
             <Button variant="outline" onClick={handleReprint} type="button">
-              Cetak Ulang Bill
+              Reprint Bill
             </Button>
             {canReopen ? <AlertDialog>
               <AlertDialogTrigger
@@ -132,27 +132,25 @@ export function BillActions({
                 disabled={isPending}
                 type="button"
               >
-                Buka Kembali Order
+                Reopen Order
               </AlertDialogTrigger>
               <AlertDialogContent className="rounded-xl border border-gray-200 bg-white shadow-xl">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Buka kembali order?</AlertDialogTitle>
+                  <AlertDialogTitle>Reopen this order?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Status akan kembali menjadi OPEN sehingga item bisa
-                    ditambahkan lagi. Bill perlu dikonfirmasi ulang sebelum
-                    pembayaran.
+                    The status will return to OPEN so items can be added again. The bill must be confirmed again before payment.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={isPending}>
-                    Batal
+                    Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
                     disabled={isPending}
                     onClick={handleReopen}
                     type="button"
                   >
-                    {isPending ? "Memproses..." : "Buka Kembali"}
+                    {isPending ? "Processing..." : "Reopen"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -162,13 +160,13 @@ export function BillActions({
 
         {status === "CLOSED" ? (
           <Button variant="outline" onClick={handleReprint} type="button">
-            Cetak Ulang Bill
+            Reprint Bill
           </Button>
         ) : null}
 
         {status === "VOIDED" ? (
           <p className="text-sm leading-6 text-slate-500">
-            Order voided tidak memiliki aksi cetak bill.
+            Bills cannot be printed for voided orders.
           </p>
         ) : null}
       </div>

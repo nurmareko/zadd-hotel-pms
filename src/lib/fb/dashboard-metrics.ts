@@ -76,9 +76,9 @@ export function resolveFBDashboardDate(date?: string | Date, now: Date = new Dat
 
 function orderLocation(order: FBDashboardOrder): string {
   const tableNumber = order.table?.number || order.tableNo;
-  if (tableNumber) return `Meja ${tableNumber}`;
+  if (tableNumber) return `Table ${tableNumber}`;
   const roomNumber = order.chargedFolio?.reservation.room?.number;
-  return roomNumber ? `Kamar ${roomNumber}` : "—";
+  return roomNumber ? `Room ${roomNumber}` : "—";
 }
 
 /** Read-only aggregation of stored bill snapshots, not a billing calculator. */

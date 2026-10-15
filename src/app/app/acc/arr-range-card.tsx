@@ -20,9 +20,9 @@ function statusLabel(result: ArrDisplayData): string {
     return "N/A";
   }
   if (result.status === "INTEGRITY_ERROR") {
-    return "Kesalahan integritas data";
+    return "Data integrity error";
   }
-  return "Tidak tersedia";
+  return "Unavailable";
 }
 
 export function ArrRangeCard({
@@ -48,7 +48,7 @@ export function ArrRangeCard({
       <CardContent className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <form className="grid content-start gap-3 sm:grid-cols-[1fr_1fr_auto]" method="get">
           <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
-            Dari (inklusif)
+            From (inclusive)
             <input
               className="h-10 rounded-md border border-input bg-white px-3 text-sm font-normal text-foreground"
               defaultValue={fromValue}
@@ -58,7 +58,7 @@ export function ArrRangeCard({
             />
           </label>
           <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
-            Sampai (inklusif)
+            To (inclusive)
             <input
               className="h-10 rounded-md border border-input bg-white px-3 text-sm font-normal text-foreground"
               defaultValue={toValue}
@@ -71,7 +71,7 @@ export function ArrRangeCard({
             className="mt-auto h-10 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
             type="submit"
           >
-            Terapkan
+            Apply
           </button>
           {validationError ? (
             <p className="text-sm text-red-700 sm:col-span-3">{validationError}</p>
@@ -86,7 +86,7 @@ export function ArrRangeCard({
             {statusLabel(result)}
           </div>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Rentang yang diminta</dt>
+            <dt className="text-muted-foreground">Requested date range</dt>
             <dd className="text-right font-medium">
               {formatCompactDateID(new Date(`${result.fromInclusive}T00:00:00.000Z`))}
               {" – "}
@@ -94,9 +94,9 @@ export function ArrRangeCard({
             </dd>
             <dt className="text-muted-foreground">Cutover</dt>
             <dd className="text-right font-medium">{formatCompactDateID(cutover)}</dd>
-            <dt className="text-muted-foreground">Total pendapatan kamar</dt>
+            <dt className="text-muted-foreground">Total room revenue</dt>
             <dd className="num text-right font-medium">{formatIDR(result.numerator)}</dd>
-            <dt className="text-muted-foreground">Malam kamar terjual</dt>
+            <dt className="text-muted-foreground">Room nights sold</dt>
             <dd className="num text-right font-medium">{result.paidRoomNights}</dd>
           </dl>
           {result.reason ? (
@@ -105,7 +105,7 @@ export function ArrRangeCard({
             </p>
           ) : (
             <p className="mt-3 border-t border-border pt-3 text-xs leading-5 text-muted-foreground">
-              Agregat berbobot: total tagihan kamar berbayar dibagi total malam kamar berbayar. ARR harian tidak pernah dirata-ratakan.
+              Weighted aggregate: total paid room charges divided by total paid room nights. Daily ARR values are never averaged.
             </p>
           )}
         </div>

@@ -28,14 +28,14 @@ export function RoomHeader({ roomNumber, roomTypeName, status }: RoomHeaderProps
           Dashboard
         </Link>
         <span aria-hidden="true" className="text-border">/</span>
-        <span className="font-medium text-foreground">Kamar {roomNumber}</span>
+        <span className="font-medium text-foreground">Room {roomNumber}</span>
       </nav>
 
       {/* Room Identity Card */}
       <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-5 py-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Kamar {roomNumber}
+            Room {roomNumber}
           </h1>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
             {roomTypeName}

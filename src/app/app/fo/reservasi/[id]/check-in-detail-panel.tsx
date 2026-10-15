@@ -30,6 +30,8 @@ import {
 import {
   checkInDepositMethods,
   purposeOfVisitOptions,
+  purposeOfVisitLabels,
+  purposeOfVisitLabel,
   type CheckInDepositMethod,
   type PurposeOfVisitValue,
 } from "@/lib/check-in/schema";
@@ -56,10 +58,10 @@ const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-300 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500";
 
 const mealPlanLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO — Tanpa makan",
-  [ArrangementType.BB]: "BB — Sarapan",
-  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
-  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+  [ArrangementType.RO]: "RO — Room Only",
+  [ArrangementType.BB]: "BB — Bed & Breakfast",
+  [ArrangementType.HB]: "HB — Breakfast + One Main Meal",
+  [ArrangementType.FB]: "FB — Breakfast, Lunch & Dinner",
 };
 
 function ReadOnlyItem({ label, value }: { label: string; value: string }) {
@@ -179,7 +181,7 @@ export function CheckInDetailPanel({
     if (!depositMethod) {
       setDepositUiState({
         isUncertain: false,
-        actionError: "Pilih metode pembayaran deposit.",
+        actionError: "Select a deposit payment method.",
         errorCode: "INVALID_INPUT",
         errorField: "depositMethod",
       });
@@ -189,7 +191,7 @@ export function CheckInDetailPanel({
     if (depositMethod === "TRANSFER" && !depositReference.trim()) {
       setDepositUiState({
         isUncertain: false,
-        actionError: "Referensi deposit wajib diisi untuk transfer.",
+        actionError: "A deposit reference is required for bank transfers.",
         errorCode: "INVALID_INPUT",
         errorField: "depositReference",
       });
@@ -219,8 +221,8 @@ export function CheckInDetailPanel({
       setDepositStatus(DepositStatus.COLLECTED);
       toast.success(
         result.alreadyCollected
-          ? "Deposit sebelumnya sudah tercatat."
-          : "Deposit berhasil dikumpulkan.",
+          ? "The deposit has already been recorded."
+          : "Deposit collected.",
       );
       router.refresh();
     } catch {
@@ -398,16 +400,16 @@ export function CheckInDetailPanel({
   }
 
   const guidance = !statusReady
-    ? "Reservasi harus berstatus CONFIRMED."
+    ? "The reservation must be Confirmed."
     : !initialReview.arrivalDue
-      ? "Check-in baru tersedia pada tanggal kedatangan."
+      ? "Check-in is only available on the arrival date."
       : !depositReady
-        ? "Kumpulkan deposit terlebih dahulu."
+        ? "Collect the deposit first."
         : !roomReady
-          ? "Tetapkan kamar yang sesuai dan tersedia melalui Edit Reservasi."
+          ? "Assign a suitable available room using Edit Reservation."
           : !purposeReady
-            ? "Pilih tujuan kunjungan sebelum membuka GRC."
-            : "Semua persiapan lengkap. Buka GRC untuk ditinjau dan ditandatangani tamu.";
+            ? "Select a purpose of visit before opening the GRC."
+            : "All preparations are complete. Open the GRC for the guest to review and sign.";
 
   return (
     <>
@@ -417,11 +419,10 @@ export function CheckInDetailPanel({
       >
         <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">
-            Check-in dari detail reservasi
+            Check-in from reservation details
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Kumpulkan deposit, tentukan tujuan kunjungan, lalu minta tamu
-            meninjau dan menandatangani GRC.
+            Collect the deposit, select the purpose of visit, then ask the guest to review and sign the GRC.
           </p>
         </div>
 
@@ -436,22 +437,22 @@ export function CheckInDetailPanel({
               />
             </div>
             <p className="text-sm text-slate-600">
-              Wajib: {formatIDR(initialReview.deposit.requiredAmount ?? 0)}
-              {" "}(tarif malam pertama)
+              Required: {formatIDR(initialReview.deposit.requiredAmount ?? 0)}
+              {" "}{"(first night's rate)"}
             </p>
 
             {depositPayment ? (
               <dl className="grid grid-cols-2 gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-                <ReadOnlyItem label="Metode" value={depositPayment.method} />
+                <ReadOnlyItem label="Method" value={depositPayment.method} />
                 <ReadOnlyItem
-                  label="Referensi"
+                  label="Reference"
                   value={depositPayment.reference ?? "—"}
                 />
               </dl>
             ) : canCollectDeposit ? (
               <div className="space-y-3">
                 <label className="block text-xs font-medium text-slate-700">
-                  Metode pembayaran
+                  Payment method
                   <select
                     id="check-in-detail-deposit-method"
                     value={depositMethod}
@@ -463,7 +464,7 @@ export function CheckInDetailPanel({
                     disabled={isCollectingDeposit || depositUiState.isUncertain}
                     className={`${selectClassName} mt-1`}
                   >
-                    <option value="">Pilih metode</option>
+                    <option value="">Select a method</option>
                     {checkInDepositMethods.map((method) => (
                       <option key={method} value={method}>
                         {method}
@@ -472,13 +473,13 @@ export function CheckInDetailPanel({
                   </select>
                 </label>
                 <label className="block text-xs font-medium text-slate-700">
-                  Referensi{depositMethod === "TRANSFER" ? " (wajib)" : ""}
+                  Reference{depositMethod === "TRANSFER" ? " (required)" : ""}
                   <Input
                     value={depositReference}
                     onChange={(event) => setDepositReference(event.target.value)}
                     disabled={isCollectingDeposit || depositUiState.isUncertain}
                     className={`${fieldClassName} mt-1`}
-                    placeholder="Nomor transaksi / referensi"
+                    placeholder="Transaction number / reference"
                   />
                 </label>
                 {depositUiState.actionError ? (
@@ -496,7 +497,7 @@ export function CheckInDetailPanel({
                           className="h-8 border-red-300 text-xs text-red-800 hover:bg-red-100"
                           onClick={() => window.location.reload()}
                         >
-                          Muat ulang halaman
+                          Reload page
                         </Button>
                       </div>
                     ) : null}
@@ -508,20 +509,20 @@ export function CheckInDetailPanel({
                   disabled={isCollectingDeposit || depositUiState.isUncertain}
                 >
                   {isCollectingDeposit
-                    ? "Mencatat Deposit..."
-                    : "Kumpulkan Deposit"}
+                    ? "Recording Deposit..."
+                    : "Collect Deposit"}
                 </Button>
               </div>
             ) : (
               <p className="text-xs font-medium text-amber-700">
-                Deposit belum dapat dikumpulkan untuk status/tanggal ini.
+                The deposit cannot yet be collected for this status/date.
               </p>
             )}
           </div>
 
           <div id="check-in-detail-purpose" className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-900">
-              2. Kamar & tujuan
+              2. Room & Purpose of Visit
             </h3>
             <div
               className={`rounded-md border p-3 text-sm ${
@@ -532,13 +533,13 @@ export function CheckInDetailPanel({
             >
               <p className="font-semibold">
                 {roomReady
-                  ? `Kamar ${initialReview.room?.number} siap`
-                  : "Kamar belum siap untuk check-in"}
+                  ? `Room ${initialReview.room?.number} ready`
+                  : "Room not ready for check-in"}
               </p>
               <p className="mt-1 text-xs">
                 {roomReady
-                  ? `${initialReview.room?.typeName} · valid untuk seluruh periode menginap`
-                  : "Gunakan Edit Reservasi untuk menetapkan kamar dengan tipe yang sesuai, tanpa blokir kamar atau bentrok reservasi pada periode menginap."}
+                  ? `${initialReview.room?.typeName} · valid for the entire stay`
+                  : "Use Edit Reservation to assign a room of the correct type with no room blocks or conflicting reservations during the stay."}
               </p>
               {!roomReady && statusReady ? (
                 <Link
@@ -548,13 +549,13 @@ export function CheckInDetailPanel({
                     className: "mt-3",
                   })}
                 >
-                  Edit Reservasi
+                  Edit Reservation
                 </Link>
               ) : null}
             </div>
 
             <label className="block text-xs font-medium text-slate-700">
-              Tujuan kunjungan
+              Purpose of visit
               <select
                 id="check-in-detail-purpose-select"
                 value={purposeOfVisit}
@@ -565,24 +566,24 @@ export function CheckInDetailPanel({
                 }
                 className={`${selectClassName} mt-1`}
               >
-                <option value="">Pilih tujuan kunjungan</option>
+                <option value="">Select purpose of visit</option>
                 {purposeOfVisitOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {purposeOfVisitLabels[option]}
                   </option>
                 ))}
               </select>
             </label>
             {purposeOfVisit === "Lainnya" ? (
               <label className="block text-xs font-medium text-slate-700">
-                Detail tujuan
+                Purpose details
                 <Input
                   value={purposeOfVisitOther}
                   onChange={(event) =>
                     setPurposeOfVisitOther(event.target.value)
                   }
                   className={`${fieldClassName} mt-1`}
-                  placeholder="Tuliskan tujuan kunjungan"
+                  placeholder="Enter the purpose of visit"
                 />
               </label>
             ) : null}
@@ -591,12 +592,11 @@ export function CheckInDetailPanel({
           <div className="flex flex-col justify-between gap-4">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">
-                3. Review & tanda tangan
+                3. Review & Signature
               </h3>
               <p className="mt-2 text-sm text-slate-600">{guidance}</p>
               <p className="mt-2 text-xs text-slate-500">
-                Status tombol hanya panduan. Validasi dan transaksi server tetap
-                menentukan hasil check-in.
+                Button availability is a guide only. Server validation and transactions determine the check-in result.
               </p>
             </div>
             <Button
@@ -605,7 +605,7 @@ export function CheckInDetailPanel({
               disabled={!canOpenReview || isSubmitting || depositUiState.isUncertain}
               onClick={openReview}
             >
-              Review & Tanda Tangani GRC
+              Review & Sign GRC
             </Button>
           </div>
         </div>
@@ -625,10 +625,9 @@ export function CheckInDetailPanel({
           showCloseButton={!isSubmitting && !reviewUiState.isUncertain}
         >
           <DialogHeader>
-            <DialogTitle>Review & tanda tangani GRC</DialogTitle>
+            <DialogTitle>Review & sign GRC</DialogTitle>
             <DialogDescription>
-              Data berikut dimuat ulang dari server saat popup dibuka. Edit data
-              tamu melalui Edit Reservasi, bukan dari popup ini.
+              The following data is refreshed from the server when this dialog opens. Update guest details using Edit Reservation, not in this dialog.
             </DialogDescription>
           </DialogHeader>
 
@@ -642,48 +641,48 @@ export function CheckInDetailPanel({
             <div className="space-y-4">
               <section className="rounded-lg border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">
-                  Reservasi & tamu
+                  Reservation & Guest
                 </h3>
                 <dl className="mt-3 grid gap-4 sm:grid-cols-3">
-                  <ReadOnlyItem label="No. reservasi" value={review.reservationNo} />
-                  <ReadOnlyItem label="Tipe" value={review.reservationType} />
+                  <ReadOnlyItem label="Reservation no." value={review.reservationNo} />
+                  <ReadOnlyItem label="Type" value={review.reservationType} />
                   <ReadOnlyItem
                     label="Arrangement"
                     value={mealPlanLabels[review.arrangementType]}
                   />
-                  <ReadOnlyItem label="Nama tamu" value={review.guest.fullName} />
+                  <ReadOnlyItem label="Guest name" value={review.guest.fullName} />
                   <ReadOnlyItem
-                    label="Identitas"
+                    label="Identification"
                     value={formatGuestIdentity(
                       review.guest.idType,
                       review.guest.idNumber,
                     )}
                   />
-                  <ReadOnlyItem label="Telepon" value={review.guest.phone ?? "—"} />
+                  <ReadOnlyItem label="Phone" value={review.guest.phone ?? "—"} />
                   <ReadOnlyItem label="Email" value={review.guest.email ?? "—"} />
-                  <ReadOnlyItem label="Kebangsaan" value={review.guest.nationality ?? "—"} />
+                  <ReadOnlyItem label="Nationality" value={review.guest.nationality ?? "—"} />
                 </dl>
               </section>
 
               <section className="rounded-lg border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">
-                  Masa menginap
+                  Stay dates
                 </h3>
                 <dl className="mt-3 grid gap-4 sm:grid-cols-4">
-                  <ReadOnlyItem label="Kedatangan" value={review.stay.arrivalLabel} />
-                  <ReadOnlyItem label="Keberangkatan" value={review.stay.departureLabel} />
-                  <ReadOnlyItem label="Malam" value={String(review.stay.nights)} />
-                  <ReadOnlyItem label="Tamu" value={`${review.stay.adults} dewasa · ${review.stay.children} anak`} />
-                  <ReadOnlyItem label="Kamar" value={review.room ? `${review.room.number} · ${review.room.typeName}` : "Belum ditetapkan"} />
-                  <ReadOnlyItem label="Total menginap" value={formatIDR(review.stay.total)} />
-                  <ReadOnlyItem label="Deposit wajib" value={formatIDR(review.deposit.requiredAmount ?? 0)} />
-                  <ReadOnlyItem label="Status deposit" value={review.deposit.status} />
-                  <ReadOnlyItem label="Metode deposit" value={review.deposit.payment?.method ?? "—"} />
-                  <ReadOnlyItem label="Referensi deposit" value={review.deposit.payment?.reference ?? "—"} />
+                  <ReadOnlyItem label="Arrival" value={review.stay.arrivalLabel} />
+                  <ReadOnlyItem label="Departure" value={review.stay.departureLabel} />
+                  <ReadOnlyItem label="Nights" value={String(review.stay.nights)} />
+                  <ReadOnlyItem label="Guest" value={`${review.stay.adults} adults · ${review.stay.children} children`} />
+                  <ReadOnlyItem label="Room" value={review.room ? `${review.room.number} · ${review.room.typeName}` : "Not assigned"} />
+                  <ReadOnlyItem label="Stay total" value={formatIDR(review.stay.total)} />
+                  <ReadOnlyItem label="Required deposit" value={formatIDR(review.deposit.requiredAmount ?? 0)} />
+                  <ReadOnlyItem label="Deposit status" value={review.deposit.status} />
+                  <ReadOnlyItem label="Deposit method" value={review.deposit.payment?.method ?? "—"} />
+                  <ReadOnlyItem label="Deposit reference" value={review.deposit.payment?.reference ?? "—"} />
                 </dl>
                 {review.stay.nightlySchedule.length > 0 ? (
                   <div className="mt-4 border-t border-slate-100 pt-3">
-                    <p className="text-xs font-semibold text-slate-600">Tarif per malam</p>
+                    <p className="text-xs font-semibold text-slate-600">Nightly rate</p>
                     <ul className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">
                       {review.stay.nightlySchedule.map((night) => (
                         <li key={night.dateLabel} className="flex justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
@@ -698,14 +697,14 @@ export function CheckInDetailPanel({
 
               <section className="rounded-lg border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">
-                  Persetujuan tamu
+                  Guest consent
                 </h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Tujuan kunjungan: {purposeOfVisit === "Lainnya" ? purposeOfVisitOther : purposeOfVisit}
+                  Purpose of visit: {purposeOfVisit === "Lainnya" ? purposeOfVisitOther : purposeOfVisitLabel(purposeOfVisit)}
                 </p>
                 <div className="mt-4">
                   <label className="text-sm font-medium text-slate-800">
-                    Tanda tangan tamu
+                    Guest signature
                   </label>
                   <div className="mt-2">
                     <SignaturePadField
@@ -724,8 +723,7 @@ export function CheckInDetailPanel({
                     className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
                   <span>
-                    Saya mengonfirmasi data di atas sudah benar dan tamu sudah
-                    hadir secara fisik.
+                    I confirm that the details above are correct and the guest is physically present.
                   </span>
                 </label>
               </section>
@@ -747,7 +745,7 @@ export function CheckInDetailPanel({
                     className="border-red-300 text-red-800 hover:bg-red-100"
                     onClick={() => window.location.reload()}
                   >
-                    Muat ulang halaman
+                    Reload page
                   </Button>
                 </div>
               ) : reviewUiState.errorCode === "REVIEW_UNEXPECTED" && !review ? (
@@ -759,7 +757,7 @@ export function CheckInDetailPanel({
                     onClick={openReview}
                     disabled={isLoadingReview}
                   >
-                    Coba lagi
+                    Try again
                   </Button>
                 </div>
               ) : null}
@@ -776,7 +774,7 @@ export function CheckInDetailPanel({
               }}
               disabled={isSubmitting || reviewUiState.isUncertain}
             >
-              Batal
+              Cancel
             </Button>
             <Button
               type="button"
@@ -795,7 +793,7 @@ export function CheckInDetailPanel({
                 !arrivalConfirmation
               }
             >
-              {isSubmitting ? "Memproses..." : "Konfirmasi Check-In"}
+              {isSubmitting ? "Processing..." : "Confirm Check-in"}
             </Button>
           </DialogFooter>
         </DialogContent>

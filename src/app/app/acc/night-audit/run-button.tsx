@@ -44,7 +44,7 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
               <div>
                 <div className="font-semibold uppercase tracking-[0.04em] text-red-800">
-                  Audit gagal
+                  Audit failed
                 </div>
                 {result.blockingErrors?.length ? (
                   <NightAuditBlockerList blockers={result.blockingErrors} />
@@ -67,12 +67,10 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
         {isConfirming ? (
           <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 text-sm text-amber-900">
             <div className="font-bold uppercase tracking-[0.06em] text-amber-800">
-              Konfirmasi Night Audit
+              Confirm Night Audit
             </div>
             <p className="mt-2 leading-5">
-              Proses ini akan memposting charge ke semua folio reservasi yang
-              sedang menginap dan mencatat ringkasan audit untuk business date
-              hari ini.
+              This process posts charges to all in-house reservation folios and records an audit summary for the current business date.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Button
@@ -81,7 +79,7 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
                 type="button"
               >
                 <Play className="h-3.5 w-3.5" aria-hidden="true" />
-                {isPending ? "Memproses..." : "Konfirmasi Jalankan"}
+                {isPending ? "Processing..." : "Confirm and Run"}
               </Button>
               <Button
                 disabled={isPending}
@@ -90,7 +88,7 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
                 variant="outline"
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
-                Batal
+                Cancel
               </Button>
             </div>
           </div>
@@ -101,7 +99,7 @@ export function RunButton({ disabled = false, disabledReason }: RunButtonProps) 
             type="button"
           >
             <Play className="h-3.5 w-3.5" aria-hidden="true" />
-            Jalankan Night Audit
+            Run Night Audit
           </Button>
         )}
       </div>

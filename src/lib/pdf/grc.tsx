@@ -7,8 +7,10 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { ArrangementType, GuestIdType } from "@prisma/client";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, format } from "date-fns";
+import { id as legacyIndonesianLocale } from "date-fns/locale";
 
+import { purposeOfVisitLabel } from "@/lib/check-in/schema";
 import { formatDateID, formatDateTimeID, formatIDR } from "@/lib/format";
 import type { GrcSnapshot } from "@/lib/grc-snapshot";
 import { formatGuestIdentity } from "@/lib/guest-id-type";
@@ -97,19 +99,53 @@ type GrcDocumentData = {
 };
 
 const reservationTypeLabels: Record<string, string> = {
-  INDIVIDUAL: "Individu",
-  COMPANY: "Perusahaan",
-  GOVERNMENT: "Pemerintah",
-  OTA: "Agen Perjalanan Online (OTA)",
+  INDIVIDUAL: "Individual",
+  COMPANY: "Company",
+  GOVERNMENT: "Government",
+  OTA: "Online Travel Agent (OTA)",
   WALK_IN: "Walk-in",
 };
 
 const arrangementLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO — Tanpa makan",
-  [ArrangementType.BB]: "BB — Sarapan",
-  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
-  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+  [ArrangementType.RO]: "RO — Room only",
+  [ArrangementType.BB]: "BB — Breakfast",
+  [ArrangementType.HB]: "HB — Breakfast + one main meal",
+  [ArrangementType.FB]: "FB — Breakfast, lunch, and dinner",
 };
+
+// Signed template-1 documents must retain their original presentation.
+const legacyTemplateLabels = {
+  "Guest Registration Card (GRC)": "Kartu Registrasi Tamu (GRC)",
+  "RESERVATION": "RESERVASI",
+  "Reservation Number": "Nomor Reservasi",
+  "Folio Number": "Nomor Folio",
+  "Arrival": "Kedatangan",
+  "Departure": "Keberangkatan",
+  "Number of Nights": "Jumlah Malam",
+  "Arrangement": "Arrangement",
+  "Reservation Type": "Jenis Reservasi",
+  "GUEST": "TAMU",
+  "Full Name": "Nama Lengkap",
+  "Identification": "Identitas",
+  "Phone": "Telepon",
+  "Email": "Email",
+  "Nationality": "Kewarganegaraan",
+  "STAY DETAILS": "DETAIL MENGINAP",
+  "Room": "Kamar",
+  "Room Type": "Tipe Kamar",
+  "Total Stay Charges": "Total Biaya Menginap",
+  "Adults": "Dewasa",
+  "Children": "Anak-anak",
+  "NIGHTLY RATE SCHEDULE": "JADWAL TARIF PER MALAM",
+  "Nightly rate records are unavailable; the total uses a flat rate.": "Rekaman tarif per malam tidak tersedia; total menggunakan tarif tetap.",
+  "GRC METADATA": "METADATA GRC",
+  "Purpose of Visit": "Tujuan Kunjungan",
+  "Filled At": "Waktu Pengisian",
+  "Filled By": "Diisi Oleh",
+  "Signed At": "Waktu Penandatanganan",
+  "Guest Signature": "Tanda Tangan Tamu",
+  "Date: ______________________": "Tanggal: ______________________"
+} as const;
 
 const styles = StyleSheet.create({
   page: {
@@ -187,14 +223,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function dateLabel(date: Date) {
-  return formatDateID(date);
-}
-
-function dateTimeLabel(date: Date | null) {
-  return date ? formatDateTimeID(date) : "Tanggal: ______________________";
-}
-
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.field}>
@@ -259,7 +287,7 @@ function documentData(source: GrcProps["source"]): GrcDocumentData {
       reservationTypeLabels[source.reservation.reservationType] ??
       source.reservation.reservationType,
     guest: source.guest,
-    roomNumber: source.room?.number ?? "belum ditentukan saat check-in",
+    roomNumber: source.room?.number ?? "not assigned at check-in",
     roomTypeName: source.roomType.name,
     stayTotal: source.stayTotal.total.toString(),
     adults: source.reservation.adults,
@@ -268,7 +296,9 @@ function documentData(source: GrcProps["source"]): GrcDocumentData {
       date: night.date,
       rateAmount: night.rateAmount.toString(),
     })),
-    purposeOfVisit: source.reservation.purposeOfVisit,
+    purposeOfVisit: source.reservation.purposeOfVisit === null
+      ? null
+      : purposeOfVisitLabel(source.reservation.purposeOfVisit),
     grcFilledAt: source.reservation.grcFilledAt,
     filledByName: source.reservation.createdBy.fullName,
     signedAt: source.reservation.signedAt,
@@ -277,7 +307,26 @@ function documentData(source: GrcProps["source"]): GrcDocumentData {
 }
 
 export function Grc({ source }: GrcProps) {
+  const legacy = source.kind === "snapshot" && source.snapshot.templateVersion === 1;
+  const label = (text: keyof typeof legacyTemplateLabels) =>
+    legacy ? legacyTemplateLabels[text] : text;
+  const dateLabel = (date: Date) => legacy
+    ? format(date, "dd MMM yyyy", { locale: legacyIndonesianLocale })
+    : formatDateID(date);
+  const dateTimeLabel = (date: Date | null) => date
+    ? legacy
+      ? format(date, "dd MMM yyyy HH:mm", { locale: legacyIndonesianLocale })
+      : formatDateTimeID(date)
+    : label("Date: ______________________");
   const data = documentData(source);
+  const legacyIdentityLabel = legacy && data.guest.idType === GuestIdType.PASSPORT
+    ? "Paspor"
+    : legacy && data.guest.idType === GuestIdType.OTHER ? "Lainnya" : null;
+  const identity = legacyIdentityLabel
+    ? data.guest.idNumber
+      ? `${legacyIdentityLabel} · ${data.guest.idNumber}`
+      : legacyIdentityLabel
+    : formatGuestIdentity(data.guest.idType, data.guest.idNumber, "-");
   const purposeOfVisit = data.purposeOfVisit ?? "______________________";
 
   return (
@@ -286,53 +335,49 @@ export function Grc({ source }: GrcProps) {
         <View style={styles.header}>
           <Text style={styles.hotelName}>{data.brandName}</Text>
           <Text style={styles.muted}>{data.hotelAddress}</Text>
-          <Text style={styles.title}>Kartu Registrasi Tamu (GRC)</Text>
+          <Text style={styles.title}>{label("Guest Registration Card (GRC)")}</Text>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"RESERVASI"}</Text>
+          <Text style={styles.blockHeader}>{label("RESERVATION")}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Nomor Reservasi" value={data.reservationNo} />
-            <Field label="Nomor Folio" value={data.folioNo} />
-            <Field label="Kedatangan" value={dateLabel(data.arrivalDate)} />
-            <Field label="Keberangkatan" value={dateLabel(data.departureDate)} />
-            <Field label="Jumlah Malam" value={String(data.nights)} />
-            <Field label="Arrangement" value={data.arrangementLabel} />
-            <Field label="Jenis Reservasi" value={data.reservationTypeLabel} />
+            <Field label={label("Reservation Number")} value={data.reservationNo} />
+            <Field label={label("Folio Number")} value={data.folioNo} />
+            <Field label={label("Arrival")} value={dateLabel(data.arrivalDate)} />
+            <Field label={label("Departure")} value={dateLabel(data.departureDate)} />
+            <Field label={label("Number of Nights")} value={String(data.nights)} />
+            <Field label={label("Arrangement")} value={data.arrangementLabel} />
+            <Field label={label("Reservation Type")} value={data.reservationTypeLabel} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"TAMU"}</Text>
+          <Text style={styles.blockHeader}>{label("GUEST")}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Nama Lengkap" value={data.guest.fullName} />
+            <Field label={label("Full Name")} value={data.guest.fullName} />
             <Field
-              label="Identitas"
-              value={formatGuestIdentity(
-                data.guest.idType,
-                data.guest.idNumber,
-                "-",
-              )}
+              label={label("Identification")}
+              value={identity}
             />
-            <Field label="Telepon" value={data.guest.phone ?? "-"} />
-            <Field label="Email" value={data.guest.email ?? "-"} />
-            <Field label="Kewarganegaraan" value={data.guest.nationality ?? "-"} />
+            <Field label={label("Phone")} value={data.guest.phone ?? "-"} />
+            <Field label={label("Email")} value={data.guest.email ?? "-"} />
+            <Field label={label("Nationality")} value={data.guest.nationality ?? "-"} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"DETAIL MENGINAP"}</Text>
+          <Text style={styles.blockHeader}>{label("STAY DETAILS")}</Text>
           <View style={[styles.blockBody, styles.grid]}>
-            <Field label="Kamar" value={data.roomNumber} />
-            <Field label="Tipe Kamar" value={data.roomTypeName} />
-            <Field label="Total Biaya Menginap" value={formatIDR(data.stayTotal)} />
-            <Field label="Dewasa" value={String(data.adults)} />
-            <Field label="Anak-anak" value={String(data.children)} />
+            <Field label={label("Room")} value={data.roomNumber} />
+            <Field label={label("Room Type")} value={data.roomTypeName} />
+            <Field label={label("Total Stay Charges")} value={formatIDR(data.stayTotal)} />
+            <Field label={label("Adults")} value={String(data.adults)} />
+            <Field label={label("Children")} value={String(data.children)} />
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"JADWAL TARIF PER MALAM"}</Text>
+          <Text style={styles.blockHeader}>{label("NIGHTLY RATE SCHEDULE")}</Text>
           <View style={styles.blockBody}>
             {data.nightlySchedule.length > 0 ? (
               data.nightlySchedule.map((night) => (
@@ -345,25 +390,25 @@ export function Grc({ source }: GrcProps) {
               ))
             ) : (
               <Text style={styles.muted}>
-                Rekaman tarif per malam tidak tersedia; total menggunakan tarif tetap.
+                {label("Nightly rate records are unavailable; the total uses a flat rate.")}
               </Text>
             )}
           </View>
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.blockHeader}>{"METADATA GRC"}</Text>
+          <Text style={styles.blockHeader}>{label("GRC METADATA")}</Text>
           <View style={[styles.blockBody, styles.grid]}>
             <Field
-              label="Tujuan Kunjungan"
+              label={label("Purpose of Visit")}
               value={purposeOfVisit}
             />
             <Field
-              label="Waktu Pengisian"
+              label={label("Filled At")}
               value={dateTimeLabel(data.grcFilledAt)}
             />
-            <Field label="Diisi Oleh" value={data.filledByName} />
-            <Field label="Waktu Penandatanganan" value={dateTimeLabel(data.signedAt)} />
+            <Field label={label("Filled By")} value={data.filledByName} />
+            <Field label={label("Signed At")} value={dateTimeLabel(data.signedAt)} />
           </View>
         </View>
 
@@ -378,7 +423,7 @@ export function Grc({ source }: GrcProps) {
               />
             ) : null}
           </View>
-          <Text style={styles.signatureLine}>Tanda Tangan Tamu</Text>
+          <Text style={styles.signatureLine}>{label("Guest Signature")}</Text>
         </View>
       </Page>
     </Document>

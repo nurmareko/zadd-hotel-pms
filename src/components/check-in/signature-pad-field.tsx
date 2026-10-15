@@ -87,15 +87,15 @@ export function SignaturePadField({
       <div className="rounded-lg border border-slate-300 bg-white p-1 overflow-hidden shadow-inner">
         <canvas
           ref={canvasRef}
-          aria-label="Area tanda tangan tamu"
+          aria-label="Guest signature area"
           className="block h-36 w-full touch-none"
         />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 text-sm">
         <p className="text-xs text-slate-500">
           {value
-            ? "Tanda tangan sudah direkam. Gunakan Hapus untuk mengulang."
-            : "Tamu menandatangani area di atas dengan jari atau mouse."}
+            ? "Signature captured. Select Clear to sign again."
+            : "Ask the guest to sign in the area above using a finger or mouse."}
         </p>
         <Button
                   type="button"
@@ -104,7 +104,7 @@ export function SignaturePadField({
                   disabled={!value}
                   className="shrink-0 text-xs disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  Hapus
+                  Clear
                 </Button>
       </div>
     </div>

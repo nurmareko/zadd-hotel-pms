@@ -107,7 +107,7 @@ describe("inventory authorization and validation", () => {
       receiveStock({ ingredientId: 1, quantity: 1, notes: "a".repeat(256) }),
       recordStockTake({ ingredientId: 1, countedQuantity: 1, notes: "a".repeat(256) }),
       recordWastage({ ingredientId: 1, quantity: 1, notes: "a".repeat(256) }),
-    ])) expect(result).toEqual({ error: expect.stringContaining("maksimal 255 karakter") });
+    ])) expect(result).toEqual({ error: expect.stringContaining("at most 255 characters") });
     expect(transaction).not.toHaveBeenCalled();
     expect(await receiveStock({ ingredientId: 1, quantity: 0.001, notes: "   " })).toEqual({ success: true });
     expect(tx.fBStockLedger.create.mock.calls[0][0].data.notes).toBeNull();
@@ -186,7 +186,7 @@ describe("atomic inventory movements", () => {
     ["-0.001", () => recordStockTake({ ingredientId: 1, countedQuantity: 9999999.999 })],
   ] as const)("rejects balance or delta overflow from %s before writes", async (onHand, call) => {
     tx.fBIngredient.findUnique.mockResolvedValue({ id: 1, onHand: decimal(onHand) });
-    expect(await call()).toEqual({ error: "Saldo atau perubahan stok melebihi batas yang dapat disimpan." });
+    expect(await call()).toEqual({ error: "The stock balance or adjustment exceeds the storage limit." });
     expect(tx.fBIngredient.updateMany).not.toHaveBeenCalled();
     expect(tx.fBStockLedger.create).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -214,7 +214,7 @@ describe("atomic inventory movements", () => {
       throw failure;
     });
     expect(await calls[0]()).toEqual({
-      error: "Status penyimpanan perubahan stok belum dapat dipastikan. Periksa dan cocokkan riwayat stok sebelum mengirim ulang agar tidak tercatat dua kali.",
+      error: "The stock adjustment save result is uncertain. Check and reconcile stock history before resubmitting to avoid duplicate entries.",
       uncertain: true,
     });
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -235,7 +235,7 @@ describe("atomic inventory movements", () => {
 
   it("bounds retry exhaustion and does not invalidate", async () => {
     transaction.mockRejectedValue(conflict());
-    expect(await calls[0]()).toEqual({ error: "Stok berubah bersamaan. Muat ulang halaman dan coba lagi." });
+    expect(await calls[0]()).toEqual({ error: "Stock was changed concurrently. Reload the page and try again." });
     expect(transaction).toHaveBeenCalledTimes(3);
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -243,7 +243,7 @@ describe("atomic inventory movements", () => {
   it("does not retry unrelated database failures", async () => {
     transaction.mockRejectedValue(conflict("P2003"));
     expect(await calls[0]()).toEqual({
-      error: "Status penyimpanan perubahan stok belum dapat dipastikan. Periksa dan cocokkan riwayat stok sebelum mengirim ulang agar tidak tercatat dua kali.",
+      error: "The stock adjustment save result is uncertain. Check and reconcile stock history before resubmitting to avoid duplicate entries.",
       uncertain: true,
     });
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -260,7 +260,7 @@ describe("atomic inventory movements", () => {
       throw new Error("connection lost while acknowledging COMMIT");
     });
     expect(await call()).toEqual({
-      error: "Status penyimpanan perubahan stok belum dapat dipastikan. Periksa dan cocokkan riwayat stok sebelum mengirim ulang agar tidak tercatat dua kali.",
+      error: "The stock adjustment save result is uncertain. Check and reconcile stock history before resubmitting to avoid duplicate entries.",
       uncertain: true,
     });
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -303,7 +303,7 @@ describe("menu 86 and ledger reads", () => {
 
   it("handles a missing menu item", async () => {
     menuUpdate.mockRejectedValue(conflict("P2025"));
-    expect(await toggle86MenuItem(1)).toEqual({ error: "Menu tidak ditemukan." });
+    expect(await toggle86MenuItem(1)).toEqual({ error: "Menu not found." });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
@@ -329,8 +329,8 @@ describe("menu 86 and ledger reads", () => {
   it("does not leak unexpected read/menu/auth errors", async () => {
     ledgerRead.mockRejectedValue(new Error("secret"));
     menuUpdate.mockRejectedValue(new Error("secret"));
-    expect(await getStockLedger(1)).toEqual({ error: "Gagal memuat riwayat stok. Silakan coba lagi." });
-    expect(await toggle86MenuItem(1)).toEqual({ error: "Gagal menonaktifkan menu. Silakan coba lagi." });
+    expect(await getStockLedger(1)).toEqual({ error: "Failed to load stock history. Please try again." });
+    expect(await toggle86MenuItem(1)).toEqual({ error: "Failed to deactivate the menu item. Please try again." });
     auth.mockRejectedValue(new Error("secret"));
     for (const call of calls) {
       const result = await call();

@@ -12,29 +12,29 @@ import {
 } from "./errors";
 
 const expectedMessages: Record<FolioFailureCode, string> = {
-  SESSION_EXPIRED: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-  FORBIDDEN: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
-  INVALID_INPUT: "Data folio tidak valid. Periksa kembali formulir.",
+  SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+  FORBIDDEN: "You do not have permission to perform this action.",
+  INVALID_INPUT: "Invalid folio data. Please review the form.",
   FOLIO_NOT_FOUND:
-    "Folio tidak ditemukan. Muat ulang halaman lalu coba lagi.",
+    "Folio not found. Reload the page and try again.",
   FOLIO_NOT_OPEN:
-    "Folio sudah tidak terbuka. Muat ulang halaman untuk melihat status terbaru.",
+    "The folio is no longer open. Reload the page to see its current status.",
   NIGHT_AUDIT_CLOSED:
-    "Audit malam untuk tanggal bisnis hari ini sudah selesai. Transaksi folio tidak dapat dicatat.",
+    "Night Audit for the current business date is complete. Folio transactions cannot be recorded.",
   ARTICLE_NOT_FOUND:
-    "Artikel tidak ditemukan atau sudah tidak tersedia. Pilih artikel lain.",
+    "The article was not found or is no longer available. Select another article.",
   PROTECTED_TAX_ARTICLE:
-    "Pajak dihitung otomatis dan tidak dapat ditambahkan secara manual.",
+    "Tax is calculated automatically and cannot be added manually.",
   PROTECTED_STAY_ARTICLE:
-    "Tagihan menginap ini dicatat otomatis dan tidak dapat ditambahkan secara manual.",
+    "This stay charge is recorded automatically and cannot be added manually.",
   CHARGE_CONFLICT:
-    "Data folio berubah bersamaan. Muat ulang halaman sebelum menambahkan tagihan lagi.",
+    "The folio data was changed concurrently. Reload the page before adding another charge.",
   PAYMENT_CONFLICT:
-    "Data pembayaran berubah bersamaan. Muat ulang halaman sebelum mencoba lagi.",
-  CHARGE_UNEXPECTED: "Tagihan tidak dapat ditambahkan. Silakan coba lagi.",
-  PAYMENT_UNEXPECTED: "Pembayaran tidak dapat dicatat. Silakan coba lagi.",
+    "The payment data was changed concurrently. Reload the page before trying again.",
+  CHARGE_UNEXPECTED: "The charge could not be added. Please try again.",
+  PAYMENT_UNEXPECTED: "The payment could not be recorded. Please try again.",
   RESULT_UNKNOWN:
-    "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+    "The action result is uncertain. Reload the page before trying again.",
 };
 
 const forbiddenPublicTerms = [
@@ -44,11 +44,10 @@ const forbiddenPublicTerms = [
   "selector",
   "serialization",
   "stack",
-  "charge", // Indonesian copy must not show the English word 'charge'
 ];
 
 describe("folio failure contract", () => {
-  it("has complete safe Indonesian copy for every stable folio failure code", () => {
+  it("has complete safe English copy for every stable folio failure code", () => {
     expect(new Set(FOLIO_FAILURE_CODES).size).toBe(FOLIO_FAILURE_CODES.length);
     expect(Object.keys(expectedMessages).sort()).toEqual(
       [...FOLIO_FAILURE_CODES].sort(),
@@ -72,7 +71,7 @@ describe("folio failure contract", () => {
     expect(failure).toEqual({
       ok: false,
       code: "FOLIO_NOT_FOUND",
-      error: "Folio tidak ditemukan. Muat ulang halaman lalu coba lagi.",
+      error: "Folio not found. Reload the page and try again.",
     });
   });
 
@@ -107,7 +106,7 @@ describe("folio failure contract", () => {
       expect(state).toEqual({
         isUncertain: false,
         actionError:
-          "Artikel tidak ditemukan atau sudah tidak tersedia. Pilih artikel lain.",
+          "The article was not found or is no longer available. Select another article.",
         errorCode: "ARTICLE_NOT_FOUND",
       });
     });
@@ -121,7 +120,7 @@ describe("folio failure contract", () => {
       expect(state).toEqual({
         isUncertain: true,
         actionError:
-          "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+          "The action result is uncertain. Reload the page before trying again.",
         errorCode: "RESULT_UNKNOWN",
       });
     });
@@ -140,7 +139,7 @@ describe("folio failure contract", () => {
       const uncertainState = {
         isUncertain: true,
         actionError:
-          "Hasil tindakan belum dapat dipastikan. Muat ulang halaman sebelum mencoba lagi.",
+          "The action result is uncertain. Reload the page before trying again.",
         errorCode: "RESULT_UNKNOWN" as const,
       };
 

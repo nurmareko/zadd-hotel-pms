@@ -27,7 +27,7 @@ describe("PayOrderDirectSchema", () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toBe(
-      "Uang diterima harus dalam rupiah penuh",
+      "The amount received must be in whole rupiah",
     );
   });
 });

@@ -83,7 +83,7 @@ function PersistentActionError({
           className="mt-3 border-red-300 text-red-800 hover:bg-red-100"
           onClick={() => reloadCheckoutPage()}
         >
-          Muat ulang halaman
+          Reload page
         </Button>
       ) : null}
     </div>
@@ -122,7 +122,7 @@ export function FinalPaymentForm({
         () => recordFinalPayment(formData),
         {
           applyState: setUiState,
-          notifySuccess: () => toast.success("Pembayaran final tercatat"),
+          notifySuccess: () => toast.success("Final payment recorded"),
           refresh: () => router.refresh(),
         },
       );
@@ -138,7 +138,7 @@ export function FinalPaymentForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold text-slate-500">
-            Jumlah
+            Amount
           </span>
           <Input
             name="amount"
@@ -163,7 +163,7 @@ export function FinalPaymentForm({
 
         <label className="block">
           <span className="text-xs font-semibold text-slate-500">
-            Metode
+            Method
           </span>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {paymentMethods.map((paymentMethod) => (
@@ -183,8 +183,8 @@ export function FinalPaymentForm({
 
         <label className="block sm:col-span-2">
           <span className="text-xs font-semibold text-slate-500">
-            Referensi Pembayaran
-            {method === PaymentMethod.TRANSFER ? " / wajib" : ""}
+            Payment Reference
+            {method === PaymentMethod.TRANSFER ? " / required" : ""}
           </span>
           <Input
             name="reference"
@@ -219,8 +219,8 @@ export function FinalPaymentForm({
         hint={
           <p className="text-slate-500">
             {uiState.isUncertain
-              ? "Kontrol pembayaran dinonaktifkan sampai halaman dimuat ulang."
-              : "Catat pembayaran akhir sebelum menyelesaikan check-out."}
+              ? "Payment controls are disabled until the page is reloaded."
+              : "Record the final payment before completing check-out."}
           </p>
         }
         actionsClassName="w-full flex-col items-stretch sm:w-auto sm:flex-row sm:items-center"
@@ -233,7 +233,7 @@ export function FinalPaymentForm({
                 className: "w-full justify-center sm:w-auto",
               })}
             >
-              Batal
+              Cancel
             </Link>
             <Button
               type="submit"
@@ -242,7 +242,7 @@ export function FinalPaymentForm({
               className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
             >
               <CreditCard className="h-4 w-4" aria-hidden="true" />
-              {isPending ? "Mencatat..." : "Catat Pembayaran & Lanjutkan"}
+              {isPending ? "Recording..." : "Record Payment & Continue"}
             </Button>
           </>
         }
@@ -287,7 +287,7 @@ export function CompleteCheckoutForm({
         () => completeCheckout(formData),
         {
           applyState: setUiState,
-          notifySuccess: () => toast.success("Check-out selesai"),
+          notifySuccess: () => toast.success("Check-out completed"),
           refresh: () => router.refresh(),
         },
       );
@@ -317,7 +317,7 @@ export function CompleteCheckoutForm({
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div>
-            <div className="font-semibold text-sm">Pengembalian dana wajib dilakukan</div>
+            <div className="font-semibold text-sm">Refund required</div>
             <div className="mt-1">{refundDueNote(balance)}</div>
           </div>
         </div>
@@ -334,10 +334,10 @@ export function CompleteCheckoutForm({
           />
           <span>
             <span className="block font-semibold text-slate-900">
-              Atur status Kamar → Vacant Dirty (VD)
+              Set room status → Vacant Dirty (VD)
             </span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              Otomatis dikirim ke modul Tata Graha.
+              Automatically sent to Housekeeping.
             </span>
           </span>
         </label>
@@ -356,9 +356,9 @@ export function CompleteCheckoutForm({
             className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
-            <span className="block font-semibold text-slate-900">Tutup folio</span>
+            <span className="block font-semibold text-slate-900">Close folio</span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              Tagihan tidak dapat ditambahkan setelah folio ditutup.
+              Charges cannot be added after the folio is closed.
             </span>
           </span>
         </label>
@@ -372,9 +372,9 @@ export function CompleteCheckoutForm({
             className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span>
-            <span className="block font-semibold text-slate-900">Buat PDF tagihan</span>
+            <span className="block font-semibold text-slate-900">Generate bill PDF</span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              File tersedia setelah konfirmasi.
+              The file will be available after confirmation.
             </span>
           </span>
         </label>
@@ -401,15 +401,15 @@ export function CompleteCheckoutForm({
         hint={
           uiState.isUncertain ? (
             <p className="text-slate-500">
-              Kontrol check-out dinonaktifkan sampai halaman dimuat ulang.
+              Check-out controls are disabled until the page is reloaded.
             </p>
           ) : !confirmed ? (
             <p className="font-medium text-red-600">
-              Selesaikan konfirmasi check-out yang belum dicentang.
+              Complete the remaining check-out confirmations.
             </p>
           ) : (
             <p className="text-slate-500">
-              Semua langkah telah dikonfirmasi. Check-out siap diselesaikan.
+              All steps have been confirmed. Check-out is ready to complete.
             </p>
           )
         }
@@ -423,7 +423,7 @@ export function CompleteCheckoutForm({
                 className: "w-full justify-center sm:w-auto",
               })}
             >
-              Batal
+              Cancel
             </Link>
             {confirmed ? (
               <Button
@@ -433,7 +433,7 @@ export function CompleteCheckoutForm({
                 className="w-full disabled:cursor-wait disabled:opacity-70 sm:w-auto"
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
-                {isPending ? "Menyelesaikan..." : "Selesaikan Check-out"}
+                {isPending ? "Completing..." : "Complete Check-out"}
               </Button>
             ) : (
               <Button
@@ -443,7 +443,7 @@ export function CompleteCheckoutForm({
                 className="w-full sm:w-auto"
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
-                Selesaikan Check-out
+                Complete Check-out
               </Button>
             )}
           </>

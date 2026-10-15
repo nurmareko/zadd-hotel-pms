@@ -28,32 +28,32 @@ export function checkoutBalanceHeading(balance: number) {
   const state = folioBalanceState(balance);
 
   if (state === "due") {
-    return `Saldo Terutang: ${formatIDR(balance)}`;
+    return `Balance Due: ${formatIDR(balance)}`;
   }
 
   if (state === "credit") {
-    return `Kelebihan Pembayaran: ${absoluteBalanceLabel(balance)}`;
+    return `Overpayment: ${absoluteBalanceLabel(balance)}`;
   }
 
-  return "Saldo Lunas";
+  return "Balance Settled";
 }
 
 export function refundDueNote(balance: number) {
-  return `Kembalikan kelebihan ${absoluteBalanceLabel(balance)} kepada tamu.`;
+  return `Refund the overpayment of ${absoluteBalanceLabel(balance)} to the guest.`;
 }
 
 export function billBalanceLabel(balance: number) {
   const state = folioBalanceState(balance);
 
   if (state === "credit") {
-    return "Kelebihan Pembayaran / Refund";
+    return "Overpayment / Refund";
   }
 
   if (state === "settled") {
-    return "Saldo Lunas";
+    return "Balance Settled";
   }
 
-  return "Saldo Terutang";
+  return "Balance Due";
 }
 
 export function billBalanceAmountLabel(balance: number) {

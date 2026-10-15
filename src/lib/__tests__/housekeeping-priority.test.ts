@@ -78,7 +78,7 @@ describe("task codes and sorting", () => {
   it("provides ranked labels and styles for every priority", () => {
     const configs: HousekeepingPriorityInfo[] = Object.values(PRIORITY_CONFIG);
     expect(configs.map((config) => config.label)).toEqual([
-      "Mendesak", "Pergantian Cepat", "Keberangkatan", "Menginap", "Rutin",
+      "Urgent", "Quick Turnover", "Departure", "Stayover", "Routine",
     ]);
     expect(configs.map((config) => config.rank)).toEqual([1, 2, 3, 4, 5]);
     expect(HOUSEKEEPING_PRIORITY_CONFIG).toBe(PRIORITY_CONFIG);
@@ -120,7 +120,7 @@ describe("getHousekeepingListData (mocked database)", () => {
   });
   it("preserves positional API, reservation note and checked-out departure", async () => {
     const result = await getHousekeepingListData(date, "Budi", "VD");
-    expect(result.rows[0]).toMatchObject({ priority: "P3", taskCode: "TSK-102", taskNote: "[TUGAS: Bersihkan kaca]", note: { reservationNo: "RSV-001", etaLabel: null, notes: null }, reservationContexts: [{ kind: "departure", label: "Keberangkatan" }] });
+    expect(result.rows[0]).toMatchObject({ priority: "P3", taskCode: "TSK-102", taskNote: "[TUGAS: Bersihkan kaca]", note: { reservationNo: "RSV-001", etaLabel: null, notes: null }, reservationContexts: [{ kind: "departure", label: "Departure" }] });
     expect(db.reservation.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ OR: expect.arrayContaining([expect.objectContaining({ status: { in: ["CHECKED_IN", "CHECKED_OUT"] }, departureDate: date })]) }),
       select: expect.objectContaining({ stayFees: { where: { kind: "EARLY_CHECK_IN", status: { not: "CANCELLED" } }, select: { kind: true, status: true } } }),
@@ -134,7 +134,7 @@ describe("getHousekeepingListData (mocked database)", () => {
       select: { roomId: true, note: true },
     });
   });
-  it.each(["102", "tsk-102", "deluks", "dlx", "pembersihan", "siti", "rsv-001", "budi", "  BUDI  "])("searches %s across row context", async (q) => {
+  it.each(["102", "tsk-102", "deluks", "dlx", "cleaning", "siti", "rsv-001", "budi", "  BUDI  "])("searches %s across row context", async (q) => {
     expect((await getHousekeepingListData({ date, q })).rows).toHaveLength(1);
     expect(db.room.findMany.mock.calls[0][0].where).not.toHaveProperty("number");
   });

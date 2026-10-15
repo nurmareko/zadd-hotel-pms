@@ -46,10 +46,10 @@ type ReservationTableProps = {
 const COLUMN_COUNT = 10;
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
@@ -73,8 +73,8 @@ function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
 }
 
 function occupantsLabel(adults: number, children: number) {
-  // Compact: "2D" (dewasa/adults), append children when present, e.g. "2D · 1A".
-  return children > 0 ? `${adults}D · ${children}A` : `${adults}D`;
+  // Compact adult/child counts, e.g. "2A · 1C".
+  return children > 0 ? `${adults}A · ${children}C` : `${adults}A`;
 }
 
 const headerCellClass =
@@ -90,8 +90,8 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
       <table className="w-full min-w-[1100px] border-collapse text-sm">
         <caption className="sr-only">
           {groupByArrival
-            ? "Daftar reservasi hotel dikelompokkan menurut tanggal check-in"
-            : "Daftar reservasi hotel dari yang terbaru dibuat"}
+            ? "Hotel reservations grouped by check-in date"
+            : "Hotel reservations, most recently created first"}
         </caption>
         <thead>
           <tr>
@@ -99,13 +99,13 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
               Status
             </th>
             <th className={headerCellClass} scope="col">
-              Nama
+              Name
             </th>
             <th className={headerCellClass} scope="col">
-              Referensi
+              Reference
             </th>
             <th className={headerCellClass} scope="col">
-              Tamu
+              Guest
             </th>
             <th className={headerCellClass} scope="col">
               Check-in
@@ -114,16 +114,16 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
               Check-out
             </th>
             <th className={headerCellClass} scope="col">
-              Dibuat
+              Created
             </th>
             <th className={headerCellClass} scope="col">
-              Kamar
+              Room
             </th>
             <th className={numericHeaderCellClass} scope="col">
               Total (Rp)
             </th>
             <th className={numericHeaderCellClass} scope="col">
-              Saldo (Rp)
+              Balance (Rp)
             </th>
           </tr>
         </thead>
@@ -140,14 +140,14 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
               >
                 <EmptyState
                   icon={CalendarX}
-                  title="Tidak ada reservasi"
-                  description="Tidak ada reservasi yang cocok dengan filter Anda."
+                  title="No reservations"
+                  description="No reservations match your filters."
                   action={
                     <Link
                                           className={buttonVariants({ variant: "default" })}
                                           href="/app/fo/reservasi/new?from=list"
                     >
-                      Buat Reservasi
+                      Create Reservation
                     </Link>
                   }
                 />
@@ -171,7 +171,7 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
         >
           {formatDateWithWeekday(group.arrivalDate)}
           <span className="ml-2 font-normal text-slate-500">
-            · {group.rows.length} reservasi
+            · {group.rows.length} reservations
           </span>
         </th>
       </tr> : null}
@@ -186,7 +186,7 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
             <td className="border-b border-slate-100 p-0">
               <Link
                 href={href}
-                aria-label={`Buka reservasi ${row.reservationNo} untuk ${row.guestName}`}
+                aria-label={`Open reservation ${row.reservationNo} for ${row.guestName}`}
                 className="flex min-h-11 items-center px-4 py-3 font-semibold text-slate-900 outline-none transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500"
               >
                 {row.guestName}
@@ -200,7 +200,7 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
                     href={`/app/fo/reservasi/grup/${row.groupBookingId}`}
                     className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-900"
                   >
-                    Grup ({row.groupRoomCount} kamar)
+                    Group ({row.groupRoomCount} rooms)
                   </Link>
                 ) : null}
               </div>
@@ -225,10 +225,10 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
               ) : (
                 <Link
                   href={`${href}?mode=edit`}
-                  aria-label={`Alokasikan kamar untuk reservasi ${row.reservationNo}`}
+                  aria-label={`Assign a room to reservation ${row.reservationNo}`}
                   className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md text-sm font-medium text-emerald-700 hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                 >
-                  + Alokasikan
+                  + Assign
                 </Link>
               )}
             </td>

@@ -52,8 +52,8 @@ export default async function KitchenDisplayPage() {
     return {
       id: order.id,
       orderNo: order.orderNo,
-      destination: isRoomService ? `Kamar ${roomNumber ?? "-"}` : `Meja ${order.tableNo ?? "-"}`,
-      serviceLabel: isRoomService ? "Layanan Kamar" : "Makan di Tempat",
+      destination: isRoomService ? `Room ${roomNumber ?? "-"}` : `Table ${order.tableNo ?? "-"}`,
+      serviceLabel: isRoomService ? "Room Service" : "Dine-in",
       waiterName: order.waitedBy.fullName,
       guestCount: order.guestCount,
       openedAt: order.openedAt.toISOString(),
@@ -74,12 +74,12 @@ export default async function KitchenDisplayPage() {
         <div>
           <div className="flex items-center gap-2">
             <ChefHat className="size-6 text-emerald-700" aria-hidden="true" />
-            <h1 className="text-3xl font-bold leading-tight">Layar Dapur</h1>
+            <h1 className="text-3xl font-bold leading-tight">Kitchen Display</h1>
           </div>
-          <p className="mt-1 text-sm text-slate-500">Pantau pesanan aktif dan waktu persiapannya secara langsung.</p>
+          <p className="mt-1 text-sm text-slate-500">Monitor active orders and preparation times in real time.</p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href="/app/fb">
-          Kembali ke Meja
+          Back to Tables
         </Link>
       </div>
 

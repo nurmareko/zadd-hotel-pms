@@ -37,7 +37,7 @@ function StatusBadge({ status }: { status: NightAuditStatus }) {
   };
   return (
     <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", statusConfig[status as keyof typeof statusConfig] || "bg-slate-100 text-slate-800")}>
-      {status === NightAuditStatus.COMPLETED ? "Selesai" : status}
+      {status === NightAuditStatus.COMPLETED ? "Completed" : status}
     </span>
   );
 }
@@ -50,20 +50,20 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
   return (
     <Card className="rounded-lg overflow-hidden p-0 min-w-0 max-w-full border border-border">
       <CardHeader className="border-b border-border rounded-none px-5 py-4 bg-card">
-        <CardTitle className="text-base font-semibold tracking-tight text-foreground">Riwayat Audit</CardTitle>
+        <CardTitle className="text-base font-semibold tracking-tight text-foreground">Audit History</CardTitle>
       </CardHeader>
 
       {rows.length === 0 ? (
         <EmptyState
           icon={History}
-          title="Belum ada riwayat night audit"
-          description="Audit yang sudah dijalankan akan tersimpan sebagai riwayat dan laporan."
+          title="No night audit history yet"
+          description="Completed audits are saved in the history with their reports."
           action={
             <Link
               className={buttonVariants()}
               href="/app/acc/night-audit"
             >
-              Jalankan Night Audit
+              Run Night Audit
             </Link>
           }
           className="m-3.5"
@@ -75,31 +75,31 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
               <thead>
                 <tr>
                   <th className={headerCellClass}>
-                    Tanggal Operasional
+                    Business Date
                   </th>
                   <th className={headerCellClass}>
                     Status
                   </th>
                   <th className={headerCellClass}>
-                    Dijalankan
+                    Run At
                   </th>
                   <th className={headerRightClass}>
-                    Okupansi %
+                    Occupancy %
                   </th>
                   <th className={headerRightClass}>
-                    Pendapatan Kamar
+                    Room Revenue
                   </th>
                   <th className={headerRightClass}>
-                    ARR Harian
+                    Daily ARR
                   </th>
                   <th className={headerRightClass}>
-                    Pendapatan F&B
+                    F&B Revenue
                   </th>
                   <th className={headerRightClass}>
-                    Total Pendapatan
+                    Total Revenue
                   </th>
                   <th className={headerRightClass}>
-                    Aksi
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -128,11 +128,11 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                     {row.arrAvailability === "AUTHORITATIVE" && row.arr !== null
                       ? formatIDR(row.arr)
                       : row.arrAvailability === "NO_RECOGNIZED_NIGHTS"
-                        ? "Tidak tersedia"
+                        ? "Unavailable"
                         : row.arrAvailability === "INTEGRITY_ERROR"
                           ? (
                               <span className="font-semibold text-red-700" title={row.arrReason}>
-                                Kesalahan integritas data
+                                Data integrity error
                               </span>
                             )
                           : "—"}
@@ -148,7 +148,7 @@ export function AuditHistory({ rows }: AuditHistoryProps) {
                       className={buttonVariants({ variant: "outline" })}
                       href={`/app/acc/reports/${row.id}`}
                     >
-                      Lihat Laporan
+                      View Report
                     </Link>
                   </td>
                 </tr>

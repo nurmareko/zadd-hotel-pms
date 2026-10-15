@@ -35,7 +35,7 @@ export function UserRowActions({
       const result = await toggleUserActive(user.id);
 
       if (result.ok) {
-        toast.success("Status pengguna diperbarui");
+        toast.success("User status updated");
         return;
       }
 
@@ -69,12 +69,12 @@ export function UserRowActions({
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={handleToggle}>
           <Power aria-hidden="true" />
-          {user.isActive ? "Nonaktifkan" : "Aktifkan"}
+          {user.isActive ? "Deactivate" : "Activate"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(user)}>
           <Trash2 aria-hidden="true" />
-          Hapus
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

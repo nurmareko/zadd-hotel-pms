@@ -17,11 +17,11 @@ export function GuestTable({ guests, q }: { guests: GuestDirectoryRow[]; q: stri
       <div className="px-4 py-8">
         <EmptyState
           icon={Users}
-          title={q ? "Tamu tidak ditemukan" : "Belum ada tamu"}
-          description={q ? "Tidak ada tamu yang cocok dengan pencarian Anda. Coba kata kunci lain atau atur ulang pencarian." : "Data tamu akan muncul setelah reservasi pertama dibuat."}
+          title={q ? "No matching guests" : "No guests yet"}
+          description={q ? "No guests match your search. Try a different search term or reset the search." : "Guest records will appear after the first reservation is created."}
           action={
             <Link href={q ? "/app/fo/tamu" : "/app/fo/reservasi/new"} className={buttonVariants({ variant: "outline" })}>
-              {q ? "Atur Ulang" : "Buat Reservasi"}
+              {q ? "Reset" : "Create Reservation"}
             </Link>
           }
         />
@@ -32,10 +32,10 @@ export function GuestTable({ guests, q }: { guests: GuestDirectoryRow[]; q: stri
   return (
     <div className="max-w-full overflow-auto">
       <table className="w-full min-w-[1100px] border-collapse text-sm">
-        <caption className="sr-only">Daftar tamu hotel menurut abjad nama, dengan total kunjungan dan kunjungan terakhir</caption>
+        <caption className="sr-only">Hotel guests in alphabetical order, with total visits and most recent visit</caption>
         <thead>
           <tr>
-            {["Nama Tamu", "Identitas", "Kontak", "Domisili / Kewarganegaraan", "Total Kunjungan", "Kunjungan Terakhir", "Aksi"].map((label) => (
+            {["Guest Name", "Identification", "Contact", "Residence / Nationality", "Total Visits", "Last Visit", "Actions"].map((label) => (
               <th key={label} scope="col" className={headerClass}>{label}</th>
             ))}
           </tr>
@@ -64,10 +64,10 @@ export function GuestTable({ guests, q }: { guests: GuestDirectoryRow[]; q: stri
               <td className={cellClass}>
                 <Link
                   href={`/app/fo/reservasi/new?guestId=${guest.id}`}
-                  aria-label={`Buat reservasi untuk ${guest.fullName}`}
+                  aria-label={`Create a reservation for ${guest.fullName}`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
-                  Buat Reservasi
+                  Create Reservation
                 </Link>
               </td>
             </tr>

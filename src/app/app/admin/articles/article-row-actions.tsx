@@ -49,7 +49,7 @@ export function ArticleRowActions({
           onClick={() => onDelete(article)}
         >
           <Trash2 aria-hidden="true" />
-          Hapus
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

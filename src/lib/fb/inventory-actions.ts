@@ -30,8 +30,8 @@ const stockTakeSchema = z.object({
   countedQuantity: quantitySchema,
   notes: notesSchema,
 }).strict();
-const forbiddenMessage = "Anda tidak memiliki akses untuk mengelola persediaan.";
-const conflictMessage = "Stok berubah bersamaan. Muat ulang halaman dan coba lagi.";
+const forbiddenMessage = "You do not have access to manage inventory.";
+const conflictMessage = "Stock was changed concurrently. Reload the page and try again.";
 class InventoryError extends Error {}
 
 async function requireOperator(): Promise<number | null> {
@@ -62,7 +62,7 @@ async function writeMovement(
           where: { id: input.ingredientId },
           select: { id: true, onHand: true },
         });
-        if (!ingredient) throw new InventoryError("Bahan tidak ditemukan.");
+        if (!ingredient) throw new InventoryError("Ingredient not found.");
 
 
         const quantity = new Prisma.Decimal(input.quantity);
@@ -71,7 +71,7 @@ async function writeMovement(
           : movementType === "WASTAGE" ? quantity.negated() : quantity;
         const balance = ingredient.onHand.plus(delta);
         if (delta.abs().gt(MAX_QUANTITY) || balance.abs().gt(MAX_QUANTITY)) {
-          throw new InventoryError("Saldo atau perubahan stok melebihi batas yang dapat disimpan.");
+          throw new InventoryError("The stock balance or adjustment exceeds the storage limit.");
         }
 
         const updated = await tx.fBIngredient.updateMany({
@@ -111,7 +111,7 @@ function invalidateCommittedPaths(paths: string[]) {
     } catch {
       // A cache failure must not report a committed stock movement as failed:
       // retrying the operator's request would post the quantity a second time.
-      console.error("Gagal memperbarui tampilan persediaan setelah perubahan tersimpan.");
+      console.error("Failed to refresh the inventory display after saving changes.");
     }
   }
 }
@@ -127,7 +127,7 @@ async function submitMovement(
       ? stockTakeSchema.safeParse(input)
       : movementSchema.safeParse(input);
     if (!parsed.success) {
-      return { error: "Data stok tidak valid. Periksa ID bahan, jumlah (maksimal 9.999.999,999 dan tiga angka desimal), serta catatan (maksimal 255 karakter)." };
+      return { error: "Invalid stock data. Check the ingredient ID, quantity (at most 9,999,999.999 and three decimal places), and notes (at most 255 characters)." };
     }
     const data = parsed.data;
     const result = await writeMovement({
@@ -141,7 +141,7 @@ async function submitMovement(
     // A lost COMMIT acknowledgement does not prove rollback. Reconcile before
     // resubmitting a non-idempotent movement rather than risking a duplicate.
     return {
-      error: "Status penyimpanan perubahan stok belum dapat dipastikan. Periksa dan cocokkan riwayat stok sebelum mengirim ulang agar tidak tercatat dua kali.",
+      error: "The stock adjustment save result is uncertain. Check and reconcile stock history before resubmitting to avoid duplicate entries.",
       uncertain: true,
     };
   }
@@ -163,16 +163,16 @@ export async function toggle86MenuItem(menuItemId: number): Promise<ActionResult
   try {
     if (await requireOperator() === null) return { error: forbiddenMessage };
     const parsed = idSchema.safeParse(menuItemId);
-    if (!parsed.success) return { error: "ID menu tidak valid." };
+    if (!parsed.success) return { error: "Invalid menu ID." };
     // A single unconditional assignment is atomic and idempotent, not a toggle.
     await prisma.menuItem.update({ where: { id: parsed.data }, data: { isActive: false } });
     invalidateCommittedPaths([INVENTORY_PATH, "/app/fb/pos", "/app/fb/menu"]);
     return { success: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return { error: "Menu tidak ditemukan." };
+      return { error: "Menu not found." };
     }
-    return { error: "Gagal menonaktifkan menu. Silakan coba lagi." };
+    return { error: "Failed to deactivate the menu item. Please try again." };
   }
 }
 
@@ -182,7 +182,7 @@ export async function getStockLedger(
   try {
     if (await requireOperator() === null) return { error: forbiddenMessage };
     const parsed = idSchema.safeParse(ingredientId);
-    if (!parsed.success) return { error: "ID bahan tidak valid." };
+    if (!parsed.success) return { error: "Invalid ingredient ID." };
     const rows = await prisma.fBStockLedger.findMany({
       where: { ingredientId: parsed.data },
       take: 100,
@@ -202,6 +202,6 @@ export async function getStockLedger(
       recordedBy: row.recordedBy.fullName,
     })) };
   } catch {
-    return { error: "Gagal memuat riwayat stok. Silakan coba lagi." };
+    return { error: "Failed to load stock history. Please try again." };
   }
 }

@@ -58,18 +58,18 @@ export function AccountCard({
   return (
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-5 py-4">
-        <h2 className="text-[16px] font-semibold text-slate-900">Akun</h2>
+        <h2 className="text-[16px] font-semibold text-slate-900">Account</h2>
         <p className="mt-1 text-[13px] leading-5 text-slate-500">
-          Ringkasan identitas dan sesi pengguna.
+          User identity and session summary.
         </p>
       </div>
       <dl className="px-5 py-2">
-        <InfoRow label="Nama Lengkap" value={fullName} />
+        <InfoRow label="Full Name" value={fullName} />
         <InfoRow label="Username" value={username} />
         <InfoRow label="Email" value={email ?? "—"} />
         <InfoRow label="Role" value={displayRole(roleCode, roleName)} />
-        <InfoRow label="Bergabung sejak" value={createdAtLabel} />
-        <InfoRow label="Login terakhir" value={lastLoginLabel} />
+        <InfoRow label="Member since" value={createdAtLabel} />
+        <InfoRow label="Last login" value={lastLoginLabel} />
       </dl>
     </section>
   );

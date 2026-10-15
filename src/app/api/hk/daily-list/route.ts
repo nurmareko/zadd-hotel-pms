@@ -57,11 +57,11 @@ export async function GET(req: Request) {
   const session = await auth();
 
   if (!session) {
-    return new Response("Silakan masuk terlebih dahulu", { status: 401 });
+    return new Response("Please sign in first", { status: 401 });
   }
 
   if (!can(session.user.role as AppRole, "rooms:read")) {
-    return new Response("Tidak berwenang", { status: 403 });
+    return new Response("Access denied", { status: 403 });
   }
 
   const url = new URL(req.url);
@@ -69,7 +69,7 @@ export async function GET(req: Request) {
   const selectedDate = dateParam ? dateOnlyFromISO(dateParam) : undefined;
 
   if (dateParam && !selectedDate) {
-    return new Response("Tanggal tidak valid", { status: 400 });
+    return new Response("Invalid date", { status: 400 });
   }
 
   const date = selectedDate ?? undefined;
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
   ]);
 
   if (!settings) {
-    return new Response("Pengaturan hotel tidak ditemukan", { status: 500 });
+    return new Response("Hotel settings not found", { status: 500 });
   }
 
   const attentionRoomIds = new Set(

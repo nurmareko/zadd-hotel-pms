@@ -26,7 +26,7 @@ describe("meal plan CSV export", () => {
     auth.mockResolvedValue(session);
     const response = await GET();
     expect(response.status).toBe(401);
-    expect(await response.text()).toBe("Silakan masuk terlebih dahulu.");
+    expect(await response.text()).toBe("Please sign in first.");
     expect(findMany).not.toHaveBeenCalled();
   });
 
@@ -34,7 +34,7 @@ describe("meal plan CSV export", () => {
     auth.mockResolvedValue({ user: { role } });
     const response = await GET();
     expect(response.status).toBe(403);
-    expect(await response.text()).toBe("Anda tidak memiliki akses untuk mengekspor data pendapatan.");
+    expect(await response.text()).toBe("You do not have permission to export revenue data.");
     expect(findMany).not.toHaveBeenCalled();
   });
 
@@ -43,18 +43,18 @@ describe("meal plan CSV export", () => {
     const response = await GET();
     expect(response.status).toBe(200);
     expect(await response.text()).toBe([
-      "Kode Paket,Nama Paket,Kode Artikel,Harga (Rp/Tamu/Malam),Keterangan",
-      "RO,Tanpa makan,-,0,Tetap",
-      "BB,Sarapan,MEAL-BB,65000,Dapat dikonfigurasi",
-      "HB,Sarapan + satu kali makan utama,MEAL-HB,175000,Dapat dikonfigurasi",
-      'FB,"Sarapan, makan siang, dan makan malam",MEAL-FB,310000,Dapat dikonfigurasi',
+      "Plan Code,Plan Name,Article Code,Price (IDR/Guest/Night),Notes",
+      "RO,Room only,-,0,Fixed",
+      "BB,Breakfast,MEAL-BB,65000,Configurable",
+      "HB,Breakfast + one main meal,MEAL-HB,175000,Configurable",
+      'FB,"Breakfast, lunch and dinner",MEAL-FB,310000,Configurable',
     ].join("\r\n"));
   });
 
   it("returns UTF-8 BOM, CSV download headers, no-store, and the hotel-local date", async () => {
     const response = await GET();
     expect(response.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
-    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="paket-makan-2026-09-29.csv"');
+    expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="meal-plans-2026-09-29.csv"');
     expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const bytes = new Uint8Array(await response.arrayBuffer());
     expect(Array.from(bytes.slice(0, 3))).toEqual([0xef, 0xbb, 0xbf]);
@@ -66,20 +66,20 @@ describe("meal plan CSV export", () => {
       { code: "MEAL-HB", defaultPrice: null },
     ]);
     const csv = await (await GET()).text();
-    expect(csv).toContain("RO,Tanpa makan,-,0,Tetap");
-    expect(csv).toContain("BB,Sarapan,MEAL-BB,0,Dapat dikonfigurasi");
-    expect(csv).toContain("HB,Sarapan + satu kali makan utama,MEAL-HB,150000,Dapat dikonfigurasi");
-    expect(csv).toContain('FB,"Sarapan, makan siang, dan makan malam",MEAL-FB,250000,Dapat dikonfigurasi');
+    expect(csv).toContain("RO,Room only,-,0,Fixed");
+    expect(csv).toContain("BB,Breakfast,MEAL-BB,0,Configurable");
+    expect(csv).toContain("HB,Breakfast + one main meal,MEAL-HB,150000,Configurable");
+    expect(csv).toContain('FB,"Breakfast, lunch and dinner",MEAL-FB,250000,Configurable');
   });
 
   it("exports all packages even when the catalog is empty", async () => {
     findMany.mockResolvedValue([]);
     const csv = await (await GET()).text();
     expect(csv.split("\r\n")).toHaveLength(5);
-    expect(csv).toContain("RO,Tanpa makan,-,0,Tetap");
-    expect(csv).toContain("BB,Sarapan,MEAL-BB,50000,Dapat dikonfigurasi");
-    expect(csv).toContain("HB,Sarapan + satu kali makan utama,MEAL-HB,150000,Dapat dikonfigurasi");
-    expect(csv).toContain('FB,"Sarapan, makan siang, dan makan malam",MEAL-FB,250000,Dapat dikonfigurasi');
+    expect(csv).toContain("RO,Room only,-,0,Fixed");
+    expect(csv).toContain("BB,Breakfast,MEAL-BB,50000,Configurable");
+    expect(csv).toContain("HB,Breakfast + one main meal,MEAL-HB,150000,Configurable");
+    expect(csv).toContain('FB,"Breakfast, lunch and dinner",MEAL-FB,250000,Configurable');
   });
 
   it("does not silently export fallback prices on a database failure", async () => {

@@ -135,8 +135,8 @@ describe("getRevenueReport", () => {
     expect(report.dailyRows[1]).toMatchObject({ roomRevenue: 40, fbRevenue: 55, otherRevenue: 13, totalRevenue: 108 });
     expect(report.summary.totalRevenue).toBe(261);
     expect(report.unattributedRevenue).toBe(50);
-    expect(report.sources.find((row) => row.type === "INDIVIDUAL")).toMatchObject({ label: "Perorangan", revenue: 181, percentage: 181 / 211 * 100, reservationCount: 0 });
-    expect(report.sources.find((row) => row.type === "OTA")).toMatchObject({ label: "Agen Perjalanan Daring", revenue: 30, percentage: 30 / 211 * 100 });
+    expect(report.sources.find((row) => row.type === "INDIVIDUAL")).toMatchObject({ label: "Individual", revenue: 181, percentage: 181 / 211 * 100, reservationCount: 0 });
+    expect(report.sources.find((row) => row.type === "OTA")).toMatchObject({ label: "Online Travel Agent", revenue: 30, percentage: 30 / 211 * 100 });
     expect(report.sources.some((row) => row.type === "WALK_IN")).toBe(false);
     expect(classifyNightAuditRevenues).toHaveBeenCalledWith({ shortfallLineItems: [], existingDaytimeFolioLines: stay, closedFbRevenueTotal: expect.anything(), roomArticleId: undefined });
   });

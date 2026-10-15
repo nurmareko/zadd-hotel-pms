@@ -38,7 +38,7 @@ function postedAtLabel(date: Date) {
 function descriptionLabel(lineItem: FolioChargeLineItem) {
   const base = lineItem.description || lineItem.article.name;
 
-  return lineItem.fbOrder ? `${base} - Pesanan ${lineItem.fbOrder.orderNo}` : base;
+  return lineItem.fbOrder ? `${base} - Order ${lineItem.fbOrder.orderNo}` : base;
 }
 
 const statusClassNames: Record<FolioStatus, string> = {
@@ -50,7 +50,7 @@ const statusClassNames: Record<FolioStatus, string> = {
 
 function FolioStatusBadge({ status }: { status: FolioStatus }) {
   return (
-    <StatusBadge label={{ OPEN: "Terbuka", CLOSED: "Ditutup", VOIDED: "Dibatalkan" }[status]} className={statusClassNames[status]} />
+    <StatusBadge label={{ OPEN: "Open", CLOSED: "Closed", VOIDED: "Cancelled" }[status]} className={statusClassNames[status]} />
   );
 }
 
@@ -58,10 +58,10 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
   return (
     <section className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
-        <h2 className="text-sm font-semibold">Tagihan</h2>
+        <h2 className="text-sm font-semibold">Charges</h2>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-slate-500">
-            {lineItems.length} baris
+            {lineItems.length} row
           </span>
           <FolioStatusBadge status={status} />
         </div>
@@ -71,8 +71,8 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
         {lineItems.length === 0 ? (
           <EmptyState
             icon={ReceiptText}
-            title="Belum ada tagihan"
-            description="Baris folio akan muncul setelah tagihan dicatat."
+            title="No charges yet"
+            description="Folio entries will appear once charges have been recorded."
             className="m-5"
           />
         ) : (
@@ -81,22 +81,22 @@ export function FolioCharges({ status, lineItems }: FolioChargesProps) {
               <thead>
                 <tr>
                   <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Tanggal
+                    Date
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Artikel
+                    Article
                   </th>
                   <th className="min-w-64 bg-slate-50 px-4 py-3 text-left text-xs font-semibold text-slate-600">
-                    Deskripsi
+                    Description
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Jumlah
+                    Quantity
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Harga satuan
+                    Unit price
                   </th>
                   <th className="bg-slate-50 px-4 py-3 text-right text-xs font-semibold text-slate-600">
-                    Nilai
+                    Amount
                   </th>
                 </tr>
               </thead>

@@ -18,10 +18,10 @@ describe("shared action-errors foundation", () => {
     expect(UNIVERSAL_ACTION_FAILURE_CODES).toContain("UNEXPECTED");
 
     expect(UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED).toBe(
-      "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      "Your session has expired. Please sign in again.",
     );
     expect(UNIVERSAL_ACTION_MESSAGES.FORBIDDEN).toBe(
-      "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+      "You do not have permission to perform this action.",
     );
   });
 
@@ -30,19 +30,19 @@ describe("shared action-errors foundation", () => {
       expect(checkActionAuthorization(null, ["FO"])).toEqual({
         ok: false,
         code: "SESSION_EXPIRED",
-        error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+        error: "Your session has expired. Please sign in again.",
       });
 
       expect(checkActionAuthorization(undefined, ["FO"])).toEqual({
         ok: false,
         code: "SESSION_EXPIRED",
-        error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+        error: "Your session has expired. Please sign in again.",
       });
 
       expect(checkActionAuthorization({}, ["FO"])).toEqual({
         ok: false,
         code: "SESSION_EXPIRED",
-        error: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+        error: "Your session has expired. Please sign in again.",
       });
     });
 
@@ -52,7 +52,7 @@ describe("shared action-errors foundation", () => {
       ).toEqual({
         ok: false,
         code: "FORBIDDEN",
-        error: "Anda tidak memiliki izin untuk melakukan tindakan ini.",
+        error: "You do not have permission to perform this action.",
       });
     });
 

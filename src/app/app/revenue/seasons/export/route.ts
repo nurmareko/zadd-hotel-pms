@@ -13,27 +13,27 @@ export const dynamic = "force-dynamic";
 type PricingRuleRow = Prisma.PricingRuleGetPayload<{ include: { roomType: true } }>;
 
 const dayLabels: Record<PricingRuleDayOfWeek, string> = {
-  MONDAY: "Senin",
-  TUESDAY: "Selasa",
-  WEDNESDAY: "Rabu",
-  THURSDAY: "Kamis",
-  FRIDAY: "Jumat",
-  SATURDAY: "Sabtu",
-  SUNDAY: "Minggu",
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
+  FRIDAY: "Friday",
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
 };
 
 const columns: CsvColumn<PricingRuleRow>[] = [
-  { header: "Nama Aturan", accessor: (rule) => rule.name },
-  { header: "Kode Tipe Kamar", accessor: (rule) => rule.roomType.code },
-  { header: "Tipe Kamar", accessor: (rule) => rule.roomType.name },
-  { header: "Tarif Dasar (Rp)", accessor: (rule) => Number(rule.roomType.baseRate) },
-  { header: "Jenis Periode", accessor: (rule) => rule.selectorKind === "DAY_OF_WEEK" ? "Hari mingguan" : "Rentang tanggal" },
-  { header: "Hari", accessor: (rule) => rule.dayOfWeek ? dayLabels[rule.dayOfWeek] : "-" },
-  { header: "Tanggal Mulai", accessor: (rule) => rule.startsOn?.toISOString().slice(0, 10) ?? "-" },
-  { header: "Tanggal Selesai (Eksklusif)", accessor: (rule) => rule.endsBefore?.toISOString().slice(0, 10) ?? "-" },
-  { header: "Jenis Penyesuaian", accessor: (rule) => rule.adjustmentKind === "AMOUNT_DELTA" ? "Nominal (Rp)" : "Persentase (%)" },
+  { header: "Rule Name", accessor: (rule) => rule.name },
+  { header: "Room Type Code", accessor: (rule) => rule.roomType.code },
+  { header: "Room Type", accessor: (rule) => rule.roomType.name },
+  { header: "Base Rate (IDR)", accessor: (rule) => Number(rule.roomType.baseRate) },
+  { header: "Period Type", accessor: (rule) => rule.selectorKind === "DAY_OF_WEEK" ? "Weekday" : "Date range" },
+  { header: "Day", accessor: (rule) => rule.dayOfWeek ? dayLabels[rule.dayOfWeek] : "-" },
+  { header: "Start Date", accessor: (rule) => rule.startsOn?.toISOString().slice(0, 10) ?? "-" },
+  { header: "End Date (Exclusive)", accessor: (rule) => rule.endsBefore?.toISOString().slice(0, 10) ?? "-" },
+  { header: "Adjustment Type", accessor: (rule) => rule.adjustmentKind === "AMOUNT_DELTA" ? "Amount (IDR)" : "Percentage (%)" },
   {
-    header: "Nilai Penyesuaian",
+    header: "Adjustment Value",
     accessor: (rule) => {
       const value = Number(rule.adjustmentValue);
       const sign = value > 0 ? "+" : "";
@@ -42,14 +42,14 @@ const columns: CsvColumn<PricingRuleRow>[] = [
         : `${sign}${formatDecimalID(value)}%`;
     },
   },
-  { header: "Status", accessor: (rule) => rule.isActive ? "Aktif" : "Nonaktif" },
+  { header: "Status", accessor: (rule) => rule.isActive ? "Active" : "Inactive" },
 ];
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user) return new Response("Silakan masuk terlebih dahulu.", { status: 401 });
+  if (!session?.user) return new Response("Please sign in first.", { status: 401 });
   if (!can(session.user.role as AppRole, "revenue:read")) {
-    return new Response("Anda tidak memiliki akses untuk mengekspor data pendapatan.", { status: 403 });
+    return new Response("You do not have permission to export revenue data.", { status: 403 });
   }
 
   const rules = await prisma.pricingRule.findMany({
@@ -57,5 +57,5 @@ export async function GET() {
     orderBy: [{ roomType: { name: "asc" } }, { name: "asc" }],
   });
   const date = todayDateOnly().today.toISOString().slice(0, 10);
-  return createCsvResponse(generateCsv(columns, rules), `musim-tarif-${date}.csv`);
+  return createCsvResponse(generateCsv(columns, rules), `seasons-rates-${date}.csv`);
 }

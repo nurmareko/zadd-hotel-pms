@@ -31,10 +31,10 @@ type GroupBookingPageProps = {
 };
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Terkonfirmasi",
-  CHECKED_IN: "Sudah check-in",
-  CHECKED_OUT: "Sudah check-out",
-  CANCELLED: "Dibatalkan",
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
 };
 
@@ -44,10 +44,10 @@ const noShowClassNames = {
 };
 
 const mealPlanLabels: Record<ArrangementType, string> = {
-  [ArrangementType.RO]: "RO — Tanpa makan",
-  [ArrangementType.BB]: "BB — Sarapan",
-  [ArrangementType.HB]: "HB — Sarapan + satu kali makan utama",
-  [ArrangementType.FB]: "FB — Sarapan, makan siang, dan makan malam",
+  [ArrangementType.RO]: "RO — Room Only",
+  [ArrangementType.BB]: "BB — Bed & Breakfast",
+  [ArrangementType.HB]: "HB — Breakfast + One Main Meal",
+  [ArrangementType.FB]: "FB — Breakfast, Lunch & Dinner",
 };
 
 function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
@@ -85,16 +85,16 @@ function stayFeeState(
   kind: ReservationStayFeeKind,
 ) {
   const status = stayFees.find((fee) => fee.kind === kind)?.status;
-  if (status === ReservationStayFeeStatus.PENDING) return "Menunggu (PENDING)";
-  if (status === ReservationStayFeeStatus.POSTED) return "Terposting (POSTED)";
-  return "Tidak ada";
+  if (status === ReservationStayFeeStatus.PENDING) return "Pending";
+  if (status === ReservationStayFeeStatus.POSTED) return "Posted";
+  return "None";
 }
 
 function folioStatusLabel(status: FolioStatus | null) {
-  if (status === FolioStatus.OPEN) return "Terbuka (OPEN)";
-  if (status === FolioStatus.CLOSED) return "Tertutup (CLOSED)";
-  if (status === FolioStatus.VOIDED) return "Dibatalkan (VOIDED)";
-  return "Belum ada folio";
+  if (status === FolioStatus.OPEN) return "Open";
+  if (status === FolioStatus.CLOSED) return "Closed";
+  if (status === FolioStatus.VOIDED) return "Voided";
+  return "No folio yet";
 }
 
 export default async function GroupBookingPage({
@@ -257,11 +257,10 @@ export default async function GroupBookingPage({
           className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Kembali ke daftar reservasi
+          Back to reservation list
         </Link>
         <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">
-          Setiap kamar memiliki reservasi dan folio sendiri. Aksi grup tetap
-          menjalankan proses per kamar tersebut.
+          Each room has its own reservation and folio. Group actions still process each room individually.
         </p>
       </div>
 
@@ -280,13 +279,13 @@ export default async function GroupBookingPage({
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">
-            Informasi booking
+            Booking Information
           </h2>
         </div>
         <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-xs font-medium text-slate-500">
-              Kontak utama
+              Primary contact
             </dt>
             <dd className="mt-1 font-semibold text-slate-900">
               {primaryReservation.guest.fullName}
@@ -309,13 +308,13 @@ export default async function GroupBookingPage({
             ) : null}
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Kedatangan</dt>
+            <dt className="text-xs font-medium text-slate-500">Arrival</dt>
             <dd className="mt-1 font-semibold text-slate-900">
               {formatDateID(primaryReservation.arrivalDate)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Keberangkatan</dt>
+            <dt className="text-xs font-medium text-slate-500">Departure</dt>
             <dd className="mt-1 font-semibold text-slate-900">
               {formatDateID(primaryReservation.departureDate)}
             </dd>
@@ -326,39 +325,39 @@ export default async function GroupBookingPage({
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Kamar</h2>
+            <h2 className="text-base font-semibold text-slate-900">Room</h2>
             <p className="mt-0.5 text-sm text-slate-500">
-              Buka reservasi masing-masing kamar untuk tindakan individual.
+              {"Open each room's reservation for individual actions."}
             </p>
           </div>
           <span className="text-sm font-medium text-slate-500">
-            {reservations.length} reservasi
+            {reservations.length} reservations
           </span>
         </div>
         <div className="max-w-full overflow-auto">
           <table className="w-full min-w-445 border-collapse text-sm">
             <caption className="sr-only">
-              Daftar kamar, pax, Inklusi, status, dan validasi booking grup {groupBookingId}
+              Group booking rooms, guest counts, inclusions, statuses, and validation {groupBookingId}
             </caption>
             <thead>
               <tr>
                 {[
-                  "Reservasi / tamu",
-                  "Kamar / tipe",
+                  "Reservation / guest",
+                  "Room / type",
                   "Pax",
                   "Meal plan / total",
-                  "Fleksibilitas",
-                  "Status reservasi / folio",
-                  "Validasi massal",
-                  "Tanggal",
+                  "Stay flexibility",
+                  "Reservation / folio status",
+                  "Batch validation",
+                  "Date",
                   "Deposit",
-                  "Saldo folio (Rp)",
+                  "Folio balance (Rp)",
                   "Detail",
                 ].map((label) => (
                   <th
                     key={label}
                     className={`bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 ${
-                      label === "Saldo folio (Rp)" || label === "Detail"
+                      label === "Folio balance (Rp)" || label === "Detail"
                         ? "text-right"
                         : "text-left"
                     }`}
@@ -383,14 +382,14 @@ export default async function GroupBookingPage({
                 ).length;
                 const terminal = isTerminalStatus(reservation.status);
                 const mealValidation = terminal
-                  ? "Reservasi terminal."
+                  ? "Finalised reservation."
                   : !Number.isInteger(pax) || pax < 1
-                    ? "Pax tidak valid."
+                    ? "Invalid guest count."
                     : pax > reservation.roomType.capacity
-                      ? `Pax melebihi kapasitas ${reservation.roomType.capacity}.`
+                      ? `Guest count exceeds capacity ${reservation.roomType.capacity}.`
                       : editableMealNights === 0
-                        ? "Tidak ada malam mendatang yang dapat diubah."
-                        : `${editableMealNights} malam dapat diubah.`;
+                        ? "There are no upcoming nights that can be changed."
+                        : `${editableMealNights} nights can be changed.`;
                 const mealEligible =
                   !terminal &&
                   Number.isInteger(pax) &&
@@ -403,13 +402,13 @@ export default async function GroupBookingPage({
                     (reservation.status === ReservationStatus.CHECKED_IN &&
                       reservation.folio?.status === FolioStatus.OPEN));
                 const feeValidation = terminal
-                  ? "Reservasi terminal."
+                  ? "Finalised reservation."
                   : reservation.status === ReservationStatus.CONFIRMED
-                    ? "Dapat disimpan PENDING."
+                    ? "Can be saved as pending."
                     : reservation.status === ReservationStatus.CHECKED_IN &&
                         reservation.folio?.status === FolioStatus.OPEN
-                      ? "Dapat langsung diposting."
-                      : "Folio OPEN diperlukan untuk posting.";
+                      ? "Can be posted immediately."
+                      : "An open folio is required for posting.";
 
                 return (
                   <tr
@@ -435,16 +434,16 @@ export default async function GroupBookingPage({
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       <div className="font-semibold text-slate-900">
-                        {reservation.room?.number ?? "Belum dialokasikan"}
+                        {reservation.room?.number ?? "Not assigned"}
                       </div>
                       <div className="mt-0.5 text-slate-500">
-                        {reservation.roomType.name} · kapasitas {reservation.roomType.capacity}
+                        {reservation.roomType.name} · capacity {reservation.roomType.capacity}
                       </div>
                     </td>
                     <td className="px-4 py-3 tabular-nums text-slate-700">
-                      <div className="font-semibold text-slate-900">{pax} tamu</div>
+                      <div className="font-semibold text-slate-900">{pax} guests</div>
                       <div className="mt-0.5 text-xs text-slate-500">
-                        {reservation.adults} dewasa · {reservation.children} anak
+                        {reservation.adults} adults · {reservation.children} children
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-700">
@@ -452,15 +451,15 @@ export default async function GroupBookingPage({
                         {mealPlanLabels[reservation.arrangementType]}
                       </div>
                       <div className="mt-1 text-xs font-semibold tabular-nums text-slate-600">
-                        Total meal plan selama menginap {formatIDR(mealTotal.toString())}
+                        Total meal plan amount for the stay {formatIDR(mealTotal.toString())}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-700">
                       <div>
-                        Check-in lebih awal: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.EARLY_CHECK_IN)}
+                        Early check-in: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.EARLY_CHECK_IN)}
                       </div>
                       <div className="mt-1">
-                        Check-out lebih lambat: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.LATE_CHECK_OUT)}
+                        Late check-out: {stayFeeState(reservation.stayFees, ReservationStayFeeKind.LATE_CHECK_OUT)}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -474,13 +473,13 @@ export default async function GroupBookingPage({
                         <span className="font-semibold">Meal:</span> {mealValidation}
                       </div>
                       <div className={`mt-1 ${feeEligible ? "text-emerald-700" : "text-amber-700"}`}>
-                        <span className="font-semibold">Biaya:</span> {feeValidation}
+                        <span className="font-semibold">Fees:</span> {feeValidation}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       <div>{formatDateID(reservation.arrivalDate)}</div>
                       <div className="mt-0.5 text-slate-500">
-                        s.d. {formatDateID(reservation.departureDate)}
+                        to {formatDateID(reservation.departureDate)}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -489,7 +488,7 @@ export default async function GroupBookingPage({
                     <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-900">
                       {balance === undefined ? (
                         <span className="text-xs font-medium text-slate-400">
-                          {reservation.folio ? "Folio VOIDED" : "Belum check-in"}
+                          {reservation.folio ? "Voided folio" : "Not checked in"}
                         </span>
                       ) : (
                         formatDecimalID(roundedFolioBalance(balance), 0)
@@ -500,7 +499,7 @@ export default async function GroupBookingPage({
                         href={`/app/fo/reservasi/${reservation.id}`}
                         className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-950"
                       >
-                        Buka
+                        Open
                         <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
                     </td>
@@ -515,48 +514,44 @@ export default async function GroupBookingPage({
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">
-            Ringkasan grup
+            Group Summary
           </h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            Ringkasan tampilan saja; setiap kamar tetap dikelola sebagai
-            reservasi dan folio terpisah.
+            Display summary only; each room is still managed as a separate reservation and folio.
           </p>
         </div>
         <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-5">
-          <SummaryMetric label="Total kamar" value={reservations.length} />
-          <SummaryMetric label="Belum check-in" value={confirmedCount} />
-          <SummaryMetric label="Sudah check-in" value={checkedInCount} />
-          <SummaryMetric label="Sudah check-out" value={checkedOutCount} />
+          <SummaryMetric label="Total rooms" value={reservations.length} />
+          <SummaryMetric label="Not checked in" value={confirmedCount} />
+          <SummaryMetric label="Checked In" value={checkedInCount} />
+          <SummaryMetric label="Checked Out" value={checkedOutCount} />
           {inactiveCount > 0 ? (
-            <SummaryMetric label="Dibatalkan / no-show" value={inactiveCount} />
+            <SummaryMetric label="Cancelled / no-show" value={inactiveCount} />
           ) : null}
           <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 md:col-span-2 xl:col-span-1">
             <p className="text-xs font-semibold text-emerald-800">
-              Total saldo grup
+              Total group balance
             </p>
             <p className="mt-1 text-xl font-bold tabular-nums text-emerald-950">
               {formatIDR(totalGroupBalance)}
             </p>
             <p className="mt-1 text-xs leading-4 text-emerald-800">
-              Jumlah saldo dari {balances.length} folio per kamar.
+              Combined balance of {balances.length} individual room folios.
             </p>
           </div>
         </div>
         <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-600">
           <p>
-            Total saldo grup adalah penjumlahan saldo folio per kamar—bukan
-            saldo dari folio bersama.
+            The total group balance is the sum of individual room folio balances, not a shared folio balance.
           </p>
           {roomsWithoutFolio > 0 ? (
             <p className="mt-1">
-              {roomsWithoutFolio} kamar belum memiliki folio dan tidak
-              termasuk dalam jumlah saldo.
+              {roomsWithoutFolio} rooms have no folio yet and are excluded from the balance total.
             </p>
           ) : null}
           {roomsWithVoidedFolio > 0 ? (
             <p className="mt-1">
-              {roomsWithVoidedFolio} folio dibatalkan dan tidak termasuk dalam
-              jumlah saldo.
+              {roomsWithVoidedFolio} voided folios are excluded from the balance total.
             </p>
           ) : null}
         </div>

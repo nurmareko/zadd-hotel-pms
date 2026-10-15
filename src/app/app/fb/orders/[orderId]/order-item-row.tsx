@@ -97,7 +97,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
           </div>
           {!item.isAvailable ? (
             <div className="mt-1 inline-flex h-6 items-center rounded-full border border-status-vd-pip bg-status-vd-bg px-2.5 text-xs font-semibold text-status-vd-fg">
-              Item tidak tersedia
+              Item unavailable
             </div>
           ) : null}
         </div>
@@ -152,7 +152,7 @@ export function OrderItemRow({ item, canEdit }: OrderItemRowProps) {
         onBlur={saveNotes}
         onChange={(event) => setNotes(event.target.value)}
         onKeyDown={handleNoteKeyDown}
-        placeholder="Tambah catatan"
+        placeholder="Add notes"
         value={notes}
       />
     </div>

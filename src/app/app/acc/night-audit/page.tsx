@@ -40,7 +40,7 @@ export default async function NightAuditPage() {
     : null;
   const disabledReason =
     plan.blockingErrors.length > 0
-      ? "Tindakan pada daftar penghambat di atas harus diselesaikan sebelum Night Audit dapat dijalankan."
+      ? "Resolve the blockers listed above before running Night Audit."
       : undefined;
 
   return (
@@ -59,18 +59,18 @@ export default async function NightAuditPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Eksekusi Night Audit
+            Run Night Audit
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Business date: {plan.businessDateLabel} ·{" "}
-            {plan.existingAudit ? "Sudah diaudit" : "Belum diaudit"}
+            {plan.existingAudit ? "Audited" : "Not audited"}
           </p>
         </div>
         <Link
           className={buttonVariants({ variant: "outline" })}
           href="/app/acc"
         >
-          Kembali
+          Back
         </Link>
       </div>
 

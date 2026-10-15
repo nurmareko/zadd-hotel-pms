@@ -7,20 +7,20 @@ import type { AppRole } from "@/auth.config";
 import { can } from "@/lib/permissions";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
 import {
-  GRC_TEMPLATE_VERSION,
+  GrcTemplateVersionSchema,
   GrcSnapshotSchema,
 } from "@/lib/grc-snapshot";
 import { Grc } from "@/lib/pdf/grc";
 import { prisma } from "@/lib/prisma";
 
 const LEGACY_SIGNED_MESSAGE =
-  "GRC bertanda tangan tidak dapat dibuat karena snapshot bertanda tangan tidak tersedia untuk reservasi ini.";
+  "The signed GRC cannot be generated because no signed snapshot is available for this reservation.";
 const INVALID_SNAPSHOT_MESSAGE =
-  "GRC bertanda tangan tidak dapat dibuat karena snapshot tersimpan tidak valid.";
+  "The signed GRC cannot be generated because the stored snapshot is invalid.";
 const UNSUPPORTED_TEMPLATE_MESSAGE =
-  "GRC bertanda tangan tidak dapat dibuat karena versi template snapshot tidak didukung.";
+  "The signed GRC cannot be generated because the snapshot template version is unsupported.";
 const SIGNATURE_INTEGRITY_MESSAGE =
-  "GRC bertanda tangan tidak dapat dibuat karena verifikasi integritas tanda tangan gagal.";
+  "The signed GRC cannot be generated because signature integrity verification failed.";
 
 function textResponse(message: string, status: number) {
   return new Response(message, {
@@ -65,7 +65,7 @@ export async function GET(
   const reservationId = Number(id);
 
   if (!Number.isInteger(reservationId) || reservationId <= 0) {
-    return textResponse("ID reservasi tidak valid.", 400);
+    return textResponse("Invalid reservation ID.", 400);
   }
 
   const storedGrc = await prisma.reservation.findUnique({
@@ -78,7 +78,7 @@ export async function GET(
   });
 
   if (!storedGrc) {
-    return textResponse("Reservasi tidak ditemukan.", 404);
+    return textResponse("Reservation not found.", 404);
   }
 
   if (storedGrc.signedAt !== null) {
@@ -89,7 +89,7 @@ export async function GET(
     const templateVersion = snapshotTemplateVersion(storedGrc.grcSnapshot);
     if (
       typeof templateVersion === "number" &&
-      templateVersion !== GRC_TEMPLATE_VERSION
+      !GrcTemplateVersionSchema.safeParse(templateVersion).success
     ) {
       return textResponse(UNSUPPORTED_TEMPLATE_MESSAGE, 422);
     }
@@ -159,13 +159,13 @@ export async function GET(
 
   if (!reservation) {
     return textResponse(
-      "Status tanda tangan GRC berubah. Silakan unduh GRC kembali.",
+      "The GRC signature status changed. Please download the GRC again.",
       409,
     );
   }
 
   if (!hotelSettings) {
-    return textResponse("Pengaturan hotel tidak ditemukan.", 500);
+    return textResponse("Hotel settings not found.", 500);
   }
 
   const stayTotal = flatReservationNightStayTotal({
@@ -195,7 +195,7 @@ export async function GET(
 
   if (!remainsUnsigned) {
     return textResponse(
-      "Status tanda tangan GRC berubah. Silakan unduh GRC kembali.",
+      "The GRC signature status changed. Please download the GRC again.",
       409,
     );
   }
