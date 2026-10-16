@@ -821,7 +821,16 @@ export async function buildNightAuditPlan({
       orderBy: { code: "asc" },
     }),
     prisma.fBOrder.findMany({
-      where: { status: FBOrderStatus.OPEN },
+      where: {
+        status: FBOrderStatus.OPEN,
+        OR: [
+          { items: { some: {} } },
+          { subtotal: { gt: ZERO } },
+          { serviceCharge: { gt: ZERO } },
+          { tax: { gt: ZERO } },
+          { total: { gt: ZERO } },
+        ],
+      },
       orderBy: { orderNo: "asc" },
       select: {
         id: true,
@@ -1149,7 +1158,16 @@ export async function executeNightAudit({
             },
           });
           const openFbOrders = await tx.fBOrder.findMany({
-            where: { status: FBOrderStatus.OPEN },
+            where: {
+              status: FBOrderStatus.OPEN,
+              OR: [
+                { items: { some: {} } },
+                { subtotal: { gt: ZERO } },
+                { serviceCharge: { gt: ZERO } },
+                { tax: { gt: ZERO } },
+                { total: { gt: ZERO } },
+              ],
+            },
             orderBy: { orderNo: "asc" },
             select: {
               id: true,

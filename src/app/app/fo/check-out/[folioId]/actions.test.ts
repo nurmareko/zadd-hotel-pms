@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   txFolioFindUnique: vi.fn(),
   txSettingsFindUnique: vi.fn(),
   txPaymentCreate: vi.fn(),
+  txFbOrderFindFirst: vi.fn(),
   txFolioUpdateMany: vi.fn(),
   txReservationUpdateMany: vi.fn(),
   txRoomUpdate: vi.fn(),
@@ -76,6 +77,7 @@ const tx = {
   },
   hotelSettings: { findUnique: mocks.txSettingsFindUnique },
   payment: { create: mocks.txPaymentCreate },
+  fBOrder: { findFirst: mocks.txFbOrderFindFirst },
   reservation: { updateMany: mocks.txReservationUpdateMany },
   room: { update: mocks.txRoomUpdate },
 };
@@ -116,6 +118,7 @@ beforeEach(() => {
   mocks.txFolioFindUnique.mockResolvedValue(folio);
   mocks.txSettingsFindUnique.mockResolvedValue(settings);
   mocks.txPaymentCreate.mockResolvedValue({ id: 1 });
+  mocks.txFbOrderFindFirst.mockResolvedValue(null);
   mocks.txFolioUpdateMany.mockResolvedValue({ count: 1 });
   mocks.txReservationUpdateMany.mockResolvedValue({ count: 1 });
   mocks.txRoomUpdate.mockResolvedValue({});
@@ -309,6 +312,16 @@ describe("completeCheckout", () => {
     await expect(completeCheckout(checkoutForm())).resolves.toEqual(
       checkoutFailure("RESERVATION_NOT_CHECKED_IN"),
     );
+  });
+
+  it("blocks checkout while an attached F&B order is still unresolved", async () => {
+    mocks.txFbOrderFindFirst.mockResolvedValueOnce({ id: 13 });
+
+    await expect(completeCheckout(checkoutForm())).resolves.toEqual(
+      checkoutFailure("UNRESOLVED_FB_ORDER"),
+    );
+    expect(mocks.txFolioUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.txReservationUpdateMany).not.toHaveBeenCalled();
   });
 
   it("returns CHECKOUT_CONFLICT after the existing three retries", async () => {

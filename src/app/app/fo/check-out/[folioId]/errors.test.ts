@@ -39,6 +39,8 @@ const STATIC_MESSAGES: Record<
     "Folio telah dibatalkan dan tidak dapat digunakan untuk check-out.",
   RESERVATION_NOT_CHECKED_IN:
     "Reservasi tidak lagi berstatus check-in. Muat ulang halaman dan periksa status terbaru.",
+  UNRESOLVED_FB_ORDER:
+    "Masih ada order F&B yang belum selesai pada folio ini. Selesaikan atau void order tersebut sebelum check-out.",
   BALANCE_ALREADY_SETTLED:
     "Sisa Tagihan sudah lunas. Muat ulang halaman untuk melanjutkan check-out.",
   PAYMENT_EXCEEDS_BALANCE:

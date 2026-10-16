@@ -437,6 +437,18 @@ export async function completeCheckout(
               );
             }
 
+            const unresolvedFbOrder = await tx.fBOrder.findFirst({
+              where: {
+                chargedFolioId: currentFolio.id,
+                status: { in: ["OPEN", "BILLED"] },
+              },
+              select: { id: true },
+            });
+
+            if (unresolvedFbOrder) {
+              throw new CheckoutActionError("UNRESOLVED_FB_ORDER");
+            }
+
             const closedFolio = await tx.folio.updateMany({
               where: { id: folio.id, status: FolioStatus.OPEN },
               data: { status: FolioStatus.CLOSED, closedAt: now },
