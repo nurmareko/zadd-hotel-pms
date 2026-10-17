@@ -1,7 +1,7 @@
 import { FBOrderStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { RestaurantTablesTabs } from "../../admin/tables/restaurant-tables-tabs";
+import { RestaurantTablesTabs } from "./restaurant-tables-tabs";
 
 export const dynamic = "force-dynamic";
 
