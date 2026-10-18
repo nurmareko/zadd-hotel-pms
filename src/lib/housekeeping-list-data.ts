@@ -32,6 +32,7 @@ export type HousekeepingReservationContext = {
 
 export type HousekeepingListRow = {
   taskCode: string;
+  pendingLaundry?: { total: number; readyCount: number };
   priority: HousekeepingPriority;
   taskNote: string | null;
   room: {
@@ -193,7 +194,7 @@ export async function getHousekeepingListData(
   const date = options.date ?? todayDateOnly().today;
   const taskDayStart = hotelTimestampBoundaryForDate(date.toISOString().slice(0, 10));
   const taskDayEnd = hotelTimestampBoundaryForDate(addDateOnlyDays(date, 1).toISOString().slice(0, 10));
-  const [rooms, reservations, assignments, openCleaningSessions, taskLogs] =
+  const [rooms, reservations, assignments, openCleaningSessions, taskLogs, laundryLogs] =
     await Promise.all([
       prisma.room.findMany({
         where: {
@@ -264,7 +265,22 @@ export async function getHousekeepingListData(
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         select: { roomId: true, note: true },
       }),
+      prisma.activityLog.findMany({
+        where: { metadata: { path: ["source"], equals: "GUEST_LAUNDRY" }, roomId: { not: null } },
+        select: { roomId: true, metadata: true },
+      }),
     ]);
+
+  const pendingLaundryByRoom = new Map<number, { total: number; readyCount: number }>();
+  for (const log of laundryLogs) {
+    if (!log.roomId || !log.metadata || typeof log.metadata !== "object" || Array.isArray(log.metadata)) continue;
+    // Filter here so legacy intake logs without a status remain pending as well.
+    if (log.metadata.status === "DELIVERED") continue;
+    const pending = pendingLaundryByRoom.get(log.roomId) ?? { total: 0, readyCount: 0 };
+    pending.total++;
+    if (log.metadata.status === "READY_FOR_RETURN") pending.readyCount++;
+    pendingLaundryByRoom.set(log.roomId, pending);
+  }
 
   const reservationsByRoomId = new Map<number, ReservationCandidate[]>();
 
@@ -324,6 +340,7 @@ export async function getHousekeepingListData(
 
       return {
         taskCode: housekeepingTaskCode(room.number),
+        pendingLaundry: pendingLaundryByRoom.get(room.id),
         priority: resolveRoomPriority({ status: room.status, date, reservations: roomReservations }),
         taskNote: taskNotesByRoomId.get(room.id) ?? null,
         room: {

@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   housekeepingAssignment: { findMany: vi.fn() },
   cleaningSession: { findMany: vi.fn() },
   housekeepingLog: { findMany: vi.fn() },
+  activityLog: { findMany: vi.fn() },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
@@ -38,6 +39,7 @@ beforeEach(() => {
   db.housekeepingAssignment.findMany.mockResolvedValue([]);
   db.cleaningSession.findMany.mockResolvedValue([]);
   db.housekeepingLog.findMany.mockResolvedValue([]);
+  db.activityLog.findMany.mockResolvedValue([]);
 });
 afterEach(() => vi.useRealTimers());
 
@@ -75,9 +77,32 @@ describe("getHousekeeperMobileData", () => {
     expect(db.reservation.findMany).toHaveBeenCalledTimes(1);
     expect(result.myRooms[0]).toEqual({
       id: 1, number: "1", floor: 2, typeName: "Deluks", status: "VD",
-      priority: "P5", taskCode: "TSK-1", serviceKind: "turnover", reservationContexts: [],
+      priority: "P5", taskCode: "TSK-1", pendingLaundry: undefined, serviceKind: "turnover", reservationContexts: [],
       notes: null, taskNote: null, startedAt: null, inProgress: false, activeHousekeeperId: null,
     });
+  });
+
+  it("forwards pending laundry counts to assigned and available mobile rooms", async () => {
+    db.room.findMany.mockResolvedValue([room(1), room(2), room(3), room(4)]);
+    db.housekeepingAssignment.findMany.mockResolvedValue([assignment(1)]);
+    db.activityLog.findMany.mockResolvedValue([
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "READY_FOR_RETURN" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "DELIVERED" } },
+      { roomId: 2, metadata: { source: "GUEST_LAUNDRY", status: "RECEIVED" } },
+      { roomId: 3, metadata: { source: "GUEST_LAUNDRY", status: "DELIVERED" } },
+    ]);
+
+    const { myRooms, availablePoolRooms } = await getHousekeeperMobileData(7, date);
+
+    expect(myRooms.map(({ id, pendingLaundry }) => ({ id, pendingLaundry }))).toEqual([
+      { id: 1, pendingLaundry: { total: 2, readyCount: 1 } },
+    ]);
+    expect(availablePoolRooms.map(({ id, pendingLaundry }) => ({ id, pendingLaundry }))).toEqual([
+      { id: 2, pendingLaundry: { total: 1, readyCount: 0 } },
+      { id: 3, pendingLaundry: undefined },
+      { id: 4, pendingLaundry: undefined },
+    ]);
   });
 
   it("reuses priorities, both turnover contexts, stayover context, reservation notes and task notes", async () => {

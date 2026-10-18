@@ -4,7 +4,9 @@ import { auth } from "@/auth";
 import { Card } from "@/components/ui/card";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { getGuestLaundryOrders } from "@/lib/laundry/data";
 import { GuestLaundryDialog } from "./guest-laundry-dialog";
+import { GuestLaundryOrders } from "./guest-laundry-orders";
 
 export async function GuestLaundryView() {
   const session = await auth();
@@ -13,7 +15,7 @@ export async function GuestLaundryView() {
     return <Card className="p-4" role="alert">You do not have permission to record guest laundry.</Card>;
   }
 
-  const [reservations, articles] = await Promise.all([
+  const [reservations, articles, orders] = await Promise.all([
     prisma.reservation.findMany({
       where: { status: "CHECKED_IN", roomId: { not: null }, folio: { is: { status: "OPEN" } } },
       select: { room: { select: { id: true, number: true } }, guest: { select: { fullName: true } } },
@@ -24,6 +26,7 @@ export async function GuestLaundryView() {
       select: { id: true, code: true, name: true, defaultPrice: true },
       orderBy: { code: "asc" },
     }),
+    getGuestLaundryOrders(),
   ]);
   const rooms = reservations.flatMap(({ room, guest }) => room ? [{ id: room.id, number: room.number, guestName: guest.fullName }] : []);
   const catalog = articles.map((article) => ({ ...article, defaultPrice: article.defaultPrice === null ? null : Number(article.defaultPrice) }));
@@ -49,6 +52,7 @@ export async function GuestLaundryView() {
           <p className="mt-2">Select Record Guest Laundry to enter laundry items, quantities and prices. Charges can be posted to the room folio or paid directly.</p>
         </div>
       )}
+      <GuestLaundryOrders orders={orders} />
     </Card>
   );
 }

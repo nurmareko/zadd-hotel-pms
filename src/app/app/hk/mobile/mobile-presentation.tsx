@@ -2,6 +2,7 @@
 
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -42,6 +43,11 @@ export function MobileRoomSummary({ room }: { room: MobileCleaningRoom }) {
         {room.taskCode ? <span className="font-semibold">{room.taskCode}</span> : null}
         <span className="text-slate-600">{serviceLabels[room.serviceKind]}</span>
       </div>
+      {room.pendingLaundry && room.pendingLaundry.total > 0 && (
+        <Link href="/app/hk/laundry" title={`${room.pendingLaundry.total} pending laundry orders; ${room.pendingLaundry.readyCount} ready for return to Room ${room.number}`} className={`inline-flex min-h-11 items-center rounded-full px-3 py-2 text-xs font-medium focus-visible:outline-ring ${room.pendingLaundry.readyCount > 0 ? "bg-purple-50 text-purple-800" : "bg-muted text-muted-foreground"}`}>
+          {room.pendingLaundry.readyCount > 0 ? `Laundry Ready (${room.pendingLaundry.readyCount})` : `Laundry (${room.pendingLaundry.total})`}
+        </Link>
+      )}
       {room.reservationContexts.map((context, index) => (
         <div key={`${context.kind}-${context.reservationNo}-${index}`} className="border-l-2 border-slate-200 pl-3 text-sm">
           <p className="font-medium">{context.label}: {context.guestName}</p>

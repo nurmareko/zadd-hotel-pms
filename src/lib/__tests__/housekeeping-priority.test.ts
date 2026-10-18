@@ -20,6 +20,7 @@ const db = vi.hoisted(() => ({
   housekeepingAssignment: { findMany: vi.fn() },
   cleaningSession: { findMany: vi.fn() },
   housekeepingLog: { findMany: vi.fn() },
+  activityLog: { findMany: vi.fn() },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
@@ -116,6 +117,7 @@ describe("getHousekeepingListData (mocked database)", () => {
     db.reservation.findMany.mockResolvedValue([{ ...departure, id: 1, roomId: 1, reservationNo: "RSV-001", guest: { fullName: "Budi Santoso" } }]);
     db.housekeepingAssignment.findMany.mockResolvedValue([{ roomId: 1, housekeeper: { id: 2, fullName: "Siti Aminah" } }]);
     db.cleaningSession.findMany.mockResolvedValue([]);
+    db.activityLog.findMany.mockResolvedValue([]);
     db.housekeepingLog.findMany.mockResolvedValue([{ roomId: 1, note: "[TUGAS: Bersihkan kaca]" }, { roomId: 1, note: "[TUGAS: Catatan lama]" }]);
   });
   it("preserves positional API, reservation note and checked-out departure", async () => {
@@ -142,6 +144,39 @@ describe("getHousekeepingListData (mocked database)", () => {
     expect((await getHousekeepingListData({ date, q: "Budi", priority: "P3" })).rows).toHaveLength(1);
     expect((await getHousekeepingListData({ date, priority: "P1" })).rows).toHaveLength(0);
     expect((await getHousekeepingListData({ date, q: "unknown" })).rows).toHaveLength(0);
+  });
+  it("counts pending laundry per room, including legacy intake but excluding delivered orders", async () => {
+    db.room.findMany.mockResolvedValue([1, 2].map((id) => ({
+      id, number: String(101 + id), floor: 1, status: "VD", roomType: { name: "Deluks", code: "DLX" },
+    })));
+    db.activityLog.findMany.mockResolvedValue([
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "RECEIVED" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "READY_FOR_RETURN" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "READY_FOR_RETURN" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "DELIVERED" } },
+      { roomId: 1, metadata: { source: "GUEST_LAUNDRY" } },
+      { roomId: 2, metadata: { source: "GUEST_LAUNDRY", status: "RECEIVED" } },
+    ]);
+
+    const { rows } = await getHousekeepingListData({ date });
+
+    expect(rows.find((row) => row.room.id === 1)?.pendingLaundry).toEqual({ total: 4, readyCount: 2 });
+    expect(rows.find((row) => row.room.id === 2)?.pendingLaundry).toEqual({ total: 1, readyCount: 0 });
+    expect(db.activityLog.findMany).toHaveBeenCalledExactlyOnceWith({
+      where: { metadata: { path: ["source"], equals: "GUEST_LAUNDRY" }, roomId: { not: null } },
+      select: { roomId: true, metadata: true },
+    });
+  });
+  it.each([
+    { label: "no laundry orders", logs: [] },
+    { label: "only delivered orders", logs: [{ roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "DELIVERED" } }] },
+  ])("has no pending laundry indicator for $label", async ({ logs }) => {
+    db.activityLog.findMany.mockResolvedValue(logs);
+
+    const { rows } = await getHousekeepingListData({ date });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].pendingLaundry).toBeUndefined();
   });
   it("returns null task notes when there are no matching logs", async () => {
     db.housekeepingLog.findMany.mockResolvedValue([]);

@@ -4,7 +4,65 @@ import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/permissions";
 import { buildLaundryWhere, reconcileLinenBatch, type LaundryFilters } from "./logic";
 
+import { GuestLaundryMetadataSchema, type GuestLaundryStatus } from "./guest-schema";
+
 export type { LaundryFilters } from "./logic";
+
+export interface GuestLaundryOrderRecord {
+  id: number;
+  roomNumber: string | null;
+  guestName: string | null;
+  items: { articleId: number; name: string; quantity: number; unitPrice: number }[];
+  amount: number;
+  settlementType: "CHARGE_TO_ROOM" | "DIRECT_TENDER";
+  createdAt: Date;
+  status: GuestLaundryStatus;
+  deliveredAt: string | null;
+  deliveredByName: string | null;
+  deliveryNotes: string | null;
+}
+
+/** All guest orders, including delivered history, with immutable intake item names. */
+export async function getGuestLaundryOrders(): Promise<GuestLaundryOrderRecord[]> {
+  const session = await auth();
+  if (!session?.user || (!can(session.user.role, "laundry:manage") && !can(session.user.role, "laundry:guest-order"))) {
+    throw new Error("Not authorized to access guest laundry data.");
+  }
+  const orders = await prisma.activityLog.findMany({
+    where: { action: "FOLIO_CHARGE_POSTED", metadata: { path: ["source"], equals: "GUEST_LAUNDRY" } },
+    select: {
+      id: true, createdAt: true, metadata: true,
+      room: { select: { number: true } },
+      reservation: { select: { guest: { select: { fullName: true } } } },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+  const parsedOrders = orders.map((order) => {
+    const metadata = GuestLaundryMetadataSchema.safeParse(order.metadata);
+    if (!metadata.success) throw new Error("Guest laundry order data is invalid. Contact an administrator.");
+    return { order, metadata: metadata.data };
+  });
+  const deliveryUserIds = [...new Set(parsedOrders.flatMap(({ metadata }) =>
+    metadata.deliveredById == null ? [] : [metadata.deliveredById],
+  ))];
+  const deliveryUsers = deliveryUserIds.length ? await prisma.user.findMany({
+    where: { id: { in: deliveryUserIds } }, select: { id: true, fullName: true },
+  }) : [];
+  const deliveryUserNames = new Map(deliveryUsers.map((user) => [user.id, user.fullName]));
+  return parsedOrders.map(({ order, metadata }) => ({
+    id: order.id,
+    roomNumber: order.room?.number ?? null,
+    guestName: order.reservation?.guest.fullName ?? null,
+    items: metadata.items,
+    amount: metadata.amount,
+    settlementType: metadata.settlementType,
+    createdAt: order.createdAt,
+    status: metadata.status,
+    deliveredAt: metadata.deliveredAt ?? null,
+    deliveredByName: metadata.deliveredById == null ? null : deliveryUserNames.get(metadata.deliveredById) ?? null,
+    deliveryNotes: metadata.deliveryNotes ?? null,
+  }));
+}
 
 const batchInclude = {
   recordedBy: { select: { id: true, fullName: true } },

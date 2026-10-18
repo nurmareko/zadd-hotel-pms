@@ -56,3 +56,30 @@ export const GuestLaundryOrderSchema = z.object({
 });
 
 export type GuestLaundryOrderInput = z.infer<typeof GuestLaundryOrderSchema>;
+
+export const GuestLaundryStatusSchema = z.enum([
+  "RECEIVED", "WASHING", "READY_FOR_RETURN", "DELIVERED",
+]);
+export type GuestLaundryStatus = z.infer<typeof GuestLaundryStatusSchema>;
+
+export const UpdateGuestLaundryStatusSchema = z.object({
+  orderLogId: idSchema,
+  status: GuestLaundryStatusSchema,
+  deliveryNotes: z.string("Invalid delivery notes").trim()
+    .max(500, "Delivery notes must be at most 500 characters").optional(),
+}).refine((value) => value.status === "DELIVERED" || value.deliveryNotes === undefined, {
+  path: ["deliveryNotes"], message: "Delivery notes can only be recorded on delivery.",
+});
+export type UpdateGuestLaundryStatusInput = z.infer<typeof UpdateGuestLaundryStatusSchema>;
+
+// Only missing legacy fields receive defaults; unknown persisted statuses fail closed.
+export const GuestLaundryMetadataSchema = z.object({
+  source: z.literal("GUEST_LAUNDRY"),
+  status: GuestLaundryStatusSchema.default("RECEIVED"),
+  items: z.array(itemSchema.extend({ name: z.string() })).default([]),
+  amount: z.number().finite().nonnegative(),
+  settlementType: z.enum(["CHARGE_TO_ROOM", "DIRECT_TENDER"]),
+  deliveredAt: z.string().nullable().optional(),
+  deliveredById: idSchema.nullable().optional(),
+  deliveryNotes: z.string().nullable().optional(),
+});

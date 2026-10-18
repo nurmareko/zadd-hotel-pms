@@ -75,6 +75,11 @@ export function RoomBoardTable({ rows, dateIso, query, sortBy, sortOrder, rooms,
               <Link href={`/app/hk/rooms/${row.room.id}`} className="text-base font-bold hover:text-primary hover:underline">{row.room.number}</Link>
               <p className="my-1 text-xs text-muted-foreground">{row.room.typeName}</p>
               <span className="inline-flex whitespace-nowrap rounded-full bg-muted px-2 py-1 text-xs">Floor {row.room.floor}</span>
+              {row.pendingLaundry && row.pendingLaundry.total > 0 && (
+                <Link href="/app/hk/laundry" title={`${row.pendingLaundry.total} pending laundry orders; ${row.pendingLaundry.readyCount} ready for return to Room ${row.room.number}`} className={`mt-2 inline-flex min-h-11 items-center rounded-full px-2 py-1 text-xs font-medium focus-visible:outline-ring ${row.pendingLaundry.readyCount > 0 ? "bg-purple-50 text-purple-800" : "bg-muted text-muted-foreground"}`}>
+                  {row.pendingLaundry.readyCount > 0 ? `Laundry Ready (${row.pendingLaundry.readyCount})` : `Laundry (${row.pendingLaundry.total})`}
+                </Link>
+              )}
             </td>
             <td className={cell}><span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${PRIORITY_CONFIG[row.priority].className}`}>{row.priority} · {PRIORITY_CONFIG[row.priority].label}</span></td>
             <td className={cell}><StatusPill status={row.room.status} />{row.cleaningState === "IN_PROGRESS" && <p className="mt-2 text-xs text-muted-foreground">Cleaning in progress</p>}</td>

@@ -11,7 +11,11 @@ import {
 } from "@/lib/action-errors";
 import { assertBusinessDateOpen, NightAuditClosedError } from "@/lib/night-audit";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
-import { calculateGuestLaundryTotal, GuestLaundryOrderSchema, type GuestLaundryOrderInput } from "./guest-schema";
+import {
+  calculateGuestLaundryTotal, GuestLaundryOrderSchema, GuestLaundryStatusSchema,
+  UpdateGuestLaundryStatusSchema, type GuestLaundryOrderInput,
+  type GuestLaundryStatus, type UpdateGuestLaundryStatusInput,
+} from "./guest-schema";
 
 const GUEST_LAUNDRY_CODES = new Set([
   "LND-KEMEJA", "LND-CELANA", "LND-JAS", "LND-GAUN", "LND-DRYCLEAN", "LAUNDRY",
@@ -125,6 +129,9 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
             metadata: {
               source: "GUEST_LAUNDRY", amount: orderTotal, settlementType: input.settlementType,
               notes: input.notes || null, lineItemIds, paymentId,
+                            status: "RECEIVED",
+                            items: input.items.map((item) => ({ ...item, name: articleById.get(item.articleId)!.name })),
+                            statusHistory: [{ status: "RECEIVED", timestamp: now.toISOString(), userId: operator.userId }],
               ...(input.settlementType === "DIRECT_TENDER" ? {
                 method,
                 settlementMethod: method,
@@ -150,6 +157,100 @@ async function createGuestLaundryOperation(input: GuestLaundryOrderInput, operat
   throw new GuestLaundryError("Failed to save guest laundry. Please try again.");
 }
 
+const NEXT_GUEST_LAUNDRY_STATUS: Record<GuestLaundryStatus, GuestLaundryStatus | null> = {
+  RECEIVED: "WASHING",
+  WASHING: "READY_FOR_RETURN",
+  READY_FOR_RETURN: "DELIVERED",
+  DELIVERED: null,
+};
+
+async function updateGuestLaundryStatusOperation(input: UpdateGuestLaundryStatusInput, operator: Operator) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        const currentOperator = await tx.user.findFirst({
+          where: { id: operator.userId, isActive: true, roles: { some: { role: { code: operator.role } } } },
+          select: { id: true },
+        });
+        if (!currentOperator) throw new GuestLaundryError(UNIVERSAL_ACTION_MESSAGES.FORBIDDEN);
+        const order = await tx.activityLog.findUnique({
+          where: { id: input.orderLogId }, select: { action: true, metadata: true },
+        });
+        const metadata = order?.metadata;
+        if (!order || order.action !== "FOLIO_CHARGE_POSTED" || !metadata ||
+            typeof metadata !== "object" || Array.isArray(metadata) || metadata.source !== "GUEST_LAUNDRY") {
+          throw new GuestLaundryError("Guest laundry order not found.");
+        }
+        const currentStatus = GuestLaundryStatusSchema.safeParse(
+          metadata.status === undefined ? "RECEIVED" : metadata.status,
+        );
+        if (!currentStatus.success) throw new GuestLaundryError("The laundry order has an unknown status. Contact an administrator.");
+        if (NEXT_GUEST_LAUNDRY_STATUS[currentStatus.data] !== input.status) {
+          throw new GuestLaundryError("Invalid laundry status transition. Reload the page and follow the next step.");
+        }
+        if (metadata.statusHistory !== undefined && !Array.isArray(metadata.statusHistory)) {
+          throw new GuestLaundryError("The laundry order has invalid status history. Contact an administrator.");
+        }
+        const timestamp = new Date().toISOString();
+        const updatedMetadata = {
+          ...metadata,
+          status: input.status,
+          statusHistory: [
+            ...(Array.isArray(metadata.statusHistory) ? metadata.statusHistory : []),
+            { status: input.status, timestamp, userId: operator.userId },
+          ],
+          ...(input.status === "DELIVERED" ? {
+            deliveredAt: timestamp, deliveredById: operator.userId, deliveryNotes: input.deliveryNotes || null,
+          } : {}),
+        };
+        // Compare the entire JSON value so concurrent metadata edits cannot be lost.
+        const updated = await tx.activityLog.updateMany({
+          where: { id: input.orderLogId, action: "FOLIO_CHARGE_POSTED", metadata: { equals: metadata as Prisma.InputJsonObject } },
+          data: { metadata: updatedMetadata as Prisma.InputJsonObject },
+        });
+        if (updated.count !== 1) throw new GuestLaundryError("The laundry order has changed. Reload the page and try again.");
+      }, { ...TRANSACTION_OPTIONS, isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return;
+    } catch (error) {
+      unstable_rethrow(error);
+      const conflict = error instanceof Prisma.PrismaClientKnownRequestError && (
+        error.code === "P2034" ||
+        (error.code === "P2010" && (error.meta?.code === "40001" || error.meta?.code === "40P01"))
+      );
+      if (!conflict) throw error;
+      if (attempt === MAX_ATTEMPTS) {
+        throw new GuestLaundryError("The laundry order is being changed. Reload the page and try again.");
+      }
+    }
+  }
+}
+
+export async function updateGuestLaundryStatus(input: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const session = await auth();
+    const denied = checkActionAuthorization(session, "laundry:manage") &&
+      checkActionAuthorization(session, "laundry:guest-order");
+    if (denied) return { ok: false, error: denied.error };
+    const userId = Number(session?.user?.id);
+    if (!Number.isSafeInteger(userId) || userId <= 0 || userId > 2_147_483_647) {
+      return { ok: false, error: UNIVERSAL_ACTION_MESSAGES.SESSION_EXPIRED };
+    }
+    const parsed = UpdateGuestLaundryStatusSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid laundry status data." };
+    await updateGuestLaundryStatusOperation(parsed.data, { userId, role: session!.user.role as AppRole });
+    await runPostCommitSideEffects(
+      ["/app/hk/laundry", "/app/hk/rooms", "/app/hk/mobile"].map((path) => ({ name: `revalidate:${path}`, run: () => revalidatePath(path) })),
+      { action: "updateGuestLaundryStatus", stage: "post-commit", committed: true, orderLogId: parsed.data.orderLogId },
+    );
+    return { ok: true };
+  } catch (error) {
+    unstable_rethrow(error);
+    if (error instanceof GuestLaundryError) return { ok: false, error: error.message };
+    logActionFailure("updateGuestLaundryStatus", error, { stage: "pre-commit", committed: false });
+    return { ok: false, error: "Failed to update guest laundry status. Please try again." };
+  }
+}
+
 export async function createGuestLaundryOrder(input: unknown): Promise<GuestLaundryResult> {
   try {
     const session = await auth();
@@ -164,7 +265,7 @@ export async function createGuestLaundryOrder(input: unknown): Promise<GuestLaun
     const result = await createGuestLaundryOperation(parsed.data, { userId, role: session!.user.role as AppRole });
     await runPostCommitSideEffects([
       `/app/fo/reservasi/${result.reservationId}`,
-      "/app/hk/laundry", "/app/acc", `/app/acc/folios/${result.folioId}`,
+      "/app/hk/laundry", "/app/hk/rooms", "/app/hk/mobile", "/app/acc", `/app/acc/folios/${result.folioId}`,
       "/app/acc/night-audit", "/app/acc/accounting-export",
     ].map((path) => ({ name: `revalidate:${path}`, run: () => revalidatePath(path) })), {
       action: "createGuestLaundryOrder", stage: "post-commit", committed: true, folioId: result.folioId,

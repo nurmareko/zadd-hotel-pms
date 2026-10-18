@@ -16,6 +16,7 @@ export type MobileCleaningRoom = {
   status: RoomStatus;
   priority: HousekeepingPriority;
   taskCode: string;
+  pendingLaundry?: { total: number; readyCount: number };
   serviceKind: "turnover" | "stayover" | "inspection" | "routine";
   reservationContexts: HousekeepingReservationContext[];
   notes: string | null;
@@ -67,6 +68,7 @@ export async function getHousekeeperMobileData(
       status: row.room.status,
       priority: row.priority,
       taskCode: row.taskCode,
+      pendingLaundry: row.pendingLaundry,
       serviceKind: mobileServiceKind(row.room.status),
       reservationContexts: row.reservationContexts,
       notes: row.note?.notes ?? null,

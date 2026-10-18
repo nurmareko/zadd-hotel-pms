@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import type { AppRole } from "@/auth.config";
 import { can } from "@/lib/permissions";
-import { createGuestLaundryOrder } from "../guest-actions";
+import { createGuestLaundryOrder, updateGuestLaundryStatus } from "../guest-actions";
+import { getGuestLaundryOrders } from "../data";
 
 const { auth, transaction, revalidate, businessDateOpen, tx } = vi.hoisted(() => ({
   auth: vi.fn(), transaction: vi.fn(), revalidate: vi.fn(), businessDateOpen: vi.fn(),
@@ -10,16 +11,17 @@ const { auth, transaction, revalidate, businessDateOpen, tx } = vi.hoisted(() =>
     $queryRaw: vi.fn(), user: { findFirst: vi.fn() }, room: { findUnique: vi.fn() },
     reservation: { findFirst: vi.fn(), findUnique: vi.fn() }, folio: { findUnique: vi.fn() },
     article: { findMany: vi.fn() }, folioLineItem: { create: vi.fn() },
-    payment: { create: vi.fn() }, activityLog: { create: vi.fn() },
+    payment: { create: vi.fn() }, activityLog: { create: vi.fn(), findUnique: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   },
 }));
 vi.mock("@/auth", () => ({ auth }));
-vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction }, TRANSACTION_OPTIONS: { maxWait: 10000, timeout: 20000 } }));
+vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction, activityLog: tx.activityLog, user: { findMany: vi.fn() } }, TRANSACTION_OPTIONS: { maxWait: 10000, timeout: 20000 } }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidate }));
 vi.mock("@/lib/night-audit", () => ({
   assertBusinessDateOpen: businessDateOpen,
   NightAuditClosedError: class extends Error {},
 }));
+import { prisma } from "@/lib/prisma";
 import { NightAuditClosedError } from "@/lib/night-audit";
 import { calculateGuestLaundryTotal, GuestLaundryOrderSchema } from "../guest-schema";
 
@@ -70,6 +72,180 @@ beforeEach(() => {
   });
 });
 afterEach(() => vi.restoreAllMocks());
+
+const orderMetadata = {
+  source: "GUEST_LAUNDRY", status: "RECEIVED", amount: 85000,
+  settlementType: "CHARGE_TO_ROOM", notes: "Keep separate", lineItemIds: [1, 2], paymentId: null,
+  items: items.map((item, index) => ({ ...item, name: catalog[index].name })),
+  statusHistory: [{ status: "RECEIVED", timestamp: "2026-10-18T01:00:00.000Z", userId: 7 }],
+  extension: { untouched: true },
+};
+
+describe("updateGuestLaundryStatus", () => {
+  beforeEach(() => {
+    tx.activityLog.findUnique.mockResolvedValue({ id: 50, action: "FOLIO_CHARGE_POSTED", metadata: orderMetadata });
+    tx.activityLog.updateMany.mockImplementation(async ({ data }) => {
+      pending.push({ kind: "status", data });
+      return { count: 1 };
+    });
+  });
+
+  it("advances the entire lifecycle, preserves metadata, and records delivery server-side", async () => {
+    let metadata = orderMetadata;
+    for (const status of ["WASHING", "READY_FOR_RETURN", "DELIVERED"]) {
+      tx.activityLog.findUnique.mockResolvedValue({ id: 50, action: "FOLIO_CHARGE_POSTED", metadata });
+      expect(await updateGuestLaundryStatus({ orderLogId: 50, status, ...(status === "DELIVERED" ? { deliveryNotes: "  Handed to guest  " } : {}) })).toEqual({ ok: true });
+      expect(tx.activityLog.updateMany).toHaveBeenLastCalledWith({
+        where: { id: 50, action: "FOLIO_CHARGE_POSTED", metadata: { equals: metadata } },
+        data: { metadata: expect.objectContaining({ ...metadata, status, statusHistory: expect.any(Array) }) },
+      });
+      metadata = committed.at(-1)!.data.metadata as typeof orderMetadata;
+    }
+    expect(metadata).toMatchObject({
+      ...orderMetadata, status: "DELIVERED", deliveredAt: expect.any(String), deliveredById: 7,
+      deliveryNotes: "Handed to guest", statusHistory: [orderMetadata.statusHistory[0],
+        ...["WASHING", "READY_FOR_RETURN", "DELIVERED"].map((status) => ({ status, timestamp: expect.any(String), userId: 7 }))],
+    });
+    expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+    for (const path of ["/app/hk/laundry", "/app/hk/rooms", "/app/hk/mobile"]) expect(revalidate).toHaveBeenCalledWith(path);
+    expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    expect(tx.payment.create).not.toHaveBeenCalled();
+    expect(businessDateOpen).not.toHaveBeenCalled();
+  });
+
+  it.each(["ADMIN", "GM", "FO", "HK"])("allows %s with an active transactional role recheck", async (role) => {
+    auth.mockResolvedValue({ user: { id: "7", role } });
+    expect(await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).toEqual({ ok: true });
+    expect(tx.user.findFirst).toHaveBeenCalledWith({ where: { id: 7, isActive: true, roles: { some: { role: { code: role } } } }, select: { id: true } });
+  });
+
+  it.each([null, { user: { id: "7", role: "ACC" } }, { user: { id: "7", role: "FB" } }, { user: { id: "bad", role: "HK" } }])("rejects unauthorized sessions %#", async (session) => {
+    auth.mockResolvedValue(session);
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a revoked operator", async () => {
+    tx.user.findFirst.mockResolvedValue(null);
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(tx.activityLog.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["RECEIVED", "RECEIVED"], ["RECEIVED", "READY_FOR_RETURN"], ["RECEIVED", "DELIVERED"],
+    ["WASHING", "RECEIVED"], ["WASHING", "WASHING"], ["WASHING", "DELIVERED"],
+    ["READY_FOR_RETURN", "WASHING"], ["READY_FOR_RETURN", "READY_FOR_RETURN"],
+    ["DELIVERED", "DELIVERED"], ["DELIVERED", "WASHING"], ["UNKNOWN", "WASHING"], [null, "WASHING"],
+  ])("rejects %s → %s", async (current, status) => {
+    tx.activityLog.findUnique.mockResolvedValue({ id: 50, action: "FOLIO_CHARGE_POSTED", metadata: { ...orderMetadata, status: current } });
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status })).ok).toBe(false);
+    expect(tx.activityLog.updateMany).not.toHaveBeenCalled();
+    expect(revalidate).not.toHaveBeenCalled();
+  });
+
+  it("defaults only absent legacy status to RECEIVED and starts history", async () => {
+    const metadata = { source: "GUEST_LAUNDRY", amount: 100, lineItemIds: [1] };
+    tx.activityLog.findUnique.mockResolvedValue({ id: 50, action: "FOLIO_CHARGE_POSTED", metadata });
+    expect(await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).toEqual({ ok: true });
+    expect(committed[0].data.metadata).toMatchObject({ ...metadata, status: "WASHING", statusHistory: [{ status: "WASHING", timestamp: expect.any(String), userId: 7 }] });
+  });
+
+  it.each([null, { action: "OTHER", metadata: orderMetadata }, { action: "FOLIO_CHARGE_POSTED", metadata: { source: "OTHER" } }, { action: "FOLIO_CHARGE_POSTED", metadata: { ...orderMetadata, statusHistory: {} } }])("rejects missing, unrelated, or malformed orders %#", async (order) => {
+    tx.activityLog.findUnique.mockResolvedValue(order);
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(tx.activityLog.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([{ orderLogId: 0, status: "WASHING" }, { orderLogId: 50, status: "UNKNOWN" }, { orderLogId: 50, status: "DELIVERED", deliveryNotes: "x".repeat(501) }, { orderLogId: 50, status: "WASHING", deliveryNotes: "Too soon" }])("validates transport input %#", async (value) => {
+    expect((await updateGuestLaundryStatus(value)).ok).toBe(false);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects the obsolete orderId input without opening a transaction", async () => {
+    expect((await updateGuestLaundryStatus({ orderId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([256, 500])("accepts and preserves %i-character delivery notes after trimming", async (length) => {
+    tx.activityLog.findUnique.mockResolvedValue({
+      id: 50, action: "FOLIO_CHARGE_POSTED", metadata: { ...orderMetadata, status: "READY_FOR_RETURN" },
+    });
+    const deliveryNotes = "x".repeat(length);
+    expect(await updateGuestLaundryStatus({ orderLogId: 50, status: "DELIVERED", deliveryNotes: `  ${deliveryNotes}  ` })).toEqual({ ok: true });
+    expect(tx.activityLog.findUnique).toHaveBeenCalledWith({ where: { id: 50 }, select: { action: true, metadata: true } });
+    expect(committed[0].data.metadata).toMatchObject({ deliveryNotes });
+  });
+
+  it("rejects a stale metadata compare-and-swap without revalidation", async () => {
+    tx.activityLog.updateMany.mockResolvedValue({ count: 0 });
+    expect(await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).toMatchObject({ ok: false, error: expect.stringContaining("Reload") });
+    expect(committed).toEqual([]);
+    expect(revalidate).not.toHaveBeenCalled();
+  });
+
+  it("retries serialization conflicts and rechecks the current status", async () => {
+    tx.activityLog.updateMany.mockRejectedValueOnce(conflict());
+    tx.activityLog.findUnique.mockResolvedValueOnce({ action: "FOLIO_CHARGE_POSTED", metadata: orderMetadata })
+      .mockResolvedValueOnce({ action: "FOLIO_CHARGE_POSTED", metadata: { ...orderMetadata, status: "WASHING" } });
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(committed).toEqual([]);
+  });
+
+  it("bounds retries", async () => {
+    transaction.mockRejectedValue(conflict());
+    expect((await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).ok).toBe(false);
+    expect(transaction).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps success if post-commit revalidation fails", async () => {
+    revalidate.mockImplementationOnce(() => { throw new Error("cache unavailable"); });
+    expect(await updateGuestLaundryStatus({ orderLogId: 50, status: "WASHING" })).toEqual({ ok: true });
+    expect(revalidate).toHaveBeenCalledWith("/app/hk/mobile");
+  });
+});
+
+describe("getGuestLaundryOrders", () => {
+  const createdAt = new Date("2026-10-18T01:00:00.000Z");
+  const row = { id: 50, createdAt, room: { number: "101" }, reservation: { guest: { fullName: "Guest Name" } }, metadata: orderMetadata };
+
+  it("returns structured snapshots and resolves delivery users in one bulk query", async () => {
+    tx.activityLog.findMany.mockResolvedValue([
+      row, { ...row, id: 51, metadata: { ...orderMetadata, status: "DELIVERED", deliveredById: 8, deliveredAt: "2026-10-18T04:00:00.000Z", deliveryNotes: "Handed to guest" } },
+      { ...row, id: 52, metadata: { ...orderMetadata, status: "DELIVERED", deliveredById: 8 } },
+    ]);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([{ id: 8, fullName: "Attendant" }] as never);
+    const orders = await getGuestLaundryOrders();
+    expect(orders[0]).toEqual({ id: 50, roomNumber: "101", guestName: "Guest Name", items: orderMetadata.items, amount: 85000, settlementType: "CHARGE_TO_ROOM", createdAt, status: "RECEIVED", deliveredAt: null, deliveredByName: null, deliveryNotes: null });
+    expect(orders[1]).toMatchObject({ status: "DELIVERED", deliveredByName: "Attendant", deliveredAt: "2026-10-18T04:00:00.000Z", deliveryNotes: "Handed to guest" });
+    expect(prisma.user.findMany).toHaveBeenCalledExactlyOnceWith({ where: { id: { in: [8] } }, select: { id: true, fullName: true } });
+    expect(tx.activityLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { action: "FOLIO_CHARGE_POSTED", metadata: { path: ["source"], equals: "GUEST_LAUNDRY" } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] }));
+  });
+
+  it("supports legacy missing items/status, missing relations, and unresolved delivery users", async () => {
+    tx.activityLog.findMany.mockResolvedValue([{ ...row, room: null, reservation: null, metadata: { source: "GUEST_LAUNDRY", amount: 100, settlementType: "DIRECT_TENDER", deliveredById: 9 } }]);
+    vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+    expect((await getGuestLaundryOrders())[0]).toMatchObject({ items: [], status: "RECEIVED", roomNumber: null, guestName: null, deliveredByName: null });
+  });
+
+  it.each(["HK", "FO", "GM", "ADMIN"])("allows %s readers", async (role) => {
+    auth.mockResolvedValue({ user: { id: "7", role } });
+    tx.activityLog.findMany.mockResolvedValue([]);
+    expect(await getGuestLaundryOrders()).toEqual([]);
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { user: { role: "ACC" } }, { user: { role: "FB" } }])("rejects unauthorized readers %#", async (session) => {
+    auth.mockResolvedValue(session);
+    await expect(getGuestLaundryOrders()).rejects.toThrow("Not authorized");
+    expect(tx.activityLog.findMany).not.toHaveBeenCalled();
+  });
+
+  it.each(["UNKNOWN", null, 4])("does not silently map unknown status %s to RECEIVED", async (status) => {
+    tx.activityLog.findMany.mockResolvedValue([{ ...row, metadata: { ...orderMetadata, status } }]);
+    await expect(getGuestLaundryOrders()).rejects.toThrow();
+  });
+});
 
 describe("guest laundry schema and totals", () => {
   it("calculates itemized totals and supports an empty UI selection", () => {
@@ -141,9 +317,14 @@ describe("createGuestLaundryOrder", () => {
     expect(tx.payment.create).not.toHaveBeenCalled();
     expect(committed.find((write) => write.kind === "audit")?.data).toMatchObject({
       folioId: 30, reservationId: 20, roomId: 10, userId: 7,
-      metadata: { notes: "x".repeat(255), lineItemIds: [1, 2], settlementType: "CHARGE_TO_ROOM", amount: 85000 },
+      metadata: {
+              notes: "x".repeat(255), lineItemIds: [1, 2], settlementType: "CHARGE_TO_ROOM", amount: 85000,
+              status: "RECEIVED",
+              items: items.map((item, index) => ({ ...item, name: catalog[index].name })),
+              statusHistory: [{ status: "RECEIVED", timestamp: expect.any(String), userId: 7 }],
+            },
     });
-    for (const path of ["/app/fo/reservasi/20", "/app/hk/laundry", "/app/acc", "/app/acc/folios/30"]) {
+    for (const path of ["/app/fo/reservasi/20", "/app/hk/laundry", "/app/hk/rooms", "/app/hk/mobile", "/app/acc", "/app/acc/folios/30"]) {
       expect(revalidate).toHaveBeenCalledWith(path);
     }
   });
