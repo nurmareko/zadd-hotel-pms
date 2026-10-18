@@ -34,8 +34,8 @@ let committed: Write[];
 let pending: Write[];
 const reservation = { id: 20, roomId: 10, status: "CHECKED_IN", folio: { id: 30 } };
 const catalog = [
-  { id: 1, code: "LND-KEMEJA", name: "Kemeja", type: "SERVICE" },
-  { id: 2, code: "LND-CELANA", name: "Celana", type: "SERVICE" },
+  { id: 1, code: "LND-KEMEJA", name: "Shirt", type: "SERVICE" },
+  { id: 2, code: "LND-CELANA", name: "Trousers", type: "SERVICE" },
 ];
 const conflict = () => new Prisma.PrismaClientKnownRequestError("internal conflict", { code: "P2034", clientVersion: "6.19.3" });
 
@@ -133,10 +133,10 @@ describe("createGuestLaundryOrder", () => {
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
     const lines = committed.filter((write) => write.kind === "line");
     expect(lines).toHaveLength(2);
-    expect(lines[0].data).toMatchObject({ folioId: 30, articleId: 1, description: "Guest Laundry - Kemeja (3 pcs)", quantity: 3, postedById: 7 });
+    expect(lines[0].data).toMatchObject({ folioId: 30, articleId: 1, description: "Guest Laundry - Shirt (3 pcs)", quantity: 3, postedById: 7 });
     expect(Number(lines[0].data.unitPrice)).toBe(15000);
     expect(Number(lines[0].data.amount)).toBe(45000);
-    expect(lines[1].data.description).toBe("Guest Laundry - Celana (2 pcs)");
+    expect(lines[1].data.description).toBe("Guest Laundry - Trousers (2 pcs)");
     expect(Number(lines[1].data.amount)).toBe(40000);
     expect(tx.payment.create).not.toHaveBeenCalled();
     expect(committed.find((write) => write.kind === "audit")?.data).toMatchObject({

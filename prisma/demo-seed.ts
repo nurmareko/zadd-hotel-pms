@@ -148,7 +148,7 @@ const additionalFrontOfficeUsers = [
 const articles = [
   {
     code: "CORRECTION",
-    name: "Koreksi / Penyesuaian Tagihan",
+    name: "Correction / Billing Adjustment",
     type: ArticleType.MISC,
     defaultPrice: 0,
   },
@@ -160,31 +160,31 @@ const articles = [
   },
   {
     code: "MEAL-BB",
-    name: "Paket Makan BB",
+    name: "Meal Plan BB",
     type: ArticleType.FB,
     defaultPrice: 50000,
   },
   {
     code: "MEAL-HB",
-    name: "Paket Makan HB",
+    name: "Meal Plan HB",
     type: ArticleType.FB,
     defaultPrice: 150000,
   },
   {
     code: "MEAL-FB",
-    name: "Paket Makan FB",
+    name: "Meal Plan FB",
     type: ArticleType.FB,
     defaultPrice: 250000,
   },
   {
     code: "FEE-EARLY-CI",
-    name: "Biaya Early Check-in",
+    name: "Early Check-in Fee",
     type: ArticleType.MISC,
     defaultPrice: 100000,
   },
   {
     code: "FEE-LATE-CO",
-    name: "Biaya Late Check-out",
+    name: "Late Check-out Fee",
     type: ArticleType.MISC,
     defaultPrice: 100000,
   },
@@ -220,31 +220,31 @@ const articles = [
   },
   {
     code: "LND-KEMEJA",
-    name: "Kemeja / Blus",
+    name: "Shirt / Blouse",
     type: ArticleType.SERVICE,
     defaultPrice: 25000,
   },
   {
     code: "LND-CELANA",
-    name: "Celana Panjang",
+    name: "Trousers / Pants",
     type: ArticleType.SERVICE,
     defaultPrice: 30000,
   },
   {
     code: "LND-JAS",
-    name: "Jas / Blazer",
+    name: "Suit / Blazer",
     type: ArticleType.SERVICE,
     defaultPrice: 60000,
   },
   {
     code: "LND-GAUN",
-    name: "Gaun / Dress",
+    name: "Dress",
     type: ArticleType.SERVICE,
     defaultPrice: 45000,
   },
   {
     code: "LND-DRYCLEAN",
-    name: "Cuci Kering / Dry Clean",
+    name: "Dry Clean",
     type: ArticleType.SERVICE,
     defaultPrice: 75000,
   },
@@ -263,28 +263,28 @@ const articles = [
 ] as const;
 
 const menuItems = [
-  { code: "COFFEE", name: "Kopi Tubruk", category: "Beverage", price: 28000 },
-  { code: "TEA", name: "Teh Manis", category: "Beverage", price: 22000 },
+  { code: "COFFEE", name: "Brewed Black Coffee", category: "Beverage", price: 28000 },
+  { code: "TEA", name: "Sweet Iced Tea", category: "Beverage", price: 22000 },
   { code: "WATER", name: "Mineral Water", category: "Beverage", price: 18000 },
   { code: "ORANGE-JUICE", name: "Orange Juice", category: "Beverage", price: 35000 },
-  { code: "NASI-GORENG", name: "Nasi Goreng Spesial", category: "Mains", price: 65000 },
-  { code: "MIE-GORENG", name: "Mie Goreng Seafood", category: "Mains", price: 60000 },
-  { code: "SATE-AYAM", name: "Sate Ayam", category: "Mains", price: 55000 },
+  { code: "NASI-GORENG", name: "Special Fried Rice", category: "Mains", price: 65000 },
+  { code: "MIE-GORENG", name: "Seafood Fried Noodles", category: "Mains", price: 60000 },
+  { code: "SATE-AYAM", name: "Chicken Satay", category: "Mains", price: 55000 },
   { code: "SANDWICH", name: "Club Sandwich", category: "Breakfast", price: 55000 },
   { code: "OMELETTE", name: "Omelette", category: "Breakfast", price: 42000 },
   { code: "FRIES", name: "French Fries", category: "Snacks", price: 42000 },
-  { code: "PISANG-GORENG", name: "Pisang Goreng", category: "Dessert", price: 30000 },
-  { code: "ES-CAMPUR", name: "Es Campur", category: "Dessert", price: 36000 },
+  { code: "PISANG-GORENG", name: "Fried Banana", category: "Dessert", price: 30000 },
+  { code: "ES-CAMPUR", name: "Mixed Shaved Ice", category: "Dessert", price: 36000 },
 ] as const;
 
 const ingredients = [
-  { name: "Kopi bubuk", category: "Minuman", unit: "kg", onHand: "5.250", parLevel: "2.000", menuCode: "COFFEE", location: "Gudang kering" },
-  { name: "Daun teh", category: "Minuman", unit: "kg", onHand: "0.750", parLevel: "1.000", menuCode: "TEA", location: "Gudang kering" },
-  { name: "Beras", category: "Bahan pokok", unit: "kg", onHand: "25.000", parLevel: "10.000", menuCode: "NASI-GORENG", location: "Gudang kering" },
-  { name: "Daging ayam", category: "Daging", unit: "kg", onHand: "8.500", parLevel: "5.000", menuCode: "SATE-AYAM", location: "Lemari pendingin" },
-  { name: "Telur", category: "Protein", unit: "buah", onHand: "60.000", parLevel: "30.000", menuCode: "OMELETTE", location: "Lemari pendingin" },
-  { name: "Kentang", category: "Sayuran", unit: "kg", onHand: "0.000", parLevel: "5.000", menuCode: "FRIES", location: "Gudang kering" },
-  { name: "Jeruk manis", category: "Buah", unit: "buah", onHand: "-23.000", parLevel: "30.000", menuCode: "ORANGE-JUICE", location: "Lemari pendingin" },
+  { name: "Coffee powder", category: "Beverage", unit: "kg", onHand: "5.250", parLevel: "2.000", menuCode: "COFFEE", location: "Dry storage" },
+  { name: "Tea leaves", category: "Beverage", unit: "kg", onHand: "0.750", parLevel: "1.000", menuCode: "TEA", location: "Dry storage" },
+  { name: "Rice", category: "Staple", unit: "kg", onHand: "25.000", parLevel: "10.000", menuCode: "NASI-GORENG", location: "Dry storage" },
+  { name: "Chicken meat", category: "Meat", unit: "kg", onHand: "8.500", parLevel: "5.000", menuCode: "SATE-AYAM", location: "Chiller" },
+  { name: "Eggs", category: "Protein", unit: "pcs", onHand: "60.000", parLevel: "30.000", menuCode: "OMELETTE", location: "Chiller" },
+  { name: "Potatoes", category: "Vegetable", unit: "kg", onHand: "0.000", parLevel: "5.000", menuCode: "FRIES", location: "Dry storage" },
+  { name: "Sweet oranges", category: "Fruit", unit: "pcs", onHand: "-23.000", parLevel: "30.000", menuCode: "ORANGE-JUICE", location: "Chiller" },
 ] as const;
 
 const restaurantTables = [
@@ -293,9 +293,9 @@ const restaurantTables = [
   { number: "T3", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.OCCUPIED },
   { number: "T4", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
   { number: "T5", capacity: 4, location: TableLocation.INDOOR, status: TableStatus.AVAILABLE },
-  { number: "T6", capacity: 2, location: TableLocation.INDOOR, status: TableStatus.OUT_OF_SERVICE, notes: "Kursi perlu diganti." },
+  { number: "T6", capacity: 2, location: TableLocation.INDOOR, status: TableStatus.OUT_OF_SERVICE, notes: "Chair needs replacement." },
   { number: "T7", capacity: 4, location: TableLocation.OUTDOOR, status: TableStatus.AVAILABLE },
-  { number: "T8", capacity: 6, location: TableLocation.OUTDOOR, status: TableStatus.RESERVED, notes: "Reserved untuk dosen tamu." },
+  { number: "T8", capacity: 6, location: TableLocation.OUTDOOR, status: TableStatus.RESERVED, notes: "Reserved for guest lecturer." },
   { number: "T9", capacity: 8, location: TableLocation.PRIVATE, status: TableStatus.AVAILABLE },
 ] as const;
 
@@ -382,7 +382,7 @@ const reservations: Array<{
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes:
-      "Late arrival, siapkan quiet room. Fresh towels saja; tamu tidak suka aroma yang kuat.",
+      "Late arrival, prepare a quiet room. Fresh towels only; guest dislikes strong fragrances.",
   },
   {
     reservationNo: "DEMO-RSV-006",
@@ -397,7 +397,7 @@ const reservations: Array<{
     reservationType: ReservationType.COMPANY,
     deposit: 850000,
     notes:
-      "Company booking, kontak billing menyusul. Prioritas turnover; laptop stand di meja milik tamu.",
+      "Company booking, billing contact to follow. Prioritize turnover; laptop stand on the desk belongs to the guest.",
   },
   {
     reservationNo: "DEMO-RSV-007",
@@ -439,7 +439,7 @@ const reservations: Array<{
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
     notes:
-      "ETA 14:30. Siapkan baby bed dekat jendela dan selimut tambahan.",
+      "ETA 14:30. Prepare a baby cot near the window and extra blankets.",
   },
   {
     reservationNo: "DEMO-RSV-010",
@@ -453,7 +453,7 @@ const reservations: Array<{
         arrangementType: ArrangementType.BB,
     reservationType: ReservationType.INDIVIDUAL,
     deposit: 850000,
-    notes: "ETA 16:00. Siapkan VIP amenity sebelum arrival; cek minibar seal.",
+    notes: "ETA 16:00. Prepare VIP amenity before arrival; check minibar seal.",
   },
   {
     reservationNo: "DEMO-RSV-011",
@@ -506,7 +506,7 @@ const reservations: Array<{
     status: ReservationStatus.CANCELLED,
     arrangementType: ArrangementType.RO,
     reservationType: ReservationType.INDIVIDUAL,
-    notes: "Dibatalkan oleh tamu sebelum arrival.",
+    notes: "Cancelled by guest before arrival.",
   },
   {
     reservationNo: "DEMO-GRP-A-001",
@@ -593,7 +593,7 @@ const reservations: Array<{
     arrangementType: ArrangementType.FB,
     reservationType: ReservationType.COMPANY,
     groupBookingId: "DEMO-GRP-INCLUSION-MIXED",
-    notes: "Dibatalkan untuk fixture status campuran booking grup.",
+    notes: "Cancelled for the mixed-status group booking fixture.",
   },
 ];
 
@@ -828,28 +828,28 @@ async function seedHousekeepingLogs({
       roomNumber: "101",
       oldStatus: RoomStatus.VC,
       newStatus: RoomStatus.OC,
-      note: "Check-in tamu, kamar digunakan.",
+      note: "Guest checked in, room occupied.",
       updatedAt: hoursAgo(44),
     },
     {
       roomNumber: "102",
       oldStatus: RoomStatus.OC,
       newStatus: RoomStatus.OD,
-      note: "Tamu masih in-house, kamar perlu turn-down.",
+      note: "Guest in-house, turn-down service required.",
       updatedAt: hoursAgo(62),
     },
     {
       roomNumber: "102",
       oldStatus: RoomStatus.OD,
       newStatus: RoomStatus.VCU,
-      note: "Tidak ada masalah",
+      note: "No issues found.",
       updatedAt: hoursAgo(27),
     },
     {
       roomNumber: "102",
       oldStatus: RoomStatus.VCU,
       newStatus: RoomStatus.VD,
-      note: "Lantai masih basah",
+      note: "Floor still wet.",
       updatedAt: minutesAgo(26 * 60 + 45),
       updatedById: inspectedById,
     },
@@ -857,42 +857,42 @@ async function seedHousekeepingLogs({
       roomNumber: "103",
       oldStatus: RoomStatus.VC,
       newStatus: RoomStatus.OC,
-      note: "Check-in tamu, kamar terisi.",
+      note: "Guest checked in, room occupied.",
       updatedAt: hoursAgo(29),
     },
     {
       roomNumber: "106",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "Sudah saya bersihkan",
+      note: "Cleaning completed.",
       updatedAt: hoursAgo(35),
     },
     {
       roomNumber: "108",
       oldStatus: RoomStatus.VC,
       newStatus: RoomStatus.OOO,
-      note: "AC tidak dingin, menunggu engineering.",
+      note: "AC not cooling, awaiting engineering.",
       updatedAt: hoursAgo(51),
     },
     {
       roomNumber: "202",
       oldStatus: RoomStatus.VC,
       newStatus: RoomStatus.OC,
-      note: "Check-in tamu korporat.",
+      note: "Corporate guest checked in.",
       updatedAt: hoursAgo(53),
     },
     {
       roomNumber: "203",
       oldStatus: RoomStatus.VC,
       newStatus: RoomStatus.OC,
-      note: "Family room terisi.",
+      note: "Family room occupied.",
       updatedAt: hoursAgo(19),
     },
     {
       roomNumber: "204",
       oldStatus: RoomStatus.OC,
       newStatus: RoomStatus.VD,
-      note: "Check-out selesai, prioritas untuk kedatangan berikutnya.",
+      note: "Check-out completed, prioritize for next arrival.",
       updatedAt: hoursAgo(23),
     },
     {
@@ -906,28 +906,28 @@ async function seedHousekeepingLogs({
       roomNumber: "301",
       oldStatus: RoomStatus.OC,
       newStatus: RoomStatus.OD,
-      note: "Tamu minta pembersihan sore, prioritas karena departure dekat.",
+      note: "Guest requested afternoon cleaning; prioritize due to imminent departure.",
       updatedAt: hoursAgo(5),
     },
     {
       roomNumber: "307",
       oldStatus: RoomStatus.OC,
       newStatus: RoomStatus.VD,
-      note: "Kamar kosong setelah check-out grup.",
+      note: "Room vacant after group check-out.",
       updatedAt: hoursAgo(31),
     },
     {
       roomNumber: "307",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "AC sedikit berisik, sudah saya laporkan",
+      note: "AC slightly noisy; reported.",
       updatedAt: minutesAgo(30 * 60 + 30),
     },
     {
       roomNumber: "307",
       oldStatus: RoomStatus.VCU,
       newStatus: RoomStatus.VD,
-      note: "Linen belum diganti",
+      note: "Linen not yet changed.",
       updatedAt: hoursAgo(30),
       updatedById: inspectedById,
     },
@@ -935,14 +935,14 @@ async function seedHousekeepingLogs({
       roomNumber: "201",
       oldStatus: RoomStatus.VD,
       newStatus: RoomStatus.VCU,
-      note: "Turnover selesai untuk arrival VIP.",
+      note: "Turnover completed for VIP arrival.",
       updatedAt: minutesAgo(270),
     },
     {
       roomNumber: "201",
       oldStatus: RoomStatus.VCU,
       newStatus: RoomStatus.VC,
-      note: "Lulus inspeksi.",
+      note: "Inspection passed.",
       updatedAt: hoursAgo(4),
       updatedById: inspectedById,
     },
@@ -1117,7 +1117,7 @@ async function seedLinenBatches(recordedById: number, receivedById: number) {
       damagedQuantity: 2,
       status: LinenBatchStatus.CLEAN,
       vendor: "Laundry Mitra Bandung",
-      notes: "Rekonsiliasi selesai: 37 bersih, 2 rusak, 1 hilang.",
+      notes: "Reconciliation complete: 37 clean, 2 damaged, 1 lost.",
       sentAt: hoursAgo(72),
       completedAt: hoursAgo(24),
       receivedById,
@@ -1130,7 +1130,7 @@ async function seedLinenBatches(recordedById: number, receivedById: number) {
       damagedQuantity: 0,
       status: LinenBatchStatus.WASHING,
       vendor: "Laundry Mitra Bandung",
-      notes: "Sedang dicuci oleh penyedia laundry.",
+      notes: "Being washed by external laundry provider.",
       sentAt: hoursAgo(24),
       completedAt: null,
       receivedById: null,
@@ -1143,7 +1143,7 @@ async function seedLinenBatches(recordedById: number, receivedById: number) {
       damagedQuantity: 0,
       status: LinenBatchStatus.SENT,
       vendor: "Laundry Mitra Bandung",
-      notes: "Dikirim, menunggu proses pencucian.",
+      notes: "Dispatched, awaiting washing process.",
       sentAt: hoursAgo(2),
       completedAt: null,
       receivedById: null,
@@ -1193,8 +1193,8 @@ async function seedLostFoundItems({
         roomId: roomId("102"),
 
         category: LostFoundCategory.ELECTRONICS,
-        locationDetails: "Di samping tempat tidur",
-        description: "Pengisi daya ponsel hitam tertinggal di samping tempat tidur",
+        locationDetails: "Beside the bed",
+        description: "Black phone charger left beside the bed",
         foundById: secondHousekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
         createdAt: minutesAgo(90),
@@ -1203,8 +1203,8 @@ async function seedLostFoundItems({
         roomId: roomId("301"),
 
         category: LostFoundCategory.CLOTHING,
-        locationDetails: "Lemari pakaian",
-        description: "Jaket denim biru tertinggal di lemari pakaian",
+        locationDetails: "Wardrobe",
+        description: "Blue denim jacket left in wardrobe",
         foundById: housekeepingUserId,
         status: LostFoundStatus.UNCLAIMED,
         createdAt: hoursAgo(5),
@@ -1213,37 +1213,48 @@ async function seedLostFoundItems({
         roomId: null,
 
         category: LostFoundCategory.OTHER,
-        locationDetails: "Area duduk lobi",
-        description: "Botol minum perak ditemukan di area duduk lobi",
+        locationDetails: "Lobby lounge",
+        description: "Silver water bottle found in lobby lounge",
         foundById: frontOfficeUserId,
         status: LostFoundStatus.RETURNED,
         returnedAt: minutesAgo(25),
         returnedById: frontOfficeUserId,
-        claimantName: "Tamu Demo",
+        claimantName: "Demo Guest",
         claimantPhone: "000000000000",
         claimantIdNumber: "DEMO-ID-0003",
-        resolution: "Dikembalikan ke tamu setelah konfirmasi identitas di resepsionis",
+        resolution: "Returned to guest after identity verification at front desk",
         createdAt: hoursAgo(6),
       },
       {
 
         category: LostFoundCategory.ACCESSORIES,
         roomId: null,
-        locationDetails: "Area payung lobi",
-        description: "Payung rusak tidak diambil setelah masa penyimpanan",
+        locationDetails: "Lobby umbrella stand",
+        description: "Broken umbrella unclaimed after retention period",
         foundById: housekeepingUserId,
         status: LostFoundStatus.DISPOSED,
         disposedById: housekeepingUserId,
         disposedAt: hoursAgo(1),
-        disposalReason: "Masa penyimpanan berakhir; barang rusak dan tidak dapat digunakan",
+        disposalReason: "Retention period expired; item damaged and unusable",
         createdAt: addDays(new Date(), -90),
       },
   ];
-  const legacyDescriptions: Record<string, string> = {
-    "Pengisi daya ponsel hitam tertinggal di samping tempat tidur":
+  // Match previous seed wording without rewriting existing Lost & Found records.
+  const legacyDescriptions: Record<string, string[]> = {
+    "Black phone charger left beside the bed": [
+      "Pengisi daya ponsel hitam tertinggal di samping tempat tidur",
       "Phone charger hitam tertinggal di samping tempat tidur",
-    "Botol minum perak ditemukan di area duduk lobi":
+    ],
+    "Blue denim jacket left in wardrobe": [
+      "Jaket denim biru tertinggal di lemari pakaian",
+    ],
+    "Silver water bottle found in lobby lounge": [
+      "Botol minum perak ditemukan di area duduk lobi",
       "Botol minum silver ditemukan di area duduk lobby",
+    ],
+    "Broken umbrella unclaimed after retention period": [
+      "Payung rusak tidak diambil setelah masa penyimpanan",
+    ],
   };
 
   await prisma.$transaction(async (tx) => {
@@ -1270,7 +1281,7 @@ async function seedLostFoundItems({
           foundById: fixture.foundById,
           description: {
             in: legacyDescription
-              ? [fixture.description, legacyDescription]
+              ? [fixture.description, ...legacyDescription]
               : [fixture.description],
           },
         },
@@ -1543,10 +1554,16 @@ async function main() {
       roomId: blockedRoom.id,
       createdById: createdBy.id,
       reason: RoomBlockReason.MAINTENANCE,
-      note: "Perbaikan pipa AC dan peremajaan dinding.",
+      note: "AC pipe repair and wall restoration.",
     };
     await prisma.$transaction(async (tx) => {
-      await tx.roomBlock.deleteMany({ where: roomBlockFixture });
+      await tx.roomBlock.deleteMany({
+              where: {
+                ...roomBlockFixture,
+                // Include the previous demo wording when replacing this fixture.
+                note: { in: [roomBlockFixture.note, "Perbaikan pipa AC dan peremajaan dinding."] },
+              },
+            });
       await tx.roomBlock.create({
         data: {
           ...roomBlockFixture,
@@ -1607,7 +1624,11 @@ async function main() {
     console.log(`✓ seeded ${menuItems.length} menu items`);
 
     await prisma.$transaction(async (tx) => {
-      const demoIngredientFilter = { name: { in: ingredients.map((ingredient) => ingredient.name) } };
+      // Include previous demo names so localization does not duplicate inventory.
+            const demoIngredientFilter = { name: { in: [
+              ...ingredients.map((ingredient) => ingredient.name),
+              "Kopi bubuk", "Daun teh", "Beras", "Daging ayam", "Telur", "Kentang", "Jeruk manis",
+            ] } };
       // Reset only demo inventory, with children removed before their parents.
       await tx.fBStockLedger.deleteMany({ where: { ingredient: demoIngredientFilter } });
       await tx.fBIngredient.deleteMany({ where: demoIngredientFilter });
@@ -1636,7 +1657,7 @@ async function main() {
                 type: openingType,
                 quantityDelta: openingBalance,
                 balanceAfter: openingBalance,
-                notes: "Saldo awal sintetis untuk demonstrasi stok",
+                notes: "Synthetic opening balance for stock demonstration",
                 recordedById: fbUser.id,
                 createdAt: openingAt,
               },
@@ -2368,9 +2389,9 @@ async function main() {
       guestCount: 4,
       openedAt: subMinutes(new Date(), 42),
       items: [
-        { code: "NASI-GORENG", quantity: 2, notes: "Pedas sedang" },
+        { code: "NASI-GORENG", quantity: 2, notes: "Medium spicy" },
         { code: "SATE-AYAM", quantity: 1 },
-        { code: "TEA", quantity: 4, notes: "Gula sedikit" },
+        { code: "TEA", quantity: 4, notes: "Less sugar" },
       ],
     });
 
@@ -2411,7 +2432,7 @@ async function main() {
       paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
       chargedFolioId: chargeToRoomFolio.id,
       items: [
-        { code: "MIE-GORENG", quantity: 2, notes: "Tanpa seafood, pedas" },
+        { code: "MIE-GORENG", quantity: 2, notes: "No seafood, spicy" },
         { code: "ORANGE-JUICE", quantity: 3 },
         { code: "ES-CAMPUR", quantity: 1 },
       ],
