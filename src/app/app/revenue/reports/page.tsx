@@ -5,8 +5,8 @@ import { BarChart3 } from "lucide-react";
 import { auth } from "@/auth";
 import { addDateOnlyDays, hotelTodayISO, parseISODateOnly } from "@/lib/date-only";
 import { can } from "@/lib/permissions";
-import { getRevenueReport, resolveRevenueReportRange } from "@/lib/revenue-reports";
-import { ReportBreakdown, ReportDaily, ReportSummary, reportDate } from "./report-content";
+import { getRateVarianceReport, getRevenueReport, resolveRevenueReportRange } from "@/lib/revenue-reports";
+import { ReportBreakdown, ReportDaily, ReportRateVariance, ReportSummary, reportDate } from "./report-content";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,10 @@ export default async function RevenueReportsPage({ searchParams }: {
     from: Array.isArray(params.from) ? "" : params.from,
     to: Array.isArray(params.to) ? "" : params.to,
   }, today);
-  const report = await getRevenueReport(range);
+  const [report, varianceData] = await Promise.all([
+    getRevenueReport(range),
+    getRateVarianceReport(range),
+  ]);
   const daysAgo = (days: number) => addDateOnlyDays(parseISODateOnly(today), -days).toISOString().slice(0, 10);
   const presets = [
     { label: "This Month", from: `${today.slice(0, 7)}-01` },
@@ -70,6 +73,7 @@ export default async function RevenueReportsPage({ searchParams }: {
       </aside>
       <ReportBreakdown report={report} />
       <ReportDaily report={report} />
+      <ReportRateVariance varianceData={varianceData} />
     </main>
   );
 }

@@ -123,6 +123,15 @@ export function ManagerFlashView({
         />
       </section>
 
+      <div className="mt-3 text-sm">
+        <p className="font-medium text-foreground">
+          Rate Discounts {money(day.rateDiscountsTotal)} ({day.rateOverrideCount} overrides)
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Stay discounts logged on the reservation creation day; not posted revenue.
+        </p>
+      </div>
+
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="rounded-lg border border-border p-0">
           <CardHeader className="rounded-none border-b border-border bg-card px-5 py-4">

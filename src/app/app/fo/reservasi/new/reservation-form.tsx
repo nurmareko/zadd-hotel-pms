@@ -1492,7 +1492,14 @@ export function ReservationForm({
                             <FormField
                               control={form.control}
                               name={`rooms.${index}.customRate`}
-                              render={({ field }) => (
+                              render={({ field }) => {
+                                const standardRate = activeQuote?.standardFirstNightRates[index] ?? 0;
+                                const customRateNum = Number(field.value);
+                                const validCustomRate = Boolean(field.value?.trim()) && Number.isInteger(customRateNum) && customRateNum >= 0 && customRateNum <= 100_000_000;
+                                const discountPct = validCustomRate && standardRate > 0
+                                  ? Math.round(((standardRate - customRateNum) / standardRate) * 100)
+                                  : 0;
+                                return (
                                 <FormItem className="md:col-span-2 desktop:min-[1400px]:col-span-6">
                                   <FormLabel>Custom Room Rate (Rp / night)</FormLabel>
                                   <FormControl>
@@ -1518,9 +1525,15 @@ export function ReservationForm({
                                       </>
                                     ) : isQuotePending ? "Calculating standard rate…" : "Select a room type and dates to see the standard rate."}
                                   </p>
+                                  {discountPct >= 30 && (
+                                    <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800" role="alert">
+                                      <span className="font-semibold">High Discount Warning:</span> This custom rate represents a {discountPct}% discount from the standard first-night rate ({formatIDR(standardRate)}). Ensure supervisor approval is documented in the reason field.
+                                    </div>
+                                  )}
                                   <FormMessage />
                                 </FormItem>
-                              )}
+                                );
+                              }}
                             />
                             <FormField
                               control={form.control}

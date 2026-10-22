@@ -1,7 +1,7 @@
 import type { ArrStatus } from "@/lib/arr";
 import { parseISODateOnly } from "@/lib/date-only";
 import { formatDecimalID, formatIDR } from "@/lib/format";
-import type { RevenueReportData } from "@/lib/revenue-reports";
+import type { RateVarianceSummary, RevenueReportData } from "@/lib/revenue-reports";
 
 const arrExplanations: Record<Exclude<ArrStatus, "AUTHORITATIVE">, string> = {
   UNAVAILABLE: "ARR is unavailable for periods before ARR recording began.",
@@ -25,6 +25,56 @@ function ArrValue({ value, status }: { value: number; status: ArrStatus }) {
       <span aria-label="ARR unavailable">—</span>
       <p className="mt-1 min-w-48 text-xs font-normal leading-relaxed text-slate-600">{arrExplanations[status]}</p>
     </div>
+  );
+}
+
+export function ReportRateVariance({ varianceData }: { varianceData: RateVarianceSummary }) {
+  const metrics = [
+    { label: "Rate Overrides Count", value: varianceData.totalOverrides },
+    { label: "Total Rate Discounts Granted", value: formatIDR(varianceData.totalDiscountAmount) },
+    { label: "Average Discount %", value: percent(varianceData.averageDiscountPct) },
+  ];
+  return (
+    <section aria-labelledby="variance-heading" className="min-w-0 space-y-4">
+      <div>
+        <h2 id="variance-heading" className="text-lg font-semibold">Rate Variance</h2>
+        <p id="variance-note" className="mt-1 text-sm leading-relaxed text-slate-600">Overrides recorded during the selected hotel dates, not posted revenue. Stay variance sums all logged nights; the standard rate shown is the first-night rate. Discounts are netted within each stay. Average discount is the mean percentage for discounted stays with a positive standard total.</p>
+      </div>
+      <dl className="grid gap-3 sm:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className={`${surface} min-w-0 p-4 md:p-5`}>
+            <dt className="text-sm font-medium text-slate-600">{metric.label}</dt>
+            <dd className="mt-3 break-words text-2xl font-bold tabular-nums">{metric.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className={`${surface} min-w-0`}>
+        <p className="p-4 text-xs text-slate-600">Authorized By identifies the operator who recorded the override, not verified supervisor approval. Approval details must be documented in the reason.</p>
+        <div role="region" aria-label="Rate variance audit table" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-blue-600">
+          <table className="w-full text-sm" aria-describedby="variance-note">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>{["Reservation #", "Guest", "Room Type", "Stay Dates", "Standard Rate", "Custom Rate", "Total Variance", "Reason", "Authorized By"].map((label) => <th key={label} scope="col" className="whitespace-nowrap px-4 py-3 text-left font-medium">{label}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {varianceData.items.map((item) => (
+                <tr key={item.id}>
+                  <th scope="row" className="whitespace-nowrap px-4 py-3 text-left font-medium">{item.reservationNo ?? "Deleted reservation"}</th>
+                  <td className="px-4 py-3">{item.guestName ?? "—"}</td>
+                  <td className="px-4 py-3">{item.roomTypeName ?? "—"}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{item.arrivalDate && item.departureDate ? `${reportDate(item.arrivalDate)} – ${reportDate(item.departureDate)}` : "—"}<div className="text-xs text-slate-500">{item.nightsCount} logged nights</div></td>
+                  <td className="whitespace-nowrap px-4 py-3 tabular-nums">{item.standardRate === null ? "—" : formatIDR(item.standardRate)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 tabular-nums">{item.customRate === null ? "—" : formatIDR(item.customRate)}</td>
+                  <td className={`whitespace-nowrap px-4 py-3 tabular-nums ${item.totalVariance < 0 ? "text-amber-800" : "text-slate-700"}`}>{formatIDR(item.totalVariance)}</td>
+                  <td className="min-w-48 max-w-sm break-words px-4 py-3">{item.reason || "Not provided"}</td>
+                  <td className="px-4 py-3">{item.operatorName}</td>
+                </tr>
+              ))}
+              {varianceData.items.length === 0 && <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-500">No rate overrides were recorded in this date range.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   );
 }
 

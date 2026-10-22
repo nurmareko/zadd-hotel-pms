@@ -15,6 +15,7 @@ import {
 } from "@/lib/date-only";
 import { splitAuditedOtherRevenue } from "@/lib/night-audit";
 import { prisma } from "@/lib/prisma";
+import { summarizeRateOverride } from "@/lib/revenue-reports";
 import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
 
 export type ManagerFlashDay = {
@@ -28,6 +29,8 @@ export type ManagerFlashDay = {
   hkRevenue: number;
   miscRevenue: number;
   totalRevenue: number;
+  rateDiscountsTotal: number;
+  rateOverrideCount: number;
   soldRoomNights: number;
   adr: number;
   revPar: number;
@@ -181,6 +184,7 @@ async function calculateDay(
     checkOutCount: number;
   } | null,
   cutover: ArrCutoverResult,
+  rateOverrides: Pick<ManagerFlashDay, "rateDiscountsTotal" | "rateOverrideCount">,
   includeBookingSources = false,
 ): Promise<ManagerFlashDay> {
   const dateOnly = parseISODateOnly(date);
@@ -343,6 +347,7 @@ async function calculateDay(
     hkRevenue,
     miscRevenue,
     totalRevenue,
+    ...rateOverrides,
     soldRoomNights,
     adr,
     revPar,
@@ -381,6 +386,27 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
       checkOutCount: true,
     },
   });
+  const overrideLogs = await prisma.activityLog.findMany({
+    where: {
+      action: "RESERVATION_CREATED",
+      metadata: { path: ["rateOverride"], equals: true },
+      createdAt: {
+        gte: hotelTimestampBoundaryForDate(historyDates[historyDates.length - 1]),
+        lt: dayRange(selected).end,
+      },
+    },
+    select: { createdAt: true, metadata: true },
+  });
+  const overridesByDate = new Map(historyDates.map((date) => [
+    date, { rateDiscountsTotal: 0, rateOverrideCount: 0 },
+  ]));
+  // Creation-day stay discounts are informational, not posted revenue deductions.
+  for (const log of overrideLogs) {
+    const metrics = overridesByDate.get(hotelTodayISO(log.createdAt));
+    if (!metrics) continue;
+    metrics.rateDiscountsTotal += summarizeRateOverride(log.metadata).discountAmount;
+    metrics.rateOverrideCount += 1;
+  }
   const totalRooms = await prisma.room.count();
   const cutover = await getArrCutover();
   const auditByDate = new Map(audits.map((audit) => [formatDateOnly(audit.businessDate), audit]));
@@ -391,6 +417,7 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
         totalRooms,
         auditByDate.get(date) ?? null,
         cutover,
+        overridesByDate.get(date)!,
         index === 0,
       ),
     ),

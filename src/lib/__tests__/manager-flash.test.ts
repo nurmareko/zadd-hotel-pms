@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   audits: vi.fn(),
+  activityLogs: vi.fn(),
   rooms: vi.fn(),
   reservations: vi.fn(),
   reservationCount: vi.fn(),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     nightAudit: { findMany: mocks.audits },
+    activityLog: { findMany: mocks.activityLogs },
     room: { count: mocks.rooms },
     reservation: { findMany: mocks.reservations, count: mocks.reservationCount },
     folioLineItem: { findMany: mocks.lines },
@@ -74,6 +76,7 @@ function setLines(other: ReturnType<typeof line>[], stay: ReturnType<typeof line
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.audits.mockResolvedValue([]);
+  mocks.activityLogs.mockResolvedValue([]);
   mocks.rooms.mockResolvedValue(10);
   mocks.reservations.mockResolvedValue([]);
   mocks.reservationCount.mockResolvedValue(0);
@@ -82,6 +85,76 @@ beforeEach(() => {
   mocks.orderRevenue.mockResolvedValue({ _sum: { total: null } });
   mocks.arr.mockResolvedValue({ paidRoomNights: 2, arr: decimal(500) });
   mocks.cutover.mockResolvedValue({ status: "ready" });
+});
+
+function overrideMetadata(standardRates: number[], customRate: number) {
+  return {
+    rateOverride: true,
+    nights: standardRates.map((standardRate) => ({
+      date: "2026-09-01",
+      standardRate, customRate, variance: customRate - standardRate,
+    })),
+  };
+}
+
+describe("getManagerFlashReport rate discounts", () => {
+  it.each([false, true])("summarizes variable nightly discounts independently of revenue (audited: %s)", async (audited) => {
+    if (audited) mocks.audits.mockResolvedValue([audit(50)]);
+    setLines([line(50, ArticleType.MISC)], [line(1000, ArticleType.ROOM, ROOM_CHARGE_ARTICLE_CODE)]);
+    mocks.orderRevenue.mockResolvedValue({ _sum: { total: decimal(200) } });
+    mocks.activityLogs.mockResolvedValue([
+      { createdAt: timestampRange.gte, metadata: overrideMetadata([500, 700], 400) },
+      { createdAt: timestampRange.gte, metadata: overrideMetadata([300, 700], 400) },
+      { createdAt: timestampRange.gte, metadata: overrideMetadata([100, 200], 400) },
+      { createdAt: timestampRange.gte, metadata: overrideMetadata([300, 500], 400) },
+      { createdAt: timestampRange.gte, metadata: { rateOverride: true, nights: [] } },
+    ]);
+
+    const { selected, history } = await getManagerFlashReport(date);
+
+    expect(selected).toMatchObject({
+      rateDiscountsTotal: 600, rateOverrideCount: 5,
+      roomRevenue: 1000, fbRevenue: 200, otherRevenue: 50, totalRevenue: 1250,
+      adr: 500, revPar: 100, soldRoomNights: 2,
+    });
+    expect(history.slice(1).every((day) => day.rateDiscountsTotal === 0 && day.rateOverrideCount === 0)).toBe(true);
+  });
+
+  it("queries once for all 14 hotel days and buckets creation timestamps at midnight boundaries", async () => {
+    const logs = [
+      "2026-07-19T16:59:59.999Z", // Before the history window.
+      "2026-07-19T17:00:00.000Z", // First history day, inclusive.
+      "2026-08-01T16:59:59.999Z", // Previous hotel day.
+      "2026-08-01T17:00:00.000Z", // Selected hotel day, inclusive.
+      "2026-08-02T16:59:59.999Z", // Selected hotel day's final millisecond.
+      "2026-08-02T17:00:00.000Z", // Following hotel day, excluded.
+    ].map((createdAt) => ({ createdAt: new Date(createdAt), metadata: overrideMetadata([500, 700], 400) }));
+    mocks.activityLogs.mockImplementation(async (args: Prisma.ActivityLogFindManyArgs) => {
+      const range = args.where?.createdAt as { gte: Date; lt: Date };
+      return logs.filter((log) => log.createdAt >= range.gte && log.createdAt < range.lt);
+    });
+
+    const { selected, history } = await getManagerFlashReport(date);
+
+    expect(mocks.activityLogs).toHaveBeenCalledTimes(1);
+    expect(mocks.activityLogs).toHaveBeenCalledWith({
+      where: {
+        action: "RESERVATION_CREATED",
+        metadata: { path: ["rateOverride"], equals: true },
+        createdAt: { gte: new Date("2026-07-19T17:00:00.000Z"), lt: timestampRange.lt },
+      },
+      select: { createdAt: true, metadata: true },
+    });
+    expect(selected).toMatchObject({ rateDiscountsTotal: 800, rateOverrideCount: 2 });
+    expect(history[1]).toMatchObject({ date: "2026-08-01", rateDiscountsTotal: 400, rateOverrideCount: 1 });
+    expect(history[13]).toMatchObject({ date: "2026-07-20", rateDiscountsTotal: 400, rateOverrideCount: 1 });
+    expect(history.reduce((sum, day) => sum + day.rateOverrideCount, 0)).toBe(4);
+  });
+
+  it("returns zero discounts and overrides when no creation logs match", async () => {
+    const { history } = await getManagerFlashReport(date);
+    expect(history.every((day) => day.rateDiscountsTotal === 0 && day.rateOverrideCount === 0)).toBe(true);
+  });
 });
 
 describe("getManagerFlashReport department revenue", () => {

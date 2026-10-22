@@ -104,6 +104,140 @@ export function resolveRevenueReportRange(
   return { from: from < earliest ? earliest : from, to };
 }
 
+export type RateOverrideSummary = {
+  totalVariance: number;
+  standardTotal: number;
+  discountAmount: number;
+  nightsCount: number;
+  /** First-night display values only; never used to extrapolate stay totals. */
+  standardRate: number | null;
+  customRate: number | null;
+  reason: string | null;
+};
+
+export type RateVarianceItem = RateOverrideSummary & {
+  id: number;
+  createdAt: string;
+  reservationId: number | null;
+  reservationNo: string | null;
+  arrivalDate: string | null;
+  departureDate: string | null;
+  guestName: string | null;
+  roomTypeName: string | null;
+  operatorName: string;
+};
+
+export type RateVarianceSummary = {
+  items: RateVarianceItem[];
+  totalOverrides: number;
+  /** Signed sum of nightly custom-minus-standard variances, including premiums. */
+  totalVariance: number;
+  /** Sum of max(0, -net stay variance); premiums never offset other stays' discounts. */
+  totalDiscountAmount: number;
+  /**
+   * Arithmetic mean of discounted stays' (net discount / sum of nightly
+   * standardRate) * 100. Excludes net premiums, net-zero stays, and stays with
+   * a non-positive standard total. This is not a revenue-weighted percentage.
+   */
+  averageDiscountPct: number;
+};
+
+function jsonObject(value: Prisma.JsonValue | undefined): Prisma.JsonObject | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function finiteJsonNumber(value: Prisma.JsonValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Summarizes the immutable creation-log nightly snapshot for reports and Manager
+ * Flash. Only nights with finite numeric standardRate, customRate, and variance
+ * are counted. Missing/malformed nights contribute nothing; scalar first-night
+ * values never fabricate nightly totals. Missing display values remain null.
+ * Discount is max(0, -net stay variance), after netting premiums within the stay.
+ */
+export function summarizeRateOverride(metadata: Prisma.JsonValue): RateOverrideSummary {
+  const object = jsonObject(metadata);
+  let totalVariance = 0;
+  let standardTotal = 0;
+  let nightsCount = 0;
+  for (const value of Array.isArray(object?.nights) ? object.nights : []) {
+    const night = jsonObject(value);
+    const standard = finiteJsonNumber(night?.standardRate);
+    const custom = finiteJsonNumber(night?.customRate);
+    const variance = finiteJsonNumber(night?.variance);
+    if (standard === null || custom === null || variance === null) continue;
+    totalVariance += variance;
+    standardTotal += standard;
+    nightsCount += 1;
+  }
+  return {
+    totalVariance, standardTotal, discountAmount: Math.max(0, -totalVariance), nightsCount,
+    standardRate: finiteJsonNumber(object?.standardRate),
+    customRate: finiteJsonNumber(object?.customRate),
+    reason: typeof object?.reason === "string" ? object.reason : null,
+  };
+}
+
+/**
+ * Read-only creation-log report; callers own authorization. Dates follow the
+ * revenue report's normalized inclusive hotel-calendar range. No current-status
+ * filter is applied: historical overrides and deleted reservations remain visible.
+ */
+export async function getRateVarianceReport(input: RevenueReportRange): Promise<RateVarianceSummary> {
+  const { from, to } = resolveRevenueReportRange(input);
+  const logs = await prisma.activityLog.findMany({
+    where: {
+      action: "RESERVATION_CREATED",
+      metadata: { path: ["rateOverride"], equals: true },
+      createdAt: {
+        gte: hotelTimestampBoundaryForDate(from),
+        lt: hotelTimestampBoundaryForDate(dateKey(addDateOnlyDays(parseISODateOnly(to), 1))),
+      },
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      metadata: true,
+      reservation: {
+        select: {
+          id: true,
+          reservationNo: true,
+          arrivalDate: true,
+          departureDate: true,
+          guest: { select: { fullName: true } },
+          roomType: { select: { name: true } },
+        },
+      },
+      user: { select: { fullName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  const items: RateVarianceItem[] = logs.map((log) => ({
+    id: log.id,
+    createdAt: log.createdAt.toISOString(),
+    reservationId: log.reservation?.id ?? null,
+    reservationNo: log.reservation?.reservationNo ?? null,
+    arrivalDate: log.reservation ? dateKey(log.reservation.arrivalDate) : null,
+    departureDate: log.reservation ? dateKey(log.reservation.departureDate) : null,
+    guestName: log.reservation?.guest.fullName ?? null,
+    roomTypeName: log.reservation?.roomType.name ?? null,
+    operatorName: log.user.fullName,
+    ...summarizeRateOverride(log.metadata),
+  }));
+  const discountedStays = items.filter((item) => item.discountAmount > 0 && item.standardTotal > 0);
+  return {
+    items,
+    totalOverrides: items.length,
+    totalVariance: items.reduce((sum, item) => sum + item.totalVariance, 0),
+    totalDiscountAmount: items.reduce((sum, item) => sum + item.discountAmount, 0),
+    averageDiscountPct: safeDivide(discountedStays.reduce(
+      (sum, item) => sum + item.discountAmount / item.standardTotal * 100, 0,
+    ), discountedStays.length),
+  };
+}
+
 const sourceLabels: Record<ReservationType, string> = {
   INDIVIDUAL: "Individual",
   COMPANY: "Company",
