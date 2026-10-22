@@ -27,6 +27,7 @@ import {
 import { compare, hash } from "bcryptjs";
 import { addDays, format, subHours, subMinutes } from "date-fns";
 
+import { AMENITY_INGREDIENT_MAP } from "../src/lib/housekeeping/amenities";
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { computeFolioTotals } from "@/lib/folio-totals";
 import { buildAuditStayChargeLines } from "@/lib/night-audit";
@@ -276,6 +277,8 @@ const menuItems = [
   { code: "PISANG-GORENG", name: "Fried Banana", category: "Dessert", price: 30000 },
   { code: "ES-CAMPUR", name: "Mixed Shaved Ice", category: "Dessert", price: 36000 },
 ] as const;
+
+const amenityIngredients = Object.values(AMENITY_INGREDIENT_MAP);
 
 const ingredients = [
   { name: "Coffee powder", category: "Beverage", unit: "kg", onHand: "5.250", parLevel: "2.000", menuCode: "COFFEE", location: "Dry storage" },
@@ -1668,6 +1671,45 @@ async function main() {
     }, { timeout: 15000 });
 
     console.log(`✓ seeded ${ingredients.length} ingredients with opening stock ledger entries`);
+
+    await prisma.$transaction(async (tx) => {
+      for (const ingredient of amenityIngredients) {
+        const existing = await tx.fBIngredient.findFirst({
+          where: { name: ingredient.name, category: "Amenities" },
+          orderBy: { id: "asc" },
+          select: { id: true },
+        });
+        // Demo reruns reset stock and history, but retain the amenity's identity.
+        if (existing) {
+          await tx.fBStockLedger.deleteMany({ where: { ingredientId: existing.id } });
+        }
+        const openingBalance = new Prisma.Decimal(ingredient.parLevel * 2);
+        const data = {
+          ...ingredient,
+          category: "Amenities",
+          location: "Housekeeping Storage",
+          menuItemId: null,
+          onHand: openingBalance,
+          lastCountedAt: null,
+          movements: {
+            create: {
+              type: FBStockMovementType.RECEIVE,
+              quantityDelta: openingBalance,
+              balanceAfter: openingBalance,
+              notes: "Synthetic opening balance for amenities demonstration",
+              recordedById: housekeepingUser.id,
+            },
+          },
+        };
+        await tx.fBIngredient.upsert({
+          where: { id: existing?.id ?? 0 },
+          create: data,
+          update: data,
+        });
+      }
+    }, { timeout: 15000 });
+
+    console.log(`✓ seeded ${amenityIngredients.length} amenity ingredients with opening stock ledger entries`);
 
     for (const [index, table] of restaurantTables.entries()) {
       const layoutPosition = getRestaurantTableGridPosition(index);

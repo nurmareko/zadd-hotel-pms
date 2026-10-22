@@ -16,7 +16,7 @@ export default async function InventoryPage() {
   }
 
   const ingredients = await prisma.fBIngredient.findMany({
-
+    where: { category: { not: "Amenities" } },
     orderBy: { name: "asc" },
     select: {
       id: true,

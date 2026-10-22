@@ -73,6 +73,7 @@ export async function finishCleaning(formData: FormData): Promise<ActionResult> 
     roomId,
     linenChanged,
     towelChanged,
+    amenities: Object.fromEntries(Object.entries(counts).filter(([, quantity]) => quantity != null)),
     note: [note, amenitiesNote].filter(Boolean).join("\n") || null,
   });
   if (result.ok) revalidateRoomPaths(parsed.data.roomId);

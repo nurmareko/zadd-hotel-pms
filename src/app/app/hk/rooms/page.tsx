@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 
 import { auth } from "@/auth";
+import { AmenitiesInventoryCard } from "@/components/hk/amenities-inventory-card";
 import { HkSopAccordion } from "@/components/hk/hk-sop-accordion";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { formatDateWithWeekday, formatISODate } from "@/lib/format";
 import { getHousekeepingForecastData } from "@/lib/housekeeping-forecast-data";
 import { getHousekeepingListData } from "@/lib/housekeeping-list-data";
 import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
+import { getAmenitiesStockSummary } from "@/lib/housekeeping/amenities-stock";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
@@ -138,7 +140,7 @@ export default async function HkRoomsPage({
       : "priority";
   const sortOrder = firstParam(params.sortOrder) === "desc" ? "desc" : "asc";
 
-  const [session, list, forecast, todayList, vcuRooms] = await Promise.all([
+  const [session, list, forecast, todayList, vcuRooms, amenitiesStock] = await Promise.all([
     auth(),
     getHousekeepingListData({
       date: selectedDate,
@@ -171,6 +173,7 @@ export default async function HkRoomsPage({
       },
       orderBy: { number: "asc" },
     }),
+    getAmenitiesStockSummary(),
   ]);
   const canAccessMyRooms = Boolean(
     session?.user?.role && ["HK", "ADMIN", "GM"].includes(session.user.role),
@@ -404,6 +407,7 @@ export default async function HkRoomsPage({
           />
         </TabsContent>
       </Tabs>
+      <AmenitiesInventoryCard {...amenitiesStock} />
       <HkSopAccordion />
     </main>
   );

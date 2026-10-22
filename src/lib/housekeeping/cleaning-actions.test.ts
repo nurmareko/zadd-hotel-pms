@@ -74,7 +74,7 @@ describe("mobile action boundaries", () => {
   it.each(["HK", "ADMIN", "GM"])("passes authenticated %s identity, not operator fields from the form", async (role) => {
     mocks.auth.mockResolvedValue({ user: { id: "7", role } });
     await finishMobileCleaning(form({ roomId: "10", linenChanged: "on", towelChanged: "true", note: "  Bersih  ", userId: "99", role: "FO" }));
-    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, note: "Bersih" });
+    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, amenities: {}, note: "Bersih" });
     expect(mocks.revalidateRoomStatusViews).toHaveBeenCalledWith({ roomId: 10 });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/hk/clean");
   });
@@ -140,7 +140,19 @@ describe.each([
   });
   it("does not record blank counts as zero", async () => {
     await finish(form({ roomId: "10", towels: "", shampoo: "  " }));
-    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
+    expect(mocks.finish).toHaveBeenCalledWith(expect.objectContaining({ amenities: {}, note: null }));
+  });
+  it("forwards numeric amenities counts while omitting null counts and preserving zero", async () => {
+    expect(await finish(form({ roomId: "10", towels: "2", soap: "0", bottledWater: "3", shampoo: "", dentalKit: "  " }))).toEqual({ ok: true });
+    expect(mocks.finish).toHaveBeenCalledExactlyOnceWith({
+      roomId: 10,
+      userId: 7,
+      role: "HK",
+      linenChanged: false,
+      towelChanged: false,
+      amenities: { towels: 2, soap: 0, bottledWater: 3 },
+      note: "[Amenities: 2 Bath Towel, 0 Soap, 3 Bottled Water]",
+    });
   });
   it("records amenities even without operator notes", async () => {
     await finish(form({ roomId: "10", dentalKit: "1" }));
@@ -166,7 +178,7 @@ describe("desktop delegation", () => {
     await finishCleaning(form({ roomId: "10", linenChanged: "on", towelChanged: "on" }));
     await inspectRoom(form({ roomId: "10", passed: "true" }));
     expect(mocks.start).toHaveBeenCalledWith({ roomId: 10, userId: 7, role });
-    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, note: null });
+    expect(mocks.finish).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, linenChanged: true, towelChanged: true, amenities: {}, note: null });
     expect(mocks.inspect).toHaveBeenCalledWith({ roomId: 10, userId: 7, role, passed: true, notes: null });
     expect(mocks.transaction).not.toHaveBeenCalled();
   });

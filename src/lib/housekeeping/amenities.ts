@@ -9,6 +9,14 @@ export const AMENITIES_ITEMS = [
 ] as const;
 
 export type AmenityKey = (typeof AMENITIES_ITEMS)[number]["key"];
+export const AMENITY_INGREDIENT_MAP: Record<AmenityKey, { name: string; unit: string; parLevel: number }> = {
+  towels: { name: "Bath Towel", unit: "pcs", parLevel: 50 },
+  shampoo: { name: "Shampoo", unit: "bottles", parLevel: 100 },
+  soap: { name: "Soap", unit: "bars", parLevel: 100 },
+  dentalKit: { name: "Toothbrush / Dental Kit", unit: "kits", parLevel: 100 },
+  bottledWater: { name: "Bottled Water", unit: "bottles", parLevel: 120 },
+};
+
 export type AmenitiesCounts = Record<AmenityKey, number | null>;
 export const EMPTY_AMENITIES: AmenitiesCounts = {
   towels: null,

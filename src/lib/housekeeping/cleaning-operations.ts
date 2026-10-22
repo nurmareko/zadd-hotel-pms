@@ -1,6 +1,7 @@
 import { HousekeepingNotificationStatus, Prisma, RoomStatus } from "@prisma/client";
 
 import { hotelTodayDateOnly } from "@/lib/date-only";
+import { AMENITIES_ITEMS, AMENITY_INGREDIENT_MAP, type AmenityKey } from "@/lib/housekeeping/amenities";
 import { isMobilePoolEligible } from "@/lib/housekeeper-mobile-eligibility";
 import { upsertHousekeepingNotification } from "@/lib/housekeeping-notifications";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
@@ -13,6 +14,7 @@ export type FinishCleaningInput = RoomInput & {
   linenChanged: boolean;
   towelChanged: boolean;
   note?: string | null;
+  amenities?: Partial<Record<AmenityKey, number>> | null;
 };
 export type InspectRoomInput = RoomInput & { passed: boolean; notes?: string | null };
 
@@ -42,8 +44,10 @@ async function runTransaction(
         return { ok: false, error: conflictMessage };
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2034" && attempt < 2) continue;
-        if (error.code === "P2034" || error.code === "P2028") {
+        const retryable = error.code === "P2034" ||
+          (error.code === "P2010" && ["40001", "40P01"].includes(String(error.meta?.code)));
+        if (retryable && attempt < 2) continue;
+        if (retryable || error.code === "P2028") {
           return { ok: false, error: conflictMessage };
         }
       }
@@ -77,7 +81,7 @@ async function lockRoom(tx: Prisma.TransactionClient, roomId: number) {
   // One clock sample after acquiring the lock, including on each retry.
   const now = new Date();
   const today = hotelTodayDateOnly(now);
-  const room = await tx.room.findUnique({ where: { id: roomId }, select: { status: true } });
+  const room = await tx.room.findUnique({ where: { id: roomId }, select: { status: true, number: true } });
   if (!room) throw new CleaningError("Room not found");
   return { room, now, today };
 }
@@ -152,6 +156,45 @@ export async function finishCleaningOperation(input: FinishCleaningInput): Promi
       where: { id: input.roomId, status: room.status },
       data: { status: nextStatus },
     }));
+    const quantities = new Map<string, number>();
+    for (const { key } of AMENITIES_ITEMS) {
+      const quantity = input.amenities?.[key];
+      if (typeof quantity === "number" && Number.isSafeInteger(quantity) && quantity > 0) {
+        quantities.set(AMENITY_INGREDIENT_MAP[key].name, quantity);
+      }
+    }
+    if (quantities.size > 0) {
+      const ingredients = await tx.fBIngredient.findMany({
+        where: { name: { in: [...quantities.keys()] }, category: "Amenities" },
+        orderBy: { id: "asc" },
+      });
+      for (const ingredient of ingredients) {
+        const quantity = quantities.get(ingredient.name);
+        if (quantity === undefined) continue;
+        // All turnover writers acquire shared ingredient locks in ascending ID order.
+        await tx.$queryRaw`SELECT id FROM "fb_ingredient" WHERE id = ${ingredient.id} FOR UPDATE`;
+        const current = await tx.fBIngredient.findUnique({ where: { id: ingredient.id } });
+        if (!current || current.category !== "Amenities" || current.name !== ingredient.name) continue;
+        const balanceAfter = current.onHand.minus(quantity);
+        await tx.fBIngredient.update({ where: { id: current.id }, data: { onHand: balanceAfter } });
+        await tx.fBStockLedger.create({
+          data: {
+            ingredientId: current.id,
+            type: "CONSUMPTION",
+            quantityDelta: new Prisma.Decimal(-quantity),
+            balanceAfter,
+            notes: `Room turnover - Room ${room.number}`,
+            recordedById: input.userId,
+            createdAt: now,
+          },
+        });
+        // Names are not unique in the schema; consume each requested item only once.
+        quantities.delete(ingredient.name);
+      }
+      for (const name of quantities.keys()) {
+        console.warn("Missing amenity ingredient during room turnover", { roomId: input.roomId, name });
+      }
+    }
     await tx.housekeepingLog.create({
       data: {
         roomId: input.roomId, oldStatus: room.status, newStatus: nextStatus,

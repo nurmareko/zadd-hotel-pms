@@ -13,6 +13,8 @@ const { transaction, tx } = vi.hoisted(() => ({
     housekeepingNotification: { upsert: vi.fn() },
     reservation: { findFirst: vi.fn() },
     lostFoundItem: { create: vi.fn() },
+    fBIngredient: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    fBStockLedger: { create: vi.fn() },
   },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction }, TRANSACTION_OPTIONS: { maxWait: 10000, timeout: 20000 } }));
@@ -39,7 +41,7 @@ beforeEach(() => {
   });
   tx.$queryRaw.mockResolvedValue([{ id: 10 }]);
   tx.user.findFirst.mockResolvedValue({ id: 7 });
-  tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VD });
+  tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VD, number: "301" });
   tx.room.updateMany.mockResolvedValue({ count: 1 });
   tx.housekeepingAssignment.findFirst.mockResolvedValue({ id: 20 });
   tx.housekeepingAssignment.findUnique.mockResolvedValue(null);
@@ -47,6 +49,9 @@ beforeEach(() => {
   tx.cleaningSession.findFirst.mockResolvedValue(null);
   tx.cleaningSession.updateMany.mockResolvedValue({ count: 1 });
   tx.reservation.findFirst.mockResolvedValue(null);
+  tx.fBIngredient.findMany.mockResolvedValue([]);
+  tx.fBIngredient.findUnique.mockResolvedValue(null);
+  tx.fBIngredient.updateMany.mockResolvedValue({ count: 1 });
 });
 afterEach(() => vi.useRealTimers());
 
@@ -160,6 +165,161 @@ describe("complete cleaning operations", () => {
   it("does not retry P2028 or unknown failures", async () => {
     tx.$queryRaw.mockRejectedValue(conflict("P2028"));
     expect((await startCleaningOperation(input)).ok).toBe(false);
+    expect(transaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Issue300 finish-cleaning amenity consumption", () => {
+  const shampoo = { id: 42, name: "Shampoo", category: "Amenities", onHand: new Prisma.Decimal("10.125") };
+  const withAmenities = { ...finish, amenities: { shampoo: 2 } };
+
+  beforeEach(() => {
+    tx.cleaningSession.findFirst.mockResolvedValue({ id: 30 });
+    tx.fBIngredient.findMany.mockResolvedValue([shampoo]);
+    tx.fBIngredient.findUnique.mockResolvedValue(shampoo);
+  });
+
+  function stockWrites() {
+    return [...tx.fBIngredient.update.mock.calls, ...tx.fBIngredient.updateMany.mock.calls];
+  }
+
+  it("deducts Decimal stock and records consumption with room number, operator and finish time", async () => {
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+    expect(stockWrites()).toHaveLength(1);
+    expect(stockWrites()[0][0]).toEqual(expect.objectContaining({
+      where: expect.objectContaining({ id: shampoo.id }),
+      data: expect.objectContaining({ onHand: new Prisma.Decimal("8.125") }),
+    }));
+    expect(tx.fBStockLedger.create).toHaveBeenCalledExactlyOnceWith({ data: expect.objectContaining({
+      ingredientId: shampoo.id,
+      type: "CONSUMPTION",
+      quantityDelta: new Prisma.Decimal(-2),
+      balanceAfter: new Prisma.Decimal("8.125"),
+      notes: expect.stringContaining("Room 301"),
+      recordedById: input.userId,
+      createdAt: now,
+    }) });
+    expect(transaction).toHaveBeenCalledExactlyOnceWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+    expect(tx.room.findUnique).toHaveBeenCalledWith({ where: { id: input.roomId }, select: { status: true, number: true } });
+    expect(tx.cleaningSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { finishedAt: now } }));
+  });
+
+  it("uses the authoritative balance re-read after the ingredient lock, not the discovery balance", async () => {
+    tx.fBIngredient.findUnique.mockResolvedValue({ ...shampoo, onHand: new Prisma.Decimal("3.375") });
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw.mock.calls[1][0].join("?")).toMatch(/fb_ingredient[\s\S]*FOR UPDATE/);
+    expect(tx.$queryRaw.mock.calls[1].slice(1)).toContain(shampoo.id);
+    expect(tx.fBIngredient.findMany.mock.invocationCallOrder[0]).toBeLessThan(tx.$queryRaw.mock.invocationCallOrder[1]);
+    expect(tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(tx.fBIngredient.findUnique.mock.invocationCallOrder[0]);
+    expect(tx.fBIngredient.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: shampoo.id } }));
+    expect(stockWrites()[0][0].data.onHand).toEqual(new Prisma.Decimal("1.375"));
+    expect(tx.fBStockLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ balanceAfter: new Prisma.Decimal("1.375") }) });
+  });
+
+  it("allows consumption to take stock below zero", async () => {
+    tx.fBIngredient.findUnique.mockResolvedValue({ ...shampoo, onHand: new Prisma.Decimal("0.125") });
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+    expect(stockWrites()).toHaveLength(1);
+    expect(stockWrites()[0][0].data.onHand).toEqual(new Prisma.Decimal("-1.875"));
+    expect(tx.fBStockLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      quantityDelta: new Prisma.Decimal(-2), balanceAfter: new Prisma.Decimal("-1.875"),
+    }) });
+  });
+
+  it.each(["discovery", "locked re-read"])("warns but finishes when the ingredient is missing at %s", async (stage) => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      if (stage === "discovery") tx.fBIngredient.findMany.mockResolvedValue([]);
+      else tx.fBIngredient.findUnique.mockResolvedValue(null);
+      expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+      expect(warning).toHaveBeenCalled();
+      expect(stockWrites()).toHaveLength(0);
+      expect(tx.fBStockLedger.create).not.toHaveBeenCalled();
+      expect(tx.housekeepingNotification.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        create: expect.objectContaining({ status: "COMPLETED" }),
+      }));
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it.each([null, {}, { shampoo: 0 }])("does not write stock or ledger for amenities %j", async (amenities) => {
+    const request = { ...finish, amenities };
+    expect(await finishCleaningOperation(request)).toEqual({ ok: true });
+    expect(stockWrites()).toHaveLength(0);
+    expect(tx.fBStockLedger.create).not.toHaveBeenCalled();
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it("locks matching ingredients in ascending id order rather than amenity input order", async () => {
+    const soap = { ...shampoo, id: 11, name: "Soap" };
+    // Model the database honoring orderBy; otherwise leave discovery deliberately unsorted.
+    tx.fBIngredient.findMany.mockImplementation(async (args) => {
+      const order = Array.isArray(args?.orderBy) ? args.orderBy : [args?.orderBy];
+      return order.some((value: { id?: string } | undefined) => value?.id === "asc")
+        ? [soap, shampoo] : [shampoo, soap];
+    });
+    tx.fBIngredient.findUnique.mockImplementation(async ({ where }) => where.id === soap.id ? soap : shampoo);
+    const request = { ...finish, amenities: { shampoo: 2, soap: 1 } };
+    expect(await finishCleaningOperation(request)).toEqual({ ok: true });
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(tx.$queryRaw.mock.calls.slice(1).map((call) => call[1])).toEqual([11, 42]);
+    for (let index = 1; index <= 2; index++) {
+      expect(tx.$queryRaw.mock.calls[index][0].join("?")).toMatch(/fb_ingredient[\s\S]*FOR UPDATE/);
+      expect(tx.$queryRaw.mock.invocationCallOrder[index]).toBeLessThan(tx.fBIngredient.findUnique.mock.invocationCallOrder[index - 1]);
+    }
+    expect(tx.fBStockLedger.create).toHaveBeenCalledTimes(2);
+    expect(tx.fBStockLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ ingredientId: 11, quantityDelta: new Prisma.Decimal(-1) }) });
+    expect(tx.fBStockLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ ingredientId: 42, quantityDelta: new Prisma.Decimal(-2) }) });
+  });
+
+  it.each(["operator", "assignment", "status", "session", "linen", "session write", "room write"])("does not consume when the %s guard fails", async (guard) => {
+    if (guard === "operator") tx.user.findFirst.mockResolvedValue(null);
+    if (guard === "assignment") tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
+    if (guard === "status") tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VCU, number: "301" });
+    if (guard === "session") tx.cleaningSession.findFirst.mockResolvedValue(null);
+    if (guard === "session write") tx.cleaningSession.updateMany.mockResolvedValue({ count: 0 });
+    if (guard === "room write") tx.room.updateMany.mockResolvedValue({ count: 0 });
+    expect((await finishCleaningOperation({ ...withAmenities, linenChanged: guard !== "linen" })).ok).toBe(false);
+    expect(stockWrites()).toHaveLength(0);
+    expect(tx.fBStockLedger.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a repeated finish without consuming a second time", async () => {
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+    tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VCU, number: "301" });
+    tx.cleaningSession.findFirst.mockResolvedValue(null);
+    expect((await finishCleaningOperation(withAmenities)).ok).toBe(false);
+    expect(stockWrites()).toHaveLength(1);
+    expect(tx.fBStockLedger.create).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["40001", "40P01"])("retries raw ingredient lock conflict %s with fresh stock reads", async (code) => {
+    const error = new Prisma.PrismaClientKnownRequestError("lock conflict", {
+      code: "P2010", clientVersion: "6.19.3", meta: { code },
+    });
+    tx.$queryRaw.mockResolvedValueOnce([{ id: 10 }]).mockRejectedValueOnce(error);
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: true });
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(tx.fBIngredient.findMany).toHaveBeenCalledTimes(2);
+    expect(tx.fBStockLedger.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds raw lock serialization retries", async () => {
+    tx.$queryRaw.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("lock conflict", {
+      code: "P2010", clientVersion: "6.19.3", meta: { code: "40001" },
+    }));
+    expect(await finishCleaningOperation(withAmenities)).toEqual({ ok: false, error: "The room is being processed. Reload the page." });
+    expect(transaction).toHaveBeenCalledTimes(3);
+    expect(tx.fBStockLedger.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects the whole finish transaction if the consumption ledger write fails", async () => {
+    const failure = new Error("ledger unavailable");
+    tx.fBStockLedger.create.mockRejectedValue(failure);
+    expect((await finishCleaningOperation(withAmenities)).ok).toBe(false);
+    expect(rejectedTransactions).toEqual([failure]);
     expect(transaction).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,11 +1,14 @@
 import { ArticleType } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 
+import { AMENITY_INGREDIENT_MAP } from "../src/lib/housekeeping/amenities";
 import { getRestaurantTableGridPosition } from "../src/lib/restaurant-table-layout";
 import { prisma } from "../src/lib/prisma";
 
 const PASSWORD_COST = 10;
 const EMPTY_PERMISSIONS = {};
+
+const amenityIngredients = Object.values(AMENITY_INGREDIENT_MAP);
 
 const roles = [
   { code: "FO", name: "Front Office" },
@@ -156,6 +159,29 @@ async function main() {
   }
 
   console.log("✓ seeded guest laundry articles");
+
+  for (const ingredient of amenityIngredients) {
+    const data = {
+      ...ingredient,
+      category: "Amenities",
+      location: "Housekeeping Storage",
+      menuItemId: null,
+    };
+    // Names are not unique; resolve the amenity before upserting by primary key.
+    const existing = await prisma.fBIngredient.findFirst({
+      where: { name: data.name, category: data.category },
+      orderBy: { id: "asc" },
+      select: { id: true },
+    });
+    await prisma.fBIngredient.upsert({
+      where: { id: existing?.id ?? 0 },
+      create: { ...data, onHand: ingredient.parLevel * 2 },
+      // Normal seeding must not replenish consumed stock or replace its history.
+      update: data,
+    });
+  }
+
+  console.log(`✓ seeded ${amenityIngredients.length} amenity ingredients`);
 
   for (const userToSeed of users) {
     const passwordHash = await getPasswordHash(
