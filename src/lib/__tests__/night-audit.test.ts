@@ -151,6 +151,46 @@ describe("executeNightAudit room-block reconciliation", () => {
     tx.folioLineItem.findMany.mockResolvedValue([]);
   });
 
+  it.each([
+    { name: "nonzero", hk: "30.25", misc: "19.75", other: "50", total: "1250" },
+    { name: "zero", hk: "0", misc: "0", other: "0", total: "1200" },
+    { name: "negative adjustments", hk: "-30.25", misc: "-19.75", other: "-50", total: "1150" },
+  ])("persists $name departmental revenue snapshots on the audit row", async ({ hk, misc, other, total }) => {
+    tx.folioLineItem.findMany.mockResolvedValue([
+      { amount: decimal(1000), article: { code: ROOM_CHARGE_ARTICLE_CODE, type: "ROOM" } },
+      { amount: decimal(hk), article: { code: "LAUNDRY", type: "SERVICE" } },
+      { amount: decimal(misc), article: { code: "SPA", type: "MISC" } },
+    ]);
+    tx.fBOrder.aggregate.mockResolvedValue({ _sum: { total: decimal(200) } });
+
+    const result = await run();
+
+    expect(result.ok).toBe(true);
+    expect(tx.nightAudit.create).toHaveBeenCalledTimes(1);
+    expect(tx.nightAudit.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        roomRevenue: decimal(1000),
+        fbRevenue: decimal(200),
+        hkRevenue: decimal(hk),
+        miscRevenue: decimal(misc),
+        otherRevenue: decimal(other),
+        totalRevenue: decimal(total),
+      }),
+    }));
+  });
+
+  it("persists explicit zero departmental snapshots when no folio lines exist", async () => {
+    const result = await run();
+
+    expect(result.ok).toBe(true);
+    expect(tx.nightAudit.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        hkRevenue: decimal(0), miscRevenue: decimal(0),
+        otherRevenue: decimal(0), totalRevenue: decimal(0),
+      }),
+    }));
+  });
+
   it("explains a negative net room blocker and stops before any posting or audit writes", async () => {
     tx.reservation.findMany.mockResolvedValue([{
       id: 101,

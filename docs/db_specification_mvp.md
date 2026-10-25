@@ -1209,12 +1209,16 @@ Destructive cleanup must remove linen batches before deleting recording users. T
 | room_revenue | DECIMAL(14,2) | NOT NULL | Room revenue snapshot |
 | fb_revenue | DECIMAL(14,2) | NOT NULL | F&B revenue snapshot |
 | other_revenue | DECIMAL(14,2) | NOT NULL | Other revenue snapshot |
+| hk_revenue | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Housekeeping revenue snapshot |
+| misc_revenue | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Spa & other miscellaneous revenue snapshot |
 | total_revenue | DECIMAL(14,2) | NOT NULL | Total revenue for the day |
 | check_in_count | INT | NOT NULL | Arrival/check-in count snapshot |
 | check_out_count | INT | NOT NULL | Departure/check-out count snapshot |
 | in_house_count | INT | NOT NULL | In-house guest count snapshot |
 | room_nights_sold | INT | NULLABLE | Reserved compatibility column. Current Night Audit does not populate it, and live ARR does not read it; ARR derives paid room-nights from validated linked room-charge postings. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation time |
+
+> **Departmental reconciliation**: `hk_revenue + misc_revenue = other_revenue`. These persisted snapshots preserve the audited departmental breakdown.
 
 > **Night Audit lock**: `business_date` is unique for the shipped daily-close flow. The app stores the completed snapshot for the WIB hotel date and relies on this constraint to prevent duplicate audits for the same business date.
 

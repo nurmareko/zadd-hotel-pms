@@ -803,6 +803,8 @@ model NightAudit {
   roomRevenue    Decimal  @map("room_revenue") @db.Decimal(14, 2)
   fbRevenue      Decimal  @map("fb_revenue") @db.Decimal(14, 2)
   otherRevenue   Decimal  @map("other_revenue") @db.Decimal(14, 2)
+  hkRevenue      Decimal  @default(0) @map("hk_revenue") @db.Decimal(14, 2)
+  miscRevenue    Decimal  @default(0) @map("misc_revenue") @db.Decimal(14, 2)
   totalRevenue   Decimal  @map("total_revenue") @db.Decimal(14, 2)
   checkInCount   Int      @map("check_in_count")
   checkOutCount  Int      @map("check_out_count")

@@ -13,7 +13,7 @@ import {
   isValidISODateOnly,
   parseISODateOnly,
 } from "@/lib/date-only";
-import { splitAuditedOtherRevenue } from "@/lib/night-audit";
+
 import { prisma } from "@/lib/prisma";
 import { summarizeRateOverride } from "@/lib/revenue-reports";
 import { ROOM_CHARGE_ARTICLE_CODE } from "@/lib/stay-charges";
@@ -178,6 +178,8 @@ async function calculateDay(
     roomRevenue: { toString(): string };
     fbRevenue: { toString(): string };
     otherRevenue: { toString(): string };
+    hkRevenue: { toString(): string };
+    miscRevenue: { toString(): string };
     totalRevenue: { toString(): string };
     inHouseCount: number;
     checkInCount: number;
@@ -240,15 +242,8 @@ async function calculateDay(
     roomRevenue = Number(audit.roomRevenue.toString());
     fbRevenue = Number(audit.fbRevenue.toString());
     otherRevenue = Number(audit.otherRevenue.toString());
-    const otherLineItems = otherRevenue !== 0
-      ? await prisma.folioLineItem.findMany({
-          where: { postedAt: { gte: start, lt: end }, fbOrderId: null },
-          select: { amount: true, article: { select: { code: true, type: true } } },
-        })
-      : [];
-    const split = splitAuditedOtherRevenue(audit.otherRevenue.toString(), otherLineItems);
-    hkRevenue = Number(split.hkRevenue.toString());
-    miscRevenue = Number(split.miscRevenue.toString());
+    hkRevenue = Number(audit.hkRevenue.toString());
+    miscRevenue = Number(audit.miscRevenue.toString());
     totalRevenue = Number(audit.totalRevenue.toString());
     roomsOccupied = audit.roomsOccupied;
     inHouseCount = audit.inHouseCount;
@@ -380,6 +375,8 @@ export async function getManagerFlashReport(selectedDate: string): Promise<Manag
       roomRevenue: true,
       fbRevenue: true,
       otherRevenue: true,
+      hkRevenue: true,
+      miscRevenue: true,
       totalRevenue: true,
       inHouseCount: true,
       checkInCount: true,

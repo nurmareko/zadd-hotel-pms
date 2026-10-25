@@ -1531,7 +1531,7 @@ export async function executeNightAudit({
           // 7. Calculate roomRevenue, inclusionRevenue, fbRevenue, totalRevenue, and occupancyRate
           const roomArticleId = articleByCode.get(ROOM_CHARGE_ARTICLE_CODE)?.id;
 
-          const { roomRevenue, fbRevenue, otherRevenue, totalRevenue } =
+          const { roomRevenue, fbRevenue, hkRevenue, miscRevenue, otherRevenue, totalRevenue } =
             classifyNightAuditRevenues({
               shortfallLineItems: lineItemsToCreate,
               existingDaytimeFolioLines: otherFolioRevenue,
@@ -1554,6 +1554,8 @@ export async function executeNightAudit({
               occupancyRate: computedOccupancyRate,
               roomRevenue,
               fbRevenue,
+              hkRevenue,
+              miscRevenue,
               otherRevenue,
               totalRevenue,
               checkInCount,

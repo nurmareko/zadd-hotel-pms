@@ -47,7 +47,7 @@ const line = (amount: Prisma.Decimal.Value, type: ArticleType, code = type.toStr
   article: { code, type },
 });
 
-function audit(otherRevenue: number) {
+function audit(otherRevenue: number, hkRevenue = 0, miscRevenue = otherRevenue) {
   return {
     businessDate: dateRange.gte,
     roomsOccupied: 2,
@@ -55,6 +55,8 @@ function audit(otherRevenue: number) {
     roomRevenue: decimal(1000),
     fbRevenue: decimal(200),
     otherRevenue: decimal(otherRevenue),
+    hkRevenue: decimal(hkRevenue),
+    miscRevenue: decimal(miscRevenue),
     totalRevenue: decimal(1200 + otherRevenue),
     inHouseCount: 2,
     checkInCount: 1,
@@ -189,8 +191,8 @@ describe("getManagerFlashReport department revenue", () => {
     });
   });
 
-  it("reconciles audited departments without replacing stored revenue or operational metrics", async () => {
-    mocks.audits.mockResolvedValue([audit(50)]);
+  it("reads audited department snapshots without replacing stored revenue or operational metrics", async () => {
+    mocks.audits.mockResolvedValue([audit(50, 30, 20)]);
     setLines([
       line(30, ArticleType.SERVICE), line(20, ArticleType.MISC),
       line(900, ArticleType.ROOM), line(800, ArticleType.FB),
@@ -204,40 +206,72 @@ describe("getManagerFlashReport department revenue", () => {
       otherRevenue: 50, totalRevenue: 1250, occupancyRate: 20, roomsOccupied: 2,
       inHouseCount: 2, checkInCount: 1, checkOutCount: 0, revPax: 625,
     });
-    expect(mocks.lines).toHaveBeenCalledWith({
-      where: { postedAt: timestampRange, fbOrderId: null },
-      select: { amount: true, article: { select: { code: true, type: true } } },
-    });
+    expect(mocks.lines).not.toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ postedAt: timestampRange }),
+      select: expect.objectContaining({ article: expect.anything() }),
+    }));
   });
 
   it.each([
-    { name: "empty", stored: 50, lines: [] },
-    { name: "zero", stored: 0, lines: [line(30, ArticleType.SERVICE), line(-30, ArticleType.MISC)] },
-    { name: "mismatched", stored: 50, lines: [line(30, ArticleType.SERVICE)] },
-    { name: "excluded only", stored: 50, lines: [line(50, ArticleType.ROOM)] },
-    { name: "negative mismatch", stored: -50, lines: [line(-30, ArticleType.SERVICE)] },
-  ])("preserves stored other revenue for $name audited attribution", async ({ stored, lines }) => {
-    mocks.audits.mockResolvedValue([audit(stored)]);
+    { name: "deleted", lines: [] },
+    { name: "changed amounts", lines: [line(300, ArticleType.SERVICE), line(200, ArticleType.MISC)] },
+    { name: "reclassified with the same total", lines: [line(50, ArticleType.MISC)] },
+    { name: "excluded only", lines: [line(50, ArticleType.ROOM)] },
+  ])("preserves audited department snapshots when live lines are $name", async ({ lines }) => {
+    mocks.audits.mockResolvedValue([audit(50, 30, 20)]);
     setLines(lines);
+
+    const { selected, history } = await getManagerFlashReport(date);
+
+    const expected = { hkRevenue: 30, miscRevenue: 20, otherRevenue: 50, totalRevenue: 1250 };
+    expect(selected).toMatchObject(expected);
+    expect(history[0]).toMatchObject(expected);
+  });
+
+  it.each([
+    { name: "zero", hk: 0, misc: 0 },
+    { name: "offsetting", hk: 30, misc: -30 },
+    { name: "negative", hk: -30, misc: -20 },
+  ])("reads $name audited snapshots independently of live attribution", async ({ hk, misc }) => {
+    mocks.audits.mockResolvedValue([audit(hk + misc, hk, misc)]);
+    setLines([line(999, ArticleType.SERVICE), line(888, ArticleType.MISC)]);
 
     const { selected } = await getManagerFlashReport(date);
 
     expect(selected).toMatchObject({
-      hkRevenue: 0, miscRevenue: stored, otherRevenue: stored, totalRevenue: 1200 + stored,
+      hkRevenue: hk, miscRevenue: misc, otherRevenue: hk + misc, totalRevenue: 1200 + hk + misc,
     });
   });
 
-  it("queries and reconciles negative audited other revenue", async () => {
-    mocks.audits.mockResolvedValue([audit(-50)]);
-    setLines([line(-30, ArticleType.SERVICE), line(-20, ArticleType.MISC)]);
-
-    const { selected } = await getManagerFlashReport(date);
-
-    expect(selected).toMatchObject({ hkRevenue: -30, miscRevenue: -20, otherRevenue: -50, totalRevenue: 1150 });
-    expect(mocks.lines).toHaveBeenCalledWith({
-      where: { postedAt: timestampRange, fbOrderId: null },
-      select: { amount: true, article: { select: { code: true, type: true } } },
+  it("keeps booking-source reads but makes no departmental folio query for an audited history", async () => {
+    mocks.audits.mockResolvedValue(Array.from({ length: 14 }, (_, index) => ({
+      ...audit(50, 30, 20),
+      businessDate: new Date(dateRange.gte.getTime() - index * 86_400_000),
+    })));
+    mocks.lines.mockImplementation(async (args: Prisma.FolioLineItemFindManyArgs) => {
+      if (!args.select?.folio || !args.where?.postedAt) return [];
+      return [{ amount: decimal(999), folio: { reservation: { reservationType: "OTA" } } }];
     });
+
+    const { selected, history } = await getManagerFlashReport(date);
+
+    expect(history).toHaveLength(14);
+    expect(history.every((day) => day.hkRevenue === 30 && day.miscRevenue === 20)).toBe(true);
+    expect(selected.bookingSources).toContainEqual({
+      source: "OTA", revenue: 999, reservationCount: 0, roomNights: 0,
+    });
+    expect(mocks.lines).toHaveBeenCalledTimes(2);
+    expect(mocks.lines).toHaveBeenCalledWith({
+      where: { postedAt: timestampRange, fbOrderId: null, reservationNightId: null },
+      select: { amount: true, folio: { select: { reservation: { select: { reservationType: true } } } } },
+    });
+    expect(mocks.lines).toHaveBeenCalledWith({
+      where: { reservationNight: { date: dateRange }, fbOrderId: null },
+      select: { amount: true, folio: { select: { reservation: { select: { reservationType: true } } } } },
+    });
+    expect(mocks.lines).not.toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({ article: expect.anything() }),
+    }));
   });
 
   it("returns zero departmental revenue for empty unaudited days", async () => {

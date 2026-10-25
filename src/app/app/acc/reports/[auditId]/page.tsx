@@ -13,8 +13,7 @@ import { auth, type AppRole } from "@/auth";
 import { can } from "@/lib/permissions";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCompactDateTimeID, formatLongDateID } from "@/lib/format";
-import { addDateOnlyDays, hotelTimestampBoundaryForDate } from "@/lib/date-only";
-import { splitAuditedOtherRevenue } from "@/lib/night-audit";
+
 import { prisma } from "@/lib/prisma";
 
 import { ReportActions } from "./report-actions";
@@ -79,21 +78,7 @@ export default async function NightAuditReportPage({
     throw new Error("Hotel settings not found");
   }
 
-  const otherLineItems = !audit.otherRevenue.isZero()
-    ? await prisma.folioLineItem.findMany({
-        where: {
-          postedAt: {
-            gte: hotelTimestampBoundaryForDate(audit.businessDate.toISOString().slice(0, 10)),
-            lt: hotelTimestampBoundaryForDate(
-              addDateOnlyDays(audit.businessDate, 1).toISOString().slice(0, 10),
-            ),
-          },
-          fbOrderId: null,
-        },
-        select: { amount: true, article: { select: { code: true, type: true } } },
-      })
-    : [];
-  const { hkRevenue, miscRevenue } = splitAuditedOtherRevenue(audit.otherRevenue, otherLineItems);
+  const { hkRevenue, miscRevenue } = audit;
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
