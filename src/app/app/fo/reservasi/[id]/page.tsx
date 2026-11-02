@@ -103,7 +103,7 @@ function ReservationTabs({
   return (
     <nav
       aria-label="Reservation detail tabs"
-      className="flex w-full items-center gap-3 overflow-x-auto pb-1 sm:w-auto sm:pb-0"
+      className="flex w-full flex-wrap items-center gap-2 xl:w-auto"
     >
       <Link
         href={`/app/fo/reservasi/${reservationId}?tab=details`}
@@ -509,18 +509,26 @@ export default async function ReservationDetailPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
+      <header className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Reservation Details</h1>
+        <p className="mt-1 break-words text-sm text-slate-600">
+          <span className="font-medium text-slate-900">{reservation.guest.fullName}</span>
+          {" · "}{reservation.room ? `Room ${reservation.room.number}` : "Room not assigned"}
+          {" · "}{reservation.roomType.name}
+        </p>
+      </header>
+      <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 xl:flex-row xl:items-start xl:justify-between">
         <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
-        <div className="flex min-w-0 flex-col gap-2 sm:ml-auto sm:items-end">
-          <p className="break-words text-right text-sm text-slate-500">
+        <div className="flex min-w-0 flex-col gap-2 xl:ml-auto xl:items-end">
+          <p className="break-words text-sm text-slate-500 xl:text-right">
             Reservation Code:{" "}
             <span className="font-semibold text-slate-900">
               {reservation.reservationNo}
             </span>
           </p>
           {activeTab === "details" ? (
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Link
                 href="/app/fo/reservasi"
                 className={buttonVariants({ variant: "outline" })}
@@ -578,7 +586,7 @@ export default async function ReservationDetailPage({
           !reservation.groupBookingId ? (
             <CheckInDetailPanel initialReview={initialCheckInReview} />
           ) : null}
-          <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:px-5">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
                 Deposit status

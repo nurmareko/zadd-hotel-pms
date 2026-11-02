@@ -85,8 +85,28 @@ const numericHeaderCellClass =
 export function ReservationTable({ groups, groupByArrival = true }: ReservationTableProps) {
   const hasRows = groups.length > 0;
 
+  if (!hasRows) {
+    return (
+      <div className="px-4 py-8 md:p-10">
+        <EmptyState
+          icon={CalendarX}
+          title="No matching reservations"
+          description="Try a different guest name, status, or date range. To add a booking, create a new reservation."
+          action={
+            <Link
+              className={buttonVariants({ variant: "default" })}
+              href="/app/fo/reservasi/new?from=list"
+            >
+              New Reservation
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-full overflow-auto">
+    <div className="max-w-full overflow-auto" role="region" aria-label="Reservation results" tabIndex={0}>
       <table className="w-full min-w-[1100px] border-collapse text-sm">
         <caption className="sr-only">
           {groupByArrival
@@ -99,13 +119,13 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
               Status
             </th>
             <th className={headerCellClass} scope="col">
-              Name
+              Guest name
             </th>
             <th className={headerCellClass} scope="col">
               Reference
             </th>
             <th className={headerCellClass} scope="col">
-              Guest
+              Guests
             </th>
             <th className={headerCellClass} scope="col">
               Check-in
@@ -123,37 +143,14 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
               Total (Rp)
             </th>
             <th className={numericHeaderCellClass} scope="col">
-              Balance (Rp)
+              Balance Due (Rp)
             </th>
           </tr>
         </thead>
         <tbody>
-          {hasRows ? (
-            groups.map((group) => (
-              <GroupRows key={group.dateKey} group={group} groupByArrival={groupByArrival} />
-            ))
-          ) : (
-            <tr>
-              <td
-                className="border-b border-slate-100 px-4 py-8"
-                colSpan={COLUMN_COUNT}
-              >
-                <EmptyState
-                  icon={CalendarX}
-                  title="No reservations"
-                  description="No reservations match your filters."
-                  action={
-                    <Link
-                                          className={buttonVariants({ variant: "default" })}
-                                          href="/app/fo/reservasi/new?from=list"
-                    >
-                      Create Reservation
-                    </Link>
-                  }
-                />
-              </td>
-            </tr>
-          )}
+          {groups.map((group) => (
+            <GroupRows key={group.dateKey} group={group} groupByArrival={groupByArrival} />
+          ))}
         </tbody>
       </table>
     </div>

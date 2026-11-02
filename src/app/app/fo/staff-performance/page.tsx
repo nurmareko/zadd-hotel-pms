@@ -306,10 +306,11 @@ function HeaderCell({
         align === "right" ? "text-right" : "text-left",
       ].join(" ")}
       scope="col"
+      aria-sort={active ? (currentDirection === "asc" ? "ascending" : "descending") : undefined}
     >
       <Link
         className={[
-          "inline-flex items-center gap-1.5 hover:text-slate-950",
+          "inline-flex min-h-11 items-center gap-1.5 rounded-sm outline-none hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-blue-500 desktop:min-h-0",
           align === "right" ? "justify-end" : "",
         ].join(" ")}
         href={reportHref({
@@ -400,9 +401,13 @@ export default async function StaffPerformancePage({
   const rows = sortRows(buildRows(staffers, activities), sortKey, direction);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
-      <div className="mb-5 flex justify-end">
-        <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
+    <main className="min-w-0 space-y-4 p-4 text-slate-900 sm:p-5 desktop:space-y-6 desktop:p-6">
+      <header>
+        <h1 className="text-2xl font-bold sm:text-[32px] sm:leading-tight">Staff Performance</h1>
+        <p className="mt-1 text-sm text-slate-500">Compare Front Office activity and open a staff member’s activity history.</p>
+      </header>
+      <section aria-label="Performance filters" className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm desktop:p-5">
+        <div className="flex w-full flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <nav
             aria-label="Performance period"
             className="flex w-full flex-wrap gap-2 sm:w-auto"
@@ -433,42 +438,42 @@ export default async function StaffPerformancePage({
           <form
             action="/app/fo/staff-performance"
             method="get"
-            className="flex w-full flex-wrap items-center gap-2 sm:w-auto"
+            className="grid w-full grid-cols-1 items-end gap-3 sm:w-auto sm:grid-cols-[1fr_1fr_auto]"
           >
             <input type="hidden" name="sort" value={sortKey} />
             <input type="hidden" name="dir" value={direction} />
-            <input
-                          type="date"
-                          name="from"
-                          aria-label="Start date"
-                          defaultValue={from ?? ""}
-                          className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
-                        />
-            <span className="hidden text-slate-400 sm:inline">-</span>
-            <input
-                          type="date"
-                          name="to"
-                          aria-label="End date"
-                          defaultValue={to ?? ""}
-                          className="h-11 desktop:h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:w-[140px] sm:flex-none"
-                        />
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="performance-from" className="block text-sm font-medium text-slate-700">From Date</label>
+              <input id="performance-from" type="date" name="from" defaultValue={from ?? ""} className="h-11 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 desktop:h-10" />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="performance-to" className="block text-sm font-medium text-slate-700">To Date</label>
+              <input id="performance-to" type="date" name="to" defaultValue={to ?? ""} className="h-11 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 desktop:h-10" />
+            </div>
             <Button type="submit">
                           <Search className="size-4" aria-hidden="true" />
                           Search
                         </Button>
           </form>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <Card className="shadow-sm">
+      <div className="min-w-0">
+        <Card className="gap-0 border border-slate-200 py-0 shadow-sm ring-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 p-4 desktop:px-5">
+            <div>
+              <h2 className="text-base font-semibold">Staff Comparison</h2>
+              <p className="mt-1 text-xs text-slate-500">Sort by a column heading. Select a staff member to view their history.</p>
+            </div>
+            <span className="text-sm text-slate-500"><span className="font-semibold tabular-nums text-slate-900">{rows.length}</span> active staff</span>
+          </div>
           <CardContent className="p-0">
-            <div className="max-w-full overflow-auto">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
+            <div className="max-w-full overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500" role="region" aria-label="Staff comparison; scroll to view all columns" tabIndex={0}>
+              <table className={`w-full border-collapse text-sm ${rows.length > 0 ? "min-w-[760px]" : ""}`}>
                 <caption className="sr-only">
                   Front Office staff performance for the selected activity period
                 </caption>
-                <thead>
+                <thead hidden={rows.length === 0}>
                   <tr>
                     <HeaderCell
                       align="left"
@@ -522,6 +527,12 @@ export default async function StaffPerformancePage({
                   </tr>
                 </thead>
                 <tbody>
+                  {rows.length === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-12 text-center">
+                      <p className="font-semibold text-slate-900">No active Front Office staff</p>
+                      <p className="mt-2 text-sm text-slate-500">Ask an administrator to check staff accounts and Front Office role assignments.</p>
+                    </td></tr>
+                  )}
                   {rows.map((row) => {
                     const href = `/app/fo/staff-performance/${row.id}`;
 
@@ -532,7 +543,7 @@ export default async function StaffPerformancePage({
                       >
                         <td className="p-0 font-semibold text-slate-950">
                           <Link
-                            className="block px-4 py-3 text-slate-950"
+                            className="block px-4 py-3 text-slate-950 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
                             href={href}
                           >
                             {row.fullName}

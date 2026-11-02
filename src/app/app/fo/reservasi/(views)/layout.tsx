@@ -11,7 +11,7 @@ export default function ReservationViewsLayout({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
+    <main className="min-h-screen min-w-0 bg-slate-50 p-4 text-slate-900 md:p-5 lg:p-6">
       <ReservationsViewHeader />
       {children}
     </main>

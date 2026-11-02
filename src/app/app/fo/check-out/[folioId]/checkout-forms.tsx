@@ -131,14 +131,14 @@ export function FinalPaymentForm({
 
   return (
     <>
-      <form id="final-payment-form" onSubmit={onSubmit} className="p-5">
+      <form id="final-payment-form" onSubmit={onSubmit} className="p-4 sm:p-5">
       <input type="hidden" name="folioId" value={folioId} />
       <input type="hidden" name="method" value={method} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold text-slate-500">
-            Amount
+            Amount (Rp)
           </span>
           <Input
             name="amount"
@@ -161,10 +161,10 @@ export function FinalPaymentForm({
           ) : null}
         </label>
 
-        <label className="block">
-          <span className="text-xs font-semibold text-slate-500">
-            Method
-          </span>
+        <fieldset className="min-w-0">
+          <legend className="text-xs font-semibold text-slate-500">
+            Payment Method
+          </legend>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {paymentMethods.map((paymentMethod) => (
               <Button
@@ -173,13 +173,14 @@ export function FinalPaymentForm({
                               variant={method === paymentMethod ? "default" : "outline"}
                               onClick={() => setMethod(paymentMethod)}
                               disabled={isMutationLocked}
-                              className="text-xs font-semibold"
+                              aria-pressed={method === paymentMethod}
+                              className="px-2 text-xs font-semibold"
                             >
                               {paymentMethod}
                             </Button>
             ))}
           </div>
-        </label>
+        </fieldset>
 
         <label className="block sm:col-span-2">
           <span className="text-xs font-semibold text-slate-500">
@@ -309,7 +310,7 @@ export function CompleteCheckoutForm({
         id="complete-checkout-form"
       ref={formRef}
       onSubmit={onSubmit}
-      className="p-5"
+      className="p-4 sm:p-5"
     >
       <input type="hidden" name="folioId" value={folioId} />
 

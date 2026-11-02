@@ -40,7 +40,7 @@ const legendItems = [
 export function TapeChartLegend() {
   return (
     <div
-      className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] font-medium text-slate-600"
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-slate-600"
       aria-label="Reservation status legend"
     >
       <span className="font-semibold text-slate-700">Legend:</span>

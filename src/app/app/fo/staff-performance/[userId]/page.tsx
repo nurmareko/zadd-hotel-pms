@@ -131,18 +131,18 @@ function MetricCard({
   value: string | number;
 }) {
   return (
-    <Card className="shadow-sm">
+    <Card className="min-w-0 border border-slate-200 shadow-sm ring-0">
       <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col-reverse items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <CardDescription className="text-xs font-medium uppercase">
+            <CardDescription className="text-xs font-medium text-slate-500">
               {label}
             </CardDescription>
             <CardTitle className="mt-1 text-2xl font-semibold tabular-nums">
               {value}
             </CardTitle>
           </div>
-          <div className="flex size-9 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-700">
             <Icon className="size-4" aria-hidden="true" />
           </div>
         </div>
@@ -306,16 +306,25 @@ export default async function StaffHistoryPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-foreground md:px-6 md:py-5">
+    <main className="min-w-0 space-y-4 p-4 text-slate-900 sm:p-5 desktop:space-y-6 desktop:p-6">
       <Link
         href="/app/fo/staff-performance"
-        className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950"
+        className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-blue-500 desktop:min-h-0"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to comparison report
       </Link>
 
-      <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <header className="space-y-2">
+        <h1 className="break-words text-2xl font-bold sm:text-[32px] sm:leading-tight">{staffer.fullName}</h1>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+          <span>Front Office activity history</span>
+          <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{staffer.isActive ? "Active account" : "Inactive account"}</span>
+        </div>
+        <p className="text-sm text-slate-500">{windowKey === "all" ? "All-time activity" : windowKey === "today" ? "Today’s activity" : windowKey === "week" ? "Activity in the last 7 days" : "Activity in the last 30 days"} · Most recent actions first.</p>
+      </header>
+
+      <section aria-label="Activity summary for the selected period" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 desktop:gap-4">
         <MetricCard
           icon={ReceiptText}
           label="Reservation"
@@ -348,12 +357,14 @@ export default async function StaffHistoryPage({
         />
       </section>
 
-      <Card className="shadow-sm">
-        <CardHeader className="border-b border-slate-100">
+      <Card className="min-w-0 gap-0 border border-slate-200 py-0 shadow-sm ring-0">
+        <CardHeader className="border-b border-slate-100 p-4 desktop:p-5">
+          <h2 className="text-base font-semibold">Activity Log</h2>
+          <CardDescription>Reservations, stays, payments, and folio activity recorded by this staff member.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {visibleActivities.length > 0 ? (
-            <div className="max-w-full overflow-auto">
+            <div className="max-w-full overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500" role="region" aria-label="Staff activity log; scroll to view all columns" tabIndex={0}>
               <table className="w-full min-w-[1280px] border-collapse text-sm">
                 <caption className="sr-only">
                   Staff activity, most recent first
@@ -431,7 +442,7 @@ export default async function StaffHistoryPage({
                           className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                         >
                           <td className="w-[180px] px-4 py-3 align-top">
-                            <time className="block font-semibold tabular-nums text-slate-900">
+                            <time dateTime={activity.createdAt.toISOString()} className="block whitespace-nowrap font-semibold tabular-nums text-slate-900">
                               {formatCompactDateTimeID(activity.createdAt)}
                             </time>
                             <div className="mt-1 text-xs text-slate-500">
@@ -453,7 +464,7 @@ export default async function StaffHistoryPage({
                           <td className="w-[90px] px-4 py-3 align-top text-slate-700">
                             {roomNumber(activity)}
                           </td>
-                          <td className="w-[130px] px-4 py-3 text-right align-top font-medium tabular-nums text-slate-900">
+                          <td className="w-[130px] whitespace-nowrap px-4 py-3 text-right align-top font-medium tabular-nums text-slate-900">
                             {activityAmount(activity)}
                           </td>
                           <td className="w-[110px] px-4 py-3 align-top text-slate-700">
@@ -462,7 +473,7 @@ export default async function StaffHistoryPage({
                           <td className="w-[130px] px-4 py-3 align-top text-slate-700">
                             {metadataColumn(activity, "article")}
                           </td>
-                          <td className="px-4 py-3 align-top text-slate-500">
+                          <td className="min-w-48 max-w-sm whitespace-pre-wrap break-words px-4 py-3 align-top text-slate-600">
                             {metadataColumn(activity, "note")}
                           </td>
                         </tr>
@@ -475,15 +486,20 @@ export default async function StaffHistoryPage({
           ) : (
             <EmptyState
               icon={FileText}
-              title="No activity in this period"
-              description="Select All Time or a wider date range to review this staff member's history."
+              title="No activity to display"
+              description="No actions were found on this page. Return to the comparison report to review the team’s activity."
+              action={
+                <Link href="/app/fo/staff-performance" className={buttonVariants({ variant: "outline" })}>
+                  Back to Staff Performance
+                </Link>
+              }
               className="m-4"
             />
           )}
 
           {summaryActivities.length > FEED_PAGE_SIZE ? (
             <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-slate-500">
+              <div className="text-sm tabular-nums text-slate-500">
                 Page {page} of {totalPages}
               </div>
               <div className="flex gap-2">

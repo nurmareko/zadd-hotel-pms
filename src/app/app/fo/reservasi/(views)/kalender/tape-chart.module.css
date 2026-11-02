@@ -2,8 +2,8 @@
   position: relative;
   border: 1px solid #e2e8f0;
   background: #ffffff;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
   overflow: hidden;
 }
 
@@ -171,11 +171,11 @@
 }
 
 .todayLabel {
-  color: #10b981;
-  font-size: 9px;
+  color: #047857;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -221,7 +221,7 @@
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   padding: 0 14px 0 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   text-decoration: none;

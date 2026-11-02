@@ -48,7 +48,7 @@ export function ReservationFilters({
       action="/app/fo/reservasi/list"
       method="get"
       key={`${exportQuery}&sort=${filters.sort}`}
-      className="desktop:sticky top-0 z-20 flex flex-col gap-3 border-b border-slate-200 bg-white p-4"
+      className="desktop:sticky top-0 z-20 flex flex-col gap-4 border-b border-slate-200 bg-white p-4 md:p-5"
     >
       <nav aria-label="Reservation quick filters" className="flex w-full flex-wrap gap-2">
         {presetOptions.map((option) => {
@@ -59,7 +59,7 @@ export function ReservationFilters({
               key={option.value ?? "all"}
               href={`/app/fo/reservasi/list${query ? `?${query}` : ""}`}
               aria-current={active ? "page" : undefined}
-              className={`inline-flex min-h-11 desktop:min-h-9 items-center rounded-full border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-300 bg-emerald-50 font-medium text-emerald-800" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
+              className={`inline-flex min-h-11 desktop:min-h-9 items-center rounded-md border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-300 bg-emerald-50 font-medium text-emerald-800" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}
             >
               {option.label}
             </Link>
@@ -67,52 +67,70 @@ export function ReservationFilters({
         })}
       </nav>
       {filters.preset ? <input type="hidden" name="preset" value={filters.preset} /> : null}
-      <div className="flex w-full flex-wrap items-center gap-3">
-        <div className="relative w-full sm:w-[280px]">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="search"
-            name="q"
-            aria-label="Search by reservation number, guest name, or room"
-            defaultValue={filters.q}
-            placeholder="Search reservation number, guest name, or room..."
-            className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-          />
+      <div className="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0 sm:col-span-2">
+          <label htmlFor="filter-search" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Search reservations
+          </label>
+          <div className="relative">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              id="filter-search"
+              type="search"
+              name="q"
+
+              defaultValue={filters.q}
+              placeholder="Reservation number, guest name, or room"
+              className="h-11 desktop:h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+            />
+          </div>
         </div>
 
-        <select
-          name="status"
-          aria-label="Reservation status"
-          defaultValue={filters.preset === "in_house" ? "CHECKED_IN" : filters.status ?? ""}
-          disabled={filters.preset === "in_house"}
-          className={`${fieldClass} sm:w-[160px]`}
-        >
-          <option value="">Active</option>
-          <option value="ALL">All Statuses</option>
-          {statusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className="min-w-0">
+          <label htmlFor="filter-status" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Status
+          </label>
+          <select
+            id="filter-status"
+            name="status"
+            aria-label="Reservation status"
+            defaultValue={filters.preset === "in_house" ? "CHECKED_IN" : filters.status ?? ""}
+            disabled={filters.preset === "in_house"}
+            className={fieldClass}
+          >
+            <option value="">Active</option>
+            <option value="ALL">All Statuses</option>
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          name="sort"
-          aria-label="Sort reservations"
-          defaultValue={filters.sort ?? "newest"}
-          className={`${fieldClass} sm:w-[180px]`}
-        >
-          <option value="newest">Most Recently Created</option>
-          <option value="arrival">Check-in Date</option>
-        </select>
+        <div className="min-w-0">
+          <label htmlFor="filter-sort" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Sort by
+          </label>
+          <select
+            id="filter-sort"
+            name="sort"
+            aria-label="Sort reservations"
+            defaultValue={filters.sort ?? "newest"}
+            className={fieldClass}
+          >
+            <option value="newest">Most Recently Created</option>
+            <option value="arrival">Check-in Date</option>
+          </select>
+        </div>
 
-        <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto">
+        <div className="min-w-0">
           <label
             htmlFor="filter-check-in"
-            className="whitespace-nowrap text-xs font-medium text-slate-600"
+            className="mb-1.5 block text-xs font-medium text-slate-600"
           >
             Check-in
           </label>
@@ -122,14 +140,14 @@ export function ReservationFilters({
             name="checkIn"
             disabled={Boolean(filters.preset)}
             defaultValue={filters.preset ? "" : filters.checkIn ?? ""}
-            className={`${fieldClass} sm:w-[145px]`}
+            className={fieldClass}
           />
         </div>
 
-        <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto">
+        <div className="min-w-0">
           <label
             htmlFor="filter-check-out"
-            className="whitespace-nowrap text-xs font-medium text-slate-600"
+            className="mb-1.5 block text-xs font-medium text-slate-600"
           >
             Check-out
           </label>
@@ -139,17 +157,17 @@ export function ReservationFilters({
             name="checkOut"
             disabled={Boolean(filters.preset)}
             defaultValue={filters.preset ? "" : filters.checkOut ?? ""}
-            className={`${fieldClass} sm:w-[145px]`}
+            className={fieldClass}
           />
         </div>
 
         {filters.preset ? (
-          <p className="w-full text-xs text-slate-500">
+          <p className="text-xs text-slate-600 sm:col-span-2">
             Select All to use a custom date range.
           </p>
         ) : null}
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full pt-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full border-t border-slate-100 pt-3">
         <div className="flex items-center gap-2">
           <Button type="submit">Search</Button>
           {hasActiveFilters ? (
@@ -164,7 +182,7 @@ export function ReservationFilters({
           ) : null}
         </div>
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-          <span className="whitespace-nowrap text-sm font-medium text-slate-500">
+          <span className="whitespace-nowrap text-sm font-medium tabular-nums text-slate-600">
             {resultCount} reservations
           </span>
           <Link

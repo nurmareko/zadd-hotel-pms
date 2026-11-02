@@ -11,7 +11,7 @@ import type { RoomBlockActionResult } from "@/lib/room-blocks/errors";
 import { ROOM_BLOCK_REASON_LABELS } from "@/lib/room-blocks/overlap";
 import { CreateRoomBlockSchema, type CreateRoomBlockInput } from "@/lib/room-blocks/schema";
 
-const controlClass = "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-60 desktop:h-10";
+const controlClass = "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100 disabled:opacity-60 desktop:h-10";
 type Failure = Extract<RoomBlockActionResult, { ok: false }>;
 export type RoomOption = { id: number; number: string; status?: string; roomType: { name: string } };
 
@@ -67,10 +67,10 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
   const invalid = (field: string) => ({ "aria-invalid": failure?.field === field || undefined, "aria-describedby": failure?.field === field ? "create-block-error" : undefined });
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting.current) { setOpen(next); setFailure(null); if (!next) setSelectedRoomId(""); } }}>
-      <DialogTrigger render={<Button disabled={rooms.length === 0} />}><Plus aria-hidden="true" />Create Block</DialogTrigger>
+      <DialogTrigger render={<Button className="w-full sm:w-auto" disabled={rooms.length === 0} />}><Plus aria-hidden="true" />Create Block</DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg" showCloseButton={!pending}>
         <DialogHeader>
-          <DialogTitle>Room Blocks</DialogTitle>
+          <DialogTitle>Create Room Block</DialogTitle>
           <DialogDescription>The room cannot be reserved during the blocked period. The end date is not included in the blocked nights.</DialogDescription>
         </DialogHeader>
         <form ref={formRef} onSubmit={submit} noValidate className="space-y-4" aria-busy={pending}>
@@ -94,7 +94,7 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                       : room.status === "VD"
                       ? "VD - Vacant Dirty"
                       : isOccupied
-                      ? `${room.status} - Occupied ⚠️`
+                      ? `${room.status} - Occupied`
                       : room.status === "OOO"
                       ? "OOO - Out of Order"
                       : room.status ?? "";
@@ -115,9 +115,15 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                         : selectedRoom.status === "VD"
                         ? "border-amber-200 bg-amber-50 text-amber-700"
-                        : selectedRoom.status === "OC" || selectedRoom.status === "OD"
+                        : selectedRoom.status === "OC"
                         ? "border-blue-200 bg-blue-50 text-blue-700"
-                        : "border-red-200 bg-red-50 text-red-700"
+                        : selectedRoom.status === "OD"
+                        ? "border-orange-200 bg-orange-50 text-orange-700"
+                        : selectedRoom.status === "VCU"
+                        ? "border-purple-200 bg-purple-50 text-purple-700"
+                        : selectedRoom.status === "OOO"
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : "border-slate-200 bg-slate-100 text-slate-600"
                     }`}
                   >
                     {selectedRoom.status} — {
@@ -131,12 +137,16 @@ export function CreateBlockDialog({ rooms, today, tomorrow }: { rooms: RoomOptio
                         ? "Occupied Dirty"
                         : selectedRoom.status === "OOO"
                         ? "Out of Order"
+                        : selectedRoom.status === "VCU"
+                        ? "Vacant Clean Uninspected"
+                        : selectedRoom.status === "OOS"
+                        ? "Out of Service"
                         : selectedRoom.status
                     }
                   </span>
                   {(selectedRoom.status === "OC" || selectedRoom.status === "OD") && (
-                    <span className="text-amber-700 font-medium">
-                      ⚠️ This room is currently occupied. Make sure the blocked period does not overlap the stay.
+                    <span className="w-full rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                      This room is currently occupied. Make sure the blocked period does not overlap the stay.
                     </span>
                   )}
                 </div>
@@ -192,12 +202,12 @@ export function ReleaseBlockDialog({ blockId, roomNumber, startDate, endDate }: 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!submitting.current) { setOpen(next); setError(""); } }}>
       <DialogTrigger render={<Button variant="outline" size="sm" aria-label={`Release room block ${roomNumber}, ${startDate} to ${endDate}`} />}>Release Block</DialogTrigger>
-      <DialogContent showCloseButton={!pending}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>Release Room Block {roomNumber}?</DialogTitle>
           <DialogDescription>The block from {startDate} up to but not including {endDate} will be released. Its history will be retained. Room availability still depends on reservations and other active blocks.</DialogDescription>
         </DialogHeader>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <DialogFooter>
           <Button variant="outline" disabled={pending} onClick={() => setOpen(false)}>Cancel</Button>
           <Button disabled={pending} onClick={release}>{pending ? "Releasing…" : "Yes, Release Block"}</Button>

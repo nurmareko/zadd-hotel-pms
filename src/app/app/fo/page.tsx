@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, Plus } from "lucide-react";
 
 import { auth } from "@/auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -48,7 +48,7 @@ export default async function FOIndexPage() {
   const metrics = [
     { label: "Today's Arrivals", value: arrivals.length, detail: "Awaiting check-in" },
     { label: "Today's Departures", value: departures.length, detail: "Awaiting check-out" },
-    { label: "In-House Guests", value: `${inHouse.guestCount} guests`, detail: `${inHouse.roomCount} occupied rooms` },
+    { label: "In-House Guests", value: inHouse.guestCount, detail: `${inHouse.roomCount} occupied rooms` },
     { label: "Occupancy Rate", value: `${occupancy.occupancyRate.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`, detail: `${statuses.occupied} occupied / ${occupancy.sellableRooms} sellable rooms` },
   ];
   const statusCards = [
@@ -60,29 +60,22 @@ export default async function FOIndexPage() {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <header className="space-y-4">
+    <main className="space-y-4 p-4 text-slate-900 md:space-y-6 md:p-5 lg:p-6">
+      <header>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Front Office Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-500">{"Today's operational overview. Data is refreshed when the page loads."}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Front Office</h1>
+            <p className="mt-1 text-sm text-slate-600">Arrivals, departures, and room readiness for today.</p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600">
+          <span className="inline-flex items-center gap-2 text-sm text-slate-600">
             <CalendarDays aria-hidden="true" className="size-4" />{dateLabel} WIB
           </span>
         </div>
-        <nav aria-label="Quick actions" className="flex flex-wrap gap-2">
-          <Link className={buttonVariants()} href="/app/fo/reservasi/new"><Plus aria-hidden="true" />New Reservation</Link>
-          <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/reservasi/kalender">Calendar</Link>
-          <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/reservasi/list">Reservation List</Link>
-          <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/tamu">Guest</Link>
-          <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/room-blocks">Room Blocks</Link>
-        </nav>
       </header>
 
-      <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm xl:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div key={metric.label} className="min-w-0 p-4 odd:border-r border-slate-200 [&:nth-child(n+3)]:border-t xl:[&:nth-child(n+3)]:border-t-0 xl:[&:not(:last-child)]:border-r md:p-5">
             <dt className="text-sm font-medium text-slate-600">{metric.label}</dt>
             <dd className="mt-2 text-3xl font-bold tabular-nums text-slate-900">{metric.value}</dd>
             <dd className="mt-1 text-sm text-slate-500">{metric.detail}</dd>
@@ -90,14 +83,32 @@ export default async function FOIndexPage() {
         ))}
       </dl>
 
+      <nav aria-label="Quick actions" className="flex flex-wrap items-center gap-2">
+        <Link className={buttonVariants()} href="/app/fo/reservasi/new"><Plus aria-hidden="true" />New Reservation</Link>
+        <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/reservasi/kalender"><CalendarDays aria-hidden="true" />Calendar</Link>
+        <Link className={buttonVariants({ variant: "outline" })} href="/app/fo/reservasi/list">Reservation List</Link>
+        <div className="flex flex-wrap gap-1 sm:ml-auto">
+          <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href="/app/fo/tamu">Guests</Link>
+          <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href="/app/fo/room-blocks">Room Blocks</Link>
+        </div>
+      </nav>
+
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <section aria-labelledby="arrivals-heading" className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 p-4 md:p-5">
-            <h2 id="arrivals-heading" className="text-lg font-semibold text-slate-900">Arrival Queue</h2>
-            <p className="mt-1 text-sm text-slate-500">{arrivals.length} reservations awaiting check-in today.</p>
+            <div className="flex items-center gap-3">
+              <ArrowDownLeft aria-hidden="true" className="size-5 text-slate-500" />
+              <h2 id="arrivals-heading" className="text-lg font-semibold text-slate-900">Arrivals</h2>
+              <span className="ml-auto rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold tabular-nums text-slate-700">{arrivals.length}</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-600">Expected today, awaiting check-in.</p>
           </div>
           {arrivals.length === 0 ? (
-            <p className="p-6 text-sm text-slate-500">No arrivals awaiting check-in today. See the Calendar for upcoming arrivals.</p>
+            <div className="px-5 py-8">
+              <p className="text-sm font-medium text-slate-900">No arrivals awaiting check-in</p>
+              <p className="mt-1 text-sm text-slate-600">View the calendar to prepare for upcoming arrivals.</p>
+              <Link href="/app/fo/reservasi/kalender" className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-4`}>View Calendar</Link>
+            </div>
           ) : (
             <ul className="divide-y divide-slate-100">
               {arrivals.map((reservation) => (
@@ -116,11 +127,19 @@ export default async function FOIndexPage() {
 
         <section aria-labelledby="departures-heading" className="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 p-4 md:p-5">
-            <h2 id="departures-heading" className="text-lg font-semibold text-slate-900">Departure Queue</h2>
-            <p className="mt-1 text-sm text-slate-500">Balances reflect posted charges. Pending charges are calculated at check-out.</p>
+            <div className="flex items-center gap-3">
+              <ArrowUpRight aria-hidden="true" className="size-5 text-slate-500" />
+              <h2 id="departures-heading" className="text-lg font-semibold text-slate-900">Departures</h2>
+              <span className="ml-auto rounded-md bg-slate-100 px-2.5 py-1 text-sm font-semibold tabular-nums text-slate-700">{departures.length}</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-600">Due to depart today, awaiting check-out.</p>
           </div>
           {departures.length === 0 ? (
-            <p className="p-6 text-sm text-slate-500">No guests awaiting check-out today. See the Reservation List for upcoming departures.</p>
+            <div className="px-5 py-8">
+              <p className="text-sm font-medium text-slate-900">No departures awaiting check-out</p>
+              <p className="mt-1 text-sm text-slate-600">Find upcoming departures in the reservation list.</p>
+              <Link href="/app/fo/reservasi/list" className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-4`}>View Reservations</Link>
+            </div>
           ) : (
             <ul className="divide-y divide-slate-100">
               {departures.map((reservation) => {
@@ -141,21 +160,23 @@ export default async function FOIndexPage() {
               })}
             </ul>
           )}
+          <p className="border-t border-slate-100 px-4 py-3 text-xs leading-relaxed text-slate-600 md:px-5">Balances reflect posted charges only. Pending charges are calculated at check-out.</p>
         </section>
       </div>
 
       <section aria-labelledby="rooms-heading" className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <h2 id="rooms-heading" className="text-lg font-semibold text-slate-900">Room Status</h2>
         <p className="mt-1 text-sm text-slate-500">{rooms.length} rooms · OOO rooms are excluded from sellable capacity.</p>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <dl className="mt-4 grid grid-cols-1 gap-x-5 sm:grid-cols-2 xl:grid-cols-5">
           {statusCards.map((status) => (
-            <div key={status.label} className="rounded-md border border-slate-100 p-3">
+            <div key={status.label} className="border-t border-slate-100 py-4">
               <dt><StatusBadge className={`${status.color} h-auto min-h-5 whitespace-normal py-1`} label={status.label} /></dt>
               <dd className="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{status.count}<span className="ml-2 text-sm font-normal text-slate-500">rooms</span></dd>
             </div>
           ))}
         </dl>
       </section>
-    </div>
+      <p className="text-xs text-slate-500">Overview updates when the page loads.</p>
+    </main>
   );
 }

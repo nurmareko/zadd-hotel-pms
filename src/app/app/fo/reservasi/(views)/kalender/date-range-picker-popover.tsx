@@ -69,10 +69,10 @@ export function DateRangePickerPopover({
         id={triggerId}
         type="button"
         aria-label="Select reservation start date"
-        className="flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+        className="flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-2 py-2 text-sm font-medium tabular-nums text-slate-700 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 desktop:min-h-10 sm:px-3"
       >
         <CalendarDays
-          className="h-4 w-4 text-slate-500"
+          className="hidden h-4 w-4 shrink-0 text-slate-500 sm:block"
           aria-hidden="true"
         />
         <span>{buildRangeLabel(visibleStartDate)}</span>

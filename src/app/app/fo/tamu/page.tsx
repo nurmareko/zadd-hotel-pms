@@ -22,15 +22,15 @@ export default async function GuestDirectoryPage({
   const guests = await findGuests(q);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <main className="min-w-0 space-y-4 p-4 text-slate-900 sm:p-5 desktop:space-y-6 desktop:p-6">
       <header>
-        <h1 className="text-3xl font-bold text-slate-900">Guest List</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-[32px] sm:leading-tight">Guests</h1>
         <p className="mt-1 text-sm text-slate-500">Find guest records and reuse them for new reservations.</p>
       </header>
-      <section aria-label="Guest directory" className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section aria-label="Guest directory" className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <GuestFilters q={q} resultCount={guests.length} />
         <GuestTable guests={guests} q={q} />
       </section>
-    </div>
+    </main>
   );
 }

@@ -63,9 +63,9 @@ function DateNavButton({
   return (
     <Link
       href={href}
-            aria-label={label}
-            className={buttonVariants({ variant: "outline" })}
-          >
+      aria-label={label}
+      className={buttonVariants({ variant: "outline", size: "icon" })}
+    >
       <Icon className="h-4 w-4" aria-hidden="true" />
     </Link>
   );
@@ -77,7 +77,7 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
   const visibleStartDate = parseStartDate(searchParams.get("startDate"));
 
   return (
-    <div className="flex flex-wrap items-center gap-3 lg:justify-center">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       <div className="flex items-center gap-1">
         <DateNavButton
           href={getDateHref(
@@ -104,9 +104,9 @@ function DateWindowNav({ view }: { view: FoReservasiView }) {
         />
       </div>
       <Link
-              href={getDateHref(view, getDefaultStartDate(), searchParams)}
-              className={buttonVariants({ variant: "outline" })}
-            >
+        href={getDateHref(view, getDefaultStartDate(), searchParams)}
+        className={buttonVariants({ variant: "outline" })}
+      >
         Today
       </Link>
     </div>
@@ -148,71 +148,71 @@ export function ReservationsViewHeader() {
   }
 
   return (
-    <div className="mb-4 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
-      <div className="lg:col-start-2">
-        {view === "kalender" ? <DateWindowNav view={view} /> : null}
-      </div>
-
-      <div className="lg:col-start-1 lg:row-start-1 lg:pr-4">
-        {view === "kalender" ? (
-          <TapeChartLegend />
-        ) : (
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">
-              Reservation List
-            </h1>
-            <p className="text-xs text-slate-500">
-              All active reservations and booking history
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
-        <div
-          aria-label="Reservation view"
-          role="group"
-          className="relative grid grid-cols-2 rounded-md border border-slate-300 bg-white p-1 shadow-sm"
-        >
-          <span
-            aria-hidden="true"
-            className={[
-              "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded bg-slate-900 shadow-sm",
-              "transition-transform duration-200 ease-out motion-reduce:transition-none",
-              view === "list" ? "translate-x-full" : "translate-x-0",
-            ].join(" ")}
-          />
-          {views.map(({ value, label, icon: Icon }) => {
-            const isActive = value === view;
-
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => selectView(value)}
-                className={[
-                  "relative z-10 inline-flex h-11 desktop:h-10 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium transition-colors duration-200",
-                  isActive
-                    ? "text-white"
-                    : "text-slate-600 hover:text-slate-900",
-                ].join(" ")}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                {label}
-              </button>
-            );
-          })}
+    <header className="mb-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-slate-900 md:text-[32px] md:leading-tight">
+            {view === "kalender" ? "Reservation Calendar" : "Reservation List"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {view === "kalender"
+              ? "Review room assignments and stays by date."
+              : "Find reservations, review arrivals, and open guest records."}
+          </p>
         </div>
 
-        <Link
-                  href={`/app/fo/reservasi/new?from=${view}`}
-                  className={buttonVariants({ variant: "default" })}
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            aria-label="Reservation view"
+            role="group"
+            className="relative grid grid-cols-2 rounded-md border border-slate-300 bg-white p-1 shadow-sm"
+          >
+            <span
+              aria-hidden="true"
+              className={[
+                "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded bg-slate-900 shadow-sm",
+                "transition-transform duration-200 ease-out motion-reduce:transition-none",
+                view === "list" ? "translate-x-full" : "translate-x-0",
+              ].join(" ")}
+            />
+            {views.map(({ value, label, icon: Icon }) => {
+              const isActive = value === view;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => selectView(value)}
+                  className={[
+                    "relative z-10 inline-flex h-11 desktop:h-10 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
+                    isActive
+                      ? "text-white"
+                      : "text-slate-600 hover:text-slate-900",
+                  ].join(" ")}
                 >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Reservation
-        </Link>
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          <Link
+            href={`/app/fo/reservasi/new?from=${view}`}
+            className={buttonVariants({ variant: "default" })}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New Reservation
+          </Link>
+        </div>
       </div>
-    </div>
+      {view === "kalender" ? (
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <DateWindowNav view={view} />
+          <TapeChartLegend />
+        </div>
+      ) : null}
+    </header>
   );
 }

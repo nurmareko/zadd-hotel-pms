@@ -97,7 +97,7 @@ function StepCard({
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-slate-700">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 p-4 text-slate-700 sm:px-5">
         <h2 className="text-sm font-semibold">{title}</h2>
         {meta ? <span className="text-xs font-medium text-slate-500">{meta}</span> : null}
       </div>
@@ -131,11 +131,11 @@ function SummaryRow({
 
 function MetricBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-slate-200 p-5 first:border-r">
-      <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div className="border-slate-200 p-4 first:border-b sm:p-5 sm:first:border-r sm:first:border-b-0">
+      <div className="text-xs font-medium text-slate-500">
         {label}
       </div>
-      <div className="mt-1 text-2xl font-bold text-slate-900">
+      <div className="mt-1 break-words text-xl font-bold tabular-nums text-slate-900">
         {value}
       </div>
     </div>
@@ -397,17 +397,25 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
   const reservationTagihanUrl = `/app/fo/reservasi/${folio.reservation.id}?tab=tagihan`;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+    <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">Check-out</h1>
+          <p className="mt-1 break-words text-sm text-slate-600">
+            <span className="font-medium text-slate-900">{folio.reservation.guest.fullName}</span>
+            {" · "}{folio.reservation.room ? `Room ${folio.reservation.room.number}` : "Room not assigned"}
+            {" · "}{folio.reservation.reservationNo}
+          </p>
+        </div>
         <Link
           href={reservationTagihanUrl}
           className={buttonVariants({ variant: "outline" })}
         >
-          Cancel
+          Back to Charges
         </Link>
-      </div>
+      </header>
 
-      <div className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-3">
           <StepCard title="1. Verify Zero Balance Due">
             <div className="p-5 text-sm">
@@ -448,7 +456,7 @@ export default async function CheckOutPage({ params }: CheckOutPageProps) {
             </StepCard>
           )}
 
-          <StepCard title="3. Post Check-out Actions">
+          <StepCard title="3. Complete Check-out">
             {isClosed ? (
               <div className="space-y-4 p-5">
                 <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">

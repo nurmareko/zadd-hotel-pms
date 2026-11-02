@@ -250,8 +250,16 @@ export default async function GroupBookingPage({
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
+      <header className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Group Reservation</h1>
+        <p className="mt-1 break-words text-sm text-slate-600">
+          <span className="font-medium text-slate-900">{primaryReservation.guest.fullName}</span>
+          {" · "}{reservations.length} rooms
+          {" · "}<span className="tabular-nums">{groupBookingId}</span>
+        </p>
+      </header>
+      <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <Link
           href="/app/fo/reservasi/list"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
@@ -282,7 +290,7 @@ export default async function GroupBookingPage({
             Booking Information
           </h2>
         </div>
-        <dl className="grid gap-5 px-5 py-4 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="grid gap-4 break-words p-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-3">
           <div>
             <dt className="text-xs font-medium text-slate-500">
               Primary contact
@@ -325,7 +333,7 @@ export default async function GroupBookingPage({
       <section className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Room</h2>
+            <h2 className="text-base font-semibold text-slate-900">Rooms</h2>
             <p className="mt-0.5 text-sm text-slate-500">
               {"Open each room's reservation for individual actions."}
             </p>
@@ -520,7 +528,7 @@ export default async function GroupBookingPage({
             Display summary only; each room is still managed as a separate reservation and folio.
           </p>
         </div>
-        <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
           <SummaryMetric label="Total rooms" value={reservations.length} />
           <SummaryMetric label="Not checked in" value={confirmedCount} />
           <SummaryMetric label="Checked In" value={checkedInCount} />
@@ -528,14 +536,14 @@ export default async function GroupBookingPage({
           {inactiveCount > 0 ? (
             <SummaryMetric label="Cancelled / no-show" value={inactiveCount} />
           ) : null}
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 md:col-span-2 xl:col-span-1">
-            <p className="text-xs font-semibold text-emerald-800">
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold text-slate-600">
               Total group balance
             </p>
-            <p className="mt-1 text-xl font-bold tabular-nums text-emerald-950">
+            <p className="mt-1 break-words text-xl font-bold tabular-nums text-slate-900">
               {formatIDR(totalGroupBalance)}
             </p>
-            <p className="mt-1 text-xs leading-4 text-emerald-800">
+            <p className="mt-1 text-xs leading-5 text-slate-600">
               Combined balance of {balances.length} individual room folios.
             </p>
           </div>

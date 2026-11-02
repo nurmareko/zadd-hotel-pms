@@ -179,8 +179,13 @@ export default async function NewReservationPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-4 text-slate-900 md:px-6 md:py-5">
-
+    <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
+          <header className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">New Reservation</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Enter stay and guest details, select rooms, then review the reservation summary.
+            </p>
+          </header>
 
       <div className="min-w-0">
         <ReservationForm
