@@ -5,6 +5,7 @@ import {
   ReservationType,
 } from "@prisma/client";
 import { z } from "zod";
+import { checkInDepositMethods } from "@/lib/check-in/schema";
 
 function toUtcDateOnly(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -208,7 +209,32 @@ const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
   adults: true,
   children: true,
 })
-  .extend(UnifiedRoomFields)
+  .extend({
+    ...UnifiedRoomFields,
+    collectDepositNow: z.boolean().optional().default(false),
+    depositMethod: z.enum(checkInDepositMethods, {
+      error: "Select a deposit payment method",
+    }).optional(),
+    depositReference: z.string().trim()
+      .max(100, "Text must be at most 100 characters").optional(),
+  })
+  .superRefine((value, context) => {
+    if (!value.collectDepositNow) return;
+    if (!value.depositMethod) {
+      context.addIssue({
+        code: "custom",
+        path: ["depositMethod"],
+        message: "Select a deposit payment method",
+      });
+    }
+    if (value.depositMethod === "TRANSFER" && !value.depositReference) {
+      context.addIssue({
+        code: "custom",
+        path: ["depositReference"],
+        message: "A deposit reference is required for bank transfers",
+      });
+    }
+  })
   .refine((value) => value.departureDate > value.arrivalDate, {
     message: "Departure must be after arrival",
     path: ["departureDate"],
@@ -416,6 +442,9 @@ export type UnifiedReservationInput = Omit<
   CreateReservationInput,
   "roomTypeId" | "roomId" | "adults" | "children"
 > & {
+  collectDepositNow?: boolean;
+  depositMethod?: (typeof checkInDepositMethods)[number];
+  depositReference?: string;
   rooms: Array<{
     occupantName?: string;
     customRate?: string;

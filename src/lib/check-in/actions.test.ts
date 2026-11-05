@@ -63,6 +63,7 @@ vi.mock("@/lib/reservation-stay-fees", () => {
 
 import { ReservationStayFeeError } from "@/lib/reservation-stay-fees";
 import {
+  collectAdvanceReservationDeposit,
   collectCheckInDeposit,
   collectCheckInDepositForGroup,
   completeCheckIn,
@@ -580,6 +581,162 @@ describe("check-in server actions", () => {
         code: "DEPOSIT_RATE_UNAVAILABLE",
         error: CHECK_IN_FAILURE_MESSAGES.DEPOSIT_RATE_UNAVAILABLE,
       });
+    });
+  });
+
+  describe("collectAdvanceReservationDeposit", () => {
+    const input = { reservationId: 1, depositMethod: PaymentMethod.CASH };
+
+    function mockAdvanceTransaction(overrides: Record<string, unknown> = {}) {
+      const reservation = {
+        status: ReservationStatus.CONFIRMED,
+        depositStatus: DepositStatus.PENDING,
+        arrivalDate: FUTURE_DATE,
+        groupBookingId: "group-1",
+        folio: null,
+        reservationNights: [{ rateAmount: new Prisma.Decimal(500000) }],
+        ...overrides,
+      };
+      const tx = {
+        reservation: {
+          findUnique: vi.fn().mockResolvedValue(reservation),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        folio: { create: vi.fn().mockResolvedValue({ id: 10 }) },
+        payment: {
+          create: vi.fn().mockResolvedValue({
+            amount: new Prisma.Decimal(500000),
+            method: PaymentMethod.CASH,
+            reference: null,
+          }),
+        },
+      };
+      mocks.transaction.mockImplementation(async (callback) => callback(tx));
+      return tx;
+    }
+
+    it("collects a future deposit using the session operator and logs after commit", async () => {
+      const tx = mockAdvanceTransaction();
+      mocks.auth.mockResolvedValue({ user: { id: "42", role: "FO" } });
+      const result = await collectAdvanceReservationDeposit({ ...input, ...{ userId: 999 } });
+      expect(result).toEqual({
+        ok: true,
+        payment: { amount: "500000", method: PaymentMethod.CASH, reference: null },
+        alreadyCollected: false,
+      });
+      expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ receivedById: 42, purpose: "DEPOSIT", amount: new Prisma.Decimal(500000) }),
+      }));
+      expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+      expect(mocks.logActivity).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 42, action: "PAYMENT_RECORDED", reservationId: 1,
+                metadata: expect.objectContaining({ event: "DEPOSIT_COLLECTED", purpose: "DEPOSIT" }),
+      }));
+      expect(mocks.logActivity.mock.invocationCallOrder[0]).toBeGreaterThan(tx.reservation.updateMany.mock.invocationCallOrder[0]);
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/1");
+    });
+
+    it.each([
+      [null, "SESSION_EXPIRED"],
+      [{ user: { id: "1", role: "HK" } }, "FORBIDDEN"],
+    ])("rejects unauthorized sessions: %j", async (session, code) => {
+      mocks.auth.mockResolvedValue(session);
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: false, code });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [{ ...input, reservationId: 0 }, "reservationId"],
+      [{ ...input, depositMethod: "INVALID" }, "depositMethod"],
+      [{ ...input, depositMethod: PaymentMethod.TRANSFER }, "depositReference"],
+      [{ ...input, depositMethod: PaymentMethod.TRANSFER, depositReference: "   " }, "depositReference"],
+    ])("validates input before collection: %j", async (invalid, field) => {
+      expect(await collectAdvanceReservationDeposit(invalid)).toMatchObject({ ok: false, code: "INVALID_INPUT", field });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+
+    it("normalizes a valid transfer reference", async () => {
+      const tx = mockAdvanceTransaction();
+      await collectAdvanceReservationDeposit({ ...input, depositMethod: PaymentMethod.TRANSFER, depositReference: " REF-001 " });
+      expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ method: PaymentMethod.TRANSFER, reference: "REF-001" }),
+      }));
+    });
+
+    it.each([
+      [{ status: ReservationStatus.CANCELLED }, "DEPOSIT_NOT_ELIGIBLE"],
+      [{ reservationNights: [] }, "DEPOSIT_RATE_UNAVAILABLE"],
+      [{ reservationNights: [{ rateAmount: new Prisma.Decimal(0) }] }, "DEPOSIT_RATE_UNAVAILABLE"],
+      [{ depositStatus: DepositStatus.COLLECTED }, "DEPOSIT_STATE_INCONSISTENT"],
+      [{ folio: { id: 10, payments: [{ amount: new Prisma.Decimal(500000) }] } }, "DEPOSIT_STATE_INCONSISTENT"],
+    ])("preserves transaction guards: %j", async (overrides, code) => {
+      const tx = mockAdvanceTransaction(overrides);
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: false, code });
+      expect(tx.payment.create).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+    });
+
+    it("preserves the conditional-write conflict guard", async () => {
+      const tx = mockAdvanceTransaction();
+      tx.reservation.updateMany.mockResolvedValue({ count: 0 });
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: false, code: "DEPOSIT_CONFLICT" });
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+    });
+
+    it("returns idempotent future success without another payment or activity entry", async () => {
+      const tx = mockAdvanceTransaction({
+        depositStatus: DepositStatus.COLLECTED,
+        folio: { id: 10, payments: [{ amount: new Prisma.Decimal(500000), method: PaymentMethod.CASH, reference: null }] },
+      });
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: true, alreadyCollected: true });
+      expect(tx.payment.create).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+    });
+
+    it("keeps success truthful when post-commit logging fails", async () => {
+      mockAdvanceTransaction();
+      mocks.logActivity.mockRejectedValueOnce(new Error("Log unavailable"));
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: true, alreadyCollected: false });
+      expect(mocks.transaction).toHaveBeenCalledTimes(1);
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/1");
+    });
+
+    it("does not allow transport options to bypass the ordinary arrival gate", async () => {
+      const tx = mockAdvanceTransaction();
+      const result = await collectCheckInDeposit(createDepositFormData({ allowPreArrival: "true" }));
+      expect(result).toMatchObject({ ok: false, code: "ARRIVAL_NOT_DUE" });
+      expect(tx.payment.create).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+    });
+
+    it.each(["P2002", "P2034"])("preserves retries for %s and logs only once", async (code) => {
+      const tx = mockAdvanceTransaction();
+      mocks.transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError(
+        "Retry transaction", { code, clientVersion: "6.0.0" },
+      ));
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: true, alreadyCollected: false });
+      expect(mocks.transaction).toHaveBeenCalledTimes(2);
+      expect(tx.payment.create).toHaveBeenCalledTimes(1);
+      expect(mocks.logActivity).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns conflict without logging when serialization retries are exhausted", async () => {
+      mockAdvanceTransaction();
+      const error = new Prisma.PrismaClientKnownRequestError(
+        "Serialization conflict", { code: "P2034", clientVersion: "6.0.0" },
+      );
+      mocks.transaction.mockRejectedValueOnce(error).mockRejectedValueOnce(error).mockRejectedValueOnce(error);
+      expect(await collectAdvanceReservationDeposit(input)).toMatchObject({ ok: false, code: "DEPOSIT_CONFLICT" });
+      expect(mocks.transaction).toHaveBeenCalledTimes(3);
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("still rejects future group deposits", async () => {
+      const tx = mockAdvanceTransaction();
+      expect(await collectCheckInDepositForGroup({ ...input, groupBookingId: "group-1" })).toMatchObject({ ok: false, code: "ARRIVAL_NOT_DUE" });
+      expect(tx.payment.create).not.toHaveBeenCalled();
     });
   });
 

@@ -16,6 +16,7 @@ import type { Session } from "next-auth";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { collectAdvanceReservationDeposit } from "@/lib/check-in/actions";
 import { cancelReservation } from "@/lib/reservations/actions";
 
 export { cancelReservation };
@@ -1044,6 +1045,11 @@ export async function createReservation(
       data: {
         reservationIds: number[];
         reservationNumbers: string[];
+        depositCollection?: {
+          collected: number;
+          total: number;
+          failures: Array<{ reservationId: number; reservationNo: string; message: string }>;
+        };
         guestName: string;
         groupBookingId: string | null;
         redirectUrl: string;
@@ -1132,6 +1138,31 @@ export async function createReservation(
     return result;
   }
 
+  const depositCollection = parsed.data.collectDepositNow
+    ? { collected: 0, total: result.reservationIds.length, failures: [] as Array<{ reservationId: number; reservationNo: string; message: string }> }
+    : undefined;
+  if (depositCollection && parsed.data.depositMethod) {
+    for (const [index, reservationId] of result.reservationIds.entries()) {
+      let message: string | undefined;
+      try {
+        const deposit = await collectAdvanceReservationDeposit({
+          reservationId,
+          depositMethod: parsed.data.depositMethod,
+          depositReference: parsed.data.depositReference,
+        });
+        if (deposit.ok) depositCollection.collected += 1;
+        else message = deposit.error;
+      } catch (error) {
+        unstable_rethrow(error);
+        logUnexpectedReservationAction("create", error);
+        message = "Deposit collection could not be confirmed. Review payments before collecting again.";
+      }
+      if (message) {
+        depositCollection.failures.push({ reservationId, reservationNo: result.reservationNumbers[index], message });
+      }
+    }
+  }
+
   const arrival = formatISO(parsed.data.arrivalDate, { representation: "date" });
   const origin =
     parseFoReservasiView(typeof originView === "string" ? originView : undefined) ??
@@ -1170,6 +1201,7 @@ export async function createReservation(
     data: {
       reservationIds: result.reservationIds,
       reservationNumbers: result.reservationNumbers,
+      ...(depositCollection ? { depositCollection } : {}),
       guestName: parsed.data.fullName,
       groupBookingId: result.groupBookingId,
       redirectUrl: reservationCreateRedirectPath(origin, arrival),

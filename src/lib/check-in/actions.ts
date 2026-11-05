@@ -685,6 +685,7 @@ async function runDepositCollectionTransaction(
   input: DepositCollectionValues,
   userId: number,
   expectedGroupBookingId?: string,
+  options?: { allowPreArrival?: boolean },
 ) {
   const now = new Date();
   const folioNo = await nextFolioNumber(now);
@@ -748,7 +749,10 @@ async function runDepositCollectionTransaction(
       }
 
       const { today } = todayDateOnly();
-      if (dateOnlyBoundary(reservation.arrivalDate) > today) {
+      if (
+        !options?.allowPreArrival &&
+        dateOnlyBoundary(reservation.arrivalDate) > today
+      ) {
         throw new CheckInDomainError("ARRIVAL_NOT_DUE");
       }
 
@@ -757,7 +761,7 @@ async function runDepositCollectionTransaction(
         throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
-      if (!firstNight.rateAmount.isPositive()) {
+      if (!firstNight.rateAmount.greaterThan(0)) {
         throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
@@ -817,6 +821,7 @@ async function collectValidatedDeposit(
   input: DepositCollectionValues,
   userId: number,
   expectedGroupBookingId?: string,
+  options?: { allowPreArrival?: boolean },
 ): Promise<CollectDepositResult> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -824,6 +829,7 @@ async function collectValidatedDeposit(
         input,
         userId,
         expectedGroupBookingId,
+        options,
       );
 
       return {
@@ -865,6 +871,68 @@ async function collectValidatedDeposit(
   }
 
   return checkInFailure("DEPOSIT_UNEXPECTED");
+}
+
+export async function collectAdvanceReservationDeposit(input: {
+  reservationId: number;
+  depositMethod: string;
+  depositReference?: string;
+}): Promise<CollectDepositResult> {
+  const session = await auth();
+  const authFailure = checkInAuthorizationFailure(session);
+  if (authFailure || !session?.user) {
+    return authFailure ?? checkInFailure("SESSION_EXPIRED");
+  }
+
+  const parsed = DepositCollectionSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field =
+      typeof issue?.path[0] === "string" ? issue.path[0] : undefined;
+    return checkInFailure("INVALID_INPUT", {
+      field,
+      message: CHECK_IN_FAILURE_MESSAGES.INVALID_INPUT,
+    });
+  }
+
+  const userId = Number(session.user.id);
+  const result = await collectValidatedDeposit(parsed.data, userId, undefined, {
+    allowPreArrival: true,
+  });
+  if (!result.ok) {
+    return result;
+  }
+
+  await runPostCommitSideEffects(
+    [
+      {
+        name: "logActivity",
+        run: async () => {
+          if (!result.alreadyCollected) {
+            await logActivity({
+              userId,
+              action: "PAYMENT_RECORDED",
+              reservationId: parsed.data.reservationId,
+              metadata: { event: "DEPOSIT_COLLECTED", purpose: "DEPOSIT", ...result.payment },
+            });
+          }
+        },
+      },
+      {
+        name: "revalidate:reservation",
+        run: () =>
+          revalidatePath(`/app/fo/reservasi/${parsed.data.reservationId}`),
+      },
+    ],
+    {
+      action: "collectAdvanceReservationDeposit",
+      stage: "post-commit",
+      reservationId: parsed.data.reservationId,
+      committed: true,
+    },
+  );
+
+  return result;
 }
 
 export async function collectCheckInDepositForGroup(input: {

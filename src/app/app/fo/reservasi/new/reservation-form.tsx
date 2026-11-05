@@ -258,6 +258,8 @@ function unifiedDefaultValues(
     reservationType: defaultValues.reservationType,
     arrangementType: defaultValues.arrangementType,
     notes: defaultValues.notes,
+    collectDepositNow: false,
+    depositReference: "",
     rooms: [
       {
         roomTypeId: defaultValues.roomTypeId,
@@ -324,6 +326,8 @@ export function ReservationForm({
   }));
   const hasMountedRoomValidation = useRef(false);
 
+  const [isCreated, setIsCreated] = useState(false);
+
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
 
@@ -349,6 +353,8 @@ export function ReservationForm({
     defaultValues: unifiedDefaultValues(defaultValues),
   });
 
+  const collectDepositNow = useWatch({ control: form.control, name: "collectDepositNow" });
+  const depositMethod = useWatch({ control: form.control, name: "depositMethod" });
   const guestId = useWatch({ control: form.control, name: "guestId" });
   const roomsFieldArray = useFieldArray({
     control: form.control,
@@ -600,7 +606,7 @@ export function ReservationForm({
   }, [form, isViewMode, watchedRoomRows]);
 
   async function onSubmit() {
-    if (isViewMode) {
+    if (isViewMode || isCreated) {
       return;
     }
 
@@ -633,11 +639,44 @@ export function ReservationForm({
           reservationNumbers.length > 1
             ? `${reservationNumbers.length} reservations (${reservationNumbers.join(", ")})`
             : `Reservation ${reservationNumbers[0]}`;
-        toast.success(`${resLabel} created for ${guestName}`);
+
+        setIsCreated(true);
+        // The action creates reservations before attempting deposit collection.
+        const { depositCollection } = result.data;
+        if (depositCollection && (depositCollection.failures.length > 0 || depositCollection.collected < depositCollection.total)) {
+          toast.warning(`${resLabel} created; advance deposit collection needs attention`, {
+            duration: Infinity,
+            closeButton: true,
+            description: (
+              <div className="space-y-2">
+                <p>The reservations have been saved. {depositCollection.collected} of {depositCollection.total} deposits collected. Do not recreate these reservations. Open each affected reservation to review payments and collect the outstanding deposit.</p>
+                <ul className="space-y-1">
+                  {depositCollection.failures.map((failure) => (
+                    <li key={failure.reservationId}>
+                      <Link className="font-medium underline" href={`/app/fo/reservasi/${failure.reservationId}`}>
+                        {failure.reservationNo}
+                      </Link>: {failure.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ),
+            action: {
+              label: "Review reservations",
+              onClick: () => router.push(result.data.redirectUrl),
+            },
+          });
+        } else {
+          toast.success(`${resLabel} created for ${guestName}${depositCollection ? `; all ${depositCollection.total} advance deposits collected` : ""}`);
+        }
       } else {
         toast.success("Reservation changes saved");
       }
-      router.push(result.data.redirectUrl);
+      if (isCreateMode) {
+        router.replace(result.data.redirectUrl);
+      } else {
+        router.push(result.data.redirectUrl);
+      }
       return;
     }
 
@@ -661,7 +700,8 @@ export function ReservationForm({
   }
 
   function onInvalidSubmit(errors: FieldErrors<UnifiedReservationInput>) {
-    const firstErrorField = firstReservationErrorField(errors);
+    const firstErrorField = firstReservationErrorField(errors)
+      ?? (errors.depositMethod ? "depositMethod" : errors.depositReference ? "depositReference" : undefined);
     if (firstErrorField) {
       form.setFocus(firstErrorField as FieldPath<UnifiedReservationInput>);
     }
@@ -679,10 +719,10 @@ export function ReservationForm({
         <>
           <Button
             type="submit"
-            disabled={isSubmitting || isQuotePending || Boolean(quoteError)}
+            disabled={isCreated || isSubmitting || isQuotePending || Boolean(quoteError)}
             className="desktop:lg:h-11! desktop:lg:text-sm disabled:opacity-70"
           >
-            {isSubmitting ? "Saving..." : submitLabel}
+            {isCreated ? "Reservation Created" : isSubmitting ? "Saving..." : submitLabel}
           </Button>
           <Link
             href={returnHref}
@@ -1591,6 +1631,98 @@ export function ReservationForm({
                 ) : null}
               </div>
                 </section>
+
+              {isCreateMode ? (
+                <section className={cardClassName} aria-labelledby="advance-deposit-title" aria-describedby="advance-deposit-help">
+                  <div className={cardHeaderClassName}>
+                    <div>
+                      <h2 id="advance-deposit-title" className={sectionTitleClassName}>Advance Deposit</h2>
+                      <p id="advance-deposit-help" className="mt-1 text-xs text-slate-500">
+                        The deposit is the first-night room rate. For multiple rooms, the total is the sum of each room’s first-night deposit, collected separately for each reservation.
+                      </p>
+                    </div>
+                    <span className="num text-sm font-bold text-slate-900" aria-live="polite">
+                      {summaryAmountDisplay(resolvedDeposits.length === watchedRoomRows.length ? totalDeposit : null)}
+                    </span>
+                  </div>
+                  <div className={`${cardContentClassName} space-y-4`}>
+                    <FormField
+                      control={form.control}
+                      name="collectDepositNow"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex min-h-11 items-center gap-3">
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                name={field.name}
+                                ref={field.ref}
+                                checked={field.value ?? false}
+                                onBlur={field.onBlur}
+                                onChange={(event) => field.onChange(event.target.checked)}
+
+                                className="size-4 accent-emerald-600"
+                                disabled={isSubmitting || isCreated}
+                              />
+                            </FormControl>
+                            <FormLabel>Collect advance deposit now</FormLabel>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {collectDepositNow ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="depositMethod"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Payment Method <RequiredMark /></FormLabel>
+                              <FormControl>
+                                <select
+                                  {...field}
+                                  value={field.value ?? ""}
+                                  onChange={(event) => field.onChange(event.target.value || undefined)}
+                                  className={selectClassName}
+                                  aria-required="true"
+                                  disabled={isSubmitting || isCreated}
+                                >
+                                  <option value="">Select a payment method</option>
+                                  <option value="CASH">Cash</option>
+                                  <option value="TRANSFER">Bank Transfer</option>
+                                  <option value="CARD">Payment Card</option>
+                                </select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="depositReference"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Payment Reference {depositMethod === "TRANSFER" ? <RequiredMark /> : "(optional)"}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value ?? ""}
+                                  className={fieldClassName}
+                                  maxLength={100}
+                                  aria-required={depositMethod === "TRANSFER"}
+                                  disabled={isSubmitting || isCreated}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
 
               {isCreateMode ? (
                   <section className={cardClassName} aria-labelledby="meal-inclusion-title">

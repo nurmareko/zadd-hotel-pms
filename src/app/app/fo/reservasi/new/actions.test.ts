@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  collectAdvanceDeposit: vi.fn(),
   articleFindMany: vi.fn(),
   cookieSet: vi.fn(),
   cookies: vi.fn(),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
+vi.mock("@/lib/check-in/actions", () => ({ collectAdvanceReservationDeposit: mocks.collectAdvanceDeposit }));
 vi.mock("@/lib/activity-log", () => ({ logActivity: mocks.logActivity }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -50,6 +52,8 @@ import {
   getReservationQuote,
   updateReservation,
 } from "./actions";
+
+import { UnifiedReservationSchema } from "./schema";
 
 const validCreateInput = {
   fullName: "Tamu Uji",
@@ -155,6 +159,24 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("advance deposit validation", () => {
+  it("defaults to no collection", () => {
+    expect(UnifiedReservationSchema.parse(validCreateInput).collectDepositNow).toBe(false);
+  });
+  it.each([
+    { collectDepositNow: true },
+    { collectDepositNow: true, depositMethod: "QRIS" },
+    { collectDepositNow: true, depositMethod: "TRANSFER", depositReference: "  " },
+  ])("rejects invalid deposit input %j", async (deposit) => {
+    expect(UnifiedReservationSchema.safeParse({ ...validCreateInput, ...deposit }).success).toBe(false);
+    expect(await createReservation({ ...validCreateInput, ...deposit })).toMatchObject({ ok: false });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it.each(["CASH", "CARD", "TRANSFER"])("accepts %s with a reference", (depositMethod) => {
+    expect(UnifiedReservationSchema.parse({ ...validCreateInput, collectDepositNow: true, depositMethod, depositReference: "  REF  " })).toMatchObject({ depositReference: "REF" });
+  });
+});
+
 describe("per-room custom rates", () => {
   function standardSchedule(rates = [500_000, 600_000]) {
     return rates.map((rate, index) => ({
@@ -183,6 +205,37 @@ describe("per-room custom rates", () => {
     runTransactionWith(tx);
     return tx;
   }
+
+  it.each([false, true])("collects an advance deposit only when opted in (%s)", async (collectDepositNow) => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    creationTransaction();
+    mocks.collectAdvanceDeposit.mockResolvedValue({ ok: true });
+    const result = await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], roomId: null }], collectDepositNow, depositMethod: "CASH" });
+    expect(result).toMatchObject({ ok: true });
+    expect(mocks.collectAdvanceDeposit).toHaveBeenCalledTimes(collectDepositNow ? 1 : 0);
+    if (collectDepositNow) {
+      expect(result).toMatchObject({ data: { depositCollection: { collected: 1, total: 1, failures: [] } } });
+      expect(mocks.collectAdvanceDeposit).toHaveBeenCalledWith({ reservationId: 77, depositMethod: "CASH", depositReference: undefined });
+    }
+  });
+
+  it("preserves saved multi-room reservations when a deposit fails", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    creationTransaction();
+    mocks.collectAdvanceDeposit.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: false, error: "Deposit unavailable" });
+    const room = { ...validCreateInput.rooms[0], roomId: null };
+    const result = await createReservation({ ...validCreateInput, rooms: [room, room], collectDepositNow: true, depositMethod: "TRANSFER", depositReference: "BANK-123" });
+    expect(result).toMatchObject({ ok: true, data: { reservationIds: [77, 78], depositCollection: { collected: 1, total: 2, failures: [{ reservationId: 78, message: "Deposit unavailable" }] } } });
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports uncertain collection without failing an already saved reservation", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    creationTransaction();
+    mocks.collectAdvanceDeposit.mockRejectedValueOnce(new Error("Connection lost"));
+    const result = await createReservation({ ...validCreateInput, rooms: [{ ...validCreateInput.rooms[0], roomId: null }], collectDepositNow: true, depositMethod: "CARD" });
+    expect(result).toMatchObject({ ok: true, data: { depositCollection: { collected: 0, failures: [{ reservationId: 77, message: expect.stringContaining("Review payments") }] } } });
+  });
 
   it.each([undefined, "", "   ", "0", "450000", "500000", "100000000"])("quotes and persists custom rate %j consistently across variable nights", async (customRate) => {
     const schedule = standardSchedule();
