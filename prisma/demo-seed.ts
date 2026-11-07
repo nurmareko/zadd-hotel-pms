@@ -30,6 +30,8 @@ import { addDays, format, subHours, subMinutes } from "date-fns";
 import { AMENITY_INGREDIENT_MAP } from "../src/lib/housekeeping/amenities";
 import { MEAL_PLAN_DEFINITIONS } from "@/lib/arrangement-inclusions";
 import { computeFolioTotals } from "@/lib/folio-totals";
+import { buildGrcSnapshot, GRC_SNAPSHOT_SCHEMA_VERSION } from "@/lib/grc-snapshot";
+import { calculateGuestLaundryTotal, GuestLaundryMetadataSchema } from "@/lib/laundry/guest-schema";
 import { buildAuditStayChargeLines } from "@/lib/night-audit";
 import { createReservationNightSchedule } from "@/lib/reservation-night-schedule";
 import {
@@ -2124,6 +2126,84 @@ async function main() {
       throw new Error("Run the main Prisma seed first so hotel settings exist.");
     }
 
+    const signedReservations = await prisma.reservation.findMany({
+      where: { reservationNo: { in: ["DEMO-RSV-004", "DEMO-RSV-006"] } },
+      include: {
+        guest: { select: { fullName: true, idType: true, idNumber: true, phone: true, email: true, nationality: true } },
+        room: true,
+        roomType: true,
+        folio: true,
+        reservationNights: { orderBy: { date: "asc" } },
+      },
+    });
+    if (signedReservations.length !== 2) {
+      throw new Error("Missing demo reservations for signed GRCs.");
+    }
+    const signatureDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    for (const reservation of signedReservations) {
+      if (reservation.status !== ReservationStatus.CHECKED_IN || !reservation.folio) {
+        throw new Error(`Signed GRC fixture requires an in-house folio: ${reservation.reservationNo}.`);
+      }
+      const signedAt = reservation.arrivalDate;
+      const snapshot = buildGrcSnapshot({
+        reservation: { ...reservation, signedAt, signatureDataUrl },
+        hotelAddress: hotelSettings.address,
+        filledByName: frontOfficeUsers[0].fullName,
+        capturedAt: signedAt,
+      });
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { signedAt, signatureDataUrl, grcSnapshot: snapshot as unknown as Prisma.InputJsonValue, grcSnapshotVersion: GRC_SNAPSHOT_SCHEMA_VERSION },
+      });
+    }
+    console.log("✓ seeded 2 signed in-house GRC snapshots");
+
+    const laundryArticle = await prisma.article.findUniqueOrThrow({ where: { code: "LAUNDRY" } });
+    const laundrySeeds = [
+      { reservationNo: "DEMO-RSV-004", status: "RECEIVED", quantity: 1, minutesAgo: 20 },
+      { reservationNo: "DEMO-RSV-006", status: "WASHING", quantity: 2, minutesAgo: 90 },
+      { reservationNo: "DEMO-RSV-004", status: "DELIVERED", quantity: 3, minutesAgo: 180 },
+    ] as const;
+    await prisma.$transaction(async (tx) => {
+      await tx.activityLog.deleteMany({
+        where: { action: ActivityAction.FOLIO_CHARGE_POSTED, metadata: { path: ["seedTag"], equals: "guest-laundry-demo" } },
+      });
+      for (const seed of laundrySeeds) {
+        const reservation = signedReservations.find((item) => item.reservationNo === seed.reservationNo)!;
+        const folioId = reservation.folio!.id;
+        const description = `Demo guest laundry: ${seed.status}`;
+        const createdAt = subMinutes(new Date(), seed.minutesAgo);
+        const items = [{ articleId: laundryArticle.id, name: laundryArticle.name, quantity: seed.quantity, unitPrice: Number(laundryArticle.defaultPrice) }];
+        const metadata = GuestLaundryMetadataSchema.parse({
+          source: "GUEST_LAUNDRY",
+          status: seed.status,
+          settlementType: "CHARGE_TO_ROOM",
+          items,
+          amount: calculateGuestLaundryTotal(items),
+          ...(seed.status === "DELIVERED" ? {
+            deliveredAt: new Date().toISOString(),
+            deliveredById: housekeepingUser.id,
+            deliveryNotes: "Delivered to guest in room",
+          } : {}),
+        });
+        await tx.folioLineItem.deleteMany({ where: { folioId, articleId: laundryArticle.id, description } });
+        const line = await tx.folioLineItem.create({
+          data: { folioId, articleId: laundryArticle.id, description, quantity: seed.quantity, unitPrice: items[0].unitPrice, amount: metadata.amount, postedById: housekeepingUser.id, postedAt: createdAt },
+        });
+        await tx.activityLog.create({
+          data: {
+            action: ActivityAction.FOLIO_CHARGE_POSTED,
+            userId: housekeepingUser.id,
+            roomId: reservation.roomId,
+            reservationId: reservation.id,
+            createdAt,
+            metadata: { ...metadata, seedTag: "guest-laundry-demo", lineItemIds: [line.id], paymentId: null },
+          },
+        });
+      }
+    });
+    console.log("✓ seeded 3 guest laundry orders (RECEIVED, WASHING, DELIVERED) with folio charges");
+
     const seededHotelSettings = hotelSettings;
     let closedFolioCount = 0;
     let closedFolioLineItemCount = 0;
@@ -2357,6 +2437,7 @@ async function main() {
       guestCount,
       openedAt,
       closedAt,
+      kitchenStartedAt,
       paymentMethod,
       chargedFolioId,
       items,
@@ -2367,6 +2448,7 @@ async function main() {
       guestCount: number;
       openedAt: Date;
       closedAt?: Date;
+      kitchenStartedAt?: Date;
       paymentMethod?: PaymentMethod;
       chargedFolioId?: number;
       items: Array<{ code: string; quantity: number; notes?: string }>;
@@ -2411,6 +2493,7 @@ async function main() {
           waitedById: fbUser.id,
           openedAt,
           closedAt: closedAt ?? null,
+          kitchenStartedAt: kitchenStartedAt ?? null,
           items: {
             create: itemSeeds.map((item) => ({
               menuItemId: item.menuItemId,
@@ -2494,8 +2577,45 @@ async function main() {
       },
     });
 
+    const newOrder = await createFbOrder({
+      sequence: 4,
+      status: FBOrderStatus.OPEN,
+      tableNumber: "T4",
+      guestCount: 2,
+      openedAt: subMinutes(new Date(), 5),
+      items: [{ code: "NASI-GORENG", quantity: 2 }, { code: "TEA", quantity: 2 }],
+    });
+    const preparingOrder = await createFbOrder({
+      sequence: 5,
+      status: FBOrderStatus.OPEN,
+      tableNumber: "T1",
+      guestCount: 2,
+      openedAt: subMinutes(new Date(), 14),
+      kitchenStartedAt: subMinutes(new Date(), 10),
+      items: [{ code: "SATE-AYAM", quantity: 2 }, { code: "ORANGE-JUICE", quantity: 2 }],
+    });
+    const cardOrder = await createFbOrder({
+      sequence: 6,
+      status: FBOrderStatus.CLOSED,
+      tableNumber: "T5",
+      guestCount: 2,
+      openedAt: subHours(new Date(), 2),
+      closedAt: subMinutes(new Date(), 60),
+      paymentMethod: PaymentMethod.CARD,
+      items: [{ code: "MIE-GORENG", quantity: 2 }, { code: "COFFEE", quantity: 2 }],
+    });
+    await prisma.payment.create({
+      data: {
+        fbOrderId: cardOrder.id,
+        amount: cardOrder.total,
+        method: PaymentMethod.CARD,
+        reference: "DEMO-CARD-BCA",
+        receivedById: fbUser.id,
+        receivedAt: cardOrder.closedAt!,
+      },
+    });
     console.log(
-      `✓ seeded 3 F&B orders (${openOrder.orderNo}, ${cashOrder.orderNo}, ${roomChargeOrder.orderNo})`,
+      `✓ seeded 6 F&B orders (${openOrder.orderNo}, ${cashOrder.orderNo}, ${roomChargeOrder.orderNo}, ${newOrder.orderNo}, ${preparingOrder.orderNo}, ${cardOrder.orderNo})`,
     );
     console.log(
       `✓ charge-to-room linked ${roomChargeOrder.orderNo} to folio ${chargeToRoomFolio.folioNo}`,
@@ -2513,6 +2633,8 @@ async function main() {
         occupancyRate: 66.67,
         fbRevenue: 2750000,
         otherRevenue: 450000,
+        hkRevenue: 250000,
+        miscRevenue: 200000,
         checkInCount: 7,
         checkOutCount: 5,
         inHouseCount: 16,
@@ -2523,6 +2645,8 @@ async function main() {
         occupancyRate: 62.5,
         fbRevenue: 2100000,
         otherRevenue: 325000,
+        hkRevenue: 200000,
+        miscRevenue: 125000,
         checkInCount: 6,
         checkOutCount: 6,
         inHouseCount: 15,
@@ -2533,6 +2657,8 @@ async function main() {
         occupancyRate: 58.33,
         fbRevenue: 1850000,
         otherRevenue: 290000,
+        hkRevenue: 180000,
+        miscRevenue: 110000,
         checkInCount: 5,
         checkOutCount: 4,
         inHouseCount: 14,
@@ -2543,6 +2669,8 @@ async function main() {
         occupancyRate: 54.17,
         fbRevenue: 1650000,
         otherRevenue: 210000,
+        hkRevenue: 130000,
+        miscRevenue: 80000,
         checkInCount: 4,
         checkOutCount: 5,
         inHouseCount: 13,
@@ -2704,6 +2832,8 @@ async function main() {
             roomRevenue,
             fbRevenue,
             otherRevenue: audit.otherRevenue,
+            hkRevenue: audit.hkRevenue,
+            miscRevenue: audit.miscRevenue,
             totalRevenue,
             checkInCount: audit.checkInCount,
             checkOutCount: audit.checkOutCount,
