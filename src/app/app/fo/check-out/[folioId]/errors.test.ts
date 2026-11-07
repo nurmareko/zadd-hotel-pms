@@ -39,6 +39,8 @@ const STATIC_MESSAGES: Record<
     "The folio has been voided and cannot be used for check-out.",
   RESERVATION_NOT_CHECKED_IN:
     "The reservation is no longer checked in. Reload the page and check its current status.",
+  UNRESOLVED_FB_ORDER:
+    "This folio has unresolved F&B orders. Complete or void those orders before check-out.",
   BALANCE_ALREADY_SETTLED:
     "The outstanding balance is already settled. Reload the page to continue check-out.",
   PAYMENT_EXCEEDS_BALANCE:
