@@ -7,6 +7,7 @@ import type { Session } from "next-auth";
 
 import { auth } from "@/auth";
 import { logActivity } from "@/lib/activity-log";
+import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { FO_RESERVASI_VIEW_PATHS } from "@/lib/nav-preferences";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { cancelPendingReservationStayFees } from "@/lib/reservation-stay-fees";
@@ -17,7 +18,7 @@ import {
   type ReservationActionResult,
 } from "@/app/app/fo/reservasi/new/reservation-errors";
 
-type ReservationMutationAction = "create" | "edit" | "cancel";
+type ReservationMutationAction = "create" | "edit" | "cancel" | "no-show";
 
 type ReservationPostCommitSideEffect =
   | "activity-log"
@@ -55,6 +56,85 @@ function isSerializationConflict(error: unknown) {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2034" || error.code === "P2028")
   );
+}
+
+export async function markReservationNoShow(
+  reservationId: number,
+): Promise<ReservationActionResult> {
+  let session: Session | null;
+  try {
+    session = await auth();
+  } catch (error) {
+    unstable_rethrow(error);
+    logUnexpectedReservationAction("no-show", error);
+    return unexpectedReservationFailure("no-show");
+  }
+
+  const authorizationFailure = reservationAuthorizationFailure(session);
+  if (authorizationFailure) return authorizationFailure;
+  if (!Number.isInteger(reservationId) || reservationId <= 0) {
+    return reservationFailure("INVALID_RESERVATION_DATA");
+  }
+
+  let result: ReservationActionResult;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: reservationId },
+        select: { id: true, status: true, arrivalDate: true },
+      });
+      if (!reservation) return reservationFailure("RESERVATION_NOT_FOUND");
+      if (reservation.status !== ReservationStatus.CONFIRMED) {
+        return reservationFailure("INVALID_RESERVATION_DATA", {
+          message: "Only confirmed reservations can be marked as no-show.",
+        });
+      }
+      if (dateOnlyBoundary(reservation.arrivalDate) > todayDateOnly().today) {
+        return reservationFailure("INVALID_RESERVATION_DATA", {
+          message: "Reservation cannot be marked as no-show before the scheduled arrival date.",
+        });
+      }
+
+      // Advance-deposit folios and their payments must remain intact and open.
+      const updated = await tx.reservation.updateMany({
+        where: { id: reservationId, status: ReservationStatus.CONFIRMED },
+        data: { status: ReservationStatus.NO_SHOW, roomId: null },
+      });
+      if (updated.count !== 1) return reservationFailure("RESERVATION_CONFLICT");
+      await cancelPendingReservationStayFees(tx, reservationId);
+      return { ok: true as const };
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      ...TRANSACTION_OPTIONS,
+    });
+  } catch (error) {
+    unstable_rethrow(error);
+    if (isSerializationConflict(error)) {
+      return reservationFailure("RESERVATION_CONFLICT");
+    }
+    logUnexpectedReservationAction("no-show", error);
+    return unexpectedReservationFailure("no-show");
+  }
+  if (!result.ok) return result;
+
+  await attemptReservationPostCommitSideEffect("no-show", "activity-log", () =>
+    logActivity({
+      userId: Number(session?.user.id),
+      action: "RESERVATION_UPDATED",
+      reservationId,
+      metadata: { event: "NO_SHOW", previousStatus: "CONFIRMED" },
+    }),
+  );
+  await attemptReservationPostCommitSideEffect("no-show", "revalidate-list", () =>
+    revalidatePath(FO_RESERVASI_VIEW_PATHS.list),
+  );
+  await attemptReservationPostCommitSideEffect("no-show", "revalidate-detail", () =>
+    revalidatePath(`/app/fo/reservasi/${reservationId}`),
+  );
+  await attemptReservationPostCommitSideEffect("no-show", "revalidate-calendar", () =>
+    revalidatePath(FO_RESERVASI_VIEW_PATHS.kalender),
+  );
+  return { ok: true };
 }
 
 export async function cancelReservation(

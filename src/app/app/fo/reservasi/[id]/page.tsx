@@ -29,6 +29,7 @@ import { STAY_FEE_DEFINITIONS } from "@/lib/reservation-stay-fee-definitions";
 import { ReservationForm } from "../new/reservation-form";
 import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
+import { NoShowReservationDialog } from "./no-show-dialog";
 import {
   CheckInDetailAffordance,
   CheckInDetailPanel,
@@ -360,6 +361,10 @@ export default async function ReservationDetailPage({
   const canCancel =
     formMode === "view" &&
     reservation.status === ReservationStatus.CONFIRMED;
+  const canMarkNoShow =
+    formMode === "view" &&
+    reservation.status === ReservationStatus.CONFIRMED &&
+    dateOnlyBoundary(reservation.arrivalDate) <= today;
   const canRequestCleaning =
     formMode === "view" &&
     reservation.status === ReservationStatus.CHECKED_IN;
@@ -552,6 +557,13 @@ export default async function ReservationDetailPage({
                     reservationNo={reservation.reservationNo}
                   />
                 </div>
+              ) : null}
+              {canMarkNoShow ? (
+                <NoShowReservationDialog
+                  reservationId={reservation.id}
+                  reservationNo={reservation.reservationNo}
+                  hasDeposit={reservation.depositStatus === DepositStatus.COLLECTED}
+                />
               ) : null}
               {canExtendStay ? (
                 <ExtendStayDialog

@@ -86,6 +86,7 @@ const RESERVATION_FAILURE_MESSAGES: Record<ReservationFailureCode, string> = {
 };
 
 const UNEXPECTED_OPERATION_MESSAGES = {
+  "no-show": "Unable to mark the reservation as no-show. Please try again.",
   create: "Unable to create the reservation. Please try again.",
   edit: "Unable to save reservation changes. Please try again.",
   quote: "Unable to calculate the rate summary. Please try again.",
