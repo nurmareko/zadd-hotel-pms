@@ -1,4 +1,4 @@
-import type { DepositStatus, ReservationStatus } from "@prisma/client";
+import type { DepositStatus, ReservationStatus, ReservationType } from "@prisma/client";
 import type { CSSProperties, ReactNode } from "react";
 
 import {
@@ -44,6 +44,19 @@ export function BookingStatusBadge({
       pipClassName="bg-status-od-pip"
     />
   );
+}
+
+const reservationTypeChips: Record<ReservationType, { label: string; className: string }> = {
+  INDIVIDUAL: { label: "Individual", className: "border-slate-200 bg-slate-100 text-slate-700" },
+  COMPANY: { label: "Corporate", className: "border-indigo-200 bg-indigo-50 text-indigo-700" },
+  GOVERNMENT: { label: "Government", className: "border-violet-200 bg-violet-50 text-violet-700" },
+  OTA: { label: "OTA", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  WALK_IN: { label: "Walk-in", className: "border-amber-200 bg-amber-50 text-amber-800" },
+};
+
+export function ReservationTypeBadge({ type }: { type: ReservationType }) {
+  const chip = reservationTypeChips[type];
+  return <StatusBadge label={chip.label} className={`${chip.className} normal-case tracking-normal`} showPip={false} />;
 }
 
 type StatusBadgeSize = "sm" | "md";

@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReservationStatus } from "@prisma/client";
 import { Download, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +22,7 @@ const presetOptions: Array<{ value?: ReservationListPreset; label: string }> = [
 type ReservationFiltersProps = {
   filters: ReservationListFilters;
   resultCount: number;
+    roomTypes: Array<{ id: number; code: string; name: string }>;
 };
 
 
@@ -37,9 +40,10 @@ const fieldClass =
 export function ReservationFilters({
   filters,
   resultCount,
+  roomTypes,
 }: ReservationFiltersProps) {
   const hasActiveFilters =
-    filters.q || filters.status || (filters.depositStatus && filters.depositStatus !== "ALL") || filters.checkIn || filters.checkOut || filters.preset || filters.sort === "arrival";
+    (filters.reservationType && filters.reservationType !== "ALL") || (filters.roomTypeId && filters.roomTypeId !== "ALL") || filters.q || filters.status || (filters.depositStatus && filters.depositStatus !== "ALL") || filters.checkIn || filters.checkOut || filters.preset || filters.sort === "arrival";
   const exportQuery = buildExportQuery(filters);
   const exportHref = `/app/fo/reservasi/export${exportQuery ? `?${exportQuery}` : ""}`;
 
@@ -52,7 +56,7 @@ export function ReservationFilters({
     >
       <nav aria-label="Reservation quick filters" className="flex w-full flex-wrap gap-2">
         {presetOptions.map((option) => {
-          const query = buildExportQuery({ page: 1, q: filters.q, preset: option.value });
+          const query = buildExportQuery({ page: 1, q: filters.q, reservationType: filters.reservationType, roomTypeId: filters.roomTypeId, preset: option.value });
           const active = filters.preset === option.value;
           return (
             <Link
@@ -66,6 +70,7 @@ export function ReservationFilters({
           );
         })}
       </nav>
+      <input type="hidden" name="page" value="1" />
       {filters.preset ? <input type="hidden" name="preset" value={filters.preset} /> : null}
       <div className="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="min-w-0 sm:col-span-2">
@@ -124,6 +129,44 @@ export function ReservationFilters({
             <option value="ALL">All Deposit Statuses</option>
             <option value="COLLECTED">Guaranteed (Collected)</option>
             <option value="PENDING">Tentative (Pending)</option>
+          </select>
+        </div>
+
+        <div className="min-w-0">
+          <label htmlFor="filter-reservation-type" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Reservation Type
+          </label>
+          <select
+            id="filter-reservation-type"
+            name="reservationType"
+            defaultValue={filters.reservationType ?? "ALL"}
+            onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            className={fieldClass}
+          >
+            <option value="ALL">All Reservation Types</option>
+            <option value="INDIVIDUAL">Individual</option>
+            <option value="COMPANY">Corporate</option>
+            <option value="GOVERNMENT">Government</option>
+            <option value="OTA">OTA</option>
+            <option value="WALK_IN">Walk-in</option>
+          </select>
+        </div>
+
+        <div className="min-w-0">
+          <label htmlFor="filter-room-type" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Room Type
+          </label>
+          <select
+            id="filter-room-type"
+            name="roomTypeId"
+            defaultValue={filters.roomTypeId ?? "ALL"}
+            onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            className={fieldClass}
+          >
+            <option value="ALL">All Room Types</option>
+            {roomTypes.map((roomType) => (
+              <option key={roomType.id} value={roomType.id}>{roomType.name}</option>
+            ))}
           </select>
         </div>
 

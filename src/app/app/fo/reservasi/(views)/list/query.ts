@@ -1,4 +1,4 @@
-import { DepositStatus, Prisma, ReservationStatus } from "@prisma/client";
+import { DepositStatus, Prisma, ReservationStatus, ReservationType } from "@prisma/client";
 
 import { hotelTodayDateOnly, isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 
@@ -10,6 +10,8 @@ export type ReservationListFilters = {
   q?: string;
   status?: ReservationStatus | "ALL" | "";
   depositStatus?: DepositStatus | "ALL";
+  reservationType?: ReservationType | "ALL";
+  roomTypeId?: number | "ALL";
   checkIn?: string;
   checkOut?: string;
   preset?: ReservationListPreset;
@@ -28,6 +30,8 @@ export function buildExportQuery(filters: ReservationListFilters): string {
   if (filters.q) query.set("q", filters.q);
   if (filters.status) query.set("status", filters.status);
   if (filters.depositStatus) query.set("depositStatus", filters.depositStatus);
+  if (filters.reservationType) query.set("reservationType", filters.reservationType);
+  if (filters.roomTypeId !== undefined) query.set("roomTypeId", String(filters.roomTypeId));
   if (filters.checkIn) query.set("checkIn", filters.checkIn);
   if (filters.checkOut) query.set("checkOut", filters.checkOut);
   if (filters.preset) query.set("preset", filters.preset);
@@ -48,6 +52,9 @@ export function parseReservationListParams(
     Array.isArray(value) ? value[0] : value;
   const status = first(searchParams.status)?.toUpperCase();
   const depositStatus = first(searchParams.depositStatus)?.toUpperCase();
+  const reservationType = (first(searchParams.reservationType) ?? first(searchParams.type))?.toUpperCase();
+  const rawRoomTypeId = first(searchParams.roomTypeId);
+  const roomTypeId = rawRoomTypeId && /^\d+$/.test(rawRoomTypeId) ? Number(rawRoomTypeId) : NaN;
   const rawPreset = first(searchParams.preset);
   const preset = VALID_PRESETS.includes(rawPreset as ReservationListPreset)
     ? rawPreset as ReservationListPreset
@@ -67,6 +74,17 @@ export function parseReservationListParams(
       ? "ALL"
       : Object.values(DepositStatus).includes(depositStatus as DepositStatus)
         ? (depositStatus as DepositStatus)
+        : undefined,
+    reservationType: reservationType === "ALL"
+      ? "ALL"
+      : Object.values(ReservationType).includes(reservationType as ReservationType)
+        ? (reservationType as ReservationType)
+        : undefined,
+    roomTypeId: rawRoomTypeId === "ALL"
+      ? "ALL"
+      // Prisma Int maps to a signed 32-bit PostgreSQL integer.
+      : Number.isSafeInteger(roomTypeId) && roomTypeId > 0 && roomTypeId <= 2147483647
+        ? roomTypeId
         : undefined,
     checkIn: first(searchParams.checkIn)?.trim(),
     checkOut: first(searchParams.checkOut)?.trim(),
@@ -117,6 +135,13 @@ export function buildReservationListWhere(
 
   if (filters.depositStatus && filters.depositStatus !== "ALL") {
     where.depositStatus = filters.depositStatus;
+  }
+
+  if (filters.reservationType && filters.reservationType !== "ALL") {
+    where.reservationType = filters.reservationType;
+  }
+  if (filters.roomTypeId !== undefined && filters.roomTypeId !== "ALL") {
+    where.roomTypeId = filters.roomTypeId;
   }
 
   return where;

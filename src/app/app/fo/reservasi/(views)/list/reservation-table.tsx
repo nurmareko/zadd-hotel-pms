@@ -1,8 +1,9 @@
-import type { DepositStatus, ReservationStatus } from "@prisma/client";
+import type { DepositStatus, ReservationStatus, ReservationType } from "@prisma/client";
+import { differenceInCalendarDays } from "date-fns";
 import { CalendarX } from "lucide-react";
 import Link from "next/link";
 
-import { BookingStatusBadge } from "@/components/status-badge";
+import { BookingStatusBadge, ReservationTypeBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -17,6 +18,9 @@ import { ClickableReservationRow } from "./clickable-reservation-row";
 export type ReservationRow = {
   id: number;
   reservationNo: string;
+  reservationType: ReservationType;
+  roomTypeCode: string;
+  roomTypeName: string;
   guestName: string;
   arrivalDate: Date;
   departureDate: Date;
@@ -44,7 +48,7 @@ type ReservationTableProps = {
   groupByArrival?: boolean;
 };
 
-const COLUMN_COUNT = 10;
+const COLUMN_COUNT = 9;
 
 
 function occupantsLabel(adults: number, children: number) {
@@ -91,34 +95,31 @@ export function ReservationTable({ groups, groupByArrival = true }: ReservationT
         <thead>
           <tr>
             <th className={headerCellClass} scope="col">
-              Status
-            </th>
-            <th className={headerCellClass} scope="col">
-              Guest name
-            </th>
-            <th className={headerCellClass} scope="col">
               Reference
             </th>
             <th className={headerCellClass} scope="col">
-              Guests
+              Reservation Type
             </th>
             <th className={headerCellClass} scope="col">
-              Check-in
-            </th>
-            <th className={headerCellClass} scope="col">
-              Check-out
-            </th>
-            <th className={headerCellClass} scope="col">
-              Created
+              Guest Name
             </th>
             <th className={headerCellClass} scope="col">
               Room
+            </th>
+            <th className={headerCellClass} scope="col">
+              Room Type
+            </th>
+            <th className={headerCellClass} scope="col">
+              Check-in / Check-out
             </th>
             <th className={numericHeaderCellClass} scope="col">
               Total (Rp)
             </th>
             <th className={numericHeaderCellClass} scope="col">
               Balance Due (Rp)
+            </th>
+            <th className={headerCellClass} scope="col">
+              Status
             </th>
           </tr>
         </thead>
@@ -149,25 +150,21 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
       </tr> : null}
       {group.rows.map((row) => {
         const href = `/app/fo/reservasi/${row.id}`;
+        const nights = differenceInCalendarDays(row.departureDate, row.arrivalDate);
 
         return (
           <ClickableReservationRow key={row.id} href={href}>
-            <td className="border-b border-slate-100 px-4 py-3">
-              <BookingStatusBadge status={row.status} depositStatus={row.depositStatus} />
-            </td>
-            <td className="border-b border-slate-100 p-0">
-              <Link
-                href={href}
-                aria-label={`Open reservation ${row.reservationNo} for ${row.guestName}`}
-                className="flex min-h-11 items-center px-4 py-3 font-semibold text-slate-900 outline-none transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500"
-              >
-                {row.guestName}
-              </Link>
-            </td>
+
             <td className="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">
               <div className="flex flex-col gap-1">
-                <span>{row.reservationNo}</span>
-                {row.groupBookingId && row.groupRoomCount ? (
+                <Link
+                  href={href}
+                  aria-label={`Open reservation ${row.reservationNo} for ${row.guestName}`}
+                  className="inline-flex min-h-11 items-center rounded-sm hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {row.reservationNo}
+                </Link>
+                {row.groupBookingId ? (
                   <Link
                     href={`/app/fo/reservasi/grup/${row.groupBookingId}`}
                     className="inline-flex w-fit items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-900"
@@ -177,17 +174,12 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
                 ) : null}
               </div>
             </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
-              {occupantsLabel(row.adults, row.children)}
+            <td className="border-b border-slate-100 px-4 py-3">
+              <ReservationTypeBadge type={row.reservationType} />
             </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
-              {formatDateID(row.arrivalDate)}
-            </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
-              {formatDateID(row.departureDate)}
-            </td>
-            <td className="border-b border-slate-100 px-4 py-3 text-slate-500">
-              {formatDateID(row.createdAt)}
+            <td className="border-b border-slate-100 px-4 py-3">
+              <div className="font-semibold text-slate-900">{row.guestName}</div>
+              <div className="mt-1 text-xs text-slate-500">{occupantsLabel(row.adults, row.children)}</div>
             </td>
             <td className="border-b border-slate-100 px-4 py-3">
               {row.roomNumber ? (
@@ -200,9 +192,16 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
                   aria-label={`Assign a room to reservation ${row.reservationNo}`}
                   className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md text-sm font-medium text-emerald-700 hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                 >
-                  + Assign
+                  Unassigned
                 </Link>
               )}
+            </td>
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
+              {row.roomTypeName}
+            </td>
+            <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
+              <div className="whitespace-nowrap">{formatDateID(row.arrivalDate)} – {formatDateID(row.departureDate)}</div>
+              <div className="mt-1 text-xs text-slate-500">{nights} {nights === 1 ? "night" : "nights"}</div>
             </td>
             <td className="border-b border-slate-100 px-4 py-3 text-right font-medium tabular-nums text-slate-900">
               {formatDecimalID(row.total, 0)}
@@ -211,8 +210,13 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
               {row.outstanding === null ? (
                 <span className="text-slate-400">-</span>
               ) : (
-                formatDecimalID(row.outstanding, 0)
+                <span className={row.outstanding > 0 ? "text-amber-700" : undefined}>
+                  {formatDecimalID(row.outstanding, 0)}
+                </span>
               )}
+            </td>
+            <td className="border-b border-slate-100 px-4 py-3">
+              <BookingStatusBadge status={row.status} depositStatus={row.depositStatus} />
             </td>
           </ClickableReservationRow>
         );

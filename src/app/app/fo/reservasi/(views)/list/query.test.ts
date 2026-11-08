@@ -65,6 +65,65 @@ describe("buildReservationListWhere", () => {
   });
 });
 
+describe("reservation type and room type filters", () => {
+  it.each(["INDIVIDUAL", "COMPANY", "GOVERNMENT", "OTA", "WALK_IN"] as const)("parses and filters %s", (reservationType) => {
+    const filters = parseReservationListParams({ reservationType: reservationType.toLowerCase(), roomTypeId: "12", status: "ALL" });
+    expect(filters.reservationType).toBe(reservationType);
+    expect(filters.roomTypeId).toBe(12);
+    expect(buildReservationListWhere(filters)).toEqual({ reservationType, roomTypeId: 12 });
+  });
+
+  it.each([undefined, "", "invalid", "CORPORATE", "REGULAR"])("ignores invalid reservation type %s", (reservationType) => {
+    const filters = parseReservationListParams({ reservationType });
+    expect(filters.reservationType).toBeUndefined();
+    expect(buildReservationListWhere(filters)).not.toHaveProperty("reservationType");
+    expect(buildExportQuery(filters)).not.toContain("reservationType");
+  });
+
+  it.each([undefined, "", "0", "-1", "1.5", "1abc", "1e2", "0x10", "+1", " 1 ", "NaN", "Infinity", "2147483648", "9007199254740991", "9007199254740992", "9".repeat(400)])("ignores invalid room type ID %s", (roomTypeId) => {
+    const filters = parseReservationListParams({ roomTypeId });
+    expect(filters.roomTypeId).toBeUndefined();
+    expect(buildReservationListWhere(filters)).not.toHaveProperty("roomTypeId");
+    expect(buildExportQuery(filters)).not.toContain("roomTypeId");
+  });
+
+  it.each(["1", "2147483647"])("accepts room type boundary %s", (roomTypeId) => {
+    expect(parseReservationListParams({ roomTypeId }).roomTypeId).toBe(Number(roomTypeId));
+  });
+
+  it("uses first repeated parameters and canonical type precedence", () => {
+    expect(parseReservationListParams({ reservationType: ["company", "OTA"], roomTypeId: ["2", "3"], type: "INDIVIDUAL" })).toMatchObject({ reservationType: "COMPANY", roomTypeId: 2 });
+    expect(parseReservationListParams({ type: ["walk_in", "OTA"] }).reservationType).toBe("WALK_IN");
+    expect(parseReservationListParams({ reservationType: "invalid", type: "OTA" }).reservationType).toBeUndefined();
+    expect(parseReservationListParams({ reservationType: "", type: "OTA" }).reservationType).toBeUndefined();
+  });
+
+  it("preserves ALL without adding where conditions", () => {
+    const filters = parseReservationListParams({ reservationType: "all", roomTypeId: "ALL", status: "ALL" });
+    expect(filters).toMatchObject({ reservationType: "ALL", roomTypeId: "ALL" });
+    expect(buildReservationListWhere(filters)).toEqual({});
+    expect(new URLSearchParams(buildExportQuery(filters)).get("reservationType")).toBe("ALL");
+    expect(new URLSearchParams(buildExportQuery(filters)).get("roomTypeId")).toBe("ALL");
+  });
+
+  it.each([undefined, "in_house", "today_arrivals", "today_departures"] as const)("combines and round-trips filters with preset %s", (preset) => {
+    const filters = parseReservationListParams({ type: "COMPANY", roomTypeId: "12", q: "Sari & Co", status: "NO_SHOW", depositStatus: "COLLECTED", checkIn: "2026-09-20", checkOut: "2026-09-25", preset, sort: "arrival", page: "7" });
+    const where = buildReservationListWhere(filters, now);
+    expect(where).toEqual({ ...buildReservationListWhere({ ...filters, reservationType: undefined, roomTypeId: undefined }, now), reservationType: "COMPANY", roomTypeId: 12 });
+    const query = new URLSearchParams(buildExportQuery(filters));
+    expect(query.get("reservationType")).toBe("COMPANY");
+    expect(query.get("roomTypeId")).toBe("12");
+    expect(query.has("type")).toBe(false);
+    expect(query.has("page")).toBe(false);
+    expect(query.has("sort")).toBe(false);
+    expect(buildReservationListWhere(parseReservationListParams(Object.fromEntries(query)), now)).toEqual(where);
+    const pageQuery = new URL(buildPageHref(filters, 3), "http://localhost").searchParams;
+    expect(pageQuery.get("page")).toBe("3");
+    expect(pageQuery.get("sort")).toBe("arrival");
+    expect(buildReservationListWhere(parseReservationListParams(Object.fromEntries(pageQuery)), now)).toEqual(where);
+  });
+});
+
 describe("reservation list deposit filters", () => {
   it.each(["COLLECTED", "PENDING"] as const)("accepts and filters %s independently of reservation status", (depositStatus) => {
     const filters = parseReservationListParams({ depositStatus });

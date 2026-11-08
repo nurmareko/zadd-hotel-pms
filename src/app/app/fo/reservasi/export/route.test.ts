@@ -26,7 +26,7 @@ import { GET } from "./route";
 const URL_BASE = "http://localhost/app/fo/reservasi/export";
 const HEADERS = [
   "Reservation Number", "Guest Name", "Phone Number", "Email", "Status", "Room",
-  "Room Type", "Guest", "Check-in", "Check-out", "Created", "Total (Rp)", "Balance (Rp)", "Group",
+  "Room Type", "Guest", "Check-in", "Check-out", "Created", "Total (Rp)", "Balance (Rp)", "Group", "Reservation Type",
 ];
 type CsvRow = (string | number | null)[];
 const columns = HEADERS.map((header, index) => ({
@@ -52,6 +52,7 @@ function reservation(id: number, groupBookingId: string | null = null, payment?:
     reservationNo: `RES-${id}`,
     guest: { fullName: `Guest ${id}`, phone: null, email: null },
     status: "CONFIRMED",
+    reservationType: "INDIVIDUAL",
     room: null,
     roomType: { name: "Deluxe" },
     adults: 2,
@@ -68,7 +69,7 @@ function reservation(id: number, groupBookingId: string | null = null, payment?:
 function expectedRow(id: number): CsvRow {
   return [
     `RES-${id}`, `Guest ${id}`, null, null, "Confirmed", null, "Deluxe", "2 adults",
-    "2026-06-01", "2026-06-03", "2026-05-20T08:00:00.000Z", 200000, null, null,
+    "2026-06-01", "2026-06-03", "2026-05-20T08:00:00.000Z", 200000, null, null, "Individual",
   ];
 }
 
@@ -225,9 +226,35 @@ describe("reservation CSV export", () => {
     expect(reservationGroupBy).not.toHaveBeenCalled();
   });
 
-  it("preserves search, status and date filters in every batch while ignoring list pagination", async () => {
+  it.each([
+    ["INDIVIDUAL", "Individual"], ["COMPANY", "Corporate"], ["GOVERNMENT", "Government"],
+    ["OTA", "OTA"], ["WALK_IN", "Walk-in"],
+  ])("exports English reservation type label for %s", async (reservationType, label) => {
+    findMany.mockResolvedValueOnce([{ ...reservation(1), reservationType }]);
+    const row = expectedRow(1);
+    row[14] = label;
+    expect(await readCsv(await GET(new Request(URL_BASE)))).toBe(generateCsv(columns, [row]));
+    expect(findMany.mock.calls[0][0].select.reservationType).toBe(true);
+  });
+
+  it.each([
+    "reservationType=ALL&roomTypeId=ALL",
+    "reservationType=invalid&roomTypeId=2147483648",
+    "reservationType=REGULAR&roomTypeId=1abc",
+    "",
+  ])("omits unrestricted or invalid type filters: %s", async (query) => {
+    await readCsv(await GET(new Request(`${URL_BASE}?${query}`)));
+    expect(findMany.mock.calls[0][0].where).toEqual({ status: { in: ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"] } });
+  });
+
+  it("accepts the type alias with the in-house preset and deposit filter", async () => {
+    await readCsv(await GET(new Request(`${URL_BASE}?type=walk_in&roomTypeId=2147483647&preset=in_house&status=NO_SHOW&depositStatus=PENDING`)));
+    expect(findMany.mock.calls[0][0].where).toEqual({ reservationType: "WALK_IN", roomTypeId: 2147483647, status: "CHECKED_IN", depositStatus: "PENDING" });
+  });
+
+  it("preserves search, status, type, deposit and date filters in every batch while ignoring list pagination", async () => {
     findMany.mockResolvedValueOnce(Array.from({ length: 100 }, (_, index) => reservation(index + 1)));
-    await readCsv(await GET(new Request(`${URL_BASE}?q=%20Siti%20&q=ignored&status=checked_in&checkIn=2026-06-01&checkOut=2026-06-03&page=9`)));
+    await readCsv(await GET(new Request(`${URL_BASE}?q=%20Siti%20&q=ignored&status=checked_in&checkIn=2026-06-01&checkOut=2026-06-03&page=9&reservationType=company&reservationType=OTA&type=INDIVIDUAL&roomTypeId=12&roomTypeId=99&depositStatus=COLLECTED`)));
     expect(findMany).toHaveBeenCalledTimes(2);
     for (const [query] of findMany.mock.calls) {
       expect(query.where).toEqual({
@@ -237,6 +264,9 @@ describe("reservation CSV export", () => {
           { room: { number: { contains: "Siti", mode: "insensitive" } } },
         ],
         status: "CHECKED_IN",
+        reservationType: "COMPANY",
+        roomTypeId: 12,
+        depositStatus: "COLLECTED",
         arrivalDate: { gte: new Date("2026-06-01T00:00:00.000Z") },
         departureDate: { lte: new Date("2026-06-03T00:00:00.000Z") },
       });

@@ -24,7 +24,7 @@ export default async function ReservationListPage({
   const totalCount = await prisma.reservation.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(Math.max(1, filters.page), totalPages);
-  const [reservations, settings] = await Promise.all([
+  const [reservations, settings, roomTypes] = await Promise.all([
     prisma.reservation.findMany({
       where,
       skip: (currentPage - 1) * PAGE_SIZE,
@@ -32,6 +32,8 @@ export default async function ReservationListPage({
       select: {
         id: true,
         reservationNo: true,
+                reservationType: true,
+                roomType: { select: { id: true, code: true, name: true } },
         arrivalDate: true,
         departureDate: true,
         createdAt: true,
@@ -56,6 +58,10 @@ export default async function ReservationListPage({
         : [{ createdAt: "desc" }, { id: "desc" }],
     }),
     prisma.hotelSettings.findUniqueOrThrow({ where: { id: 1 } }),
+        prisma.roomType.findMany({
+          select: { id: true, code: true, name: true },
+          orderBy: { name: "asc" },
+        }),
   ]);
   const reservationIds = reservations.map((reservation) => reservation.id);
   const nightlyTotals = reservationIds.length
@@ -138,6 +144,9 @@ export default async function ReservationListPage({
     currentGroup.rows.push({
       id: reservation.id,
       reservationNo: reservation.reservationNo,
+            reservationType: reservation.reservationType,
+            roomTypeCode: reservation.roomType.code,
+            roomTypeName: reservation.roomType.name,
       guestName: reservation.guest.fullName,
       arrivalDate: reservation.arrivalDate,
       departureDate: reservation.departureDate,
@@ -161,6 +170,7 @@ export default async function ReservationListPage({
       <ReservationFilters
         filters={filters}
         resultCount={totalCount}
+                roomTypes={roomTypes}
       />
       <ReservationTable groups={groups} groupByArrival={filters.sort === "arrival"} />
       <ReservationPagination

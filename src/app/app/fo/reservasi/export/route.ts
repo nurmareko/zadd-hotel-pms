@@ -1,4 +1,4 @@
-import type { ReservationStatus } from "@prisma/client";
+import type { ReservationStatus, ReservationType } from "@prisma/client";
 
 import { auth } from "@/auth";
 import type { AppRole } from "@/auth.config";
@@ -25,12 +25,21 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   NO_SHOW: "No-show",
 };
 
+const RESERVATION_TYPE_LABELS: Record<ReservationType, string> = {
+  INDIVIDUAL: "Individual",
+  COMPANY: "Corporate",
+  GOVERNMENT: "Government",
+  OTA: "OTA",
+  WALK_IN: "Walk-in",
+};
+
 type ReservationCsvRow = {
   reservationNo: string;
   guestName: string;
   phone: string | null;
   email: string | null;
   status: ReservationStatus;
+  reservationType: ReservationType;
   roomNumber: string | null;
   roomTypeName: string;
   guests: string;
@@ -63,6 +72,7 @@ const CSV_COLUMNS: CsvColumn<ReservationCsvRow>[] = [
   { header: "Total (Rp)", accessor: (row) => row.total },
   { header: "Balance (Rp)", accessor: (row) => row.outstanding },
   { header: "Group", accessor: (row) => row.groupLabel },
+  { header: "Reservation Type", accessor: (row) => RESERVATION_TYPE_LABELS[row.reservationType] },
 ];
 
 export async function GET(req: Request) {
@@ -96,7 +106,18 @@ export async function GET(req: Request) {
           where,
           take: BATCH_SIZE,
           ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
-          include: {
+          select: {
+            id: true,
+            reservationNo: true,
+            reservationType: true,
+            status: true,
+            adults: true,
+            children: true,
+            arrivalDate: true,
+            departureDate: true,
+            createdAt: true,
+            rateAmount: true,
+            groupBookingId: true,
             guest: { select: { fullName: true, phone: true, email: true } },
             room: { select: { number: true } },
             roomType: { select: { name: true } },
@@ -185,6 +206,7 @@ export async function GET(req: Request) {
             phone: reservation.guest.phone,
             email: reservation.guest.email,
             status: reservation.status,
+            reservationType: reservation.reservationType,
             roomNumber: reservation.room?.number ?? null,
             roomTypeName: reservation.roomType.name,
             guests: guestCountLabel(reservation.adults, reservation.children),
