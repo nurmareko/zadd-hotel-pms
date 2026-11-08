@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
+import { BookingStatusBadge } from "@/components/status-badge";
 import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
 import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
@@ -526,12 +527,18 @@ export default async function ReservationDetailPage({
       <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 xl:flex-row xl:items-start xl:justify-between">
         <ReservationTabs reservationId={reservation.id} activeTab={activeTab} />
         <div className="flex min-w-0 flex-col gap-2 xl:ml-auto xl:items-end">
-          <p className="break-words text-sm text-slate-500 xl:text-right">
-            Reservation Code:{" "}
-            <span className="font-semibold text-slate-900">
-              {reservation.reservationNo}
-            </span>
-          </p>
+          <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+            <p className="break-words text-sm text-slate-500 xl:text-right">
+              Reservation Code:{" "}
+              <span className="font-semibold text-slate-900">
+                {reservation.reservationNo}
+              </span>
+            </p>
+            <BookingStatusBadge
+              status={reservation.status}
+              depositStatus={reservation.depositStatus}
+            />
+          </div>
           {activeTab === "details" ? (
             <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Link

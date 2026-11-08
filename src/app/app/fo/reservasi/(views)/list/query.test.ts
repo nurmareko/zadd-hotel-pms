@@ -65,6 +65,59 @@ describe("buildReservationListWhere", () => {
   });
 });
 
+describe("reservation list deposit filters", () => {
+  it.each(["COLLECTED", "PENDING"] as const)("accepts and filters %s independently of reservation status", (depositStatus) => {
+    const filters = parseReservationListParams({ depositStatus });
+    expect(filters.depositStatus).toBe(depositStatus);
+    expect(buildReservationListWhere(filters)).toEqual({
+      depositStatus,
+      status: { in: ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"] },
+    });
+    expect(buildReservationListWhere({ ...filters, status: "ALL" })).toEqual({ depositStatus });
+    expect(buildReservationListWhere({ ...filters, status: "NO_SHOW" })).toEqual({ depositStatus, status: "NO_SHOW" });
+  });
+
+  it.each([undefined, "", "invalid", "REFUNDED"])("ignores missing or invalid deposit status %s", (depositStatus) => {
+    const filters = parseReservationListParams({ depositStatus });
+    expect(filters.depositStatus).toBeUndefined();
+    expect(buildReservationListWhere(filters)).not.toHaveProperty("depositStatus");
+    expect(buildExportQuery(filters)).not.toContain("depositStatus");
+  });
+
+  it("accepts ALL without adding a deposit condition", () => {
+    const filters = parseReservationListParams({ depositStatus: "ALL", status: "CONFIRMED" });
+    expect(filters.depositStatus).toBe("ALL");
+    expect(buildReservationListWhere(filters)).toEqual({ status: "CONFIRMED" });
+  });
+
+  it("normalizes and uses the first repeated deposit parameter", () => {
+    expect(parseReservationListParams({ depositStatus: ["collected", "PENDING"] }).depositStatus).toBe("COLLECTED");
+  });
+
+  it.each(["COLLECTED", "PENDING"] as const)("combines %s with search, dates, status, sorting, and pagination", (depositStatus) => {
+    const filters = parseReservationListParams({ depositStatus, q: "Sari", status: "CHECKED_OUT", checkIn: "2026-09-20", checkOut: "2026-09-25", sort: "arrival", page: "2" });
+    expect(buildReservationListWhere(filters, now)).toEqual({
+      ...buildReservationListWhere({ ...filters, depositStatus: undefined }, now),
+      depositStatus,
+    });
+    const query = new URLSearchParams(buildExportQuery(filters));
+    expect(query.get("depositStatus")).toBe(depositStatus);
+    expect(buildReservationListWhere(parseReservationListParams(Object.fromEntries(query)), now)).toEqual(buildReservationListWhere(filters, now));
+    const pageQuery = new URL(buildPageHref(filters, 3), "http://localhost").searchParams;
+    expect(pageQuery.get("depositStatus")).toBe(depositStatus);
+    expect(pageQuery.get("sort")).toBe("arrival");
+    expect(pageQuery.get("page")).toBe("3");
+  });
+
+  it.each(["in_house", "today_arrivals", "today_departures"] as const)("combines deposit filtering with %s without changing preset conditions", (preset) => {
+    const filters = parseReservationListParams({ depositStatus: "PENDING", preset });
+    expect(buildReservationListWhere(filters, now)).toEqual({
+      ...buildReservationListWhere({ ...filters, depositStatus: undefined }, now),
+      depositStatus: "PENDING",
+    });
+  });
+});
+
 describe("reservation list query parameters", () => {
   it.each([undefined, "in_house", "invalid"])("defaults %s to newest", (preset) => {
     expect(parseReservationListParams({ preset }).sort).toBe("newest");

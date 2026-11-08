@@ -39,7 +39,7 @@ export function ReservationFilters({
   resultCount,
 }: ReservationFiltersProps) {
   const hasActiveFilters =
-    filters.q || filters.status || filters.checkIn || filters.checkOut || filters.preset || filters.sort === "arrival";
+    filters.q || filters.status || (filters.depositStatus && filters.depositStatus !== "ALL") || filters.checkIn || filters.checkOut || filters.preset || filters.sort === "arrival";
   const exportQuery = buildExportQuery(filters);
   const exportHref = `/app/fo/reservasi/export${exportQuery ? `?${exportQuery}` : ""}`;
 
@@ -108,6 +108,22 @@ export function ReservationFilters({
                 {option.label}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="min-w-0">
+          <label htmlFor="filter-deposit-status" className="mb-1.5 block text-xs font-medium text-slate-600">
+            Deposit Status
+          </label>
+          <select
+            id="filter-deposit-status"
+            name="depositStatus"
+            defaultValue={filters.depositStatus ?? "ALL"}
+            className={fieldClass}
+          >
+            <option value="ALL">All Deposit Statuses</option>
+            <option value="COLLECTED">Guaranteed (Collected)</option>
+            <option value="PENDING">Tentative (Pending)</option>
           </select>
         </div>
 

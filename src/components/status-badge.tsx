@@ -1,10 +1,50 @@
+import type { DepositStatus, ReservationStatus } from "@prisma/client";
 import type { CSSProperties, ReactNode } from "react";
 
 import {
+  hasSharedReservationStatusColor,
   reservationStatusColors,
   type SharedReservationStatus,
 } from "@/lib/reservation-status-colors";
 import { cn } from "@/lib/utils";
+
+const bookingStatusLabels: Record<ReservationStatus, string> = {
+  CONFIRMED: "Confirmed",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No-show",
+};
+
+export function BookingStatusBadge({
+  status,
+  depositStatus,
+}: {
+  status: ReservationStatus;
+  depositStatus: DepositStatus;
+}) {
+  if (status === "CONFIRMED") {
+    const guaranteed = depositStatus === "COLLECTED";
+    return (
+      <StatusBadge
+        label={guaranteed ? "Confirmed · Guaranteed" : "Confirmed · Tentative"}
+        className={guaranteed
+          ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+          : "border-amber-600 bg-amber-50 text-amber-800"}
+      />
+    );
+  }
+
+  return hasSharedReservationStatusColor(status) ? (
+    <StatusBadge label={bookingStatusLabels[status]} reservationStatus={status} />
+  ) : (
+    <StatusBadge
+      label={bookingStatusLabels[status]}
+      className="border-status-od-pip bg-status-od-bg text-status-od-fg"
+      pipClassName="bg-status-od-pip"
+    />
+  );
+}
 
 type StatusBadgeSize = "sm" | "md";
 

@@ -29,7 +29,18 @@ export default async function ReservationListPage({
       where,
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: {
+      select: {
+        id: true,
+        reservationNo: true,
+        arrivalDate: true,
+        departureDate: true,
+        createdAt: true,
+        adults: true,
+        children: true,
+        status: true,
+        depositStatus: true,
+        rateAmount: true,
+        groupBookingId: true,
         guest: { select: { fullName: true } },
         room: { select: { number: true } },
         folio: {
@@ -135,6 +146,7 @@ export default async function ReservationListPage({
       children: reservation.children,
       roomNumber: reservation.room?.number ?? null,
       status: reservation.status,
+      depositStatus: reservation.depositStatus,
       total,
       outstanding,
       groupBookingId: reservation.groupBookingId,

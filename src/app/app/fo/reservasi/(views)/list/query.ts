@@ -1,4 +1,4 @@
-import { Prisma, ReservationStatus } from "@prisma/client";
+import { DepositStatus, Prisma, ReservationStatus } from "@prisma/client";
 
 import { hotelTodayDateOnly, isValidISODateOnly, parseISODateOnly } from "@/lib/date-only";
 
@@ -9,6 +9,7 @@ export type ReservationListFilters = {
   page: number;
   q?: string;
   status?: ReservationStatus | "ALL" | "";
+  depositStatus?: DepositStatus | "ALL";
   checkIn?: string;
   checkOut?: string;
   preset?: ReservationListPreset;
@@ -26,6 +27,7 @@ export function buildExportQuery(filters: ReservationListFilters): string {
   const query = new URLSearchParams();
   if (filters.q) query.set("q", filters.q);
   if (filters.status) query.set("status", filters.status);
+  if (filters.depositStatus) query.set("depositStatus", filters.depositStatus);
   if (filters.checkIn) query.set("checkIn", filters.checkIn);
   if (filters.checkOut) query.set("checkOut", filters.checkOut);
   if (filters.preset) query.set("preset", filters.preset);
@@ -45,6 +47,7 @@ export function parseReservationListParams(
   const first = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
   const status = first(searchParams.status)?.toUpperCase();
+  const depositStatus = first(searchParams.depositStatus)?.toUpperCase();
   const rawPreset = first(searchParams.preset);
   const preset = VALID_PRESETS.includes(rawPreset as ReservationListPreset)
     ? rawPreset as ReservationListPreset
@@ -60,6 +63,11 @@ export function parseReservationListParams(
       : Object.values(ReservationStatus).includes(status as ReservationStatus)
         ? (status as ReservationStatus)
         : "",
+    depositStatus: depositStatus === "ALL"
+      ? "ALL"
+      : Object.values(DepositStatus).includes(depositStatus as DepositStatus)
+        ? (depositStatus as DepositStatus)
+        : undefined,
     checkIn: first(searchParams.checkIn)?.trim(),
     checkOut: first(searchParams.checkOut)?.trim(),
     preset,
@@ -105,6 +113,10 @@ export function buildReservationListWhere(
     where.status = ReservationStatus.CHECKED_IN;
   } else if (filters.status !== "ALL") {
     where.status = filters.status || { in: defaultStatuses };
+  }
+
+  if (filters.depositStatus && filters.depositStatus !== "ALL") {
+    where.depositStatus = filters.depositStatus;
   }
 
   return where;

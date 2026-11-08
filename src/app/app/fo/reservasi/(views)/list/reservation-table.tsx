@@ -1,8 +1,8 @@
-import type { ReservationStatus } from "@prisma/client";
+import type { DepositStatus, ReservationStatus } from "@prisma/client";
 import { CalendarX } from "lucide-react";
 import Link from "next/link";
 
-import { StatusBadge } from "@/components/status-badge";
+import { BookingStatusBadge } from "@/components/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -10,7 +10,7 @@ import {
   formatDateWithWeekday,
   formatDecimalID,
 } from "@/lib/format";
-import { hasSharedReservationStatusColor } from "@/lib/reservation-status-colors";
+
 
 import { ClickableReservationRow } from "./clickable-reservation-row";
 
@@ -25,6 +25,7 @@ export type ReservationRow = {
   children: number;
   roomNumber: string | null;
   status: ReservationStatus;
+  depositStatus: DepositStatus;
   total: number;
   // null when the reservation has no folio yet (e.g. CONFIRMED pre-check-in).
   outstanding: number | null;
@@ -45,32 +46,6 @@ type ReservationTableProps = {
 
 const COLUMN_COUNT = 10;
 
-const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked In",
-  CHECKED_OUT: "Checked Out",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No-show",
-};
-
-const noShowClassNames = {
-  badge: "border-status-od-pip bg-status-od-bg text-status-od-fg",
-  pip: "bg-status-od-pip",
-};
-
-function ReservationStatusBadge({ status }: { status: ReservationStatus }) {
-  if (hasSharedReservationStatusColor(status)) {
-    return <StatusBadge label={statusLabels[status]} reservationStatus={status} />;
-  }
-
-  return (
-    <StatusBadge
-      label={statusLabels[status]}
-      className={noShowClassNames.badge}
-      pipClassName={noShowClassNames.pip}
-    />
-  );
-}
 
 function occupantsLabel(adults: number, children: number) {
   // Compact adult/child counts, e.g. "2A · 1C".
@@ -178,7 +153,7 @@ function GroupRows({ group, groupByArrival }: { group: ReservationGroup; groupBy
         return (
           <ClickableReservationRow key={row.id} href={href}>
             <td className="border-b border-slate-100 px-4 py-3">
-              <ReservationStatusBadge status={row.status} />
+              <BookingStatusBadge status={row.status} depositStatus={row.depositStatus} />
             </td>
             <td className="border-b border-slate-100 p-0">
               <Link

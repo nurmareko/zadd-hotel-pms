@@ -1,4 +1,4 @@
-import { ReservationStatus, type RoomStatus } from "@prisma/client";
+import { ReservationStatus, type DepositStatus, type RoomStatus } from "@prisma/client";
 import { addDateOnlyDays, dateOnlyBoundary, hotelTodayDateOnly } from "@/lib/date-only";
 import { formatISODate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -18,6 +18,7 @@ export type TapeChartReservationData = {
   checkInDate: string;
   checkOutDate: string;
   status: ReservationStatus;
+  depositStatus: DepositStatus;
 };
 
 export type TapeChartRoomBlockData = RoomBlockSummary & { note: string | null };
@@ -53,6 +54,7 @@ function toReservationData(reservation: {
   arrivalDate: Date;
   departureDate: Date;
   status: ReservationStatus;
+  depositStatus: DepositStatus;
   guest: {
     fullName: string;
   };
@@ -64,6 +66,7 @@ function toReservationData(reservation: {
     checkInDate: formatISODate(reservation.arrivalDate),
     checkOutDate: formatISODate(reservation.departureDate),
     status: reservation.status,
+    depositStatus: reservation.depositStatus,
   };
 }
 
@@ -111,6 +114,7 @@ export async function getTapeChartData(
         arrivalDate: true,
         departureDate: true,
         status: true,
+        depositStatus: true,
         guest: {
           select: {
             fullName: true,

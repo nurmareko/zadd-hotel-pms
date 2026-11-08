@@ -26,7 +26,7 @@ import type {
   TapeChartRoomTypeData,
 } from "@/lib/tape-chart-data";
 
-import { reservationBarColors, roomBlockBarColors } from "./tape-chart-legend";
+import { reservationBarColors, roomBlockBarColors, tentativeBarStyle } from "./tape-chart-legend";
 import styles from "./tape-chart.module.css";
 
 export type TapeChartDay = {
@@ -121,7 +121,7 @@ function getAllocatedBarColorKey(
 ): AllocatedBarColorKey {
   switch (reservation.status) {
     case "CONFIRMED":
-      return "CONFIRMED";
+      return reservation.depositStatus === "COLLECTED" ? "CONFIRMED" : "TENTATIVE";
     case "CHECKED_IN":
       return "CHECKED_IN";
     case "CHECKED_OUT":
@@ -289,7 +289,9 @@ function buildReservationBars(
         bars.push({
           key: `unallocated-${row.roomType.id}-${lane.reservation.id}`,
           reservation: lane.reservation,
-          label: reservationBarColors.UNALLOCATED.label,
+          label: lane.reservation.status === "CONFIRMED"
+            ? `${reservationBarColors.UNALLOCATED.label}, ${reservationBarColors[getAllocatedBarColorKey(lane.reservation)].label}`
+            : reservationBarColors.UNALLOCATED.label,
           gridColumnStart: span.gridColumnStart,
           gridColumnEnd: span.gridColumnEnd,
           top:
@@ -632,14 +634,18 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                     height: bar.height,
                     backgroundColor: colors.bgColor,
                     color: colors.textColor,
+                    ...(bar.reservation.status === "CONFIRMED" && bar.reservation.depositStatus === "PENDING"
+                      ? tentativeBarStyle : {}),
                   };
+                  const label = `${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`;
 
                   return (
                     <Link
                       key={bar.key}
                       href={`/app/fo/reservasi/${bar.reservation.id}`}
                       className={barClassName}
-                      aria-label={`${bar.reservation.guestName}, ${bar.label}, ${bar.reservation.checkInDate} to ${bar.reservation.checkOutDate}`}
+                      aria-label={label}
+                      title={label}
                       style={barStyle}
                     >
                       <span className={styles.reservationBarText}>

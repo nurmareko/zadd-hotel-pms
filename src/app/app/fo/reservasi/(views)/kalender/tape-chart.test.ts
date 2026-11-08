@@ -1,6 +1,16 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const db = vi.hoisted(() => ({
+  roomType: { findMany: vi.fn() },
+  reservation: { findMany: vi.fn() },
+  roomBlock: { findMany: vi.fn() },
+}));
+vi.mock("@/lib/prisma", () => ({ prisma: db }));
+
+import { getTapeChartData } from "@/lib/tape-chart-data";
+import { TapeChartLegend } from "./tape-chart-legend";
 import type { TapeChartData, TapeChartRoomBlockData, TapeChartRoomData } from "@/lib/tape-chart-data";
 import { TapeChart } from "./tape-chart";
 
@@ -15,11 +25,12 @@ function renderChart(
   todayIso = "2026-10-01",
   status: TapeChartRoomData["status"] = "OOO",
   additionalRooms: TapeChartRoomData[] = [],
+  unallocatedReservations: TapeChartRoomData["reservations"] = [],
 ) {
   const data: TapeChartData = {
     startDate: "2026-09-14", endDate: "2026-09-28", dayCount: 14,
     roomTypes: [{
-      id: 1, code: "STD", name: "Standar", unallocatedReservations: [],
+      id: 1, code: "STD", name: "Standar", unallocatedReservations,
       rooms: [{ id: 108, number: "108", floor: 1, status, isBlockedToday, roomBlocks, reservations: [] }, ...additionalRooms],
     }],
   };
@@ -30,6 +41,87 @@ function renderChart(
     })),
   }));
 }
+
+describe("tape chart deposit presentation", () => {
+  it.each(["PENDING", "COLLECTED"] as const)("selects and maps %s for allocated and unallocated reservations", async (depositStatus) => {
+    db.roomType.findMany.mockResolvedValue([{
+      id: 1, code: "STD", name: "Standard",
+      rooms: [{ id: 108, number: "108", floor: 1, status: "VC" }],
+    }]);
+    db.roomBlock.findMany.mockResolvedValue([]);
+    const reservation = {
+      id: 10, groupBookingId: null, roomTypeId: 1, roomId: 108,
+      arrivalDate: new Date("2026-09-15T00:00:00Z"),
+      departureDate: new Date("2026-09-17T00:00:00Z"),
+      status: "CONFIRMED", depositStatus, guest: { fullName: "Test Guest" },
+    };
+    db.reservation.findMany.mockResolvedValue([reservation, { ...reservation, id: 11, roomId: null }]);
+    const data = await getTapeChartData(new Date("2026-09-14T00:00:00Z"), 14);
+    expect(db.reservation.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      select: expect.objectContaining({ depositStatus: true }),
+    }));
+    expect(data.roomTypes[0].rooms[0].reservations[0]).toMatchObject({ id: 10, depositStatus });
+    expect(data.roomTypes[0].unallocatedReservations[0]).toMatchObject({ id: 11, depositStatus });
+  });
+
+  it.each([
+    ["COLLECTED", "Guaranteed", "#f97316"],
+    ["PENDING", "Tentative", "#fef3c7"],
+  ] as const)("renders confirmed %s with matching labels and styling", (depositStatus, label, color) => {
+    const html = renderChart([], false, "2026-10-01", "VC", [{
+      id: 109, number: "109", floor: 1, status: "VC", isBlockedToday: false,
+      roomBlocks: [], reservations: [{
+        id: 10, groupBookingId: null, guestName: "Test Guest",
+        checkInDate: "2026-09-15", checkOutDate: "2026-09-17",
+        status: "CONFIRMED", depositStatus,
+      }],
+    }]);
+    const link = html.match(/<a[^>]*href="\/app\/fo\/reservasi\/10"[^>]*>/)?.[0];
+    expect(link).toContain(`aria-label="Test Guest, ${label}, 2026-09-15 to 2026-09-17"`);
+    expect(link).toContain(`title="Test Guest, ${label}, 2026-09-15 to 2026-09-17"`);
+    expect(link).toContain(`background-color:${color}`);
+    if (depositStatus === "PENDING") expect(link).toContain("border:2px dashed currentColor");
+    else expect(link).not.toContain("dashed");
+  });
+
+  it.each(["CHECKED_IN", "CHECKED_OUT"] as const)("keeps %s independent of deposit status", (status) => {
+    for (const depositStatus of ["PENDING", "COLLECTED"] as const) {
+      const html = renderChart([], false, "2026-10-01", "VC", [{
+        id: 109, number: "109", floor: 1, status: "VC", isBlockedToday: false,
+        roomBlocks: [], reservations: [{
+          id: 10, groupBookingId: null, guestName: "Test Guest",
+          checkInDate: "2026-09-15", checkOutDate: "2026-09-17", status, depositStatus,
+        }],
+      }]);
+      expect(html).not.toMatch(/Guaranteed|Tentative|dashed/);
+      expect(html).toContain(status === "CHECKED_IN" ? "Checked In" : "Checked Out");
+    }
+  });
+
+  it.each(["PENDING", "COLLECTED"] as const)("preserves blue unallocated bars with %s confirmation labels", (depositStatus) => {
+    const html = renderChart([], false, "2026-10-01", "VC", [], [{
+      id: 10, groupBookingId: null, guestName: "Test Guest",
+      checkInDate: "2026-09-15", checkOutDate: "2026-09-17",
+      status: "CONFIRMED", depositStatus,
+    }]);
+    const link = html.match(/<a[^>]*href="\/app\/fo\/reservasi\/10"[^>]*>/)?.[0];
+    const label = `Test Guest, Not assigned, ${depositStatus === "PENDING" ? "Tentative" : "Guaranteed"}, 2026-09-15 to 2026-09-17`;
+    expect(link).toContain(`aria-label="${label}"`);
+    expect(link).toContain(`title="${label}"`);
+    expect(link).toContain("background-color:#2563eb");
+    if (depositStatus === "PENDING") expect(link).toContain("border:2px dashed currentColor");
+    else expect(link).not.toContain("dashed");
+  });
+
+  it("shows matching guaranteed and tentative legend swatches", () => {
+    const html = renderToStaticMarkup(createElement(TapeChartLegend));
+    expect(html).toContain("Guaranteed");
+    expect(html).toContain("Tentative");
+    expect(html).toContain("background-color:#f97316");
+    expect(html).toContain("background-color:#fef3c7");
+    expect(html).toContain("border:2px dashed currentColor");
+  });
+});
 
 const bookingLabel = (day: number) => `aria-label="Create room reservation 108 for 2026-09-${day}"`;
 
@@ -108,7 +200,7 @@ describe("tape chart dated block cells", () => {
       id: 109, number: "109", floor: 1, status: "OOO", isBlockedToday: false,
       roomBlocks: [], reservations: [{
         id: 10, groupBookingId: null, guestName: "Tamu Uji",
-        checkInDate: "2026-09-14", checkOutDate: "2026-09-16", status: "CONFIRMED",
+        checkInDate: "2026-09-14", checkOutDate: "2026-09-16", status: "CONFIRMED", depositStatus: "COLLECTED",
       }],
     }]);
     expect(html).toContain('href="/app/fo/reservasi/10"');
