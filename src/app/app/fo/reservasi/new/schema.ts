@@ -49,9 +49,6 @@ const OptionalAddressSchema = z
   .optional()
   .transform((value) => (value ? value : null));
 
-const RequiredGuestIdTypeSchema = z.nativeEnum(GuestIdType, {
-  error: "ID type is required",
-});
 
 const OptionalGuestIdTypeSchema = z
   .union([z.nativeEnum(GuestIdType), z.literal("")])
@@ -103,15 +100,13 @@ const CreateReservationObjectSchema = z.object({
       .trim()
       .min(1, "Guest name is required")
       .max(100, "Guest name must not exceed 100 characters"),
-    idType: RequiredGuestIdTypeSchema,
+    idType: OptionalGuestIdTypeSchema,
     idNumber: OptionalShortTextSchema,
     phone: z
-      .string()
+      .string("Phone number is required")
       .trim()
-      .max(20, "Phone number must not exceed 20 characters")
-      .or(z.literal(""))
-      .optional()
-      .transform((value) => (value ? value : null)),
+      .min(1, "Phone number is required")
+      .max(20, "Phone number must not exceed 20 characters"),
     email: OptionalEmailSchema,
     address: OptionalAddressSchema,
     nationality: z
@@ -143,6 +138,8 @@ const CreateReservationObjectSchema = z.object({
 
 const EditReservationObjectSchema = CreateReservationObjectSchema.extend({
   idType: OptionalGuestIdTypeSchema,
+  phone: z.string().trim().max(20, "Phone number must not exceed 20 characters")
+    .optional().transform((value) => value || null),
 });
 
 
@@ -211,6 +208,8 @@ const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
 })
   .extend({
     ...UnifiedRoomFields,
+    advanceDepositAmount: z.number("Advance deposit must be a number")
+      .min(0, "Deposit cannot be negative").optional(),
     collectDepositNow: z.boolean().optional().default(false),
     depositMethod: z.enum(checkInDepositMethods, {
       error: "Select a deposit payment method",
@@ -219,7 +218,7 @@ const BaseUnifiedReservationSchema = CreateReservationObjectSchema.omit({
       .max(100, "Text must be at most 100 characters").optional(),
   })
   .superRefine((value, context) => {
-    if (!value.collectDepositNow) return;
+    if (!value.collectDepositNow || value.advanceDepositAmount === 0) return;
     if (!value.depositMethod) {
       context.addIssue({
         code: "custom",
@@ -420,7 +419,7 @@ export function createUnifiedEditReservationSchema(
 export type CreateReservationInput = {
   guestId?: number | null;
   fullName: string;
-  idType: GuestIdType | "";
+  idType?: GuestIdType | "";
   idNumber: string;
   phone: string;
   email: string;
@@ -442,6 +441,7 @@ export type UnifiedReservationInput = Omit<
   CreateReservationInput,
   "roomTypeId" | "roomId" | "adults" | "children"
 > & {
+  advanceDepositAmount?: number;
   collectDepositNow?: boolean;
   depositMethod?: (typeof checkInDepositMethods)[number];
   depositReference?: string;

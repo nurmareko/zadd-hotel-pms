@@ -44,6 +44,7 @@ import {
 } from "@/lib/nav-preferences";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import { validateRoomTypeCapacity } from "@/lib/reservation-capacity";
+import { computeDailyRoomTypeCapacity } from "@/lib/reservation-capacity-logic";
 import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
 import { roomBlockedMessage } from "@/lib/room-blocks/overlap";
 import {
@@ -66,6 +67,10 @@ import {
   reservationCapacityError,
 } from "./schema";
 
+type CreationFailure = Omit<ReservationFailure, "field"> & {
+  field?: ReservationActionField | "advanceDepositAmount";
+};
+
 type ReservationQuoteResult =
   | {
       ok: true;
@@ -74,6 +79,7 @@ type ReservationQuoteResult =
       reservationTotal: string;
       deposits: string[];
       standardFirstNightRates: number[];
+      availableRoomsByRoomTypeId: Record<number, number>;
       inclusionRooms: Array<{
         pax: number;
         nights: number;
@@ -180,7 +186,9 @@ const SAFE_VALIDATION_MESSAGE_PREFIXES = [
   "Maximum",
   "Minimum",
   "Guest name",
-  "Phone number must not exceed",
+  "Phone number",
+  "Advance deposit",
+  "Deposit cannot be negative",
   "Add at least",
   "Date",
   "Invalid date",
@@ -526,6 +534,28 @@ async function runCreateReservationTransaction(
         );
       }
 
+      // Validate every room before any writes: returning a failure does not roll back a transaction.
+      const depositAmounts: Prisma.Decimal[] = [];
+      for (const room of input.rooms) {
+        const standardSchedule = resolvedSchedules.get(room.roomTypeId);
+        if (!standardSchedule?.[0]) {
+          throw new PricingResolutionError("The reservation rate schedule is unavailable.");
+        }
+        const schedule = applyReservationNightRateOverride(standardSchedule, room.customRate);
+        const amount = new Prisma.Decimal(input.advanceDepositAmount ?? schedule[0].rate);
+        // Nightly rates already include the meal-plan allocation.
+        const packageTotal = schedule.reduce((total, night) => total.plus(night.rate), new Prisma.Decimal(0));
+        if (amount.greaterThan(packageTotal)) {
+          return {
+            ...reservationFailure("INVALID_RESERVATION_DATA", {
+              message: "Advance deposit must not exceed the room and inclusion package total for each room.",
+            }),
+            field: "advanceDepositAmount" as const,
+          };
+        }
+        depositAmounts.push(amount);
+      }
+
       const guestData = {
         fullName: input.fullName,
         idType: input.idType,
@@ -598,7 +628,7 @@ async function runCreateReservationTransaction(
             children: room.children,
             status: ReservationStatus.CONFIRMED,
             rateAmount: resolvedSchedule[0].rate,
-            deposit: resolvedSchedule[0].rate,
+            deposit: depositAmounts[index],
             notes: input.notes,
             createdById: userId,
           },
@@ -648,6 +678,7 @@ async function runCreateReservationTransaction(
       return {
         ok: true as const,
         reservationIds,
+        depositAmounts,
         rateOverrideMetadata,
         reservationNumbers,
         guestName: input.fullName,
@@ -680,6 +711,8 @@ async function runUpdateReservationTransaction(
           children: true,
           arrangementType: true,
           status: true,
+          deposit: true,
+          depositStatus: true,
           reservationNights: {
             orderBy: { date: "asc" },
             select: {
@@ -811,6 +844,18 @@ async function runUpdateReservationTransaction(
         if (!resolvedSchedule[0]) {
           throw new PricingResolutionError("The reservation rate schedule is unavailable.");
         }
+
+        // Collected money remains credit even if the revised stay costs less.
+        // Pending requirements must still fit the inclusive package before any writes.
+        const deposit = existingReservation.deposit ?? resolvedSchedule[0].rate;
+        const packageTotal = resolvedSchedule.reduce(
+          (total, night) => total.plus(night.rate), new Prisma.Decimal(0),
+        );
+        if (existingReservation.depositStatus !== "COLLECTED" && deposit.greaterThan(packageTotal)) {
+          return reservationFailure("INVALID_RESERVATION_DATA", {
+            message: "The pending deposit exceeds the revised room and inclusion package total. Change the room type or stay dates to keep the package total at least equal to the deposit.",
+          });
+        }
       }
 
       await tx.guest.update({
@@ -838,7 +883,7 @@ async function runUpdateReservationTransaction(
           ...(resolvedSchedule
             ? {
                 rateAmount: resolvedSchedule[0].rate,
-                deposit: resolvedSchedule[0].rate,
+                deposit: existingReservation.deposit ?? resolvedSchedule[0].rate,
               }
             : {}),
           notes: input.notes,
@@ -966,6 +1011,36 @@ export async function getReservationQuote(
       );
     }
 
+    const roomTypes = await prisma.roomType.findMany({
+      select: { id: true, _count: { select: { rooms: true } } },
+    });
+    const range = { startDate: parsed.data.arrivalDate, endDate: parsed.data.departureDate };
+    const availableRoomsByRoomTypeId: Record<number, number> = {};
+    for (const roomType of roomTypes) {
+      const [reservations, blocks] = await Promise.all([
+        prisma.reservation.findMany({
+          where: {
+            roomTypeId: roomType.id,
+            status: { in: ACTIVE_RESERVATION_STATUSES },
+            arrivalDate: { lt: dateOnlyBoundary(new Date(`${parsed.data.departureDate}T00:00:00.000Z`)) },
+            departureDate: { gt: dateOnlyBoundary(new Date(`${parsed.data.arrivalDate}T00:00:00.000Z`)) },
+          },
+          select: { arrivalDate: true, departureDate: true },
+        }),
+        getActiveRoomBlocks({ roomTypeId: roomType.id, range }),
+      ]);
+      const days = computeDailyRoomTypeCapacity({
+        range,
+        roomCount: roomType._count.rooms,
+        blocks,
+        reservations: reservations.map((reservation) => ({
+          arrivalDate: reservation.arrivalDate.toISOString().slice(0, 10),
+          departureDate: reservation.departureDate.toISOString().slice(0, 10),
+        })),
+      });
+      availableRoomsByRoomTypeId[roomType.id] = Math.max(0, Math.min(...days.map((day) => day.available)));
+    }
+
     const mealPlanPrices = await getMealPlanPrices();
     const deposits: string[] = [];
     const standardFirstNightRates: number[] = [];
@@ -1024,6 +1099,7 @@ export async function getReservationQuote(
       reservationTotal: roomTotal.toString(),
       deposits,
       standardFirstNightRates,
+      availableRoomsByRoomTypeId,
       inclusionRooms,
     };
   } catch (error) {
@@ -1055,7 +1131,7 @@ export async function createReservation(
         redirectUrl: string;
       };
     }
-  | ReservationFailure
+  | CreationFailure
 > {
   let session: Session | null;
 
@@ -1086,7 +1162,10 @@ export async function createReservation(
   const parsed = schema.safeParse(input);
 
   if (!parsed.success) {
-    return validationFailure(parsed.error);
+    const failure = validationFailure(parsed.error);
+    return parsed.error.issues[0]?.path[0] === "advanceDepositAmount"
+      ? { ...failure, field: "advanceDepositAmount" }
+      : failure;
   }
 
   const userId = Number(session?.user.id);
@@ -1139,16 +1218,19 @@ export async function createReservation(
   }
 
   const depositCollection = parsed.data.collectDepositNow
-    ? { collected: 0, total: result.reservationIds.length, failures: [] as Array<{ reservationId: number; reservationNo: string; message: string }> }
+    ? { collected: 0, total: result.depositAmounts.filter((amount) => amount.greaterThan(0)).length, failures: [] as Array<{ reservationId: number; reservationNo: string; message: string }> }
     : undefined;
   if (depositCollection && parsed.data.depositMethod) {
     for (const [index, reservationId] of result.reservationIds.entries()) {
+      const amount = result.depositAmounts[index];
+      if (amount.isZero()) continue;
       let message: string | undefined;
       try {
         const deposit = await collectAdvanceReservationDeposit({
           reservationId,
           depositMethod: parsed.data.depositMethod,
           depositReference: parsed.data.depositReference,
+          amount: amount.toNumber(),
         });
         if (deposit.ok) depositCollection.collected += 1;
         else message = deposit.error;

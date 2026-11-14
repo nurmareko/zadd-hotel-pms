@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   resolveNightlySchedule: vi.fn(),
   roomTypeFindMany: vi.fn(),
+  reservationFindMany: vi.fn(),
+  roomBlockFindMany: vi.fn(),
+  folioCount: vi.fn(),
   transaction: vi.fn(),
 }));
 
@@ -23,6 +26,9 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     article: { findMany: mocks.articleFindMany },
     roomType: { findMany: mocks.roomTypeFindMany },
+    reservation: { findMany: mocks.reservationFindMany },
+    roomBlock: { findMany: mocks.roomBlockFindMany },
+    folio: { count: mocks.folioCount },
     $transaction: mocks.transaction,
   },
   TRANSACTION_OPTIONS: {},
@@ -59,7 +65,7 @@ const validCreateInput = {
   fullName: "Tamu Uji",
   idType: "KTP",
   idNumber: "",
-  phone: "",
+  phone: "+628123456789",
   email: "",
   address: "",
   nationality: "Indonesia",
@@ -152,7 +158,10 @@ beforeEach(() => {
   mocks.logActivity.mockResolvedValue(undefined);
   mocks.redirect.mockImplementation(() => undefined);
   mocks.revalidatePath.mockImplementation(() => undefined);
-  mocks.roomTypeFindMany.mockResolvedValue([{ id: 1, capacity: 2 }]);
+  mocks.roomTypeFindMany.mockResolvedValue([{ id: 1, capacity: 2, _count: { rooms: 20 } }]);
+  mocks.reservationFindMany.mockResolvedValue([]);
+  mocks.roomBlockFindMany.mockResolvedValue([]);
+  mocks.folioCount.mockResolvedValue(0);
 });
 
 afterEach(() => {
@@ -160,6 +169,18 @@ afterEach(() => {
 });
 
 describe("advance deposit validation", () => {
+  it("returns the exact negative deposit message from schema and action", async () => {
+    const input = { ...validCreateInput, advanceDepositAmount: -1 };
+    const parsed = UnifiedReservationSchema.safeParse(input);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.issues[0]).toMatchObject({
+      path: ["advanceDepositAmount"], message: "Deposit cannot be negative",
+    });
+    expect(await createReservation(input)).toMatchObject({
+      ok: false, field: "advanceDepositAmount", error: "Deposit cannot be negative",
+    });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
   it("defaults to no collection", () => {
     expect(UnifiedReservationSchema.parse(validCreateInput).collectDepositNow).toBe(false);
   });
@@ -174,6 +195,71 @@ describe("advance deposit validation", () => {
   });
   it.each(["CASH", "CARD", "TRANSFER"])("accepts %s with a reference", (depositMethod) => {
     expect(UnifiedReservationSchema.parse({ ...validCreateInput, collectDepositNow: true, depositMethod, depositReference: "  REF  " })).toMatchObject({ depositReference: "REF" });
+  });
+});
+
+describe("canonical custom deposit collection", () => {
+  function depositTransaction(deposit: number | undefined, options: { count?: number; collected?: boolean; status?: string } = {}) {
+    const payment = { amount: new Prisma.Decimal(250_000), method: "CASH", reference: null };
+    const tx = {
+      reservation: {
+        findUnique: vi.fn().mockResolvedValue({
+          status: options.status ?? "CONFIRMED", depositStatus: options.collected ? "COLLECTED" : "PENDING",
+          deposit: deposit === undefined ? undefined : new Prisma.Decimal(deposit),
+          arrivalDate: new Date("2026-10-01"), groupBookingId: null,
+          reservationNights: [500_000, 600_000].map((rate) => ({ rateAmount: new Prisma.Decimal(rate) })),
+          folio: options.collected ? { id: 20, payments: [payment] } : null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: options.count ?? 1 }),
+      },
+      folio: { create: vi.fn().mockResolvedValue({ id: 20 }) },
+      payment: { create: vi.fn().mockImplementation(async ({ data }) => ({ amount: data.amount, method: data.method, reference: data.reference })) },
+    };
+    mocks.transaction.mockImplementationOnce(async (callback) => callback(tx));
+    return tx;
+  }
+
+  it.each([
+    { stored: undefined, amount: undefined, expected: 500_000 },
+    { stored: 250_000, amount: undefined, expected: 250_000 },
+    { stored: 500_000, amount: 1_100_000, expected: 1_100_000 },
+  ])("collects the explicit, persisted, or first-night amount: %j", async ({ stored, amount, expected }) => {
+    const actions = await vi.importActual<typeof import("@/lib/check-in/actions")>("@/lib/check-in/actions");
+    const tx = depositTransaction(stored);
+    const result = await actions.collectAdvanceReservationDeposit({ reservationId: 77, depositMethod: "CASH", amount });
+    expect(result).toMatchObject({ ok: true, payment: { amount: String(expected) } });
+    expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amount: new Prisma.Decimal(expected), purpose: "DEPOSIT" }) }));
+    expect(tx.reservation.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 77, status: "CONFIRMED", depositStatus: "PENDING" }, data: { deposit: new Prisma.Decimal(expected), depositStatus: "COLLECTED" } }));
+    expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+  });
+
+  it.each([0, 1_100_001])("rejects stored zero or over-package deposit %i without writes", async (stored) => {
+    const actions = await vi.importActual<typeof import("@/lib/check-in/actions")>("@/lib/check-in/actions");
+    const tx = depositTransaction(stored);
+    expect(await actions.collectAdvanceReservationDeposit({ reservationId: 77, depositMethod: "CASH" })).toMatchObject({ ok: false });
+    expect(tx.folio.create).not.toHaveBeenCalled();
+    expect(tx.payment.create).not.toHaveBeenCalled();
+    expect(tx.reservation.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects explicit amount above the transaction-local package total", async () => {
+    const actions = await vi.importActual<typeof import("@/lib/check-in/actions")>("@/lib/check-in/actions");
+    const tx = depositTransaction(500_000);
+    expect(await actions.collectAdvanceReservationDeposit({ reservationId: 77, depositMethod: "CASH", amount: 1_100_001 })).toMatchObject({ ok: false, code: "INVALID_INPUT", error: expect.stringContaining("package total") });
+    expect(tx.payment.create).not.toHaveBeenCalled();
+  });
+
+  it("returns the collected payment idempotently without replacing its amount", async () => {
+    const actions = await vi.importActual<typeof import("@/lib/check-in/actions")>("@/lib/check-in/actions");
+    const tx = depositTransaction(250_000, { collected: true });
+    expect(await actions.collectAdvanceReservationDeposit({ reservationId: 77, depositMethod: "CASH", amount: 500_000 })).toMatchObject({ ok: true, alreadyCollected: true, payment: { amount: "250000" } });
+    expect(tx.payment.create).not.toHaveBeenCalled();
+  });
+
+  it("preserves the conditional transition guard", async () => {
+    const actions = await vi.importActual<typeof import("@/lib/check-in/actions")>("@/lib/check-in/actions");
+    depositTransaction(250_000, { count: 0 });
+    expect(await actions.collectAdvanceReservationDeposit({ reservationId: 77, depositMethod: "CASH" })).toMatchObject({ ok: false, code: "DEPOSIT_CONFLICT" });
   });
 });
 
@@ -206,6 +292,49 @@ describe("per-room custom rates", () => {
     return tx;
   }
 
+  it.each([0, 250_000, 1_100_000])("persists custom deposit %i per room and skips zero collection", async (advanceDepositAmount) => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    const tx = creationTransaction();
+    mocks.collectAdvanceDeposit.mockResolvedValue({ ok: true });
+    const room = { ...validCreateInput.rooms[0], roomId: null };
+    const result = await createReservation({ ...validCreateInput, idType: "", advanceDepositAmount, rooms: [room, room], collectDepositNow: true, depositMethod: "CASH" });
+    expect(result).toMatchObject({ ok: true, data: { depositCollection: { collected: advanceDepositAmount ? 2 : 0, total: advanceDepositAmount ? 2 : 0, failures: [] } } });
+    expect(tx.guest.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ idType: null, phone: validCreateInput.phone }) }));
+    for (const [args] of tx.reservation.create.mock.calls) {
+      expect(args.data.deposit).toEqual(new Prisma.Decimal(advanceDepositAmount));
+      expect(args.data).not.toHaveProperty("depositStatus");
+    }
+    expect(mocks.collectAdvanceDeposit).toHaveBeenCalledTimes(advanceDepositAmount ? 2 : 0);
+    for (const [args] of mocks.collectAdvanceDeposit.mock.calls) expect(args.amount).toBe(advanceDepositAmount);
+  });
+
+  it("rejects a custom deposit above any room package before all writes, not against the group aggregate", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    const tx = creationTransaction();
+    const room = { ...validCreateInput.rooms[0], roomId: null };
+    const result = await createReservation({ ...validCreateInput, arrangementType: "BB", advanceDepositAmount: 1_000_000, rooms: [room, { ...room, customRate: "400000" }] });
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("package total for each room") });
+    expect(tx.guest.create).not.toHaveBeenCalled();
+    expect(tx.reservation.create).not.toHaveBeenCalled();
+    expect(mocks.collectAdvanceDeposit).not.toHaveBeenCalled();
+  });
+
+  it("quotes all room types using minimum daily capacity before current rows", async () => {
+    mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
+    mocks.roomTypeFindMany.mockResolvedValue([{ id: 1, _count: { rooms: 5 } }, { id: 2, _count: { rooms: 2 } }, { id: 3, _count: { rooms: 0 } }]);
+    mocks.reservationFindMany.mockImplementation(async ({ where }) => where.roomTypeId === 1 ? [
+      { arrivalDate: new Date("2026-10-01"), departureDate: new Date("2026-10-02") },
+      { arrivalDate: new Date("2026-10-02"), departureDate: new Date("2026-10-03") },
+    ] : []);
+    mocks.roomBlockFindMany.mockImplementation(async ({ where }) => where.room.roomTypeId === 1 ? [
+      { id: 1, roomId: 10, startDate: new Date("2026-10-02"), endDate: new Date("2026-10-03"), status: "ACTIVE", reason: "MAINTENANCE" },
+      { id: 2, roomId: 10, startDate: new Date("2026-10-02"), endDate: new Date("2026-10-03"), status: "ACTIVE", reason: "MAINTENANCE" },
+    ] : []);
+    const result = await getReservationQuote({ ...validCreateInput, departureDate: "2026-10-03", rooms: [validCreateInput.rooms[0], validCreateInput.rooms[0]] });
+    expect(result).toMatchObject({ ok: true, availableRoomsByRoomTypeId: { 1: 3, 2: 2, 3: 0 } });
+    expect(mocks.reservationFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ arrivalDate: { lt: new Date("2026-10-03") }, departureDate: { gt: new Date("2026-10-01") }, status: { in: ["CONFIRMED", "CHECKED_IN"] } }) }));
+  });
+
   it.each([false, true])("collects an advance deposit only when opted in (%s)", async (collectDepositNow) => {
     mocks.resolveNightlySchedule.mockResolvedValue(standardSchedule());
     creationTransaction();
@@ -215,7 +344,7 @@ describe("per-room custom rates", () => {
     expect(mocks.collectAdvanceDeposit).toHaveBeenCalledTimes(collectDepositNow ? 1 : 0);
     if (collectDepositNow) {
       expect(result).toMatchObject({ data: { depositCollection: { collected: 1, total: 1, failures: [] } } });
-      expect(mocks.collectAdvanceDeposit).toHaveBeenCalledWith({ reservationId: 77, depositMethod: "CASH", depositReference: undefined });
+      expect(mocks.collectAdvanceDeposit).toHaveBeenCalledWith({ reservationId: 77, depositMethod: "CASH", depositReference: undefined, amount: 500_000 });
     }
   });
 
@@ -528,7 +657,7 @@ describe("numeric codes and room occupants", () => {
 });
 
 describe("reservation guest linking", () => {
-  it.each([{ fullName: "" }, { idType: "" }, { email: "invalid" }])(
+  it.each([{ fullName: "" }, { phone: "" }, { email: "invalid" }])(
     "still validates guest fields when linking: %j",
     async (fields) => {
       await expect(createReservation({ ...validCreateInput, guestId: 42, ...fields })).resolves.toMatchObject({
@@ -674,6 +803,71 @@ describe("catalog-backed reservation snapshots", () => {
     runTransactionWith(tx);
     expect(await updateReservation(77, { ...validEditInput, adults: 2 })).toMatchObject({ ok: false });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { deposit: 0, depositStatus: "PENDING" },
+    { deposit: 250_000, depositStatus: "PENDING" },
+    { deposit: 1_000_000, depositStatus: "PENDING" },
+    { deposit: 250_000, depositStatus: "COLLECTED" },
+    { deposit: 1_100_000, depositStatus: "COLLECTED" },
+    { deposit: undefined, depositStatus: undefined },
+  ])("repricing preserves stored deposits, including collected credit: %j", async ({ deposit, depositStatus }) => {
+    const tx = mealTransaction();
+    const reservation = await tx.reservation.findUnique();
+    tx.reservation.findUnique.mockResolvedValue({ ...reservation,
+      deposit: deposit === undefined ? undefined : new Prisma.Decimal(deposit), depositStatus,
+      folio: depositStatus === "COLLECTED" ? { lineItems: [] } : null,
+    });
+    runTransactionWith(tx);
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([1, 2].map((day) => ({
+      date: new Date(`2026-10-0${day}`), rate: new Prisma.Decimal(500_000), sourceRule: null,
+    })));
+    expect(await updateReservation(77, { ...validEditInput, departureDate: "2026-10-03" })).toMatchObject({ ok: true });
+    expect(tx.reservation.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      rateAmount: new Prisma.Decimal(500_000), deposit: new Prisma.Decimal(deposit ?? 500_000),
+    }) }));
+    expect(tx.reservation.update.mock.calls[0][0].data).not.toHaveProperty("depositStatus");
+    expect(tx.reservation.findUnique).toHaveBeenLastCalledWith(expect.objectContaining({
+      select: expect.objectContaining({ deposit: true, depositStatus: true }),
+    }));
+  });
+
+  it.each(["dates", "room type"])("rejects pending deposits above the new package total on %s edits before any writes", async (change) => {
+    const tx = mealTransaction();
+    const reservation = await tx.reservation.findUnique();
+    tx.reservation.findUnique.mockResolvedValue({ ...reservation,
+      roomTypeId: change === "room type" ? 2 : 1,
+      deposit: new Prisma.Decimal(1_000_001), depositStatus: "PENDING",
+    });
+    runTransactionWith(tx);
+    mocks.resolveNightlySchedule.mockResolvedValueOnce([1, 2].map((day) => ({
+      date: new Date(`2026-10-0${day}`), rate: new Prisma.Decimal(500_000), sourceRule: null,
+    })));
+    expect(await updateReservation(77, {
+      ...validEditInput,
+      ...(change === "dates" ? { departureDate: "2026-10-03" } : {}),
+    })).toMatchObject({
+      ok: false, code: "INVALID_RESERVATION_DATA",
+      error: "The pending deposit exceeds the revised room and inclusion package total. Change the room type or stay dates to keep the package total at least equal to the deposit.",
+    });
+    expect(tx.guest.update).not.toHaveBeenCalled();
+    expect(tx.reservation.update).not.toHaveBeenCalled();
+    expect(tx.reservationNight.deleteMany).not.toHaveBeenCalled();
+    expect(tx.reservationNight.createMany).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("non-pricing edits leave a custom deposit untouched without requoting", async () => {
+    const tx = mealTransaction();
+    const reservation = await tx.reservation.findUnique();
+    tx.reservation.findUnique.mockResolvedValue({ ...reservation,
+      deposit: new Prisma.Decimal(250_000), depositStatus: "PENDING",
+    });
+    runTransactionWith(tx);
+    expect(await updateReservation(77, { ...validEditInput, notes: "Guest request" })).toMatchObject({ ok: true });
+    expect(tx.reservation.update.mock.calls[0][0].data).not.toHaveProperty("deposit");
+    expect(mocks.resolveNightlySchedule).not.toHaveBeenCalled();
   });
 
   it("extensions preserve retained meal prices and snapshot the active price for added nights", async () => {

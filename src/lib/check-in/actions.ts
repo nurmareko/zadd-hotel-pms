@@ -212,6 +212,7 @@ export async function getCheckInReviewData(
         children: true,
         status: true,
         depositStatus: true,
+        deposit: true,
         rateAmount: true,
         updatedAt: true,
         guest: {
@@ -324,7 +325,7 @@ export async function getCheckInReviewData(
         roomReady,
         deposit: {
           status: reservation.depositStatus,
-          requiredAmount: firstNight?.rateAmount.toString() ?? null,
+          requiredAmount: reservation.deposit?.toString() ?? firstNight?.rateAmount.toString() ?? null,
           payment: depositPayment
             ? {
                 amount: depositPayment.amount.toString(),
@@ -523,7 +524,6 @@ async function runCheckInTransaction(
         throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
-      const depositAmount = firstNight.rateAmount;
 
       if (currentReservation.status !== ReservationStatus.CONFIRMED) {
         throw new CheckInDomainError("RESERVATION_NOT_ELIGIBLE");
@@ -566,7 +566,6 @@ async function runCheckInTransaction(
           purposeOfVisit: input.grcPurposeOfVisit,
           signatureDataUrl: input.signatureDataUrl,
           signedAt: now,
-          deposit: depositAmount,
         },
       });
 
@@ -697,6 +696,7 @@ async function runDepositCollectionTransaction(
         select: {
           status: true,
           depositStatus: true,
+          deposit: true,
           arrivalDate: true,
           groupBookingId: true,
           folio: {
@@ -712,7 +712,6 @@ async function runDepositCollectionTransaction(
           reservationNights: {
             orderBy: { date: "asc" },
             select: { rateAmount: true },
-            take: 1,
           },
         },
       });
@@ -761,8 +760,19 @@ async function runDepositCollectionTransaction(
         throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
       }
 
-      if (!firstNight.rateAmount.greaterThan(0)) {
+      // Creation stores the first-night default or the operator's custom requirement.
+      // Prefer that persisted requirement so deferred collection does not reset custom deposits.
+      const amount = new Prisma.Decimal(input.amount ?? reservation.deposit ?? firstNight.rateAmount);
+      if (!amount.greaterThan(0)) {
         throw new CheckInDomainError("DEPOSIT_RATE_UNAVAILABLE");
+      }
+      const packageTotal = reservation.reservationNights.reduce(
+        (total, night) => total.plus(night.rateAmount), new Prisma.Decimal(0),
+      );
+      if (amount.greaterThan(packageTotal)) {
+        throw new CheckInDomainError("INVALID_INPUT", {
+          message: "Deposit amount must not exceed the room and inclusion package total.",
+        });
       }
 
       if (existingPayment) {
@@ -783,7 +793,7 @@ async function runDepositCollectionTransaction(
       const payment = await tx.payment.create({
         data: {
           folioId: folio.id,
-          amount: firstNight.rateAmount,
+          amount,
           method: input.depositMethod,
           purpose: PaymentPurpose.DEPOSIT,
           reference: input.depositReference,
@@ -799,7 +809,7 @@ async function runDepositCollectionTransaction(
           depositStatus: DepositStatus.PENDING,
         },
         data: {
-          deposit: firstNight.rateAmount,
+          deposit: amount,
           depositStatus: DepositStatus.COLLECTED,
         },
       });
@@ -877,6 +887,7 @@ export async function collectAdvanceReservationDeposit(input: {
   reservationId: number;
   depositMethod: string;
   depositReference?: string;
+  amount?: number;
 }): Promise<CollectDepositResult> {
   const session = await auth();
   const authFailure = checkInAuthorizationFailure(session);

@@ -327,6 +327,9 @@ export function ReservationForm({
   const hasMountedRoomValidation = useRef(false);
 
   const [isCreated, setIsCreated] = useState(false);
+  const [batchRoomTypeId, setBatchRoomTypeId] = useState("");
+  const [batchQuantity, setBatchQuantity] = useState("2");
+  const [availabilityRefresh, setAvailabilityRefresh] = useState(0);
 
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
@@ -354,6 +357,7 @@ export function ReservationForm({
   });
 
   const collectDepositNow = useWatch({ control: form.control, name: "collectDepositNow" });
+  const advanceDepositAmount = useWatch({ control: form.control, name: "advanceDepositAmount" });
   const depositMethod = useWatch({ control: form.control, name: "depositMethod" });
   const guestId = useWatch({ control: form.control, name: "guestId" });
   const roomsFieldArray = useFieldArray({
@@ -420,6 +424,7 @@ export function ReservationForm({
     reservationTotal: number | null;
     deposits: number[];
     standardFirstNightRates: number[];
+    availableRoomsByRoomTypeId: Record<number, number> | null;
     inclusionRooms: Array<{
       pax: number;
       nights: number;
@@ -465,6 +470,7 @@ export function ReservationForm({
               reservationTotal: Number(result.reservationTotal),
               deposits: result.deposits.map(Number),
               standardFirstNightRates: result.standardFirstNightRates,
+              availableRoomsByRoomTypeId: result.availableRoomsByRoomTypeId,
               inclusionRooms: result.inclusionRooms.map((room) => ({
                 ...room,
                 unitPrice: Number(room.unitPrice),
@@ -479,6 +485,7 @@ export function ReservationForm({
               reservationTotal: null,
               deposits: [],
               standardFirstNightRates: [],
+              availableRoomsByRoomTypeId: null,
               inclusionRooms: [],
               error: result.error,
             },
@@ -505,6 +512,57 @@ export function ReservationForm({
     canResolveQuote && !(mode === "edit" && !pricingChanged);
   const isQuotePending = quoteRequested && activeQuote === null;
   const quoteError = activeQuote?.error ?? null;
+  // Fetch counts even while a new room row has no type selected. Counts are
+  // before this form's selection; never derive inventory from assigned rooms.
+  const [availabilityQuote, setAvailabilityQuote] = useState<{
+    key: string;
+    counts: Record<number, number> | null;
+    error: string | null;
+  } | null>(null);
+  const availabilityKey = `${arrivalDate}|${departureDate}|${availabilityRefresh}`;
+  const availabilityProbeTypeId = roomTypes[0]?.id;
+  useEffect(() => {
+    if (!isCreateMode || nights <= 0 || !availabilityProbeTypeId) return;
+    let ignore = false;
+    void safelyRunReservationAction(() => getReservationQuote({
+      arrivalDate,
+      departureDate,
+      arrangementType: "RO",
+      rooms: [{ roomTypeId: String(availabilityProbeTypeId), roomId: "", adults: "1", children: "0" }],
+    }), "quote").then((result) => {
+      if (ignore) return;
+      setAvailabilityQuote({
+        key: availabilityKey,
+        counts: result.ok ? result.availableRoomsByRoomTypeId : null,
+        error: result.ok ? null : result.error,
+      });
+    });
+    return () => { ignore = true; };
+  }, [arrivalDate, departureDate, nights, isCreateMode, availabilityKey, availabilityProbeTypeId]);
+  const currentAvailability = availabilityQuote?.key === availabilityKey ? availabilityQuote : null;
+  const availableRooms = isCreateMode && nights > 0
+    ? currentAvailability?.counts ?? (availabilityRefresh === 0 ? activeQuote?.availableRoomsByRoomTypeId : null) ?? null
+    : null;
+  const selectedTypeCounts = watchedRoomRows.reduce<Record<number, number>>((counts, room) => {
+    const id = Number(room.roomTypeId);
+    if (id > 0) counts[id] = (counts[id] ?? 0) + 1;
+    return counts;
+  }, {});
+  const remainingForType = (id: number, rowIndex?: number) => {
+    const count = availableRooms?.[id];
+    if (count === undefined) return null;
+    const ownSelection = rowIndex !== undefined && Number(watchedRoomRows[rowIndex]?.roomTypeId) === id ? 1 : 0;
+    return Math.max(0, count - (selectedTypeCounts[id] ?? 0) + ownSelection);
+  };
+  const overbookedTypes = isCreateMode && availableRooms
+    ? roomTypes.filter((type) => (selectedTypeCounts[type.id] ?? 0) > (availableRooms[type.id] ?? 0))
+    : [];
+  const batchRemaining = remainingForType(Number(batchRoomTypeId));
+  const batchCount = Number(batchQuantity);
+  const canAddBatch = isCreateMode && !form.formState.isSubmitting && !isCreated;
+  const batchAllowed = canAddBatch && batchRemaining !== null && Number.isInteger(batchCount)
+    && batchCount >= 2 && batchCount <= 10 && batchCount <= batchRemaining
+    && watchedRoomRows.length + batchCount <= 20;
   const resolvedRoomTotal = activeQuote?.roomTotal ?? null;
   const resolvedInclusionTotal = activeQuote?.inclusionTotal ?? 0;
 
@@ -513,7 +571,9 @@ export function ReservationForm({
   const displayedDeposits =
     isViewMode || (mode === "edit" && !roomPricingChanged)
       ? [Number(readOnlyDeposit ?? 0)]
-      : resolvedDeposits;
+      : isCreateMode && advanceDepositAmount !== undefined
+        ? watchedRoomRows.map(() => advanceDepositAmount)
+        : resolvedDeposits;
   const totalDeposit = displayedDeposits.reduce(
     (total, deposit) => total + deposit,
     0,
@@ -531,7 +591,7 @@ export function ReservationForm({
       ? Number(readOnlyInclusionTotal ?? 0)
       : resolvedInclusionTotal;
 
-  const totalReceived = 0;
+  const totalReceived = isCreateMode && collectDepositNow ? totalDeposit : 0;
   const reservationTotal = roomSubtotal;
   const netRoomTotal = roomSubtotal === null
     ? null
@@ -606,7 +666,7 @@ export function ReservationForm({
   }, [form, isViewMode, watchedRoomRows]);
 
   async function onSubmit() {
-    if (isViewMode || isCreated) {
+    if (isViewMode || isCreated || (isCreateMode && (isQuotePending || quoteError || overbookedTypes.length > 0))) {
       return;
     }
 
@@ -684,7 +744,9 @@ export function ReservationForm({
       const message = result.error;
 
       if (result.field) {
-        const normalizedField = normalizeReservationFieldPath(result.field);
+        const normalizedField = result.field === "advanceDepositAmount"
+          ? "advanceDepositAmount"
+          : normalizeReservationFieldPath(result.field);
         if (normalizedField) {
           const field = normalizedField as FieldPath<UnifiedReservationInput>;
 
@@ -701,7 +763,7 @@ export function ReservationForm({
 
   function onInvalidSubmit(errors: FieldErrors<UnifiedReservationInput>) {
     const firstErrorField = firstReservationErrorField(errors)
-      ?? (errors.depositMethod ? "depositMethod" : errors.depositReference ? "depositReference" : undefined);
+      ?? (errors.advanceDepositAmount ? "advanceDepositAmount" : errors.depositMethod ? "depositMethod" : errors.depositReference ? "depositReference" : undefined);
     if (firstErrorField) {
       form.setFocus(firstErrorField as FieldPath<UnifiedReservationInput>);
     }
@@ -719,7 +781,7 @@ export function ReservationForm({
         <>
           <Button
             type="submit"
-            disabled={isCreated || isSubmitting || isQuotePending || Boolean(quoteError)}
+            disabled={isCreated || isSubmitting || isQuotePending || Boolean(quoteError) || overbookedTypes.length > 0}
             className="desktop:lg:h-11! desktop:lg:text-sm disabled:opacity-70"
           >
             {isCreated ? "Reservation Created" : isSubmitting ? "Saving..." : submitLabel}
@@ -837,7 +899,7 @@ export function ReservationForm({
               }
             />
             <ReadOnlyField
-              label="Deposit (= first night's rate)"
+              label="Deposit Amount"
               value={formatIDR(totalDeposit)}
             />
           </ReadOnlySection>
@@ -880,8 +942,8 @@ export function ReservationForm({
       ? "Unavailable"
       : isQuotePending
         ? "Calculating…"
-        : displayedDeposits[index] !== undefined
-          ? formatIDR(displayedDeposits[index])
+        : (isCreateMode ? resolvedDeposits[index] : displayedDeposits[index]) !== undefined
+          ? formatIDR(isCreateMode ? resolvedDeposits[index] : displayedDeposits[index])
           : "—";
   const reservationSummary = (
     <section
@@ -921,9 +983,9 @@ export function ReservationForm({
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-slate-600">Total Received</dt>
+              <dt className="text-slate-600">{isCreateMode ? "Deposit Amount" : "Total Received"}</dt>
               <dd className="num text-right font-medium text-slate-900">
-                {formatIDR(totalReceived)}
+                {isCreateMode ? summaryAmountDisplay(resolvedDeposits.length === watchedRoomRows.length ? totalDeposit : null) : formatIDR(totalReceived)}
               </dd>
             </div>
           </div>
@@ -938,6 +1000,14 @@ export function ReservationForm({
           </div>
         </dl>
 
+        {isCreateMode ? (
+          <p className="mt-3 text-xs text-slate-500">
+            Package Total includes the arrangement allocation, not an additional charge.
+            {collectDepositNow
+              ? " Balance Due is estimated after successful deposit collection on save. No payment has been recorded yet."
+              : " The deposit is planned, not paid. Balance Due remains the full package total until payment is collected."}
+          </p>
+        ) : null}
         {quoteError ? (
           <p className="mt-4 text-sm font-medium text-red-600">{quoteError}</p>
         ) : null}
@@ -1135,10 +1205,11 @@ export function ReservationForm({
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>Phone Number {isCreateMode ? <RequiredMark /> : null}</FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
+                            aria-required={isCreateMode}
                             inputMode="tel"
                             autoComplete="tel"
                             placeholder="Example: 0812 3456 7890"
@@ -1158,7 +1229,7 @@ export function ReservationForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          ID Type {isCreateMode ? <RequiredMark /> : null}
+                          ID Type {isCreateMode ? "(optional)" : null}
                         </FormLabel>
                         <FormControl>
                           <select className={selectClassName} {...field}>
@@ -1182,15 +1253,17 @@ export function ReservationForm({
                     name="idNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ID Number</FormLabel>
+                        <FormLabel>ID Number {isCreateMode ? "(optional)" : null}</FormLabel>
                         <FormControl>
                           <Input
                             className={fieldClassName}
+                            aria-describedby={isCreateMode ? "optional-id-help" : undefined}
                             placeholder="ID number"
                             readOnly={isViewMode}
                             {...field}
                           />
                         </FormControl>
+                        {isCreateMode ? <p id="optional-id-help" className="text-xs text-slate-500">ID details are optional when reserving. Complete the required guest identification before check-in.</p> : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1347,6 +1420,11 @@ export function ReservationForm({
                         ) : null}
                       </div>
 
+                      {isCreateMode && overbookedTypes.some((type) => type.id === rowRoomTypeId) ? (
+                        <p role="alert" className="mb-4 text-sm font-medium text-red-600">
+                          {availableRooms?.[rowRoomTypeId] === 0 ? "Selected room type is sold out." : "Selected room type exceeds availability."} {selectedTypeCounts[rowRoomTypeId]} selected across all rows; {availableRooms?.[rowRoomTypeId] ?? 0} available. Change the type or remove rooms before saving.
+                        </p>
+                      ) : null}
                       {isCreateMode && roomsFieldArray.fields.length > 1 ? (
                         <FormField
                           control={form.control}
@@ -1394,12 +1472,15 @@ export function ReservationForm({
                                   }}
                                 >
                                   <option value="">Select room type</option>
-                                  {roomTypes.map((roomType) => (
-                                    <option key={roomType.id} value={String(roomType.id)}>
-                                      {roomType.code} - {roomType.name} - {roomType.capacity} guests -{" "}
-                                      {formatIDR(roomType.baseRate)}/night
-                                    </option>
-                                  ))}
+                                  {roomTypes.map((roomType) => {
+                                    const remaining = remainingForType(roomType.id, index);
+                                    return (
+                                      <option key={roomType.id} value={String(roomType.id)} disabled={isCreateMode && remaining === 0}>
+                                        {roomType.code} - {roomType.name} - {roomType.capacity} guests - {formatIDR(roomType.baseRate)}/night
+                                        {isCreateMode ? remaining === null ? " — Availability pending" : remaining === 0 ? " — Sold out / selected in other rows" : ` — ${remaining} available` : ""}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </FormControl>
                               <FormMessage />
@@ -1597,7 +1678,7 @@ export function ReservationForm({
                           </>
                         ) : null}
                         <div className="md:col-span-2 desktop:min-[1400px]:col-span-2">
-                          <p className="text-sm font-medium text-slate-700">Room rate</p>
+                          <p className="text-sm font-medium text-slate-700">{isCreateMode ? "First-night rate" : "Room rate"}</p>
                           <div
                             role="status"
                             className="num mt-2 flex min-h-11 items-center text-sm font-semibold text-slate-900 desktop:min-h-10"
@@ -1611,22 +1692,61 @@ export function ReservationForm({
                 })}
 
                 {isCreateMode ? (
-                  <div className="flex justify-center pt-1">
+                  <div className="space-y-4 pt-1">
+                    <div className="grid items-end gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label htmlFor="batch-room-type" className="text-sm font-medium text-slate-700">Batch Room Type</label>
+                        <select id="batch-room-type" className={selectClassName} value={batchRoomTypeId} onChange={(event) => setBatchRoomTypeId(event.target.value)} disabled={isSubmitting || isCreated}>
+                          <option value="">Select room type</option>
+                          {roomTypes.map((type) => {
+                            const remaining = remainingForType(type.id);
+                            return <option key={type.id} value={String(type.id)} disabled={remaining !== null && remaining < 2}>{type.code} — {type.name} — {remaining === null ? "Availability pending" : remaining === 0 ? "Sold out / already selected" : `${remaining} available to add`}</option>;
+                          })}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="batch-room-quantity" className="text-sm font-medium text-slate-700">Rooms to Add (2–10)</label>
+                        <Input id="batch-room-quantity" className={fieldClassName} type="number" min={2} max={10} step={1} value={batchQuantity} onChange={(event) => setBatchQuantity(event.target.value)} disabled={isSubmitting || isCreated} aria-describedby="batch-room-help" />
+                      </div>
+                    </div>
+                    <p id="batch-room-help" className="text-xs text-slate-500" role="status">
+                      Add 2–10 rooms of one type. Existing rows are kept; maximum 20 rooms total ({watchedRoomRows.length}/20 selected).
+                      {batchRoomTypeId && batchRemaining !== null ? ` ${batchRemaining} rooms of this type remain after your current selections.` : " Select stay dates to check availability."}
+                      {batchRoomTypeId && !batchAllowed ? " Choose a quantity within availability and the total room limit." : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <Button type="button" variant="outline" disabled={!batchAllowed} onClick={() => {
+                        if (!batchAllowed) return;
+                        roomsFieldArray.append(Array.from({ length: batchCount }, () => ({
+                          roomTypeId: batchRoomTypeId, roomId: "", adults: "1", children: "0",
+                          occupantName: "", customRate: "", customRateReason: "",
+                        })));
+                      }}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add Rooms
+                      </Button>
                     <Button
                       type="button"
                       variant="outline"
+                      disabled={isSubmitting || isCreated || watchedRoomRows.length >= 20}
                       onClick={() =>
                         roomsFieldArray.append({
                           roomTypeId: "",
                           roomId: "",
                           adults: "1",
                           children: "0",
+                          occupantName: "",
+                          customRate: "",
+                          customRateReason: "",
                         })
                       }
                     >
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                      Add Room
+                      Add Single Room
                     </Button>
+                    <Button type="button" variant="ghost" disabled={isSubmitting || isCreated || nights <= 0} onClick={() => setAvailabilityRefresh((value) => value + 1)}>Refresh Availability</Button>
+                    </div>
+                    <p className="text-xs text-slate-500">Availability includes unassigned reservations and your other room rows. The server rechecks availability when saving.</p>
+                    {currentAvailability?.error && !availableRooms ? <p role="alert" className="text-sm text-red-600">Availability unavailable: {currentAvailability.error} Retry with Refresh Availability.</p> : null}
                   </div>
                 ) : null}
               </div>
@@ -1638,7 +1758,7 @@ export function ReservationForm({
                     <div>
                       <h2 id="advance-deposit-title" className={sectionTitleClassName}>Advance Deposit</h2>
                       <p id="advance-deposit-help" className="mt-1 text-xs text-slate-500">
-                        The deposit is the first-night room rate. For multiple rooms, the total is the sum of each room’s first-night deposit, collected separately for each reservation.
+                        Leave the amount blank to use each room’s suggested first-night rate. A custom amount applies per room: group deposit total = custom amount × number of room rows. Each deposit must not exceed that room’s full-stay package total; the server validates this when saving.
                       </p>
                     </div>
                     <span className="num text-sm font-bold text-slate-900" aria-live="polite">
@@ -1646,6 +1766,28 @@ export function ReservationForm({
                     </span>
                   </div>
                   <div className={`${cardContentClassName} space-y-4`}>
+                    <FormField
+                      control={form.control}
+                      name="advanceDepositAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deposit Amount (Rp per room)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" min={0} step="any" value={field.value ?? ""}
+                              onChange={(event) => field.onChange(event.target.value === "" ? undefined : Number(event.target.value))}
+                              placeholder="Suggested first-night rate" className={fieldClassName}
+                              disabled={isSubmitting || isCreated} aria-describedby="deposit-amount-help" />
+                          </FormControl>
+                          <p id="deposit-amount-help" className="text-xs text-slate-500">
+                            {advanceDepositAmount === undefined
+                              ? "Using the suggested first-night rate for each room. Clear a custom amount to restore this suggestion."
+                              : `${formatIDR(advanceDepositAmount)} per room × ${watchedRoomRows.length} rooms = ${formatIDR(totalDeposit)} planned deposit.`}
+                            {" "}This is a planned deposit, not a recorded payment. For mixed room types, a custom amount must fit every room’s package total.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="collectDepositNow"

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { UnifiedReservationSchema } from "./schema";
+import { EditReservationSchema, UnifiedReservationSchema } from "./schema";
+import { DepositCollectionSchema } from "@/lib/check-in/schema";
 
 const validInput = {
   fullName: "Tamu Uji",
+  phone: "+628123456789",
   idType: "KTP",
   arrivalDate: "2026-10-01",
   departureDate: "2026-10-02",
@@ -12,6 +14,39 @@ const validInput = {
   stayFeeKinds: [],
   rooms: [{ roomTypeId: 1, roomId: null, adults: 1, children: 0 }],
 };
+
+describe("creation contact and deposit validation", () => {
+  it.each([undefined, "", "   "])("requires phone %j with precise copy", (phone) => {
+    const result = UnifiedReservationSchema.safeParse({ ...validInput, phone });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]).toMatchObject({ path: ["phone"], message: "Phone number is required" });
+  });
+  it("trims phone and enforces its maximum length", () => {
+    expect(UnifiedReservationSchema.parse({ ...validInput, phone: "  123  " }).phone).toBe("123");
+    expect(UnifiedReservationSchema.safeParse({ ...validInput, phone: "1".repeat(21) }).success).toBe(false);
+  });
+  it.each([undefined, "", "KTP"])("accepts optional creation ID %j", (idType) => {
+    expect(UnifiedReservationSchema.parse({ ...validInput, idType }).idType).toBe(idType || null);
+  });
+  it("preserves optional edit phone", () => {
+    expect(EditReservationSchema.parse({ ...validInput, ...validInput.rooms[0], phone: "" }).phone).toBeNull();
+  });
+  it("does not require payment details when explicit zero skips collection", () => {
+    expect(UnifiedReservationSchema.safeParse({ ...validInput, advanceDepositAmount: 0, collectDepositNow: true }).success).toBe(true);
+  });
+  it.each([undefined, 0, 125000, 12.5])("accepts numeric creation deposit %j", (advanceDepositAmount) => {
+    expect(UnifiedReservationSchema.parse({ ...validInput, advanceDepositAmount }).advanceDepositAmount).toBe(advanceDepositAmount);
+  });
+  it.each([-1, "100", null, NaN, Infinity])("rejects invalid creation deposit %j", (advanceDepositAmount) => {
+    expect(UnifiedReservationSchema.safeParse({ ...validInput, advanceDepositAmount }).success).toBe(false);
+  });
+  it.each([undefined, 1, 125000])("accepts optional positive collection amount %j", (amount) => {
+    expect(DepositCollectionSchema.parse({ reservationId: 1, depositMethod: "CASH", amount }).amount).toBe(amount);
+  });
+  it.each([0, -1, "100", null, NaN, Infinity])("rejects invalid collection amount %j", (amount) => {
+    expect(DepositCollectionSchema.safeParse({ reservationId: 1, depositMethod: "CASH", amount }).success).toBe(false);
+  });
+});
 
 describe("reservation stay fee schema", () => {
   it.each([1, 2])("defaults omitted fees to [] for %i rooms", (roomCount) => {
@@ -111,6 +146,6 @@ describe("reservation guest link schema", () => {
 
   it("still requires guest fields when linking an existing guest", () => {
     expect(UnifiedReservationSchema.safeParse({ ...validInput, guestId: 42, fullName: "" }).success).toBe(false);
-    expect(UnifiedReservationSchema.safeParse({ ...validInput, guestId: 42, idType: "" }).success).toBe(false);
+    expect(UnifiedReservationSchema.safeParse({ ...validInput, guestId: 42, phone: "" }).success).toBe(false);
   });
 });

@@ -83,6 +83,8 @@ export const DepositCollectionSchema = z
       error: "Select a deposit payment method",
     }),
     depositReference: TextOrEmptySchema,
+    amount: z.number("Deposit amount must be a number")
+      .positive("Deposit amount must be greater than zero").optional(),
   })
   .superRefine((value, ctx) => {
     if (
