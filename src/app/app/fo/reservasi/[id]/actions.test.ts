@@ -7,10 +7,23 @@ const mocks = vi.hoisted(() => ({
   logCreate: vi.fn(), roomUpdate: vi.fn(), revalidate: vi.fn(),
   reservationUpdateMany: vi.fn(), stayFeeUpdateMany: vi.fn(),
   logActivity: vi.fn(), revalidatePath: vi.fn(),
+  reservationFindFirst: vi.fn(), roomBlockFindMany: vi.fn(),
+  postPendingReservationStayFees: vi.fn(),
 }));
 vi.mock("@/auth", () => ({ auth: mocks.auth }));
-vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: mocks.transaction }, TRANSACTION_OPTIONS: {} }));
-vi.mock("@/lib/check-in/actions", () => ({ getCheckInReviewData: vi.fn(), getFreshCheckInReview: vi.fn() }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $transaction: mocks.transaction,
+    reservation: { findUnique: mocks.reservationFindUnique, findFirst: mocks.reservationFindFirst },
+    room: { findUnique: mocks.roomFindUnique },
+    roomBlock: { findMany: mocks.roomBlockFindMany },
+  },
+  TRANSACTION_OPTIONS: {},
+}));
+vi.mock("@/lib/reservation-stay-fees", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/reservation-stay-fees")>(),
+  postPendingReservationStayFees: mocks.postPendingReservationStayFees,
+}));
 vi.mock("@/lib/reservation-inclusions/actions", () => ({ changeReservationMealPlan: vi.fn(), setReservationStayFee: vi.fn() }));
 vi.mock("@/lib/revalidate-room-status", () => ({ revalidateRoomStatusViews: mocks.revalidate }));
 
@@ -18,6 +31,8 @@ vi.mock("@/lib/activity-log", () => ({ logActivity: mocks.logActivity }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { requestRoomCleaning } from "./actions";
+import { completeCheckIn, getCheckInReviewData } from "@/lib/check-in/actions";
+import { checkInFailure } from "@/lib/check-in/errors";
 import { markReservationNoShow } from "@/lib/reservations/actions";
 import { reservationFailure } from "../new/reservation-errors";
 
@@ -30,7 +45,7 @@ beforeEach(() => {
     housekeepingLog: { create: mocks.logCreate },
   }));
   mocks.reservationFindUnique.mockResolvedValue({ id: 1, roomId: 2, status: ReservationStatus.CHECKED_IN });
-  mocks.roomFindUnique.mockResolvedValue({ id: 2, number: "102", status: RoomStatus.OC });
+  mocks.roomFindUnique.mockResolvedValue({ id: 2, number: "102", status: RoomStatus.OC, bedType: "KING" });
 });
 
 describe("requestRoomCleaning authorization", () => {
@@ -58,6 +73,136 @@ describe("requestRoomCleaning authorization", () => {
     expect(mocks.logCreate).not.toHaveBeenCalled();
     expect(mocks.roomUpdate).not.toHaveBeenCalled();
     expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+});
+
+describe("check-in physical OOO guard (#310)", () => {
+  const arrivalDate = new Date("2026-06-01T00:00:00.000Z");
+  const departureDate = new Date("2026-06-02T00:00:00.000Z");
+  const room = { id: 2, number: "102", roomTypeId: 10, status: RoomStatus.VC, bedType: "KING" };
+  const reservation = {
+    id: 1, guestId: 5, roomTypeId: 10, arrivalDate, departureDate,
+    status: ReservationStatus.CONFIRMED, depositStatus: "COLLECTED",
+    folio: { id: 10, folioNo: "FOL-0001", payments: [{ id: 20, amount: new Prisma.Decimal(300000), method: "CASH", reference: null }] },
+    reservationNo: "RSV-001", reservationType: "INDIVIDUAL", arrangementType: "RO",
+    adults: 1, children: 0, rateAmount: new Prisma.Decimal(300000),
+    updatedAt: arrivalDate,
+    guest: { fullName: "Budi", idType: "KTP", idNumber: "123", phone: null, email: null, nationality: "ID" },
+    room, roomType: { name: "Deluxe" },
+    reservationNights: [{ date: arrivalDate, rateAmount: new Prisma.Decimal(300000) }],
+    grcSnapshot: null, grcFilledAt: arrivalDate, signedAt: arrivalDate,
+    purposeOfVisit: "Liburan", signatureDataUrl: "data:image/png;base64,aGVsbG8=",
+  };
+
+  function formData() {
+    const data = new FormData();
+    for (const [key, value] of Object.entries({
+      reservationId: "1", roomId: "2", guestFullName: "Budi", guestIdType: "KTP",
+      guestIdNumber: "123", guestNationality: "ID", purposeOfVisit: "Liburan",
+      signatureDataUrl: "data:image/png;base64,aGVsbG8=", arrivalConfirmation: "true",
+    })) data.set(key, value);
+    return data;
+  }
+
+  function transactionRoom(status: RoomStatus) {
+    return {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      room: {
+        findUnique: vi.fn().mockResolvedValue({ ...room, status }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      roomBlock: { findMany: vi.fn().mockResolvedValue([]) },
+      reservation: {
+        findUnique: vi.fn().mockResolvedValue(reservation),
+        findFirst: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: vi.fn().mockResolvedValue(reservation),
+        update: vi.fn(),
+      },
+      reservationNight: { findFirst: vi.fn().mockResolvedValue({ rateAmount: new Prisma.Decimal(300000) }) },
+      guest: { update: vi.fn() },
+      user: { findUniqueOrThrow: vi.fn().mockResolvedValue({ fullName: "Operator FO" }) },
+      hotelSettings: { findUnique: vi.fn().mockResolvedValue({ address: "Hotel address" }) },
+      payment: { create: vi.fn() },
+      folio: { create: vi.fn(), update: vi.fn() },
+    };
+  }
+
+  function expectNoWrites(tx: ReturnType<typeof transactionRoom>) {
+    for (const write of [
+      tx.guest.update, tx.reservation.updateMany, tx.reservation.update,
+      tx.room.updateMany, tx.payment.create, tx.folio.create, tx.folio.update,
+      mocks.postPendingReservationStayFees, mocks.logActivity, mocks.revalidatePath,
+    ]) expect(write).not.toHaveBeenCalled();
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T05:00:00.000Z"));
+    mocks.auth.mockResolvedValue({ user: { id: "7", role: "FO" } });
+    mocks.reservationFindUnique.mockResolvedValue(reservation);
+    mocks.reservationFindFirst.mockResolvedValue(null);
+    mocks.roomFindUnique.mockResolvedValue(room);
+    mocks.roomBlockFindMany.mockResolvedValue([]);
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it.each([[RoomStatus.OOO, false], [RoomStatus.VC, true]] as const)(
+    "reports readiness for physical %s without dated blocks", async (status, roomReady) => {
+      mocks.reservationFindUnique.mockResolvedValue({ ...reservation, room: { ...room, status } });
+      await expect(getCheckInReviewData(1)).resolves.toMatchObject({ ok: true, review: { roomReady } });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects physical OOO during advisory preflight without dated blocks", async () => {
+    mocks.roomFindUnique.mockResolvedValue({ ...room, status: RoomStatus.OOO });
+    const tx = transactionRoom(RoomStatus.OOO);
+    mocks.transaction.mockImplementation(async (operation) => operation(tx));
+    await expect(completeCheckIn(formData(), { redirectAfterCheckIn: false }))
+      .resolves.toEqual(checkInFailure("ROOM_OOO", { field: "roomId" }));
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expectNoWrites(tx);
+  });
+
+  it("rejects VC changed to OOO inside the locked transaction even without dated blocks", async () => {
+    const tx = transactionRoom(RoomStatus.OOO);
+    mocks.transaction.mockImplementation(async (operation) => operation(tx));
+
+    await expect(completeCheckIn(formData(), { redirectAfterCheckIn: false }))
+      .resolves.toEqual(checkInFailure("ROOM_OOO", { field: "roomId" }));
+
+    expect(mocks.roomBlockFindMany).toHaveBeenCalled();
+    expect(mocks.transaction).toHaveBeenCalledExactlyOnceWith(expect.any(Function), expect.objectContaining({
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    }));
+    expect(tx.room.findUnique).toHaveBeenCalledWith({
+      where: { id: 2 }, select: { roomTypeId: true, status: true },
+    });
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(tx.room.findUnique.mock.invocationCallOrder[0]);
+    expectNoWrites(tx);
+  });
+
+  it("still completes VC check-in with a collected deposit and existing folio", async () => {
+    const tx = transactionRoom(RoomStatus.VC);
+    mocks.transaction.mockImplementation(async (operation) => operation(tx));
+    await expect(completeCheckIn(formData(), { redirectAfterCheckIn: false })).resolves.toEqual({ ok: true });
+    expect(tx.reservation.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 1, status: ReservationStatus.CONFIRMED, depositStatus: "COLLECTED" },
+    }));
+    expect(tx.room.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { status: RoomStatus.OC } }));
+    expect(tx.payment.create).not.toHaveBeenCalled();
+    expect(tx.folio.create).not.toHaveBeenCalled();
+  });
+
+  it("still rejects a deposit changed to PENDING inside the transaction", async () => {
+    const tx = transactionRoom(RoomStatus.VC);
+    tx.reservation.findUnique.mockResolvedValue({ ...reservation, depositStatus: "PENDING" });
+    mocks.transaction.mockImplementation(async (operation) => operation(tx));
+    await expect(completeCheckIn(formData(), { redirectAfterCheckIn: false }))
+      .resolves.toEqual(checkInFailure("DEPOSIT_REQUIRED"));
+    expectNoWrites(tx);
   });
 });
 

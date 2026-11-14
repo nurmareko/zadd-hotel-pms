@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpDown, SearchX } from "lucide-react";
+import type { BedType } from "@prisma/client";
+import { ArrowDown, ArrowUp, ArrowUpDown, SearchX, TriangleAlert } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HousekeepingListRow } from "@/lib/housekeeping-list-data";
 import { PRIORITY_CONFIG } from "@/lib/housekeeping-priority";
@@ -22,6 +23,12 @@ export type RoomBoardTableProps = {
 };
 const cell = "border-b border-border px-3 py-3 align-top desktop:px-4";
 const header = "border-b border-border bg-muted/40 px-3 py-3 text-left text-xs font-medium text-muted-foreground desktop:px-4";
+const bedTypeLabels: Record<BedType, string> = {
+  KING: "King Bed",
+  QUEEN: "Queen Bed",
+  TWIN: "Twin Beds",
+  SINGLE: "Single Bed",
+};
 const contextLabels = { arrival: "Arrival", departure: "Departure", stayover: "Stayover" };
 
 function Context({ row }: { row: HousekeepingListRow }) {
@@ -69,11 +76,17 @@ export function RoomBoardTable({ rows, dateIso, query, sortBy, sortOrder, rooms,
       </tr></thead>
       <tbody>
         {rows.map((row) => <Fragment key={row.room.id}>
-          <tr className="bg-card hover:bg-muted/30">
+          <tr className={row.room.status === "OOO" ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60" : "bg-card hover:bg-muted/30"}>
             <td className={`${cell} whitespace-nowrap text-xs font-medium`}>{row.taskCode}</td>
             <td className={cell}>
               <Link href={`/app/hk/rooms/${row.room.id}`} className="text-base font-bold hover:text-primary hover:underline">{row.room.number}</Link>
-              <p className="my-1 text-xs text-muted-foreground">{row.room.typeName}</p>
+              <p className="my-1 text-xs text-muted-foreground">{row.room.typeName} · {bedTypeLabels[row.room.bedType]}</p>
+              {row.room.status === "OOO" && (
+                <p className="my-2 flex items-center gap-1.5 text-sm font-semibold text-red-700 dark:text-red-300">
+                  <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+                  Out of Order
+                </p>
+              )}
               <span className="inline-flex whitespace-nowrap rounded-full bg-muted px-2 py-1 text-xs">Floor {row.room.floor}</span>
               {row.pendingLaundry && row.pendingLaundry.total > 0 && (
                 <Link href="/app/hk/laundry" title={`${row.pendingLaundry.total} pending laundry orders; ${row.pendingLaundry.readyCount} ready for return to Room ${row.room.number}`} className={`mt-2 inline-flex min-h-11 items-center rounded-full px-2 py-1 text-xs font-medium focus-visible:outline-ring ${row.pendingLaundry.readyCount > 0 ? "bg-purple-50 text-purple-800" : "bg-muted text-muted-foreground"}`}>
@@ -88,7 +101,7 @@ export function RoomBoardTable({ rows, dateIso, query, sortBy, sortOrder, rooms,
             <td className={cell}><InlineHousekeeperSelect roomId={row.room.id} roomNumber={row.room.number} dateIso={dateIso} assignedId={row.assignedHousekeeper?.id ?? null} assignedName={row.assignedHousekeeper?.name} housekeepers={housekeepers} /></td>
             <td className={`${cell} hidden min-w-60 desktop:table-cell`}><Notes row={row} /><div className="mt-3"><RoomTaskNoteDialog rooms={rooms} housekeepers={housekeepers} todayIso={todayIso} defaultRoomId={row.room.id} /></div></td>
           </tr>
-          <tr className="bg-muted/20 desktop:hidden"><td colSpan={6} className="border-b border-border px-3">
+          <tr className={row.room.status === "OOO" ? "bg-red-50 dark:bg-red-950/40 desktop:hidden" : "bg-muted/20 desktop:hidden"}><td colSpan={6} className="border-b border-border px-3">
             <details><summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Room details & notes {row.room.number}</summary>
               <div className="grid max-w-xl gap-4 border-t border-border py-3 sm:grid-cols-2"><Context row={row} /><Notes row={row} /><RoomTaskNoteDialog rooms={rooms} housekeepers={housekeepers} todayIso={todayIso} defaultRoomId={row.room.id} /></div>
             </details>

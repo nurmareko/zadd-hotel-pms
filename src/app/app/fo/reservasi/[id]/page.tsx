@@ -310,6 +310,7 @@ export default async function ReservationDetailPage({
         id: true,
         number: true,
         floor: true,
+        bedType: true,
         status: true,
         roomTypeId: true,
       },

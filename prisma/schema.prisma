@@ -12,6 +12,13 @@ datasource db {
 // ENUMS
 // ============================================================
 
+enum BedType {
+  KING
+  QUEEN
+  TWIN
+  SINGLE
+}
+
 enum RoomStatus {
   VC // Vacant Clean
   OC // Occupied Clean
@@ -309,6 +316,7 @@ model Room {
   floor      Int
   roomTypeId Int        @map("room_type_id")
   status     RoomStatus @default(VC)
+  bedType    BedType    @default(KING) @map("bed_type")
 
   roomType                RoomType                 @relation(fields: [roomTypeId], references: [id])
   roomBlocks              RoomBlock[]

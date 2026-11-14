@@ -284,6 +284,7 @@ export async function getCheckInReviewData(
     const roomReady = Boolean(
       reservation.room &&
         reservation.room.roomTypeId === reservation.roomTypeId &&
+        reservation.room.status !== RoomStatus.OOO &&
         blocks.length === 0 &&
         !roomOverlap,
     );
@@ -396,6 +397,10 @@ async function prepareCheckInContext(
     return checkInFailure("ROOM_TYPE_MISMATCH", { field: "roomId" });
   }
 
+  if (room.status === RoomStatus.OOO) {
+    return checkInFailure("ROOM_OOO", { field: "roomId" });
+  }
+
   const [block] = await getActiveRoomBlocks({ roomId: room.id, range: {
     startDate: arrivalDate.toISOString().slice(0, 10), endDate: departureDate.toISOString().slice(0, 10),
   } });
@@ -446,7 +451,7 @@ async function runCheckInTransaction(
       await tx.$queryRaw`SELECT id FROM "room" WHERE id = ${room.id} FOR UPDATE`;
       const freshRoom = await tx.room.findUnique({
         where: { id: room.id },
-        select: { roomTypeId: true },
+        select: { roomTypeId: true, status: true },
       });
       const currentReservation = await tx.reservation.findUnique({
         where: { id: reservation.id },
@@ -483,6 +488,9 @@ async function runCheckInTransaction(
       }
       if (!freshRoom || freshRoom.roomTypeId !== currentReservation.roomTypeId) {
         throw new CheckInDomainError("ROOM_TYPE_MISMATCH", { field: "roomId" });
+      }
+      if (freshRoom.status === RoomStatus.OOO) {
+        throw new CheckInDomainError("ROOM_OOO", { field: "roomId" });
       }
       const [block] = await getActiveRoomBlocks({
         roomId: room.id,

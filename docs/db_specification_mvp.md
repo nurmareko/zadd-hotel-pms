@@ -155,6 +155,7 @@ erDiagram
     int floor
     int room_type_id FK
     varchar status "VC, OC, VD, OD, VCU, OOO"
+    BedType bed_type "default KING"
   }
   ROOM_BLOCK {
     int id PK
@@ -410,7 +411,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 
 4. RoomType(*id*, code, name, description, capacity, base_rate)
 5. PricingRule(*id*, *room_type_id\#*, name, selector_kind, day_of_week nullable, starts_on nullable, ends_before nullable, adjustment_kind, adjustment_value, is_active, created_at, updated_at)
-6. Room(*id*, number, floor, *room_type_id\#*, status)
+6. Room(*id*, number, floor, *room_type_id\#*, status, bed_type)
 7. Article(*id*, code, name, type, default_price)
 8. HotelSettings(*id*, hotel_name, address, tax_percent, service_charge_percent, night_audit_time, currency)
 
@@ -469,6 +470,7 @@ Notation: `TableName(*pk*, *fk\#*, attr1, attr2, ...)`. Attributes marked with `
 | Enum | Values |
 |---|---|
 | RoomStatus | VC, OC, VD, OD, VCU, OOO |
+| BedType | KING, QUEEN, TWIN, SINGLE |
 | RoomBlockReason | MAINTENANCE, RENOVATION, DEEP_CLEANING, INSPECTION, OTHER |
 | RoomBlockStatus | ACTIVE, RELEASED |
 | ArticleType | ROOM, FB, SERVICE, TAX, MISC |
@@ -777,6 +779,7 @@ Indexes and enforcement:
 | id | SERIAL | PRIMARY KEY | Unique room identifier |
 | number | VARCHAR(10) | UNIQUE, NOT NULL | Room number |
 | floor | INT | NOT NULL | Floor number |
+| bed_type | BedType | NOT NULL, DEFAULT 'KING' | Physical room bed configuration: King Bed, Queen Bed, Twin Beds, or Single Bed. Existing rooms default to KING. |
 | room_type_id | INT | NOT NULL, FOREIGN KEY → room_type(id) | Room type reference |
 | status | RoomStatus | NOT NULL, DEFAULT 'VC' | Room status (VC, OC, VD, OD, VCU, OOO). VCU means Vacant Clean Unchecked, waiting for HK inspection. |
 

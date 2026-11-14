@@ -113,12 +113,18 @@ describe("task codes and sorting", () => {
 describe("getHousekeepingListData (mocked database)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    db.room.findMany.mockResolvedValue([{ id: 1, number: "102", floor: 1, status: "VD", roomType: { name: "Deluks", code: "DLX" } }]);
+    db.room.findMany.mockResolvedValue([{ id: 1, number: "102", floor: 1, bedType: "KING", status: "VD", roomType: { name: "Deluks", code: "DLX" } }]);
     db.reservation.findMany.mockResolvedValue([{ ...departure, id: 1, roomId: 1, reservationNo: "RSV-001", guest: { fullName: "Budi Santoso" } }]);
     db.housekeepingAssignment.findMany.mockResolvedValue([{ roomId: 1, housekeeper: { id: 2, fullName: "Siti Aminah" } }]);
     db.cleaningSession.findMany.mockResolvedValue([]);
     db.activityLog.findMany.mockResolvedValue([]);
     db.housekeepingLog.findMany.mockResolvedValue([{ roomId: 1, note: "[TUGAS: Bersihkan kaca]" }, { roomId: 1, note: "[TUGAS: Catatan lama]" }]);
+  });
+  it.each(["KING", "QUEEN", "TWIN", "SINGLE"] as const)("selects and preserves %s bed type for physical OOO rooms", async (bedType) => {
+    db.room.findMany.mockResolvedValue([{ id: 1, number: "102", floor: 1, bedType, status: "OOO", roomType: { name: "Deluxe", code: "DLX" } }]);
+    const { rows } = await getHousekeepingListData({ date });
+    expect(db.room.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.objectContaining({ bedType: true }) }));
+    expect(rows[0].room).toMatchObject({ bedType, status: "OOO" });
   });
   it("preserves positional API, reservation note and checked-out departure", async () => {
     const result = await getHousekeepingListData(date, "Budi", "VD");
@@ -147,7 +153,7 @@ describe("getHousekeepingListData (mocked database)", () => {
   });
   it("counts pending laundry per room, including legacy intake but excluding delivered orders", async () => {
     db.room.findMany.mockResolvedValue([1, 2].map((id) => ({
-      id, number: String(101 + id), floor: 1, status: "VD", roomType: { name: "Deluks", code: "DLX" },
+      id, number: String(101 + id), floor: 1, bedType: "KING", status: "VD", roomType: { name: "Deluks", code: "DLX" },
     })));
     db.activityLog.findMany.mockResolvedValue([
       { roomId: 1, metadata: { source: "GUEST_LAUNDRY", status: "RECEIVED" } },

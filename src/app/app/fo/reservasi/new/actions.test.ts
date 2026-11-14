@@ -60,6 +60,42 @@ import {
 } from "./actions";
 
 import { UnifiedReservationSchema } from "./schema";
+import { getRoomOptions } from "./reservation-form";
+
+describe("reservation room options", () => {
+  const base = {
+    activeRoomBlocks: [],
+    activeReservations: [],
+    allRooms: [{ id: 1, number: "101", floor: 1, roomTypeId: 1, bedType: "TWIN" as const, status: "VC" }],
+    arrivalDate: "2026-09-17",
+    departureDate: "2026-09-19",
+    roomTypeId: 1,
+    selectedRoomIds: [],
+    currentRoomId: 0,
+  };
+
+  it.each([0, 1])("disables physical OOO without a block, including current selection %i", (currentRoomId) => {
+    const [option] = getRoomOptions({ ...base, currentRoomId, allRooms: [{ ...base.allRooms[0], status: "OOO" }] });
+    expect(option).toMatchObject({ bedType: "TWIN", status: "OOO", isAvailable: false });
+    expect(option.block).toBeUndefined();
+  });
+
+  it.each(["KING", "QUEEN", "TWIN", "SINGLE"] as const)("preserves %s and keeps an unblocked room available", (bedType) => {
+    expect(getRoomOptions({ ...base, allRooms: [{ ...base.allRooms[0], bedType }] })[0]).toMatchObject({ bedType, isAvailable: true });
+  });
+
+  it("preserves block, overlap, duplicate-selection and room-type filtering", () => {
+    expect(getRoomOptions({ ...base, activeRoomBlocks: [{ id: 1, roomId: 1, startDate: "2026-09-18", endDate: "2026-09-20", status: "ACTIVE", reason: "MAINTENANCE" }] })[0].isAvailable).toBe(false);
+    expect(getRoomOptions({ ...base, activeReservations: [{ id: 1, roomId: 1, arrivalDate: "2026-09-18", departureDate: "2026-09-20" }] })[0].isAvailable).toBe(false);
+    expect(getRoomOptions({ ...base, selectedRoomIds: [1] })[0].isAvailable).toBe(false);
+    expect(getRoomOptions({ ...base, selectedRoomIds: [1], currentRoomId: 1 })[0].isAvailable).toBe(true);
+    expect(getRoomOptions({ ...base, roomTypeId: 2 })).toEqual([]);
+  });
+
+  it("allows back-to-back stays and non-overlapping blocks", () => {
+    expect(getRoomOptions({ ...base, activeReservations: [{ id: 1, roomId: 1, arrivalDate: "2026-09-16", departureDate: base.arrivalDate }], activeRoomBlocks: [{ id: 1, roomId: 1, startDate: base.departureDate, endDate: "2026-09-20", status: "ACTIVE", reason: "MAINTENANCE" }] })[0].isAvailable).toBe(true);
+  });
+});
 
 const validCreateInput = {
   fullName: "Tamu Uji",

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ArrangementType } from "@prisma/client";
+import type { ArrangementType, BedType } from "@prisma/client";
 import { addDays, formatISO, parseISO } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -82,6 +82,7 @@ type RoomOption = {
   floor: number;
   status: string;
   roomTypeId: number;
+  bedType: BedType;
 };
 
 type ActiveReservation = {
@@ -137,6 +138,13 @@ const arrangementTypeLabels = {
   HB: "HB — Breakfast + One Main Meal",
   FB: "FB — Breakfast, Lunch & Dinner",
 } as const;
+
+const bedTypeLabels: Record<BedType, string> = {
+  KING: "King Bed",
+  QUEEN: "Queen Bed",
+  TWIN: "Twin Beds",
+  SINGLE: "Single Bed",
+};
 
 const roomOperationalStatusLabels: Record<string, string> = {
   VC: "VC - Vacant Clean",
@@ -1507,7 +1515,9 @@ export function ReservationForm({
                                   >
                                     <option value="">Not assigned</option>
                                     {rowRoomOptions.map((room) => {
-                                      const reason = room.block
+                                      const reason = room.status === "OOO"
+                                        ? " / Out of Order"
+                                        : room.block
                                         ? ` / 🚫 ${roomBlockedMessage(room.block)}`
                                         : !room.isAvailable
                                         ? " / ⚠️ Occupied by another reservation"
@@ -1523,7 +1533,7 @@ export function ReservationForm({
                                           value={String(room.id)}
                                           disabled={!room.isAvailable}
                                         >
-                                          Room {room.number} · Floor {room.floor} · [{room.status}]{reason}
+                                          Room {room.number} · {bedTypeLabels[room.bedType]} · Floor {room.floor} · [{room.status}]{reason}
                                         </option>
                                       );
                                     })}
@@ -2001,7 +2011,7 @@ export function ReservationForm({
   );
 }
 
-function getRoomOptions({
+export function getRoomOptions({
   activeRoomBlocks,
   activeReservations,
   allRooms,
@@ -2035,7 +2045,7 @@ function getRoomOptions({
       return {
         ...room,
         block,
-        isAvailable: !block && !isOverlapping && !isSelectedElsewhere,
+        isAvailable: room.status !== "OOO" && !block && !isOverlapping && !isSelectedElsewhere,
       };
     });
 }

@@ -1,0 +1,3 @@
+CREATE TYPE "BedType" AS ENUM ('KING', 'QUEEN', 'TWIN', 'SINGLE');
+
+ALTER TABLE "room" ADD COLUMN "bed_type" "BedType" NOT NULL DEFAULT 'KING';

@@ -117,6 +117,7 @@ export default async function NewReservationPage({
         id: true,
         number: true,
         floor: true,
+        bedType: true,
         status: true,
         roomTypeId: true,
       },

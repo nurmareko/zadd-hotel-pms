@@ -129,7 +129,7 @@ FUTURE_DATE.setDate(FUTURE_DATE.getDate() + 5);
 
 describe("check-in server actions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mocks.auth.mockResolvedValue({
       user: { id: "1", role: "FO" },
     });
@@ -954,7 +954,7 @@ describe("check-in server actions", () => {
     });
 
     it("returns ROOM_BLOCKED when assigned room has a dated block", async () => {
-          mocks.roomBlockFindMany.mockResolvedValueOnce([{ id: 1, roomId: 101, startDate: BASE_DATE, endDate: TOMORROW, reason: "MAINTENANCE", status: "ACTIVE" }]);
+      mocks.roomBlockFindMany.mockResolvedValueOnce([{ id: 1, roomId: 101, startDate: BASE_DATE, endDate: TOMORROW, reason: "MAINTENANCE", status: "ACTIVE" }]);
       mocks.reservationFindUnique.mockResolvedValueOnce({
         id: 1,
         roomTypeId: 10,
@@ -967,7 +967,8 @@ describe("check-in server actions", () => {
         id: 101,
         number: "101",
         roomTypeId: 10,
-        status: RoomStatus.OOO,
+        status: RoomStatus.VC,
+        bedType: "KING",
       });
 
       const result = await completeCheckIn(createCheckInFormData());
@@ -1047,6 +1048,7 @@ describe("check-in server actions", () => {
         number: "101",
         roomTypeId: 10,
         status: RoomStatus.VC,
+        bedType: "KING",
       });
       mocks.reservationFindFirst.mockResolvedValueOnce(null);
     }
@@ -1127,17 +1129,30 @@ describe("check-in server actions", () => {
             number: "101",
             roomTypeId: 10,
             status: RoomStatus.VC,
+            bedType: "KING",
           }),
           updateMany: vi.fn().mockResolvedValueOnce({ count: 1 }),
         },
       };
     }
 
-    it("allows a stale OOO status when no block overlaps the stay", async () => {
+    it("rejects physical OOO even when no block overlaps the stay", async () => {
       mockValidCheckInPreflight();
-      mocks.roomFindUnique.mockReset().mockResolvedValue({ id: 101, number: "101", roomTypeId: 10, status: RoomStatus.OOO });
-      mocks.transaction.mockImplementationOnce(async (callback) => callback(createCheckInTxMock()));
-      expect(await completeCheckIn(createCheckInFormData(), { redirectAfterCheckIn: false })).toEqual({ ok: true });
+      mocks.roomFindUnique.mockReset().mockResolvedValue({
+        id: 101, number: "101", roomTypeId: 10, status: RoomStatus.OOO, bedType: "KING",
+      });
+
+      expect(await completeCheckIn(createCheckInFormData(), { redirectAfterCheckIn: false })).toEqual({
+        ok: false,
+        code: "ROOM_OOO",
+        field: "roomId",
+        error: CHECK_IN_FAILURE_MESSAGES.ROOM_OOO,
+      });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+      expect(mocks.postPendingReservationStayFees).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
     });
 
     it("rejects a block introduced after preflight inside the locked transaction", async () => {

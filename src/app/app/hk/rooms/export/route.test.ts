@@ -20,7 +20,7 @@ function roomRow(): HousekeepingListRow {
     taskCode: "TSK-102",
     priority: "P1",
     taskNote: "Bersihkan kaca",
-    room: { id: 1, number: "102", floor: 1, typeName: "Deluks", typeCode: "DLX", status: "VD" },
+    room: { id: 1, number: "102", floor: 1, typeName: "Deluks", typeCode: "DLX", bedType: "KING", status: "VD" },
     cleaningState: "IN_PROGRESS",
     serviceLabel: "Arrival preparation",
     assignedHousekeeper: { id: 2, name: "Siti", initials: "S" },

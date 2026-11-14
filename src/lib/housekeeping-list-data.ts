@@ -1,4 +1,4 @@
-import { ReservationStatus, RoomStatus } from "@prisma/client";
+import { type BedType, ReservationStatus, RoomStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 
 import { addDateOnlyDays, hotelTimestampBoundaryForDate, todayDateOnly } from "@/lib/date-only";
@@ -41,6 +41,7 @@ export type HousekeepingListRow = {
     floor: number;
     typeName: string;
     typeCode: string;
+    bedType: BedType;
     status: RoomStatus;
   };
   cleaningState: HousekeepingCleaningState;
@@ -204,6 +205,7 @@ export async function getHousekeepingListData(
           id: true,
           number: true,
           floor: true,
+          bedType: true,
           status: true,
           roomType: { select: { code: true, name: true } },
         },
@@ -349,6 +351,7 @@ export async function getHousekeepingListData(
           floor: room.floor,
           typeName: room.roomType.name,
           typeCode: room.roomType.code,
+          bedType: room.bedType,
           status: room.status,
         },
         cleaningState: openCleaningRoomIds.has(room.id)
