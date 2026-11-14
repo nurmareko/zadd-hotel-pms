@@ -22,9 +22,10 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import { postCharge, recordPayment } from "./actions";
-import { FOLIO_FAILURE_MESSAGES } from "./errors";
-import { PostChargeSchema } from "./schema";
+import { computeFolioTotals } from "@/lib/folio-totals";
+import { postCharge, recordPayment, transferFolioLineItem } from "./actions";
+import { FOLIO_FAILURE_MESSAGES, TRANSFER_FAILURE_MESSAGES } from "./errors";
+import { PostChargeSchema, TransferFolioItemSchema } from "./schema";
 
 function createChargeFormData(overrides: Record<string, string> = {}) {
   const data = new FormData();
@@ -123,6 +124,256 @@ describe("folio server actions", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("transferFolioLineItem", () => {
+    const input = { sourceFolioId: "10", targetFolioId: "20", lineItemId: "100", reason: "  Wrong room  " };
+    const form = (overrides: Record<string, string> = {}) => {
+      const data = new FormData();
+      for (const [key, value] of Object.entries({ ...input, ...overrides })) data.set(key, value);
+      return data;
+    };
+    const line = {
+      id: 100, folioId: 10, articleId: 5, description: "Minibar",
+      quantity: new Prisma.Decimal("1.25"), unitPrice: new Prisma.Decimal("100.10"),
+      amount: new Prisma.Decimal("125.13"), reservationNightId: "night-1", fbOrderId: null,
+    };
+    function transaction() {
+      const tx = {
+        folio: { findUnique: vi.fn().mockImplementation(async ({ where }) => ({
+          id: where.id, status: FolioStatus.OPEN, reservationId: where.id + 1,
+          reservation: { reservationNo: `RES-${where.id}` },
+        })) },
+        folioLineItem: {
+          findUnique: vi.fn().mockResolvedValue(line),
+          create: vi.fn().mockResolvedValueOnce({ id: 101 }).mockResolvedValue({ id: 102 }),
+          update: vi.fn(), delete: vi.fn(),
+        },
+        activityLog: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 1 }) },
+        nightAudit: { findUnique: vi.fn().mockResolvedValue(null) },
+      };
+      mocks.transaction.mockImplementation(async (callback) => callback(tx));
+      return tx;
+    }
+    beforeEach(() => {
+      vi.resetAllMocks();
+      mocks.auth.mockResolvedValue({ user: { id: "1", role: "FO" } });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    it.each(["FO", "ADMIN", "GM"])("allows %s and preserves exact decimals and immutable originals", async (role) => {
+      mocks.auth.mockResolvedValue({ user: { id: "1", role } });
+      const tx = transaction();
+      expect(await transferFolioLineItem(form())).toEqual({ ok: true });
+      expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ isolationLevel: "Serializable" }));
+      const [reversal, destination] = tx.folioLineItem.create.mock.calls.map(([args]) => args.data);
+      expect(reversal).toMatchObject({ folioId: 10, articleId: 5, quantity: line.quantity, postedById: 1 });
+      expect(reversal.unitPrice.toString()).toBe("-100.1");
+      expect(reversal.amount.toString()).toBe("-125.13");
+      expect(destination).toMatchObject({ folioId: 20, articleId: 5, quantity: line.quantity, unitPrice: line.unitPrice, amount: line.amount, postedById: 1 });
+      expect(reversal.description).toBe("Transfer out to Folio #20 (RES-20): Minibar");
+      expect(destination.description).toBe("Transfer in from Folio #10 (RES-10): Minibar");
+      for (const entry of [reversal, destination]) {
+        expect(entry.description.length).toBeLessThanOrEqual(255);
+        expect(entry.reservationNightId ?? null).toBeNull();
+        expect(entry.fbOrderId).toBe(line.fbOrderId);
+        expect(entry.postedAt).toBeInstanceOf(Date);
+      }
+      expect(tx.folioLineItem.update).not.toHaveBeenCalled();
+      expect(tx.folioLineItem.delete).not.toHaveBeenCalled();
+      expect(tx.activityLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+        action: "FOLIO_CHARGE_POSTED", userId: 1, folioId: 10,
+        metadata: expect.objectContaining({ event: "TRANSFER", type: "TRANSFER", sourceFolioId: 10, targetFolioId: 20, lineItemId: 100, reason: "Wrong room", reversalLineItemId: 101, destinationLineItemId: 102 }),
+      }) });
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/11");
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/21");
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+      expect(mocks.folioFindUnique).not.toHaveBeenCalled();
+    });
+
+    it.each([true, false])("rejects linked F&B charges without writes (source supplied: %s)", async (supplySource) => {
+      const tx = transaction();
+      tx.folioLineItem.findUnique.mockResolvedValue({ ...line, fbOrderId: 7 });
+      const data = form();
+      if (!supplySource) data.delete("sourceFolioId");
+      expect(await transferFolioLineItem(data)).toEqual({
+        ok: false,
+        code: "TRANSFER_FB_UNSUPPORTED",
+        error: "Linked F&B charges cannot be transferred until accounting export supports transfer reversals.",
+      });
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+      expect(tx.folioLineItem.update).not.toHaveBeenCalled();
+      expect(tx.folioLineItem.delete).not.toHaveBeenCalled();
+      expect(tx.activityLog.create).not.toHaveBeenCalled();
+      expect(mocks.logActivity).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("preserves actual folio totals before and after an unlinked charge transfer", async () => {
+      const tx = transaction();
+      const original = {
+        ...line, reservationNightId: null,
+        quantity: new Prisma.Decimal(1), unitPrice: new Prisma.Decimal(100_000),
+        amount: new Prisma.Decimal(100_000),
+      };
+      tx.folioLineItem.findUnique.mockResolvedValue(original);
+      type TotalsLine = Parameters<typeof computeFolioTotals>[0][number];
+      const settings = {
+        serviceChargePercent: new Prisma.Decimal(5), taxPercent: new Prisma.Decimal(10),
+      } as Parameters<typeof computeFolioTotals>[2];
+      const withArticle = (entry: object) => ({
+        ...entry, article: { type: ArticleType.FB },
+      }) as TotalsLine;
+      const sourceBefore = computeFolioTotals([withArticle(original)], [], settings);
+      const targetBefore = computeFolioTotals([], [], settings);
+      expect(sourceBefore.totalCharges).toBe(115_500);
+      expect(targetBefore.totalCharges).toBe(0);
+
+      expect(await transferFolioLineItem(form())).toEqual({ ok: true });
+      const [reversal, destination] = tx.folioLineItem.create.mock.calls.map(([args]) => args.data);
+      const sourceAfter = computeFolioTotals([withArticle(original), withArticle(reversal)], [], settings);
+      const targetAfter = computeFolioTotals([withArticle(destination)], [], settings);
+      expect(sourceAfter).toEqual(targetBefore);
+      expect(targetAfter).toEqual(sourceBefore);
+      expect(reversal.fbOrderId).toBeNull();
+      expect(destination.fbOrderId).toBeNull();
+      expect(sourceAfter.balance + targetAfter.balance).toBe(sourceBefore.balance + targetBefore.balance);
+
+    });
+
+    it.each(["HK", "FB", "ACC", "UNKNOWN"])("denies %s before database access", async (role) => {
+      mocks.auth.mockResolvedValue({ user: { id: "1", role } });
+      expect(await transferFolioLineItem(form())).toMatchObject({ ok: false, code: "FORBIDDEN" });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+    it("rejects an expired session", async () => {
+      mocks.auth.mockResolvedValue(null);
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "SESSION_EXPIRED" });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+    it.each<Record<string, string>>([
+      { sourceFolioId: "0" }, { targetFolioId: "-1" }, { lineItemId: "1.5" },
+      { reason: "   " }, { reason: "a".repeat(256) }, { lineItemId: "no" },
+    ])("rejects invalid input %j", async (overrides) => {
+      expect(await transferFolioLineItem(form(overrides))).toMatchObject({ code: "INVALID_INPUT" });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+    it("requires lineItemId, targetFolioId, and reason, and trims the reason", () => {
+      for (const key of ["lineItemId", "targetFolioId", "reason"]) {
+        const missing: Record<string, string> = { ...input };
+        delete missing[key];
+        expect(TransferFolioItemSchema.safeParse(missing).success).toBe(false);
+      }
+      expect(TransferFolioItemSchema.parse(input).reason).toBe("Wrong room");
+    });
+    it("derives the source inside the transaction when only the three required fields are supplied", async () => {
+      const tx = transaction();
+      const data = form();
+      data.delete("sourceFolioId");
+      expect(TransferFolioItemSchema.safeParse(Object.fromEntries(data)).success).toBe(true);
+      expect(await transferFolioLineItem(data)).toEqual({ ok: true });
+      expect(tx.folioLineItem.create.mock.calls[0][0].data.folioId).toBe(10);
+      expect(tx.activityLog.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ folioId: 10 }) }));
+      expect(tx.activityLog.create.mock.calls[0][0].data).toMatchObject({
+        folioId: 10, metadata: { event: "TRANSFER", type: "TRANSFER", sourceFolioId: 10, targetFolioId: 20, lineItemId: 100, reason: "Wrong room" },
+      });
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/folios/10");
+      expect(mocks.revalidatePath).not.toHaveBeenCalledWith("/app/fo/folios/undefined");
+    });
+    it("rejects a destination matching the derived source", async () => {
+      const tx = transaction();
+      const data = form({ targetFolioId: "10" });
+      data.delete("sourceFolioId");
+      expect(await transferFolioLineItem(data)).toMatchObject({ code: "TRANSFER_SAME_FOLIO" });
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    });
+    it("rejects the same folio", async () => {
+      expect(await transferFolioLineItem(form({ targetFolioId: "10" }))).toMatchObject({ code: "TRANSFER_SAME_FOLIO" });
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+    it.each([10, 20])("rejects missing or closed folio %i in the transaction", async (id) => {
+      for (const status of [null, FolioStatus.CLOSED]) {
+        const tx = transaction();
+        tx.folio.findUnique.mockImplementation(async ({ where }) => where.id === id
+          ? (status === null ? null : { id, status })
+          : { id: where.id, status: FolioStatus.OPEN, reservationId: where.id + 1, reservation: { reservationNo: `RES-${where.id}` } });
+        expect(await transferFolioLineItem(form())).toMatchObject({ code: status === null ? "FOLIO_NOT_FOUND" : "FOLIO_NOT_OPEN" });
+        expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+      }
+    });
+    it.each([null, { ...line, folioId: 30 }])("rejects absent or mismatched source line", async (source) => {
+      const tx = transaction();
+      tx.folioLineItem.findUnique.mockResolvedValue(source);
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "TRANSFER_LINE_NOT_FOUND" });
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    });
+    it.each(["amount", "unitPrice", "quantity"])("rejects negative %s", async (field) => {
+      const tx = transaction();
+      tx.folioLineItem.findUnique.mockResolvedValue({ ...line, [field]: new Prisma.Decimal(-1) });
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "TRANSFER_NEGATIVE_CHARGE" });
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    });
+    it("rejects previously transferred source lines", async () => {
+      const tx = transaction();
+      tx.activityLog.findFirst.mockResolvedValue({ id: 1 });
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "TRANSFER_ALREADY_COMPLETED" });
+      expect(tx.activityLog.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({
+        action: "FOLIO_CHARGE_POSTED", folioId: 10,
+        AND: [{ metadata: { path: ["type"], equals: "TRANSFER" } }, { metadata: { path: ["lineItemId"], equals: 100 } }],
+      }) }));
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    });
+    it("blocks a closed business date", async () => {
+      const tx = transaction();
+      tx.nightAudit.findUnique.mockResolvedValue({ id: 1 });
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "NIGHT_AUDIT_CLOSED" });
+      expect(tx.folioLineItem.create).not.toHaveBeenCalled();
+    });
+    const conflict = () => new Prisma.PrismaClientKnownRequestError("conflict", { code: "P2034", clientVersion: "6.19.3" });
+    it("retries the full operation after P2034 at audit insertion", async () => {
+      const tx = transaction();
+      tx.activityLog.create.mockRejectedValueOnce(conflict());
+      expect(await transferFolioLineItem(form())).toEqual({ ok: true });
+      expect(mocks.transaction).toHaveBeenCalledTimes(2);
+      expect(tx.folioLineItem.findUnique).toHaveBeenCalledTimes(2);
+      expect(tx.activityLog.findFirst).toHaveBeenCalledTimes(2);
+      expect(tx.nightAudit.findUnique).toHaveBeenCalledTimes(2);
+    });
+    it("rechecks duplicate state on retry", async () => {
+      const tx = transaction();
+      tx.activityLog.create.mockRejectedValueOnce(conflict());
+      tx.activityLog.findFirst.mockResolvedValueOnce(null).mockResolvedValue({ id: 1 });
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "TRANSFER_ALREADY_COMPLETED" });
+      expect(tx.folioLineItem.create).toHaveBeenCalledTimes(2);
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+    it("bounds serialization retries", async () => {
+      transaction();
+      mocks.transaction.mockRejectedValue(conflict());
+      expect(await transferFolioLineItem(form())).toMatchObject({ code: "TRANSFER_CONFLICT" });
+      expect(mocks.transaction).toHaveBeenCalledTimes(3);
+    });
+    it.each(["destination", "audit"])("fails the transaction on %s failure without revalidation", async (stage) => {
+      const tx = transaction();
+      if (stage === "audit") tx.activityLog.create.mockRejectedValue(new Error("private database details"));
+      else tx.folioLineItem.create.mockReset().mockResolvedValueOnce({ id: 101 }).mockRejectedValue(new Error("private database details"));
+      expect(await transferFolioLineItem(form())).toEqual({ ok: false, code: "TRANSFER_UNEXPECTED", error: TRANSFER_FAILURE_MESSAGES.TRANSFER_UNEXPECTED });
+      expect(mocks.transaction).toHaveBeenCalledTimes(1);
+      expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+    it("keeps descriptions bounded and preserves the full reason in audit metadata", async () => {
+      const tx = transaction();
+      tx.folioLineItem.findUnique.mockResolvedValue({ ...line, description: "x".repeat(255) });
+      expect(await transferFolioLineItem(form({ reason: "r".repeat(255) }))).toEqual({ ok: true });
+      for (const [{ data }] of tx.folioLineItem.create.mock.calls) expect(data.description.length).toBeLessThanOrEqual(255);
+      expect(tx.activityLog.create.mock.calls[0][0].data.metadata.reason).toBe("r".repeat(255));
+    });
+    it("preserves success and continues revalidation after a cache failure", async () => {
+      transaction();
+      mocks.revalidatePath.mockImplementationOnce(() => { throw new Error("cache unavailable"); });
+      expect(await transferFolioLineItem(form())).toEqual({ ok: true });
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/fo/reservasi/21");
+    });
   });
 
   describe("postCharge", () => {

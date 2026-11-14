@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,14 @@ type RecordPaymentDialogProps = {
   disabled: boolean;
 };
 
+const tenders = [
+  { label: "Cash", method: PaymentMethod.CASH },
+  { label: "Card - BCA EDC", method: PaymentMethod.CARD },
+  { label: "Card - Mandiri EDC", method: PaymentMethod.CARD },
+  { label: "Bank Transfer / VA", method: PaymentMethod.TRANSFER },
+  { label: "QRIS", method: PaymentMethod.TRANSFER },
+] as const;
+
 const fieldClassName =
   "h-11 desktop:h-10 rounded-md border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20";
 
@@ -73,6 +81,8 @@ export function RecordPaymentDialog({
 }: RecordPaymentDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+    const [tender, setTender] = useState<string>("Cash");
+    const [referenceDetails, setReferenceDetails] = useState("");
   const [uiState, setUiState] = useState<FolioDialogUiState>(
     INITIAL_FOLIO_DIALOG_UI_STATE,
   );
@@ -83,7 +93,7 @@ export function RecordPaymentDialog({
       folioId,
       amount: defaultAmount(balance),
       method: PaymentMethod.CASH,
-      reference: "",
+      reference: "Cash",
     };
   }
 
@@ -95,10 +105,10 @@ export function RecordPaymentDialog({
 
   const isSubmitting = form.formState.isSubmitting || isPending;
 
-  const method = useWatch({
-    control: form.control,
-    name: "method",
-  });
+  function resetTender() {
+    setTender("Cash");
+    setReferenceDetails("");
+  }
 
   function handleOpenChange(nextOpen: boolean) {
     if (isSubmitting && !nextOpen) {
@@ -111,6 +121,7 @@ export function RecordPaymentDialog({
       setUiState((current) => reduceFolioDialogClose(current));
       if (!uiState.isUncertain) {
         form.reset(formDefaults());
+        resetTender();
       }
     }
   }
@@ -147,6 +158,7 @@ export function RecordPaymentDialog({
 
       toast.success("Payment recorded");
       form.reset(formDefaults());
+      resetTender();
       setOpen(false);
       router.refresh();
     });
@@ -207,12 +219,18 @@ export function RecordPaymentDialog({
               <FormField
                 control={form.control}
                 name="method"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-700">Method</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-700">Tender</FormLabel>
                     <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
+                      value={tender}
+                      onValueChange={(label) => {
+                        const selected = tenders.find((option) => option.label === label);
+                        if (!selected) return;
+                        setTender(selected.label);
+                        form.setValue("method", selected.method, { shouldValidate: true });
+                        form.setValue("reference", [selected.label, referenceDetails.trim()].filter(Boolean).join(" / "), { shouldValidate: true });
+                      }}
                       disabled={isSubmitting}
                     >
                       <FormControl>
@@ -224,13 +242,13 @@ export function RecordPaymentDialog({
                         align="start"
                         className="rounded-lg border border-slate-200 bg-white shadow-md"
                       >
-                        {paymentMethods.map((paymentMethod) => (
+                        {tenders.map((option) => (
                           <SelectItem
-                            key={paymentMethod}
-                            value={paymentMethod}
+                            key={option.label}
+                            value={option.label}
                             className="rounded-md text-sm cursor-pointer"
                           >
-                            {paymentMethod}
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -246,14 +264,22 @@ export function RecordPaymentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-slate-700">
-                      Reference{method === PaymentMethod.TRANSFER ? " / Required" : ""}
+                      Reference details (optional)
                     </FormLabel>
                     <FormControl>
                       <Input
                         disabled={isSubmitting}
-                        placeholder="BCA TRF 12345"
+                        placeholder="Transaction or receipt number"
                         className={fieldClassName}
-                        {...field}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={referenceDetails}
+                        maxLength={100 - tender.length - 3}
+                        onChange={(event) => {
+                          setReferenceDetails(event.target.value);
+                          field.onChange([tender, event.target.value.trim()].filter(Boolean).join(" / "));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

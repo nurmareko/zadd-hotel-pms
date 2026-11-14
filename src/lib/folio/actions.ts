@@ -18,11 +18,19 @@ import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import {
   folioFailure,
+  transferFailure,
+  type TransferFailureCode,
+  type TransferFolioActionResult,
   type FolioActionResult,
   type FolioFailure,
   type FolioFailureCode,
 } from "./errors";
-import { PaymentSchema, PostChargeSchema } from "./schema";
+import {
+  PaymentSchema,
+  PostChargeSchema,
+  TransferFolioItemSchema,
+  type TransferFolioLineItemInput,
+} from "./schema";
 
 export type ActionResult = FolioActionResult;
 
@@ -270,6 +278,163 @@ export async function postCharge(
     });
 
     return folioFailure("CHARGE_UNEXPECTED");
+  }
+}
+
+class TransferDomainError extends Error {
+  constructor(readonly code: TransferFailureCode) {
+    super(code);
+  }
+}
+
+async function transferFolioLineItemOperation(
+  input: TransferFolioLineItemInput,
+  userId: number,
+) {
+  if (input.sourceFolioId === input.targetFolioId) {
+    throw new TransferDomainError("TRANSFER_SAME_FOLIO");
+  }
+
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const line = await tx.folioLineItem.findUnique({ where: { id: input.lineItemId } });
+        if (!line || (input.sourceFolioId !== undefined && line.folioId !== input.sourceFolioId)) {
+          throw new TransferDomainError("TRANSFER_LINE_NOT_FOUND");
+        }
+        // Accounting export counts linked orders per folio without netting reversals.
+        if (line.fbOrderId !== null) {
+          throw new TransferDomainError("TRANSFER_FB_UNSUPPORTED");
+        }
+        const sourceFolioId = line.folioId;
+        if (sourceFolioId === input.targetFolioId) {
+          throw new TransferDomainError("TRANSFER_SAME_FOLIO");
+        }
+        const folios = new Map<number, { reservationId: number; reservationNo: string }>();
+        for (const id of [sourceFolioId, input.targetFolioId].sort((a, b) => a - b)) {
+          const folio = await tx.folio.findUnique({
+            where: { id },
+            select: {
+              status: true, reservationId: true,
+              reservation: { select: { reservationNo: true } },
+            },
+          });
+          if (!folio) throw new TransferDomainError("FOLIO_NOT_FOUND");
+          if (folio.status !== FolioStatus.OPEN) throw new TransferDomainError("FOLIO_NOT_OPEN");
+          folios.set(id, { reservationId: folio.reservationId, reservationNo: folio.reservation.reservationNo });
+        }
+        const source = folios.get(sourceFolioId)!;
+        const target = folios.get(input.targetFolioId)!;
+        if (line.amount.isNegative() || line.unitPrice.isNegative() || line.quantity.isNegative()) {
+          throw new TransferDomainError("TRANSFER_NEGATIVE_CHARGE");
+        }
+
+        // The predicate read and audit insert must share the serializable transaction:
+        // concurrent transfers of this same original cannot both commit.
+        const previous = await tx.activityLog.findFirst({
+          where: {
+            action: "FOLIO_CHARGE_POSTED",
+            folioId: sourceFolioId,
+            AND: [
+              { metadata: { path: ["type"], equals: "TRANSFER" } },
+              { metadata: { path: ["lineItemId"], equals: input.lineItemId } },
+            ],
+          },
+          select: { id: true },
+        });
+        if (previous) throw new TransferDomainError("TRANSFER_ALREADY_COMPLETED");
+
+        const now = new Date();
+        await assertBusinessDateOpen(tx, now);
+        const common = {
+          articleId: line.articleId,
+          fbOrderId: line.fbOrderId,
+          quantity: line.quantity,
+          postedById: userId,
+          postedAt: now,
+        };
+
+        // Leave reservationNightId on the original to preserve automatic-posting identity.
+        // Copy stored amounts rather than recomputing rounded historical charges.
+        const reversal = await tx.folioLineItem.create({
+          data: {
+            ...common,
+            folioId: sourceFolioId,
+            description: `Transfer out to Folio #${input.targetFolioId} (${target.reservationNo}): ${line.description}`.slice(0, 255),
+            unitPrice: line.unitPrice.negated(),
+            amount: line.amount.negated(),
+          },
+        });
+        const destination = await tx.folioLineItem.create({
+          data: {
+            ...common,
+            folioId: input.targetFolioId,
+            description: `Transfer in from Folio #${sourceFolioId} (${source.reservationNo}): ${line.description}`.slice(0, 255),
+            unitPrice: line.unitPrice,
+            amount: line.amount,
+          },
+        });
+        await tx.activityLog.create({
+          data: {
+            userId,
+            action: "FOLIO_CHARGE_POSTED",
+            folioId: sourceFolioId,
+            reservationId: source.reservationId,
+            metadata: {
+              event: "TRANSFER",
+              type: "TRANSFER",
+              sourceFolioId,
+              targetFolioId: input.targetFolioId,
+              lineItemId: line.id,
+              reversalLineItemId: reversal.id,
+              destinationLineItemId: destination.id,
+              reason: input.reason,
+              amount: line.amount.toString(),
+            },
+          },
+        });
+        return { sourceFolioId, sourceReservationId: source.reservationId, targetReservationId: target.reservationId };
+      }, {
+        ...TRANSACTION_OPTIONS,
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      unstable_rethrow(error);
+      if (isChargeSerializationConflict(error) && attempt < 3) continue;
+      throw error;
+    }
+  }
+}
+
+export async function transferFolioLineItem(formData: FormData): Promise<TransferFolioActionResult> {
+  let sourceFolioId: number | undefined;
+  let targetFolioId: number | undefined;
+  let lineItemId: number | undefined;
+  try {
+    const authorization = await canManageFoFolio("folio:charge");
+    if (!authorization.ok) return authorization;
+    const parsed = TransferFolioItemSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) return folioFailure("INVALID_INPUT");
+    ({ sourceFolioId, targetFolioId, lineItemId } = parsed.data);
+
+    const result = await transferFolioLineItemOperation(parsed.data, authorization.userId);
+    sourceFolioId = result.sourceFolioId;
+    await runPostCommitSideEffects([
+      { name: "revalidate:source-folio", run: () => revalidatePath(`/app/fo/folios/${sourceFolioId}`) },
+      { name: "revalidate:target-folio", run: () => revalidatePath(`/app/fo/folios/${targetFolioId}`) },
+      { name: "revalidate:source-reservation", run: () => revalidatePath(`/app/fo/reservasi/${result.sourceReservationId}`) },
+      { name: "revalidate:target-reservation", run: () => revalidatePath(`/app/fo/reservasi/${result.targetReservationId}`) },
+    ], { action: "transferFolioLineItem", stage: "post-commit", folioId: sourceFolioId, committed: true });
+    return { ok: true };
+  } catch (error) {
+    unstable_rethrow(error);
+    if (error instanceof TransferDomainError) return transferFailure(error.code);
+    if (error instanceof NightAuditClosedError) return folioFailure("NIGHT_AUDIT_CLOSED");
+    logActionFailure("transferFolioLineItem", error, {
+      action: "transferFolioLineItem", stage: "transaction",
+      sourceFolioId, targetFolioId, lineItemId, committed: false,
+    });
+    return transferFailure(isChargeSerializationConflict(error) ? "TRANSFER_CONFLICT" : "TRANSFER_UNEXPECTED");
   }
 }
 

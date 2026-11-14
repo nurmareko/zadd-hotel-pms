@@ -42,6 +42,16 @@ export const PostChargeSchema = z.object({
   }
 });
 
+export const TransferFolioItemSchema = z.object({
+  sourceFolioId: z.coerce.number().int().positive("Select a source folio").optional(),
+  targetFolioId: z.coerce.number().int().positive("Select a destination folio"),
+  lineItemId: z.coerce.number().int().positive("Select a charge"),
+  reason: z.string().trim().min(1, "A transfer reason is required")
+    .max(255, "Reason must be at most 255 characters"),
+});
+
+export type TransferFolioLineItemInput = z.infer<typeof TransferFolioItemSchema>;
+
 export const paymentMethods = [
   PaymentMethod.CASH,
   PaymentMethod.TRANSFER,

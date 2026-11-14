@@ -18,6 +18,7 @@ export const FOLIO_FAILURE_CODES = [
   "PAYMENT_CONFLICT",
   "CHARGE_UNEXPECTED",
   "PAYMENT_UNEXPECTED",
+
   "RESULT_UNKNOWN",
 ] as const;
 
@@ -49,9 +50,28 @@ export const FOLIO_FAILURE_MESSAGES: Record<FolioFailureCode, string> = {
     "The payment data was changed concurrently. Reload the page before trying again.",
   CHARGE_UNEXPECTED: "The charge could not be added. Please try again.",
   PAYMENT_UNEXPECTED: "The payment could not be recorded. Please try again.",
+
   RESULT_UNKNOWN:
     "The action result is uncertain. Reload the page before trying again.",
 };
+
+export const TRANSFER_FAILURE_MESSAGES = {
+  TRANSFER_FB_UNSUPPORTED: "Linked F&B charges cannot be transferred until accounting export supports transfer reversals.",
+  TRANSFER_SAME_FOLIO: "Select a different destination folio.",
+  TRANSFER_LINE_NOT_FOUND: "The charge was not found on the source folio. Reload the page and try again.",
+  TRANSFER_NEGATIVE_CHARGE: "Negative charges and reversals cannot be transferred.",
+  TRANSFER_ALREADY_COMPLETED: "This charge has already been transferred. Reload the page to see its current status.",
+  TRANSFER_CONFLICT: "The folio data was changed concurrently. Reload the page before trying the transfer again.",
+  TRANSFER_UNEXPECTED: "The charge could not be transferred. Please try again.",
+} as const;
+
+export type TransferFailureCode = FolioFailureCode | keyof typeof TRANSFER_FAILURE_MESSAGES;
+export type TransferFolioActionResult = ActionResult<TransferFailureCode>;
+
+export function transferFailure(code: TransferFailureCode): ActionFailure<TransferFailureCode> {
+  const messages = { ...FOLIO_FAILURE_MESSAGES, ...TRANSFER_FAILURE_MESSAGES };
+  return { ok: false, code, error: messages[code] };
+}
 
 export function folioFailureMessage(code: FolioFailureCode): string {
   return FOLIO_FAILURE_MESSAGES[code];

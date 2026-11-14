@@ -5,15 +5,17 @@ import Link from "next/link";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { folioBalanceState } from "@/lib/folio-balance-display";
+import { getArticleDepartmentLabel } from "@/lib/article-departments";
+import { formatDecimalID, formatIDR, formatMonthDayTimeID } from "@/lib/format";
 import { computeFolioTotals } from "@/lib/folio-totals";
 
 import { prisma } from "@/lib/prisma";
 import { STAY_FEE_ARTICLE_CODES } from "@/lib/reservation-stay-fee-definitions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { AddChargeDialog } from "./add-charge-dialog";
-import { FolioCharges } from "./folio-charges";
+import { UnifiedFolioLedger, type FolioLedgerRow } from "./unified-folio-ledger";
 import { FolioHeader } from "./folio-header";
-import { FolioPayments } from "./folio-payments";
+
 import { FolioSummary } from "./folio-summary";
 import { RecordPaymentDialog } from "./record-payment-dialog";
 
@@ -118,72 +120,72 @@ export async function GuestFolioView({
       article.defaultPrice === null ? null : Number(article.defaultPrice),
   }));
 
-  if (mode === "payments") {
-    return (
-      <>
-        {hasBalanceDue && folio.status === FolioStatus.OPEN ? (
-          <div className="mb-6 flex flex-wrap items-center gap-2 sm:justify-end">
-            <RecordPaymentDialog
-              folioId={folio.id}
-              balance={totals.balance}
-              disabled={false}
-            />
-          </div>
-        ) : null}
-        <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <FolioPayments payments={folio.payments} />
-          <aside className="flex min-w-0 flex-col gap-3">
-            <FolioSummary totals={totals} variant="payment" />
-            <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">
-                Deposit
-              </div>
-              <div className="flex items-center justify-between gap-3 p-5 text-sm">
-                <span className="text-slate-500">Deposit status</span>
-                <DepositStatusBadge status={folio.reservation.depositStatus} />
-              </div>
-            </section>
-          </aside>
-        </div>
-      </>
-    );
-  }
-
-  if (mode === "charges") {
-    return (
-      <>
-        <div className="mb-6 flex flex-wrap items-center gap-2 sm:justify-end">
-          <AddChargeDialog
-            folioId={folio.id}
-            articles={chargeArticles}
-            disabled={folio.status !== FolioStatus.OPEN}
-            variant="outline"
-          />
-          <a
-            href={`/api/folios/${folio.id}/bill`}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            <Download aria-hidden="true" />
-            Bill PDF
-          </a>
-          {canContinueToCheckout ? (
-            <Link
-              href={`/app/fo/check-out/${folio.id}`}
-              className={`${buttonVariants({ variant: "default" })} order-first sm:order-none`}
-            >
-              Proceed to Check-out
-            </Link>
-          ) : null}
-        </div>
-        <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <FolioCharges status={folio.status} lineItems={folio.lineItems} />
-          <aside className="flex min-w-0 flex-col gap-3">
-            <FolioHeader folio={folio} variant="metadata" />
-            <FolioSummary totals={totals} variant="detailed" />
-          </aside>
-        </div>
-      </>
-    );
+  const destinations = folio.status === FolioStatus.OPEN
+    ? await prisma.folio.findMany({
+        where: { status: FolioStatus.OPEN, id: { not: folio.id } },
+        select: {
+          id: true,
+          folioNo: true,
+          reservation: { select: { reservationNo: true, room: { select: { number: true } } } },
+        },
+        orderBy: { folioNo: "asc" },
+      })
+    : [];
+  const transferFolios = destinations.map((destination) => ({
+    id: destination.id,
+    label: `${destination.folioNo} · ${destination.reservation.reservationNo} · ${destination.reservation.room ? `Room ${destination.reservation.room.number}` : "Room not assigned"}`,
+  }));
+  const events = [
+    ...folio.lineItems.map((line) => ({ kind: "charges" as const, id: line.id, date: line.postedAt, line })),
+    ...folio.payments.map((payment) => ({ kind: "payments" as const, id: payment.id, date: payment.receivedAt, payment })),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime() || a.kind.localeCompare(b.kind) || a.id - b.id);
+  const postedLines: typeof folio.lineItems = [];
+  const receivedPayments: typeof folio.payments = [];
+  let previousTotals = computeFolioTotals([], [], settings);
+  const rows: FolioLedgerRow[] = [];
+  for (const event of events) {
+    if (event.kind === "charges") postedLines.push(event.line);
+    else receivedPayments.push(event.payment);
+    // Prefix totals preserve implicit tax/service and aggregate rounding. Never sum raw amounts for balances.
+    const currentTotals = computeFolioTotals(postedLines, receivedPayments, settings);
+    const change = currentTotals.balance - previousTotals.balance;
+    const common = {
+      key: `${event.kind}-${event.id}`,
+      kind: event.kind,
+      date: formatMonthDayTimeID(event.date),
+      debit: Math.max(0, change),
+      credit: Math.max(0, -change),
+      balance: currentTotals.balance,
+    };
+    previousTotals = currentTotals;
+    if (event.kind === "charges") {
+      const line = event.line;
+      rows.push({
+        ...common,
+        description: line.description || line.article.name,
+        detail: `${formatDecimalID(line.quantity.toString())} × ${formatIDR(line.unitPrice.toString())} · Posted amount ${formatIDR(line.amount.toString())}`,
+        article: `${line.article.code} · ${line.article.name}`,
+        category: getArticleDepartmentLabel(line.article.type),
+        tender: "—",
+        reference: line.fbOrder ? `Order ${line.fbOrder.orderNo}` : "—",
+        operator: line.postedBy.fullName,
+        transferLineItemId: folio.status === FolioStatus.OPEN && !line.fbOrderId && line.amount.greaterThanOrEqualTo(0) ? line.id : null,
+      });
+      continue;
+    }
+    const payment = event.payment;
+    const purpose = { DEPOSIT: "Deposit", PAYMENT: "Payment", SETTLEMENT: "Settlement" }[payment.purpose];
+    rows.push({
+      ...common,
+      description: purpose,
+      detail: `Received amount ${formatIDR(payment.amount.toString())}`,
+      article: "—",
+      category: purpose,
+      tender: { CASH: "Cash", TRANSFER: "Bank transfer", CARD: "Card", CHARGE_TO_ROOM: "Charge to room" }[payment.method],
+      reference: payment.reference || "—",
+      operator: payment.receivedBy.fullName,
+      transferLineItemId: null,
+    });
   }
 
   return (
@@ -194,6 +196,11 @@ export async function GuestFolioView({
           articles={chargeArticles}
           disabled={folio.status !== FolioStatus.OPEN}
           variant="outline"
+        />
+        <RecordPaymentDialog
+          folioId={folio.id}
+          balance={totals.balance}
+          disabled={folio.status !== FolioStatus.OPEN || !hasBalanceDue}
         />
         <details className="group relative">
           <summary
@@ -220,15 +227,7 @@ export async function GuestFolioView({
             </a>
           </div>
         </details>
-        {hasBalanceDue && folio.status === FolioStatus.OPEN ? (
-          <div className="order-first sm:order-none">
-            <RecordPaymentDialog
-              folioId={folio.id}
-              balance={totals.balance}
-              disabled={false}
-            />
-          </div>
-        ) : null}
+
         {canContinueToCheckout ? (
           <Link
             href={`/app/fo/check-out/${folio.id}`}
@@ -239,16 +238,25 @@ export async function GuestFolioView({
         ) : null}
       </div>
 
-      <div className="grid max-w-6xl min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <FolioCharges status={folio.status} lineItems={folio.lineItems} />
-          <FolioPayments payments={folio.payments} />
-        </div>
-        <aside className="flex min-w-0 flex-col gap-3">
-          <FolioHeader folio={folio} />
-          <FolioSummary totals={totals} />
-        </aside>
+      <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-3">
+        <FolioSummary totals={totals} variant="detailed" />
+        <FolioHeader folio={folio} variant="metadata" />
+        <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <h2 className="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700">Deposit</h2>
+          <div className="flex items-center justify-between gap-3 p-5 text-sm">
+            <span className="text-slate-500">Deposit status</span>
+            <DepositStatusBadge status={folio.reservation.depositStatus} />
+          </div>
+        </section>
       </div>
+      <UnifiedFolioLedger
+        key={`${folio.id}-${mode}`}
+        rows={rows}
+        initialFilter={mode === "full" ? "all" : mode}
+        transferFolios={transferFolios}
+        folioId={folio.id}
+        balance={totals.balance}
+      />
     </>
   );
 }
