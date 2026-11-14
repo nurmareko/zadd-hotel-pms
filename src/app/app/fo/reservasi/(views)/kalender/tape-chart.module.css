@@ -11,7 +11,7 @@
   max-height: 560px;
   max-width: 100%;
   overflow-x: auto;
-  overflow-y: scroll;
+  overflow-y: auto;
   scrollbar-color: #64748b #e2e8f0;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -154,8 +154,7 @@
   border-bottom-color: #e2e8f0;
 }
 
-.unavailableCell,
-.outOfOrderCell {
+.unavailableCell {
   background: #f8fafc;
   border-right: 1px solid #f1f5f9;
   border-bottom: 1px solid #f1f5f9;
@@ -163,6 +162,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.outOfOrderCell {
+  background: repeating-linear-gradient(
+    135deg,
+    #fee2e2 0 6px,
+    #fef2f2 6px 12px
+  );
+  border-color: #fecaca;
 }
 
 .outOfOrderCell:focus-visible {
@@ -192,9 +200,10 @@
   }
 }
 
-@media (width >= 1024px) {
+@media (width >= 1024px) and (pointer: fine) {
   .scrollArea {
-    max-height: 720px;
+    min-height: min(260px, calc(100vh - 220px));
+    max-height: calc(100vh - 220px);
   }
 }
 

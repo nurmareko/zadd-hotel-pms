@@ -44,6 +44,7 @@ type CheckInReview = Extract<FreshReviewResult, { ok: true }>["review"];
 
 type CheckInDetailPanelProps = {
   initialReview: CheckInReview;
+  compact?: boolean;
 };
 
 type CheckInDetailAffordanceProps = {
@@ -120,6 +121,7 @@ export function CheckInDetailAffordance({
 
 export function CheckInDetailPanel({
   initialReview,
+  compact = false,
 }: CheckInDetailPanelProps) {
   const router = useRouter();
   const [review, setReview] = useState<CheckInReview | null>(null);
@@ -415,18 +417,18 @@ export function CheckInDetailPanel({
     <>
       <section
         id="check-in-detail-panel"
-        className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+        className={compact ? "mt-3 border-t border-slate-200 pt-3" : "mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"}
       >
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+        {!compact ? <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">
             Check-in from reservation details
           </h2>
           <p className="mt-1 text-xs text-slate-500">
             Collect the deposit, select the purpose of visit, then ask the guest to review and sign the GRC.
           </p>
-        </div>
+        </div> : null}
 
-        <div className="grid gap-5 p-5 desktop:lg:grid-cols-3">
+        <div className={compact ? "grid gap-3" : "grid gap-5 p-5 desktop:lg:grid-cols-3"}>
           <div id="check-in-detail-deposit" className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-slate-900">1. Deposit</h3>
@@ -438,7 +440,7 @@ export function CheckInDetailPanel({
             </div>
             <p className="text-sm text-slate-600">
               Required: {formatIDR(initialReview.deposit.requiredAmount ?? 0)}
-              {" "}{"(first night's rate)"}
+
             </p>
 
             {depositPayment ? (
@@ -450,7 +452,7 @@ export function CheckInDetailPanel({
                 />
               </dl>
             ) : canCollectDeposit ? (
-              <div className="space-y-3">
+              <div className={compact ? "grid grid-cols-2 gap-2" : "space-y-3"}>
                 <label className="block text-xs font-medium text-slate-700">
                   Payment method
                   <select
@@ -484,7 +486,7 @@ export function CheckInDetailPanel({
                 </label>
                 {depositUiState.actionError ? (
                   <div
-                    className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800"
+                    className="col-span-full rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800"
                     role="alert"
                   >
                     <p className="font-medium">{depositUiState.actionError}</p>
@@ -506,6 +508,7 @@ export function CheckInDetailPanel({
                 <Button
                   type="button"
                   onClick={collectDeposit}
+                  className={compact ? "col-span-full" : undefined}
                   disabled={isCollectingDeposit || depositUiState.isUncertain}
                 >
                   {isCollectingDeposit
@@ -520,11 +523,11 @@ export function CheckInDetailPanel({
             )}
           </div>
 
-          <div id="check-in-detail-purpose" className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-900">
+          {(!compact || depositReady) ? <div id="check-in-detail-purpose" className="space-y-3">
+            {!compact ? <h3 className="text-sm font-semibold text-slate-900">
               2. Room & Purpose of Visit
-            </h3>
-            <div
+            </h3> : null}
+            {(!compact || !roomReady) ? <div
               className={`rounded-md border p-3 text-sm ${
                 roomReady
                   ? "border-emerald-200 bg-emerald-50 text-emerald-950"
@@ -552,7 +555,7 @@ export function CheckInDetailPanel({
                   Edit Reservation
                 </Link>
               ) : null}
-            </div>
+            </div> : null}
 
             <label className="block text-xs font-medium text-slate-700">
               Purpose of visit
@@ -587,17 +590,17 @@ export function CheckInDetailPanel({
                 />
               </label>
             ) : null}
-          </div>
+          </div> : null}
 
-          <div className="flex flex-col justify-between gap-4">
+          <div className="flex flex-col justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">
+              {!compact ? <h3 className="text-sm font-semibold text-slate-900">
                 3. Review & Signature
-              </h3>
+              </h3> : null}
               <p className="mt-2 text-sm text-slate-600">{guidance}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              {!compact ? <p className="mt-2 text-xs text-slate-500">
                 Button availability is a guide only. Server validation and transactions determine the check-in result.
-              </p>
+              </p> : null}
             </div>
             <Button
               id="check-in-detail-review-button"

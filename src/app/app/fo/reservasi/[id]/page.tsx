@@ -14,14 +14,18 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
 import { DepositStatusBadge } from "@/components/deposit-status-badge";
-import { BookingStatusBadge } from "@/components/status-badge";
+import { BookingStatusBadge, ReservationTypeBadge } from "@/components/status-badge";
 import { GuestFolioView } from "@/components/folio/folio-view";
 import { buttonVariants } from "@/components/ui/button";
 import { getMealPlanPrices } from "@/lib/arrangement-inclusions";
 import { STAY_CHARGE_ARTICLE_CODES } from "@/lib/stay-charges";
 import { dateOnlyBoundary, todayDateOnly } from "@/lib/date-only";
 import { flatReservationNightStayTotal } from "@/lib/flat-reservation-night-total";
-import { formatDateID } from "@/lib/format";
+import { formatDateID, formatIDR } from "@/lib/format";
+import { computeFolioTotals } from "@/lib/folio-totals";
+import { formatGuestIdentity } from "@/lib/guest-id-type";
+import { purposeOfVisitLabel } from "@/lib/check-in/schema";
+import type { ReactNode } from "react";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getActiveRoomBlocks } from "@/lib/room-blocks/queries";
@@ -32,7 +36,7 @@ import type { CreateReservationInput } from "../new/schema";
 import { CancelReservationDialog } from "./cancel-reservation-dialog";
 import { NoShowReservationDialog } from "./no-show-dialog";
 import {
-  CheckInDetailAffordance,
+
   CheckInDetailPanel,
 } from "./check-in-detail-panel";
 import { ExtendStayDialog } from "./extend-stay-dialog";
@@ -48,6 +52,10 @@ type ReservationDetailPageProps = {
     tab?: string | string[];
   }>;
 };
+
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="min-w-0"><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 break-words text-sm font-medium">{children || "—"}</dd></div>;
+}
 
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -417,6 +425,15 @@ export default async function ReservationDetailPage({
       !assignedRoomHasOverlap,
   );
   const depositPayment = reservation.folio?.payments[0] ?? null;
+  const [detailFolio, settings] = activeTab === "details" && formMode === "view" && reservation.folio
+    ? await Promise.all([
+        prisma.folio.findUnique({ where: { id: reservation.folio.id }, include: { lineItems: { include: { article: true } }, payments: true } }),
+        prisma.hotelSettings.findUnique({ where: { id: 1 } }),
+      ])
+    : [null, null];
+  const folioTotals = detailFolio && settings
+    ? computeFolioTotals(detailFolio.lineItems, detailFolio.payments, settings)
+    : null;
   const initialCheckInReview = {
     snapshotVersion: reservation.updatedAt.toISOString(),
     reservationId: reservation.id,
@@ -459,8 +476,9 @@ export default async function ReservationDetailPage({
     roomReady,
     deposit: {
       status: reservation.depositStatus,
-      requiredAmount:
-        reservation.reservationNights[0]?.rateAmount.toString() ?? null,
+      requiredAmount: reservation.deposit.gt(0)
+        ? reservation.deposit.toString()
+        : (reservation.reservationNights[0]?.rateAmount.toString() ?? null),
       payment: depositPayment
         ? {
             amount: depositPayment.amount.toString(),
@@ -515,7 +533,7 @@ export default async function ReservationDetailPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
+    <main className="bg-slate-50 p-4 text-slate-900 sm:p-5 lg:p-6">
       <header className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Reservation Details</h1>
         <p className="mt-1 break-words text-sm text-slate-600">
@@ -547,6 +565,9 @@ export default async function ReservationDetailPage({
               >
                 Back
               </Link>
+              {formMode === "view" && !isTerminalReservation ? (
+                <Link href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`} className={buttonVariants({ variant: "outline" })}>Edit Reservation</Link>
+              ) : null}
               {canPrintGrc ? (
                 <a
                   href={`/api/reservations/${reservation.id}/grc`}
@@ -600,24 +621,55 @@ export default async function ReservationDetailPage({
               siblings={groupSiblings}
             />
           ) : null}
-          {formMode === "view" &&
-          !isTerminalReservation &&
-          !reservation.groupBookingId ? (
-            <CheckInDetailPanel initialReview={initialCheckInReview} />
-          ) : null}
-          <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:px-5">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
-                Deposit status
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {reservation.depositStatus === DepositStatus.PENDING
-                  ? "Collect the deposit in the check-in step before checking in the guest."
-                  : "Collected deposit status must be supported by a matching deposit payment on the folio. Check-in can only proceed after all requirements have been verified."}
-              </p>
+          {formMode === "view" ? (
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+              <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-sm font-semibold">Guest Information</h2>
+                <dl className="grid gap-3">
+                  <DetailItem label="Guest name">{reservation.guest.fullName}</DetailItem>
+                  <DetailItem label="Phone">{reservation.guest.phone ? <a className="underline" href={`tel:${reservation.guest.phone}`}>{reservation.guest.phone}</a> : null}</DetailItem>
+                  <DetailItem label="Email">{reservation.guest.email}</DetailItem>
+                  <DetailItem label="Identity document">{formatGuestIdentity(reservation.guest.idType, reservation.guest.idNumber)}</DetailItem>
+                  <DetailItem label="Address">{reservation.guest.address}</DetailItem>
+                  <DetailItem label="Nationality">{reservation.guest.nationality}</DetailItem>
+                  {reservation.purposeOfVisit ? <DetailItem label="Purpose of visit">{purposeOfVisitLabel(reservation.purposeOfVisit)}</DetailItem> : null}
+                  {reservation.notes ? <DetailItem label="Guest notes"><span className="whitespace-pre-wrap">{reservation.notes}</span></DetailItem> : null}
+                </dl>
+              </section>
+              <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-sm font-semibold">Stay & Room Details</h2>
+                <dl className="grid gap-3">
+                  <DetailItem label="Arrival → Departure">{initialCheckInReview.stay.arrivalLabel} → {initialCheckInReview.stay.departureLabel}<span className="block text-xs text-slate-500">{initialCheckInReview.stay.nights} nights</span></DetailItem>
+                  <DetailItem label="Room type">{reservation.roomType.name}</DetailItem>
+                  <DetailItem label="Assigned room">{reservation.room ? <span className="flex items-center gap-2">Room {reservation.room.number}<span className={`rounded px-2 py-0.5 text-xs font-semibold ${{ VC: "bg-green-100 text-green-800", OC: "bg-blue-100 text-blue-800", VD: "bg-amber-100 text-amber-800", OD: "bg-orange-100 text-orange-800", VCU: "bg-purple-100 text-purple-800", OOO: "bg-red-100 text-red-700" }[reservation.room.status]}`}>{reservation.room.status}</span></span> : "Not assigned"}</DetailItem>
+                  <DetailItem label="Occupancy">{reservation.adults} adults / {reservation.children} children</DetailItem>
+                                    <DetailItem label="Reservation type"><ReservationTypeBadge type={reservation.reservationType} /></DetailItem>
+                  <DetailItem label="Arrangement / Meal plan">{mealPlanLabels[reservation.arrangementType]}</DetailItem>
+                  {reservation.stayFees.filter((fee) => fee.status !== "CANCELLED").map((fee) => <DetailItem key={fee.id} label={STAY_FEE_DEFINITIONS[fee.kind].label}>{formatIDR(fee.unitPrice.toString())}</DetailItem>)}
+                </dl>
+              </section>
+              <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-sm font-semibold">Folio & Payment Status</h2>
+                <dl className="grid grid-cols-2 gap-3">
+                  <DetailItem label="Package Total">{formatIDR(stayTotal.total.toString())}</DetailItem>
+                  <DetailItem label="Total Paid">{folioTotals ? formatIDR(folioTotals.totalPaid) : "—"}</DetailItem>
+                  <div className="col-span-2 rounded-md bg-slate-100 p-3">
+                    <DetailItem label="Balance Due">{folioTotals ? formatIDR(folioTotals.balance) : "—"}</DetailItem>
+                    <p className="mt-1 text-xs text-slate-500">{folioTotals ? "Posted folio charges only; future stay charges are not included." : reservation.folio ? "Folio totals are unavailable." : "No folio has been opened yet."}</p>
+                  </div>
+                </dl>
+                {!isTerminalReservation && !reservation.groupBookingId && reservation.status === ReservationStatus.CONFIRMED ? (
+                  <CheckInDetailPanel initialReview={initialCheckInReview} compact />
+                ) : (
+                  <div className="mt-3 space-y-2 border-t border-slate-200 pt-3">
+                    <DepositStatusBadge status={reservation.depositStatus} />
+                    <p className="text-sm">Required: {formatIDR(initialCheckInReview.deposit.requiredAmount ?? 0)}</p>
+                    {depositPayment ? <p className="break-words text-xs text-slate-600">{depositPayment.method} · {depositPayment.reference ?? "No reference"}</p> : null}
+                  </div>
+                )}
+              </section>
             </div>
-            <DepositStatusBadge status={reservation.depositStatus} />
-          </section>
+          ) : (
           <div className="min-w-0">
             <ReservationForm
               mealPlanPrices={mealPlanPrices}
@@ -640,53 +692,10 @@ export default async function ReservationDetailPage({
                 date: toDateInputValue(night.date),
                 rateAmount: night.rateAmount.toString(),
               }))}
-              viewFooterActions={
-                formMode === "view" ? (
-                  <>
-                    {!isTerminalReservation ? (
-                      <Link
-                        href={`/app/fo/reservasi/${reservation.id}?tab=details&mode=edit`}
-                        className={buttonVariants({
-                          variant: canCheckIn ? "outline" : "default",
-                        })}
-                      >
-                        Edit Reservation
-                      </Link>
-                    ) : null}
-                    {canCheckIn ? (
-                      reservation.depositStatus === DepositStatus.COLLECTED ? (
-                        <CheckInDetailAffordance
-                          intent="review"
-                          label="Check In Guest"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center">
-                          <span
-                            aria-disabled="true"
-                            className={buttonVariants({
-                              variant: "default",
-                              className:
-                                "cursor-not-allowed opacity-50 pointer-events-none",
-                            })}
-                          >
-                            Check In Guest
-                          </span>
-                          <CheckInDetailAffordance
-                            intent="deposit"
-                            label="Collect Deposit"
-                            variant="outline"
-                          />
-                          <span className="text-xs font-medium text-amber-700 sm:max-w-40">
-                            Collect the deposit first.
-                          </span>
-                        </div>
-                      )
-                    ) : null}
-                  </>
-                ) : undefined
-              }
+
             />
           </div>
+          )}
         </>
       ) : activeTab === "inclusions" ? (
         <InclusionPanel

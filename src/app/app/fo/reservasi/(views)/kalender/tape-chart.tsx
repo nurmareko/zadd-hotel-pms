@@ -52,7 +52,7 @@ export const ROOM_STATUS_FULL_NAMES: Record<RoomStatus, string> = {
   VD: "Vacant dirty",
   OD: "Occupied dirty",
   VCU: "Clean, awaiting inspection",
-  OOO: "Out of service",
+  OOO: "Out of Order",
 };
 
 type AllocatedBarColorKey = Exclude<
@@ -370,11 +370,11 @@ function GroupRow({
           className="flex h-full w-full items-center gap-2 px-2.5 text-left hover:bg-slate-100 transition-colors"
         >
           <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-          <span className="min-w-0">
-            <span className="block truncate text-xs font-semibold text-slate-900">
+          <span className="flex min-w-0 flex-1 items-center justify-between gap-1">
+            <span className="truncate text-xs font-semibold text-slate-900">
               {roomType.name}
             </span>
-            <span className="block text-xs text-slate-500">
+            <span className="shrink-0 text-[10px] text-slate-500">
               {roomCount} rooms{oooCount ? ` / ${oooCount} OOO today` : ""}
             </span>
           </span>
@@ -510,7 +510,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
 
                 if (row.kind === "room") {
                   const unavailableToday = row.room.isBlockedToday || row.room.status === "OOO";
-                  const outOfOrderLabel = row.room.isBlockedToday ? "Out of Order" : "Physical Status: OOO";
+                  const outOfOrderLabel = row.room.status === "OOO" ? "Physical Status: Out of Order" : "Out of Order";
                   return (
                     <div
                       key={`room-${row.room.id}`}
@@ -531,7 +531,7 @@ export function TapeChart({ data, days, todayIso }: TapeChartProps) {
                               className="h-3 w-3 text-red-500"
                               aria-hidden="true"
                             />
-                            {outOfOrderLabel}
+                            OOO
                           </span>
                         ) : (
                           <span className="shrink-0 text-xs font-semibold text-slate-500">

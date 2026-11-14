@@ -119,6 +119,10 @@ describe("tape chart deposit presentation", () => {
     expect(html).toContain("Tentative");
     expect(html).toContain("background-color:#f97316");
     expect(html).toContain("background-color:#fef3c7");
+    expect(html).toContain('aria-label="Physical Status: Out of Order"');
+    expect(html).toContain("outOfOrderCell");
+    expect(html).toContain("text-red-700");
+    expect(html).toContain("OOO");
     expect(html).toContain("border:2px dashed currentColor");
   });
 });
@@ -147,21 +151,25 @@ describe("tape chart dated block cells", () => {
     const html = renderChart([{ ...block, status: "RELEASED" }]);
     for (let day = 14; day < 28; day++) expect(html).toContain(bookingLabel(day));
     expect(html).toContain("lucide-wrench");
-        expect(html).toContain("Physical Status: OOO");
-        expect(html).toContain("1 rooms / 1 OOO today");
+    expect(html).toContain('aria-label="Physical Status: Out of Order"');
+    expect(html).not.toContain(">Physical Status:");
+    expect(html).toContain("1 rooms / 1 OOO today");
     expect(html).not.toContain("roomBlockBar");
   });
 
   it.each([
-    ["OOO", false, "Physical Status: OOO"],
+    ["OOO", false, "Physical Status: Out of Order"],
     ["VC", true, "Out of Order"],
-    ["OOO", true, "Out of Order"],
+    ["OOO", true, "Physical Status: Out of Order"],
   ] as const)("disables today's cell for status %s and blockedToday %s", (status, blockedToday, label) => {
     const html = renderChart([], blockedToday, "2026-09-14", status);
     expect(html).toContain("1 rooms / 1 OOO today");
     expect(html).toContain(`aria-label="${label}"`);
     expect(html).toContain("lucide-wrench");
-    if (blockedToday) expect(html).not.toContain("Physical Status: OOO");
+    expect(html).toContain("--row-height:26px");
+    expect(html).toContain("--group-header-height:26px");
+    expect(html).toContain("--date-header-height:32px");
+    expect(html).toContain("--room-label-width:200px");
     expect(html).not.toContain(bookingLabel(14));
     const cell = html.match(/<div[^>]*aria-label="Room 108 2026-09-14: Unavailable[^>]*>/)?.[0];
     expect(cell).toBeDefined();
@@ -187,8 +195,8 @@ describe("tape chart dated block cells", () => {
 
   it("preserves today's dated block reason and bar for a physical OOO room", () => {
     const html = renderChart([block], true, "2026-09-15");
-    expect(html).toContain('aria-label="Out of Order"');
-    expect(html).not.toContain("Physical Status: OOO");
+    expect(html).toContain('aria-label="Physical Status: Out of Order"');
+    expect(html).not.toContain(">Physical Status:");
     expect(html).toContain('aria-label="Room 108 2026-09-15: Unavailable — Maintenance — Perbaikan pipa AC."');
     expect(html.match(/class="[^"]*roomBlockBar[^"]*"/g)).toHaveLength(1);
     expect(html).not.toContain(bookingLabel(15));

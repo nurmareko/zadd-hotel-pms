@@ -1,5 +1,7 @@
 import { reservationStatusColors } from "@/lib/reservation-status-colors";
 
+import styles from "./tape-chart.module.css";
+
 export const reservationBarColors = {
   CONFIRMED: {
     label: "Guaranteed",
@@ -52,6 +54,10 @@ export function TapeChartLegend() {
       aria-label="Reservation status legend"
     >
       <span className="font-semibold text-slate-700">Legend:</span>
+      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-red-700" aria-label="Physical Status: Out of Order">
+        <span className={`${styles.outOfOrderCell} h-3 w-5 shrink-0 rounded-sm border`} aria-hidden="true" />
+        OOO
+      </span>
       {legendItems.map((item) => (
         <span key={item.label} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap">
           <span
