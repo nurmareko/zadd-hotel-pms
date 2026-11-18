@@ -9,6 +9,11 @@ export const activityLabels = {
   CHECK_OUT_COMPLETED: "Check-out Completed",
   PAYMENT_RECORDED: "Payment Recorded",
   FOLIO_CHARGE_POSTED: "Charge Posted",
+  ROOM_CLEANED: "Room Cleaned",
+  ROOM_INSPECTED: "Room Inspected",
+  FB_ORDER_CREATED: "F&B Order Created",
+  FB_ORDER_SETTLED: "F&B Order Settled",
+  NIGHT_AUDIT_EXECUTED: "Night Audit Executed",
 } satisfies Record<ActivityAction, string>;
 
 export type ActivityQuery = {
@@ -59,9 +64,50 @@ const paymentMethods: Record<string, string> = {
   CASH: "Cash", CARD: "Card", TRANSFER: "Transfer", CHARGE_TO_ROOM: "Charge to Room",
 };
 
-export function activitySummary(metadata: Prisma.JsonValue) {
+const serviceTypes: Record<string, string> = {
+  DINE_IN: "Dine-in", ROOM_SERVICE: "Room Service",
+};
+const roomStatuses = new Set(["VC", "OC", "VD", "OD", "VCU", "OOO", "OOS"]);
+
+function summaryText(value: Prisma.JsonValue | undefined) {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const text = value.trim();
+  return text.length > 300 ? `${text.slice(0, 300)}…` : text;
+}
+
+export function activitySummary(metadata: Prisma.JsonValue, action?: keyof typeof activityLabels) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "—";
   const summary: string[] = [];
+  if (action === "ROOM_CLEANED" || action === "ROOM_INSPECTED") {
+    const room = summaryText(metadata.roomNumber);
+    if (room) summary.push(`Room ${room}`);
+    if (typeof metadata.targetStatus === "string" && roomStatuses.has(metadata.targetStatus)) {
+      summary.push(`Status: ${metadata.targetStatus}`);
+    }
+    return summary.join(" · ") || "—";
+  }
+  if (action === "FB_ORDER_CREATED" || action === "FB_ORDER_SETTLED") {
+    const order = summaryText(metadata.orderNo);
+    const service = typeof metadata.orderType === "string" && Object.hasOwn(serviceTypes, metadata.orderType)
+      ? serviceTypes[metadata.orderType] : undefined;
+    if (order) summary.push(`Order #${order}${action === "FB_ORDER_CREATED" && service ? ` (${service})` : ""}`);
+    if (action === "FB_ORDER_SETTLED") {
+      const amount = metadata.amount;
+      const validAmount = (typeof amount === "number" ||
+        (typeof amount === "string" && /^-?\d+(\.\d+)?$/.test(amount))) && Number.isFinite(Number(amount));
+      const method = typeof metadata.paymentMethod === "string" && Object.hasOwn(paymentMethods, metadata.paymentMethod)
+        ? paymentMethods[metadata.paymentMethod] : undefined;
+      if (validAmount) summary.push(`Total: ${formatIDR(amount as number | string)}${method ? ` via ${method}` : ""}`);
+    }
+    return summary.join(" · ") || "—";
+  }
+  if (action === "NIGHT_AUDIT_EXECUTED") {
+    const date = metadata.businessDate;
+    if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return "—";
+    const parsed = new Date(`${date}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
+      ? `Operating Date: ${date}` : "—";
+  }
   if (typeof metadata.amount === "number" && Number.isFinite(metadata.amount)) {
     summary.push(formatIDR(metadata.amount));
   }

@@ -25,6 +25,11 @@ const actionColors = {
   CHECK_OUT_COMPLETED: "bg-slate-100 text-slate-700 ring-slate-200",
   PAYMENT_RECORDED: "bg-green-50 text-green-700 ring-green-200",
   FOLIO_CHARGE_POSTED: "bg-orange-50 text-orange-800 ring-orange-200",
+  ROOM_CLEANED: "bg-green-50 text-green-700 ring-green-200",
+  ROOM_INSPECTED: "bg-purple-50 text-purple-700 ring-purple-200",
+  FB_ORDER_CREATED: "bg-cyan-50 text-cyan-700 ring-cyan-200",
+  FB_ORDER_SETTLED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  NIGHT_AUDIT_EXECUTED: "bg-amber-50 text-amber-800 ring-amber-200",
 } satisfies Record<ActivityAction, string>;
 
 function ActionBadge({ action }: { action: ActivityAction }) {
@@ -72,7 +77,7 @@ export function ActivityLogTable({ activities, filtered }: { activities: Activit
                 <td className="px-4 py-3"><p className="break-words font-medium">{activity.user.fullName}</p><p className="mt-1 break-words text-xs text-muted-foreground">@{activity.user.username}</p></td>
                 <td className="px-4 py-3"><ActionBadge action={activity.action} /></td>
                 <td className="px-4 py-3"><RelatedRecords activity={activity} /></td>
-                <td className="max-w-sm break-words px-4 py-3 text-muted-foreground">{activitySummary(activity.metadata)}</td>
+                <td className="max-w-sm break-words px-4 py-3 text-muted-foreground">{activitySummary(activity.metadata, activity.action)}</td>
               </tr>
             ))}
           </tbody>
@@ -87,7 +92,7 @@ export function ActivityLogTable({ activities, filtered }: { activities: Activit
             </div>
             <p className="break-words font-medium">{activity.user.fullName} <span className="font-normal text-muted-foreground">(@{activity.user.username})</span></p>
             <RelatedRecords activity={activity} />
-            <p className="break-words text-muted-foreground">{activitySummary(activity.metadata)}</p>
+            <p className="break-words text-muted-foreground">{activitySummary(activity.metadata, activity.action)}</p>
           </article>
         ))}
       </div>

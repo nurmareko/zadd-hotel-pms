@@ -1,4 +1,5 @@
 import {
+  ActivityAction,
   ArrangementType,
   ArticleType,
   FBOrderStatus,
@@ -9,6 +10,7 @@ import {
   RoomStatus,
 } from "@prisma/client";
 import { addDays } from "date-fns";
+import { logActivity } from "@/lib/activity-log";
 
 import {
   hotelTodayDateOnly,
@@ -1586,6 +1588,16 @@ export async function executeNightAudit({
               runBy: { select: { fullName: true } },
             },
           });
+          transactionWriteCount += 1;
+
+          await logActivity({
+            userId: runById,
+            action: ActivityAction.NIGHT_AUDIT_EXECUTED,
+            metadata: {
+              businessDate: businessDate.toISOString().slice(0, 10),
+              totalCharges: lineItemsToCreate.length,
+            },
+          }, tx);
           transactionWriteCount += 1;
 
           const warnings = [...reservationWarnings, ...roomBlockWarnings];

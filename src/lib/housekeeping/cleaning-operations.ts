@@ -1,5 +1,6 @@
-import { HousekeepingNotificationStatus, Prisma, RoomStatus } from "@prisma/client";
+import { ActivityAction, HousekeepingNotificationStatus, Prisma, RoomStatus } from "@prisma/client";
 
+import { logActivity } from "@/lib/activity-log";
 import { hotelTodayDateOnly } from "@/lib/date-only";
 import { AMENITIES_ITEMS, AMENITY_INGREDIENT_MAP, type AmenityKey } from "@/lib/housekeeping/amenities";
 import { isMobilePoolEligible } from "@/lib/housekeeper-mobile-eligibility";
@@ -207,6 +208,12 @@ export async function finishCleaningOperation(input: FinishCleaningInput): Promi
       assignmentId: assignment.id, recipientId: input.userId,
       status: HousekeepingNotificationStatus.COMPLETED,
     });
+    await logActivity({
+      userId: input.userId,
+      action: ActivityAction.ROOM_CLEANED,
+      roomId: input.roomId,
+      metadata: { roomNumber: room.number, targetStatus: nextStatus },
+    }, tx);
   });
 }
 
@@ -241,6 +248,12 @@ export async function inspectRoomOperation(input: InspectRoomInput): Promise<Cle
         updatedById: input.userId, updatedAt: now, note: input.notes?.trim() || null,
       },
     });
+    await logActivity({
+      userId: input.userId,
+      action: ActivityAction.ROOM_INSPECTED,
+      roomId: input.roomId,
+      metadata: { roomNumber: room.number, targetStatus: nextStatus, passed: input.passed },
+    }, tx);
   });
 }
 

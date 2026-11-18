@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ActivityAction,
   FBOrderServiceType,
   ArticleType,
   FBOrderStatus,
@@ -14,6 +15,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import type { AppRole } from "@/auth.config";
+import { logActivity } from "@/lib/activity-log";
 import { can } from "@/lib/permissions";
 import {
   formatFBOrderItemNotes,
@@ -994,6 +996,19 @@ export async function payOrderDirect(
           await freeOrderTable(tx, order.tableId);
         }
 
+        await logActivity(
+          {
+            userId,
+            action: ActivityAction.FB_ORDER_SETTLED,
+            metadata: {
+              orderNo: paidSelection.paidOrderNo,
+              amount: paidSelection.totals.total.toFixed(),
+              paymentMethod: parsed.data.method,
+            },
+          },
+          tx,
+        );
+
         return {
           ok: true as const,
           paymentMethod: parsed.data.method,
@@ -1202,6 +1217,20 @@ export async function chargeOrderToRoom(
         if (paidSelection.fullyPaid) {
           await freeOrderTable(tx, lockedOrder.tableId);
         }
+
+        await logActivity(
+          {
+            userId,
+            action: ActivityAction.FB_ORDER_SETTLED,
+            folioId: roomLookup.folioId,
+            metadata: {
+              orderNo: paidSelection.paidOrderNo,
+              amount: paidSelection.totals.total.toFixed(),
+              paymentMethod: PaymentMethod.CHARGE_TO_ROOM,
+            },
+          },
+          tx,
+        );
 
         return {
           ok: true as const,

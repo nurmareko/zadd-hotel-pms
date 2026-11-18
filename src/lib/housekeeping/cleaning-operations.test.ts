@@ -10,6 +10,7 @@ const { transaction, tx } = vi.hoisted(() => ({
     housekeepingAssignment: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
     cleaningSession: { findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
     housekeepingLog: { create: vi.fn() },
+    activityLog: { create: vi.fn() },
     housekeepingNotification: { upsert: vi.fn() },
     reservation: { findFirst: vi.fn() },
     lostFoundItem: { create: vi.fn() },
@@ -41,6 +42,7 @@ beforeEach(() => {
   });
   tx.$queryRaw.mockResolvedValue([{ id: 10 }]);
   tx.user.findFirst.mockResolvedValue({ id: 7 });
+  tx.activityLog.create.mockResolvedValue({ id: 1 });
   tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VD, number: "301" });
   tx.room.updateMany.mockResolvedValue({ count: 1 });
   tx.housekeepingAssignment.findFirst.mockResolvedValue({ id: 20 });
@@ -121,7 +123,7 @@ describe("complete cleaning operations", () => {
   });
 
   it.each([[RoomStatus.VD, RoomStatus.VCU, true], [RoomStatus.OD, RoomStatus.OC, false]] as const)("finishes %s to %s with session, audit and COMPLETED notification", async (status, nextStatus, linen) => {
-    tx.room.findUnique.mockResolvedValue({ status });
+    tx.room.findUnique.mockResolvedValue({ status, number: "301" });
     tx.cleaningSession.findFirst.mockResolvedValue({ id: 30 });
     expect(await finishCleaningOperation({ ...input, linenChanged: linen, towelChanged: linen, note: "Selesai" })).toEqual({ ok: true });
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -129,6 +131,11 @@ describe("complete cleaning operations", () => {
     expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status }, data: { status: nextStatus } });
     expect(tx.housekeepingLog.create).toHaveBeenCalledWith({ data: { roomId: 10, oldStatus: status, newStatus: nextStatus, updatedById: 7, updatedAt: now, note: "Selesai", linenChanged: linen, towelChanged: linen } });
     expect(tx.housekeepingNotification.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { assignmentId: 20, recipientId: 7, status: "COMPLETED" } }));
+    expect(tx.activityLog.create).toHaveBeenCalledExactlyOnceWith({ data: {
+      userId: 7, action: "ROOM_CLEANED", roomId: 10,
+      reservationId: undefined, folioId: undefined,
+      metadata: { roomNumber: "301", targetStatus: nextStatus },
+    } });
   });
 
   it.each(["session", "room", "notification"])("rejects the transaction rather than committing partial writes on %s failure", async (failure) => {
@@ -325,7 +332,7 @@ describe("Issue300 finish-cleaning amenity consumption", () => {
 });
 
 describe("inspection", () => {
-  beforeEach(() => tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VCU }));
+  beforeEach(() => tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VCU, number: "301" }));
   it("requires a failure reason and VCU", async () => {
     expect((await inspectRoomOperation({ ...input, passed: false, notes: "  " })).ok).toBe(false);
     tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VC });
@@ -343,6 +350,11 @@ describe("inspection", () => {
     expect(tx.cleaningSession.updateMany).toHaveBeenCalledWith({ where: { id: 30, roomId: 10, finishedAt: { not: null }, inspectedAt: null }, data: { inspectedAt: now, inspectedById: 7 } });
     expect(tx.room.updateMany).toHaveBeenCalledWith({ where: { id: 10, status: "VCU" }, data: { status: passed ? "VC" : "VD" } });
     expect(tx.housekeepingLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ newStatus: passed ? "VC" : "VD", note: "Periksa ulang" }) }));
+    expect(tx.activityLog.create).toHaveBeenCalledExactlyOnceWith({ data: {
+      userId: 7, action: "ROOM_INSPECTED", roomId: 10,
+      reservationId: undefined, folioId: undefined,
+      metadata: { roomNumber: "301", targetStatus: passed ? "VC" : "VD", passed },
+    } });
   });
   it.each(["HK", "ADMIN", "GM"] as const)("lets %s inspect VCU without assignment or inventing a session", async (role) => {
     tx.housekeepingAssignment.findFirst.mockResolvedValue(null);
@@ -355,6 +367,29 @@ describe("inspection", () => {
     expect((await inspectRoomOperation({ ...input, passed: true })).ok).toBe(false);
     expect(rejectedTransactions).toHaveLength(1);
     expect(tx.room.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("mandatory transactional activity logging", () => {
+  it.each(["cleaning", "inspection passed", "inspection failed"])("rejects %s when the activity write fails", async (operation) => {
+    const failure = new Error("activity log unavailable");
+    tx.activityLog.create.mockRejectedValue(failure);
+    if (operation === "cleaning") {
+      tx.cleaningSession.findFirst.mockResolvedValue({ id: 30 });
+      expect(await finishCleaningOperation(finish)).toEqual({ ok: false, error: "Failed to complete cleaning" });
+      expect(tx.housekeepingNotification.upsert).toHaveBeenCalledTimes(1);
+    } else {
+      tx.room.findUnique.mockResolvedValue({ status: RoomStatus.VCU, number: "301" });
+      tx.cleaningSession.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 30 });
+      expect(await inspectRoomOperation({ ...input, passed: operation === "inspection passed", notes: "Reclean required" }))
+        .toEqual({ ok: false, error: "Failed to save the inspection result" });
+    }
+    expect(tx.cleaningSession.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.room.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.housekeepingLog.create).toHaveBeenCalledTimes(1);
+    expect(tx.activityLog.create).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(rejectedTransactions).toEqual([failure]);
   });
 });
 

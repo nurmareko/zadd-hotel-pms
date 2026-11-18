@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ActivityAction,
   FBOrderServiceType,
   FBOrderStatus,
   FolioStatus,
@@ -14,6 +15,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import type { AppRole } from "@/auth.config";
+import { logActivity } from "@/lib/activity-log";
 import { can } from "@/lib/permissions";
 import { prisma, TRANSACTION_OPTIONS } from "@/lib/prisma";
 import {
@@ -218,13 +220,22 @@ async function runCreateOrderTransaction(
           waitedById: userId,
           status: FBOrderStatus.OPEN,
         },
-        select: { id: true },
+        select: { id: true, orderNo: true, serviceType: true },
       });
 
       await tx.restaurantTable.update({
         where: { id: table.id },
         data: { status: TableStatus.OCCUPIED },
       });
+
+      await logActivity(
+        {
+          userId,
+          action: ActivityAction.FB_ORDER_CREATED,
+          metadata: { orderNo: order.orderNo, orderType: order.serviceType },
+        },
+        tx,
+      );
 
       return { ok: true as const, orderId: order.id };
     },
@@ -319,8 +330,17 @@ async function runCreateRoomServiceOrderTransaction(
           waitedById: userId,
           status: FBOrderStatus.OPEN,
         },
-        select: { id: true },
+        select: { id: true, orderNo: true, serviceType: true },
       });
+
+      await logActivity(
+        {
+          userId,
+          action: ActivityAction.FB_ORDER_CREATED,
+          metadata: { orderNo: order.orderNo, orderType: order.serviceType },
+        },
+        tx,
+      );
 
       return { ok: true as const, orderId: order.id };
     },

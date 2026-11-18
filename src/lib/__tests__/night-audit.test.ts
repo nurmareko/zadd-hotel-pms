@@ -21,6 +21,7 @@ const { transaction, tx } = vi.hoisted(() => ({
     roomBlock: { findFirst: vi.fn() },
     cleaningSession: { findFirst: vi.fn() },
     housekeepingLog: { create: vi.fn() },
+    activityLog: { create: vi.fn() },
     fBOrder: { aggregate: vi.fn(), count: vi.fn(), findMany: vi.fn() },
     folioLineItem: { findMany: vi.fn(), createMany: vi.fn() },
   },
@@ -132,6 +133,7 @@ describe("executeNightAudit room-block reconciliation", () => {
     vi.resetAllMocks();
     transaction.mockImplementation(async (operation) => operation(tx));
     tx.nightAudit.findUnique.mockResolvedValue(null);
+    tx.activityLog.create.mockResolvedValue({ id: 1 });
     tx.nightAudit.create.mockResolvedValue({ id: 1, runAt: now, runBy: { fullName: "Auditor" } });
     tx.article.findMany.mockResolvedValue(STAY_CHARGE_ARTICLE_CODES.map((code, index) => ({
       id: index + 1, code, name: code, type: index === 0 ? "ROOM" : "FB", defaultPrice: decimal(0),
@@ -248,7 +250,12 @@ describe("executeNightAudit room-block reconciliation", () => {
       roomId: 10, oldStatus: status, newStatus: "OOO", updatedById: 7, updatedAt: now,
       note: "Room block #20 active at business-day rollover.",
     } });
-    if (result.ok) expect(result.summary.transactionWriteCount).toBe(3);
+    if (result.ok) expect(result.summary.transactionWriteCount).toBe(4);
+    expect(tx.activityLog.create).toHaveBeenCalledExactlyOnceWith({ data: {
+      userId: 7, action: "NIGHT_AUDIT_EXECUTED",
+      reservationId: undefined, folioId: undefined, roomId: undefined,
+      metadata: { businessDate: "2026-08-06", totalCharges: 0 },
+    } });
   });
 
   it.each([
@@ -361,12 +368,34 @@ describe("executeNightAudit room-block reconciliation", () => {
     expect(transaction).toHaveBeenCalledTimes(2);
     expect(tx.housekeepingLog.create).toHaveBeenCalledTimes(1);
     expect(tx.nightAudit.create).toHaveBeenCalledTimes(1);
+    expect(tx.activityLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects the transaction when the mandatory activity event fails after audit creation", async () => {
+    const failure = new Error("activity log unavailable");
+    const rejectedTransactions: unknown[] = [];
+    transaction.mockImplementation(async (operation) => {
+      try { return await operation(tx); }
+      catch (error) { rejectedTransactions.push(error); throw error; }
+    });
+    tx.activityLog.create.mockRejectedValue(failure);
+
+    await expect(run()).rejects.toBe(failure);
+
+    expect(tx.room.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.housekeepingLog.create).toHaveBeenCalledTimes(1);
+    expect(tx.nightAudit.create).toHaveBeenCalledTimes(1);
+    expect(tx.activityLog.create).toHaveBeenCalledTimes(1);
+    expect(tx.nightAudit.create.mock.invocationCallOrder[0]).toBeLessThan(tx.activityLog.create.mock.invocationCallOrder[0]);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(rejectedTransactions).toEqual([failure]);
   });
 
   it("aborts on log failure before creating the audit row", async () => {
     tx.housekeepingLog.create.mockRejectedValue(new Error("log unavailable"));
     await expect(run()).rejects.toThrow("log unavailable");
     expect(tx.nightAudit.create).not.toHaveBeenCalled();
+    expect(tx.activityLog.create).not.toHaveBeenCalled();
   });
 
   it("does not reconcile an already completed audit", async () => {
@@ -374,6 +403,7 @@ describe("executeNightAudit room-block reconciliation", () => {
     expect((await run()).ok).toBe(false);
     expect(tx.room.findMany).not.toHaveBeenCalled();
     expect(tx.room.updateMany).not.toHaveBeenCalled();
+    expect(tx.activityLog.create).not.toHaveBeenCalled();
   });
 });
 

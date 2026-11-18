@@ -126,5 +126,17 @@ export function actionLabel(action: ActivityAction) {
       return "Payment recorded";
     case ActivityAction.FOLIO_CHARGE_POSTED:
       return "Folio charge posted";
+    case ActivityAction.ROOM_CLEANED:
+      return "Room cleaned";
+    case ActivityAction.ROOM_INSPECTED:
+      return "Room inspected";
+    case ActivityAction.FB_ORDER_CREATED:
+      return "F&B order created";
+    case ActivityAction.FB_ORDER_SETTLED:
+      return "F&B order settled";
+    case ActivityAction.NIGHT_AUDIT_EXECUTED:
+      return "Night audit executed";
+    default:
+      return "Unknown activity";
   }
 }
